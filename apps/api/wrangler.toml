@@ -1,0 +1,38 @@
+name = "humans-api"
+main = "src/index.ts"
+compatibility_date = "2024-12-18"
+compatibility_flags = ["nodejs_compat"]
+account_id = "4392783e6cdaccb136cacda5f9800ba6"
+workers_dev = true
+
+[vars]
+ENVIRONMENT = "production"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "humans-db"
+database_id = "40da29b5-1629-4478-b754-03350baac348"
+
+[[kv_namespaces]]
+binding = "SESSIONS"
+id = "ae9494345f004cb6a6e52e34692f55be"
+
+[[r2_buckets]]
+binding = "DOCUMENTS"
+bucket_name = "humans-documents"
+
+# [queues.producers]
+# [[queues.producers]]
+# queue = "humans-audit"
+# binding = "AUDIT_QUEUE"
+
+# [queues.consumers]
+# [[queues.consumers]]
+# queue = "humans-audit"
+
+[[routes]]
+pattern = "api.humans.pavinfo.app"
+custom_domain = true
+
+[dev]
+port = 8787

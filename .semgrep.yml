@@ -1,0 +1,3 @@
+rules: []
+# Using Semgrep registry rulesets via CLI flags:
+# semgrep scan --config p/typescript --config p/owasp-top-ten --config p/xss --config p/sql-injection --error --strict
