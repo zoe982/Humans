@@ -24,6 +24,7 @@ import {
 import { authMiddleware } from "../middleware/auth";
 import { requirePermission } from "../middleware/rbac";
 import { supabaseMiddleware } from "../middleware/supabase";
+import { computeDiff, logAuditEntry } from "../lib/audit";
 import type { AppContext } from "../types";
 
 const humanRoutes = new Hono<AppContext>();
@@ -169,6 +170,17 @@ humanRoutes.patch("/api/humans/:id", requirePermission("manageHumans"), async (c
     return c.json({ error: "Human not found" }, 404);
   }
 
+  // Capture old values for audit
+  const existingTypes = await db.select().from(humanTypes).where(eq(humanTypes.humanId, id));
+  const oldValues: Record<string, unknown> = {
+    firstName: existing.firstName,
+    middleName: existing.middleName,
+    lastName: existing.lastName,
+  };
+  if (data.types !== undefined) {
+    oldValues["types"] = existingTypes.map((t) => t.type).sort();
+  }
+
   // Update human fields
   const updateFields: Record<string, unknown> = { updatedAt: now };
   if (data.firstName !== undefined) updateFields["firstName"] = data.firstName;
@@ -206,10 +218,31 @@ humanRoutes.patch("/api/humans/:id", requirePermission("manageHumans"), async (c
     }
   }
 
+  // Audit log
+  const newValues: Record<string, unknown> = {};
+  if (data.firstName !== undefined) newValues["firstName"] = data.firstName;
+  if (data.middleName !== undefined) newValues["middleName"] = data.middleName;
+  if (data.lastName !== undefined) newValues["lastName"] = data.lastName;
+  if (data.types !== undefined) newValues["types"] = [...data.types].sort();
+
+  const diff = computeDiff(oldValues, newValues);
+  let auditEntryId: string | undefined;
+  if (diff) {
+    const session = c.get("session")!;
+    auditEntryId = await logAuditEntry({
+      db,
+      colleagueId: session.colleagueId,
+      action: "UPDATE",
+      entityType: "human",
+      entityId: id,
+      changes: diff,
+    });
+  }
+
   const updated = await db.query.humans.findFirst({
     where: eq(humans.id, id),
   });
-  return c.json({ data: updated });
+  return c.json({ data: updated, auditEntryId });
 });
 
 // Update human status
@@ -226,12 +259,30 @@ humanRoutes.patch("/api/humans/:id/status", requirePermission("manageHumans"), a
     return c.json({ error: "Human not found" }, 404);
   }
 
+  const oldStatus = existing.status;
   await db
     .update(humans)
     .set({ status: data.status, updatedAt: new Date().toISOString() })
     .where(eq(humans.id, id));
 
-  return c.json({ data: { id, status: data.status } });
+  // Audit log
+  let auditEntryId: string | undefined;
+  if (oldStatus !== data.status) {
+    const diff = computeDiff({ status: oldStatus }, { status: data.status });
+    if (diff) {
+      const session = c.get("session")!;
+      auditEntryId = await logAuditEntry({
+        db,
+        colleagueId: session.colleagueId,
+        action: "UPDATE",
+        entityType: "human",
+        entityId: id,
+        changes: diff,
+      });
+    }
+  }
+
+  return c.json({ data: { id, status: data.status }, auditEntryId });
 });
 
 // Delete human + cascade related records

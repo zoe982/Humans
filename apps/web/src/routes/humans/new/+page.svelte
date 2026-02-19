@@ -2,6 +2,7 @@
   import type { PageData, ActionData } from "./$types";
   import PageHeader from "$lib/components/PageHeader.svelte";
   import AlertBanner from "$lib/components/AlertBanner.svelte";
+  import TypeTogglePills from "$lib/components/TypeTogglePills.svelte";
 
   let { data, form }: { data: PageData; form: ActionData } = $props();
 
@@ -116,20 +117,9 @@
 
     <!-- Types -->
     <div>
-      <label class="block text-sm font-medium text-text-secondary">Types</label>
-      <div class="mt-2 flex gap-4">
-        <label class="flex items-center gap-2 text-sm text-text-primary">
-          <input type="checkbox" name="types" value="client" class="rounded border-glass-border bg-glass text-accent focus:ring-accent" />
-          Client
-        </label>
-        <label class="flex items-center gap-2 text-sm text-text-primary">
-          <input type="checkbox" name="types" value="trainer" class="rounded border-glass-border bg-glass text-accent focus:ring-accent" />
-          Trainer
-        </label>
-        <label class="flex items-center gap-2 text-sm text-text-primary">
-          <input type="checkbox" name="types" value="travel_agent" class="rounded border-glass-border bg-glass text-accent focus:ring-accent" />
-          Travel Agent
-        </label>
+      <label class="block text-sm font-medium text-text-secondary">Types <span class="text-red-400">*</span></label>
+      <div class="mt-2">
+        <TypeTogglePills />
       </div>
     </div>
 

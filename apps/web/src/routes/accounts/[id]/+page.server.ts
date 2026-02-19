@@ -71,58 +71,6 @@ export const load = async ({ locals, cookies, params }: RequestEvent) => {
 };
 
 export const actions = {
-  update: async ({ request, cookies, params }: RequestEvent): Promise<ActionFailure<{ error: string }> | { success: true }> => {
-    const form = await request.formData();
-    const sessionToken = cookies.get("humans_session") ?? "";
-    const id = params.id;
-
-    const typeIds = form.getAll("typeIds") as string[];
-
-    const payload = {
-      name: form.get("name"),
-      typeIds: typeIds.length > 0 ? typeIds : [],
-    };
-
-    const res = await fetch(`${PUBLIC_API_URL}/api/accounts/${id}`, {
-      method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-        Cookie: `humans_session=${sessionToken}`,
-      },
-      body: JSON.stringify(payload),
-    });
-
-    if (!res.ok) {
-      const resBody: unknown = await res.json().catch(() => ({}));
-      return fail(res.status, { error: extractApiError(resBody, "Failed to update account") });
-    }
-
-    return { success: true };
-  },
-
-  updateStatus: async ({ request, cookies, params }: RequestEvent): Promise<ActionFailure<{ error: string }> | { success: true }> => {
-    const form = await request.formData();
-    const sessionToken = cookies.get("humans_session") ?? "";
-    const id = params.id;
-    const status = form.get("status") as string;
-
-    const res = await fetch(`${PUBLIC_API_URL}/api/accounts/${id}/status`, {
-      method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-        Cookie: `humans_session=${sessionToken}`,
-      },
-      body: JSON.stringify({ status }),
-    });
-
-    if (!res.ok) {
-      const resBody: unknown = await res.json().catch(() => ({}));
-      return fail(res.status, { error: extractApiError(resBody, "Failed to update status") });
-    }
-
-    return { success: true };
-  },
-
   addEmail: async ({ request, cookies, params }: RequestEvent): Promise<ActionFailure<{ error: string }> | { success: true }> => {
     const form = await request.formData();
     const sessionToken = cookies.get("humans_session") ?? "";
@@ -288,6 +236,54 @@ export const actions = {
     return { success: true };
   },
 
+  createAndLinkHuman: async ({ request, cookies, params }: RequestEvent): Promise<ActionFailure<{ error: string }> | { success: true }> => {
+    const form = await request.formData();
+    const sessionToken = cookies.get("humans_session") ?? "";
+    const id = params.id;
+
+    const firstName = form.get("firstName") as string;
+    const lastName = form.get("lastName") as string;
+    const labelId = form.get("labelId") || undefined;
+
+    // Create the human
+    const createRes = await fetch(`${PUBLIC_API_URL}/api/humans`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Cookie: `humans_session=${sessionToken}`,
+      },
+      body: JSON.stringify({ firstName, lastName }),
+    });
+
+    if (!createRes.ok) {
+      const resBody: unknown = await createRes.json().catch(() => ({}));
+      return fail(createRes.status, { error: extractApiError(resBody, "Failed to create human") });
+    }
+
+    const createData: unknown = await createRes.json();
+    const humanId = (createData as { data?: { id?: string } })?.data?.id;
+    if (!humanId) {
+      return fail(500, { error: "Failed to get created human ID" });
+    }
+
+    // Link the human to this account
+    const linkRes = await fetch(`${PUBLIC_API_URL}/api/accounts/${id}/humans`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Cookie: `humans_session=${sessionToken}`,
+      },
+      body: JSON.stringify({ humanId, labelId }),
+    });
+
+    if (!linkRes.ok) {
+      const resBody: unknown = await linkRes.json().catch(() => ({}));
+      return fail(linkRes.status, { error: extractApiError(resBody, "Failed to link human to account") });
+    }
+
+    return { success: true };
+  },
+
   addActivity: async ({ request, cookies, params }: RequestEvent): Promise<ActionFailure<{ error: string }> | { success: true }> => {
     const form = await request.formData();
     const sessionToken = cookies.get("humans_session") ?? "";
@@ -296,7 +292,7 @@ export const actions = {
       type: form.get("type") || "email",
       subject: form.get("subject"),
       notes: form.get("notes") || undefined,
-      activityDate: form.get("activityDate") || new Date().toISOString(),
+      activityDate: (() => { const v = form.get("activityDate") as string; return v ? new Date(v).toISOString() : new Date().toISOString(); })(),
       accountId: params.id,
     };
 

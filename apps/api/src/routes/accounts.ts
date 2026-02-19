@@ -27,6 +27,7 @@ import {
 } from "@humans/shared";
 import { authMiddleware } from "../middleware/auth";
 import { requirePermission } from "../middleware/rbac";
+import { computeDiff, logAuditEntry } from "../lib/audit";
 import type { AppContext } from "../types";
 
 const accountRoutes = new Hono<AppContext>();
@@ -203,6 +204,15 @@ accountRoutes.patch("/api/accounts/:id", requirePermission("manageAccounts"), as
     return c.json({ error: "Account not found" }, 404);
   }
 
+  // Capture old values for audit
+  const existingTypeRows = await db.select().from(accountTypes).where(eq(accountTypes.accountId, id));
+  const oldValues: Record<string, unknown> = {
+    name: existing.name,
+  };
+  if (data.typeIds !== undefined) {
+    oldValues["typeIds"] = existingTypeRows.map((t) => t.typeId).sort();
+  }
+
   const updateFields: Record<string, unknown> = { updatedAt: now };
   if (data.name !== undefined) updateFields["name"] = data.name;
 
@@ -221,10 +231,29 @@ accountRoutes.patch("/api/accounts/:id", requirePermission("manageAccounts"), as
     }
   }
 
+  // Audit log
+  const newValues: Record<string, unknown> = {};
+  if (data.name !== undefined) newValues["name"] = data.name;
+  if (data.typeIds !== undefined) newValues["typeIds"] = [...data.typeIds].sort();
+
+  const diff = computeDiff(oldValues, newValues);
+  let auditEntryId: string | undefined;
+  if (diff) {
+    const session = c.get("session")!;
+    auditEntryId = await logAuditEntry({
+      db,
+      colleagueId: session.colleagueId,
+      action: "UPDATE",
+      entityType: "account",
+      entityId: id,
+      changes: diff,
+    });
+  }
+
   const updated = await db.query.accounts.findFirst({
     where: eq(accounts.id, id),
   });
-  return c.json({ data: updated });
+  return c.json({ data: updated, auditEntryId });
 });
 
 // Update account status
@@ -241,12 +270,30 @@ accountRoutes.patch("/api/accounts/:id/status", requirePermission("manageAccount
     return c.json({ error: "Account not found" }, 404);
   }
 
+  const oldStatus = existing.status;
   await db
     .update(accounts)
     .set({ status: data.status, updatedAt: new Date().toISOString() })
     .where(eq(accounts.id, id));
 
-  return c.json({ data: { id, status: data.status } });
+  // Audit log
+  let auditEntryId: string | undefined;
+  if (oldStatus !== data.status) {
+    const diff = computeDiff({ status: oldStatus }, { status: data.status });
+    if (diff) {
+      const session = c.get("session")!;
+      auditEntryId = await logAuditEntry({
+        db,
+        colleagueId: session.colleagueId,
+        action: "UPDATE",
+        entityType: "account",
+        entityId: id,
+        changes: diff,
+      });
+    }
+  }
+
+  return c.json({ data: { id, status: data.status }, auditEntryId });
 });
 
 // Delete account + cascade

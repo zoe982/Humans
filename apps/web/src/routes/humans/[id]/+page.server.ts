@@ -45,62 +45,6 @@ export const load = async ({ locals, cookies, params }: RequestEvent) => {
 };
 
 export const actions = {
-  update: async ({ request, cookies, params }: RequestEvent): Promise<ActionFailure<{ error: string }> | { success: true }> => {
-    const form = await request.formData();
-    const sessionToken = cookies.get("humans_session");
-    const id = params.id;
-
-    const types = form.getAll("types") as string[];
-
-    const payload = {
-      firstName: form.get("firstName"),
-      middleName: form.get("middleName") || null,
-      lastName: form.get("lastName"),
-      types: types.length > 0 ? types : undefined,
-    };
-
-    const res = await fetch(`${PUBLIC_API_URL}/api/humans/${id}`, {
-      method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-        Cookie: `humans_session=${sessionToken ?? ""}`,
-      },
-      body: JSON.stringify(payload),
-    });
-
-    if (!res.ok) {
-      const resBody: unknown = await res.json();
-      const body = isErrorBody(resBody) ? resBody : {};
-      return fail(res.status, { error: body.error ?? "Failed to update human" });
-    }
-
-    return { success: true };
-  },
-
-  updateStatus: async ({ request, cookies, params }: RequestEvent): Promise<ActionFailure<{ error: string }> | { success: true }> => {
-    const form = await request.formData();
-    const sessionToken = cookies.get("humans_session");
-    const id = params.id;
-    const status = form.get("status") as string;
-
-    const res = await fetch(`${PUBLIC_API_URL}/api/humans/${id}/status`, {
-      method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-        Cookie: `humans_session=${sessionToken ?? ""}`,
-      },
-      body: JSON.stringify({ status }),
-    });
-
-    if (!res.ok) {
-      const resBody: unknown = await res.json();
-      const body = isErrorBody(resBody) ? resBody : {};
-      return fail(res.status, { error: body.error ?? "Failed to update status" });
-    }
-
-    return { success: true };
-  },
-
   addActivity: async ({ request, cookies, params }: RequestEvent): Promise<ActionFailure<{ error: string }> | { success: true }> => {
     const form = await request.formData();
     const sessionToken = cookies.get("humans_session");
@@ -109,7 +53,7 @@ export const actions = {
       type: form.get("type") || "email",
       subject: form.get("subject"),
       notes: form.get("notes") || undefined,
-      activityDate: form.get("activityDate") || new Date().toISOString(),
+      activityDate: (() => { const v = form.get("activityDate") as string; return v ? new Date(v).toISOString() : new Date().toISOString(); })(),
       humanId: params.id,
     };
 

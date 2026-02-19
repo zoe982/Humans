@@ -10,7 +10,7 @@ export const activityTypes = [
 export const createActivitySchema = z
   .object({
     type: z.enum(activityTypes).default("email"),
-    subject: z.string().min(1).max(500),
+    subject: z.string().max(500).optional(),
     notes: z.string().max(10000).optional(),
     activityDate: z.string().datetime(),
     humanId: z.string().optional(),
@@ -19,8 +19,21 @@ export const createActivitySchema = z
     gmailId: z.string().optional(),
     frontId: z.string().optional(),
   })
-  .refine((data) => data.humanId || data.routeSignupId || data.accountId, {
-    message: "At least one of humanId, accountId, or routeSignupId is required",
+  .superRefine((data, ctx) => {
+    if (data.type === "email" && (!data.subject || data.subject.trim() === "")) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["subject"],
+        message: "Subject is required for email activities",
+      });
+    }
+    if (!data.humanId && !data.routeSignupId && !data.accountId) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["humanId"],
+        message: "At least one of humanId, accountId, or routeSignupId is required",
+      });
+    }
   });
 
 export const updateActivitySchema = z.object({

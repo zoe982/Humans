@@ -13,6 +13,7 @@
   };
 
   const humans = $derived(data.humans as Human[]);
+  let selectedType = $state("email");
 
   function displayName(h: Human): string {
     return [h.firstName, h.middleName, h.lastName].filter(Boolean).join(" ");
@@ -36,7 +37,7 @@
   <form method="POST" action="?/create" class="space-y-6 glass-card p-6">
     <div>
       <label for="type" class="block text-sm font-medium text-text-secondary mb-1">Type</label>
-      <select id="type" name="type" required class="glass-input block w-full px-3 py-2 text-sm">
+      <select id="type" name="type" required bind:value={selectedType} class="glass-input block w-full px-3 py-2 text-sm">
         <option value="email">Email</option>
         <option value="whatsapp_message">WhatsApp</option>
         <option value="online_meeting">Meeting</option>
@@ -44,6 +45,7 @@
       </select>
     </div>
 
+    {#if selectedType === "email"}
     <div>
       <label for="subject" class="block text-sm font-medium text-text-secondary mb-1">Subject</label>
       <input
@@ -52,6 +54,7 @@
         placeholder="Brief description of the activity"
       />
     </div>
+    {/if}
 
     <div>
       <label for="notes" class="block text-sm font-medium text-text-secondary mb-1">Notes</label>

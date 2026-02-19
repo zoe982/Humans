@@ -10,6 +10,7 @@
     statusOptions?: string[];
     statusColorMap?: Record<string, string>;
     statusFormAction?: string;
+    onStatusChange?: (newStatus: string) => void;
     actions?: Snippet;
   };
 
@@ -21,10 +22,17 @@
     statusOptions = [],
     statusColorMap = {},
     statusFormAction,
+    onStatusChange,
     actions,
   }: Props = $props();
 
   let selectedStatus = $state(status ?? "");
+
+  function handleStatusDropdownChange(e: Event) {
+    const value = (e.target as HTMLSelectElement).value;
+    selectedStatus = value;
+    onStatusChange?.(value);
+  }
 </script>
 
 <div class="glass-card-strong p-4 mb-6">
@@ -39,21 +47,33 @@
       {/if}
     </div>
     <div class="flex items-center gap-3">
-      {#if status && statusOptions.length > 0 && statusFormAction}
-        <form method="POST" action={statusFormAction} class="flex items-center gap-2">
+      {#if status && statusOptions.length > 0}
+        {#if onStatusChange}
           <select
-            name="status"
             class="glass-input px-3 py-1.5 text-sm"
-            bind:value={selectedStatus}
+            value={selectedStatus}
+            onchange={handleStatusDropdownChange}
           >
             {#each statusOptions as opt}
               <option value={opt}>{opt}</option>
             {/each}
           </select>
-          <button type="submit" class="btn-ghost text-sm py-1.5">
-            Update
-          </button>
-        </form>
+        {:else if statusFormAction}
+          <form method="POST" action={statusFormAction} class="flex items-center gap-2">
+            <select
+              name="status"
+              class="glass-input px-3 py-1.5 text-sm"
+              bind:value={selectedStatus}
+            >
+              {#each statusOptions as opt}
+                <option value={opt}>{opt}</option>
+              {/each}
+            </select>
+            <button type="submit" class="btn-ghost text-sm py-1.5">
+              Update
+            </button>
+          </form>
+        {/if}
       {/if}
       {#if actions}
         {@render actions()}

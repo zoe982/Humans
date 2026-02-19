@@ -63,7 +63,7 @@ activityRoutes.post("/api/activities", requirePermission("createEditRecords"), a
   const activity = {
     id: createId(),
     type: data.type ?? "email",
-    subject: data.subject,
+    subject: data.subject ?? "",
     body: data.notes ?? null,
     notes: data.notes ?? null,
     activityDate: data.activityDate,

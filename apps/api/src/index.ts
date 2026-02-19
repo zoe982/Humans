@@ -21,6 +21,7 @@ import { emailRoutes } from "./routes/emails";
 import { geoInterestRoutes } from "./routes/geo-interests";
 import { accountRoutes } from "./routes/accounts";
 import { accountConfigRoutes } from "./routes/account-config";
+import { auditLogRoutes } from "./routes/audit-log";
 import type { AppContext } from "./types";
 
 const app = new Hono<AppContext>();
@@ -57,5 +58,6 @@ app.route("/", emailRoutes);
 app.route("/", geoInterestRoutes);
 app.route("/", accountRoutes);
 app.route("/", accountConfigRoutes);
+app.route("/", auditLogRoutes);
 
 export default app;

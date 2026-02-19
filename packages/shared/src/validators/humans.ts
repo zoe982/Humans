@@ -6,7 +6,7 @@ const emailEntrySchema = z.object({
   isPrimary: z.boolean().default(false),
 });
 
-export const humanTypeEnum = z.enum(["client", "trainer", "travel_agent"]);
+export const humanTypeEnum = z.enum(["client", "trainer", "travel_agent", "flight_broker"]);
 
 export const humanStatusEnum = z.enum(["open", "active", "closed"]);
 

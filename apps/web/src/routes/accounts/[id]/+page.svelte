@@ -1,9 +1,15 @@
 <script lang="ts">
+  import { invalidateAll } from "$app/navigation";
   import type { PageData, ActionData } from "./$types";
   import RecordManagementBar from "$lib/components/RecordManagementBar.svelte";
   import LinkedRecordBox from "$lib/components/LinkedRecordBox.svelte";
   import AlertBanner from "$lib/components/AlertBanner.svelte";
   import PhoneInput from "$lib/components/PhoneInput.svelte";
+  import SaveIndicator from "$lib/components/SaveIndicator.svelte";
+  import Toast from "$lib/components/Toast.svelte";
+  import { createAutoSaver, type SaveStatus } from "$lib/autosave";
+  import { api } from "$lib/api";
+  import { onDestroy } from "svelte";
 
   let { data, form }: { data: PageData; form: ActionData } = $props();
 
@@ -48,6 +54,15 @@
     createdAt: string;
     updatedAt: string;
   };
+  type AuditEntry = {
+    id: string;
+    action: string;
+    entityType: string;
+    entityId: string;
+    changes: Record<string, { old: unknown; new: unknown }> | null;
+    createdAt: string;
+    colleagueName: string | null;
+  };
 
   const account = $derived(data.account as Account);
   const typeConfigs = $derived(data.typeConfigs as ConfigItem[]);
@@ -56,7 +71,134 @@
   const phoneLabelConfigs = $derived(data.phoneLabelConfigs as ConfigItem[]);
   const allHumans = $derived(data.allHumans as HumanListItem[]);
 
+  // Auto-save state
+  let accountName = $state("");
+  let typeIds = $state<string[]>([]);
+  let saveStatus = $state<SaveStatus>("idle");
+  let toastMessage = $state<string | null>(null);
+  let lastAuditEntryId = $state<string | null>(null);
+  let initialized = $state(false);
+
+  // Change history
+  let historyOpen = $state(false);
+  let historyEntries = $state<AuditEntry[]>([]);
+  let historyLoaded = $state(false);
+
   let showActivityForm = $state(false);
+  let humanAddMode = $state<'link' | 'create'>('link');
+
+  // Initialize state from data
+  $effect(() => {
+    accountName = account.name;
+    typeIds = account.types.map((t) => t.id);
+    if (!initialized) initialized = true;
+  });
+
+  const autoSaver = createAutoSaver({
+    endpoint: `/api/accounts/${account.id}`,
+    onStatusChange: (s) => { saveStatus = s; },
+    onSaved: (result) => {
+      if (result.auditEntryId) {
+        lastAuditEntryId = result.auditEntryId;
+        toastMessage = "Changes saved";
+        historyLoaded = false;
+      }
+    },
+    onError: (err) => {
+      toastMessage = `Save failed: ${err}`;
+    },
+  });
+
+  onDestroy(() => autoSaver.destroy());
+
+  function triggerSave() {
+    if (!initialized) return;
+    autoSaver.save({ name: accountName, typeIds });
+  }
+
+  function triggerSaveImmediate() {
+    if (!initialized) return;
+    autoSaver.saveImmediate({ name: accountName, typeIds });
+  }
+
+  function handleTypeChange(typeId: string, checked: boolean) {
+    if (checked) {
+      if (!typeIds.includes(typeId)) typeIds = [...typeIds, typeId];
+    } else {
+      typeIds = typeIds.filter((id) => id !== typeId);
+    }
+    triggerSaveImmediate();
+  }
+
+  async function handleStatusChange(newStatus: string) {
+    saveStatus = "saving";
+    try {
+      await api(`/api/accounts/${account.id}/status`, {
+        method: "PATCH",
+        body: JSON.stringify({ status: newStatus }),
+      });
+      saveStatus = "saved";
+      toastMessage = "Status updated";
+      historyLoaded = false;
+      await invalidateAll();
+    } catch {
+      saveStatus = "error";
+    }
+  }
+
+  async function handleUndo() {
+    if (!lastAuditEntryId) return;
+    try {
+      await api(`/api/audit-log/${lastAuditEntryId}/undo`, { method: "POST" });
+      lastAuditEntryId = null;
+      historyLoaded = false;
+      await invalidateAll();
+    } catch {
+      toastMessage = "Undo failed";
+    }
+  }
+
+  async function loadHistory() {
+    if (historyLoaded) return;
+    try {
+      const result = await api(`/api/audit-log`, {
+        params: { entityType: "account", entityId: account.id },
+      }) as { data: AuditEntry[] };
+      historyEntries = result.data;
+      historyLoaded = true;
+    } catch {
+      historyEntries = [];
+    }
+  }
+
+  function toggleHistory() {
+    historyOpen = !historyOpen;
+    if (historyOpen) loadHistory();
+  }
+
+  function formatRelativeTime(dateStr: string): string {
+    const date = new Date(dateStr);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    if (diffMins < 1) return "just now";
+    if (diffMins < 60) return `${diffMins}m ago`;
+    const diffHours = Math.floor(diffMins / 60);
+    if (diffHours < 24) return `${diffHours}h ago`;
+    const diffDays = Math.floor(diffHours / 24);
+    return `${diffDays}d ago`;
+  }
+
+  function summarizeChanges(changes: Record<string, { old: unknown; new: unknown }> | null): string {
+    if (!changes) return "No details";
+    return Object.entries(changes)
+      .map(([field, diff]) => {
+        const oldVal = Array.isArray(diff.old) ? diff.old.join(", ") : String(diff.old ?? "empty");
+        const newVal = Array.isArray(diff.new) ? diff.new.join(", ") : String(diff.new ?? "empty");
+        return `${field}: "${oldVal}" \u2192 "${newVal}"`;
+      })
+      .join("; ");
+  }
 
   const statusColorMap: Record<string, string> = {
     open: "bg-[rgba(59,130,246,0.15)] text-blue-300",
@@ -92,7 +234,7 @@
     status={account.status}
     statusOptions={["open", "active", "closed"]}
     {statusColorMap}
-    statusFormAction="?/updateStatus"
+    onStatusChange={handleStatusChange}
   >
     {#snippet actions()}
       <div class="flex gap-1">
@@ -109,19 +251,20 @@
   {#if form?.error}
     <AlertBanner type="error" message={form.error} />
   {/if}
-  {#if form?.success}
-    <AlertBanner type="success" message="Saved successfully." />
-  {/if}
 
-  <!-- Details Form -->
-  <form method="POST" action="?/update" class="glass-card p-6 space-y-6">
-    <h2 class="text-lg font-semibold text-text-primary">Details</h2>
+  <!-- Details (auto-save, no form submission) -->
+  <div class="glass-card p-6 space-y-6">
+    <div class="flex items-center gap-3">
+      <h2 class="text-lg font-semibold text-text-primary">Details</h2>
+      <SaveIndicator status={saveStatus} />
+    </div>
 
     <div>
       <label for="accountName" class="block text-sm font-medium text-text-secondary">Account Name</label>
       <input
-        id="accountName" name="name" type="text" required
-        value={account.name}
+        id="accountName" type="text" required
+        bind:value={accountName}
+        oninput={triggerSave}
         class="glass-input mt-1 block w-full"
       />
     </div>
@@ -133,8 +276,9 @@
           {#each typeConfigs as t (t.id)}
             <label class="flex items-center gap-2 text-sm text-text-secondary">
               <input
-                type="checkbox" name="typeIds" value={t.id}
-                checked={account.types.some((at) => at.id === t.id)}
+                type="checkbox"
+                checked={typeIds.includes(t.id)}
+                onchange={(e) => handleTypeChange(t.id, (e.target as HTMLInputElement).checked)}
                 class="rounded border-glass-border"
               />
               {t.name}
@@ -143,11 +287,7 @@
         </div>
       </div>
     {/if}
-
-    <button type="submit" class="btn-primary">
-      Save Changes
-    </button>
-  </form>
+  </div>
 
   <!-- Emails Section -->
   <div class="mt-6">
@@ -286,7 +426,6 @@
               </span>
             {/if}
           </div>
-          <!-- Human's contact info as read-only sub-items -->
           {#if link.emails.length > 0}
             <div class="mt-1 flex flex-wrap gap-2">
               {#each link.emails as e}
@@ -304,29 +443,79 @@
         </div>
       {/snippet}
       {#snippet addForm()}
-        <form method="POST" action="?/linkHuman" class="space-y-3">
-          <div class="grid gap-3 sm:grid-cols-2">
-            <div>
-              <label for="humanSelect" class="block text-sm font-medium text-text-secondary">Human</label>
-              <select id="humanSelect" name="humanId" required class="glass-input mt-1 block w-full">
-                <option value="">Select a human...</option>
-                {#each allHumans as h (h.id)}
-                  <option value={h.id}>{h.firstName} {h.lastName}</option>
-                {/each}
-              </select>
+        <div class="flex gap-2 mb-3">
+          <button
+            type="button"
+            onclick={() => { humanAddMode = 'link'; }}
+            class="text-sm py-1 px-3 rounded-md transition-colors {humanAddMode === 'link' ? 'btn-primary' : 'btn-ghost'}"
+          >
+            Link Existing
+          </button>
+          <button
+            type="button"
+            onclick={() => { humanAddMode = 'create'; }}
+            class="text-sm py-1 px-3 rounded-md transition-colors {humanAddMode === 'create' ? 'btn-primary' : 'btn-ghost'}"
+          >
+            Create New
+          </button>
+        </div>
+
+        {#if humanAddMode === 'link'}
+          <form method="POST" action="?/linkHuman" class="space-y-3">
+            <div class="grid gap-3 sm:grid-cols-2">
+              <div>
+                <label for="humanSelect" class="block text-sm font-medium text-text-secondary">Human</label>
+                <select id="humanSelect" name="humanId" required class="glass-input mt-1 block w-full">
+                  <option value="">Select a human...</option>
+                  {#each allHumans as h (h.id)}
+                    <option value={h.id}>{h.firstName} {h.lastName}</option>
+                  {/each}
+                </select>
+              </div>
+              <div>
+                <label for="humanLabel" class="block text-sm font-medium text-text-secondary">Role Label</label>
+                <select id="humanLabel" name="labelId" class="glass-input mt-1 block w-full">
+                  <option value="">None</option>
+                  {#each humanLabelConfigs as l (l.id)}
+                    <option value={l.id}>{l.name}</option>
+                  {/each}
+                </select>
+              </div>
+            </div>
+            <button type="submit" class="btn-primary text-sm">Link Human</button>
+          </form>
+        {:else}
+          <form method="POST" action="?/createAndLinkHuman" class="space-y-3">
+            <div class="grid gap-3 sm:grid-cols-2">
+              <div>
+                <label for="newHumanFirst" class="block text-sm font-medium text-text-secondary">First Name</label>
+                <input
+                  id="newHumanFirst" name="firstName" type="text" required
+                  class="glass-input mt-1 block w-full"
+                  placeholder="First name"
+                />
+              </div>
+              <div>
+                <label for="newHumanLast" class="block text-sm font-medium text-text-secondary">Last Name</label>
+                <input
+                  id="newHumanLast" name="lastName" type="text" required
+                  class="glass-input mt-1 block w-full"
+                  placeholder="Last name"
+                />
+              </div>
             </div>
             <div>
-              <label for="humanLabel" class="block text-sm font-medium text-text-secondary">Role Label</label>
-              <select id="humanLabel" name="labelId" class="glass-input mt-1 block w-full">
+              <label for="newHumanLabel" class="block text-sm font-medium text-text-secondary">Role Label</label>
+              <select id="newHumanLabel" name="labelId" class="glass-input mt-1 block w-full">
                 <option value="">None</option>
                 {#each humanLabelConfigs as l (l.id)}
                   <option value={l.id}>{l.name}</option>
                 {/each}
               </select>
             </div>
-          </div>
-          <button type="submit" class="btn-primary text-sm">Link Human</button>
-        </form>
+            <button type="submit" class="btn-primary text-sm">Create & Link</button>
+          </form>
+        {/if}
       {/snippet}
     </LinkedRecordBox>
   </div>
@@ -433,4 +622,48 @@
       </div>
     </div>
   {/if}
+
+  <!-- Change History -->
+  <div class="mt-6 glass-card p-5">
+    <button
+      type="button"
+      onclick={toggleHistory}
+      class="flex items-center gap-2 w-full text-left"
+    >
+      <span class="text-lg font-semibold text-text-primary">Change History</span>
+      <span class="text-text-muted text-sm">{historyOpen ? "\u25BC" : "\u25B6"}</span>
+    </button>
+
+    {#if historyOpen}
+      <div class="mt-4 space-y-2">
+        {#if historyEntries.length === 0}
+          <p class="text-text-muted text-sm">No changes recorded yet.</p>
+        {:else}
+          {#each historyEntries as entry (entry.id)}
+            <div class="p-3 rounded-lg bg-glass">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                  <span class="text-sm font-medium text-text-primary">{entry.colleagueName ?? "System"}</span>
+                  <span class="glass-badge inline-flex rounded-full px-2 py-0.5 text-xs font-medium bg-glass text-text-secondary">
+                    {entry.action}
+                  </span>
+                </div>
+                <span class="text-xs text-text-muted">{formatRelativeTime(entry.createdAt)}</span>
+              </div>
+              <p class="mt-1 text-xs text-text-secondary">{summarizeChanges(entry.changes)}</p>
+            </div>
+          {/each}
+        {/if}
+      </div>
+    {/if}
+  </div>
 </div>
+
+<!-- Toast -->
+{#if toastMessage}
+  <Toast
+    message={toastMessage}
+    onUndo={lastAuditEntryId ? handleUndo : undefined}
+    onDismiss={() => { toastMessage = null; }}
+  />
+{/if}

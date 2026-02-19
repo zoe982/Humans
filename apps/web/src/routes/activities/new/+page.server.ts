@@ -1,10 +1,7 @@
 import { redirect, fail } from "@sveltejs/kit";
 import type { RequestEvent, ActionFailure } from "@sveltejs/kit";
 import { PUBLIC_API_URL } from "$env/static/public";
-
-function isErrorBody(value: unknown): value is { error?: string } {
-  return typeof value === "object" && value !== null;
-}
+import { extractApiError } from "$lib/api";
 
 function isListData(value: unknown): value is { data: unknown[] } {
   return typeof value === "object" && value !== null && "data" in value && Array.isArray((value as { data: unknown }).data);
@@ -34,7 +31,7 @@ export const actions = {
 
     const payload = {
       type: form.get("type"),
-      subject: form.get("subject"),
+      subject: (form.get("subject") as string) || undefined,
       notes: (form.get("notes") as string) || undefined,
       activityDate: new Date(form.get("activityDate") as string).toISOString(),
       humanId,
@@ -55,8 +52,7 @@ export const actions = {
 
     if (!res.ok) {
       const resBody: unknown = await res.json();
-      const body = isErrorBody(resBody) ? resBody : {};
-      return fail(res.status, { error: body.error ?? "Failed to create activity" });
+      return fail(res.status, { error: extractApiError(resBody, "Failed to create activity") });
     }
 
     redirect(302, "/activities");
