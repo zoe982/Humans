@@ -42,7 +42,7 @@ export default defineConfig({
     // happy-dom provides a lightweight browser-like environment for component
     // tests; faster than jsdom and covers the DOM APIs SvelteKit components use.
     environment: "happy-dom",
-    include: ["src/**/*.{test,spec}.{js,ts}"],
+    include: ["src/**/*.{test,spec}.{js,ts}", "test/**/*.{test,spec}.{js,ts}"],
     coverage: {
       provider: "istanbul",
       all: true,
