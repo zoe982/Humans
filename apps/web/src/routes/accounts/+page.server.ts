@@ -1,9 +1,15 @@
-import { redirect } from "@sveltejs/kit";
-import type { RequestEvent } from "@sveltejs/kit";
+import { redirect, fail } from "@sveltejs/kit";
+import type { RequestEvent, ActionFailure } from "@sveltejs/kit";
 import { PUBLIC_API_URL } from "$env/static/public";
+import { extractApiErrorInfo } from "$lib/api";
 
 function isListData(value: unknown): value is { data: unknown[] } {
   return typeof value === "object" && value !== null && "data" in value && Array.isArray((value as { data: unknown }).data);
+}
+
+function failFromApi(resBody: unknown, status: number, fallback: string): ActionFailure<{ error: string; code?: string; requestId?: string }> {
+  const info = extractApiErrorInfo(resBody, fallback);
+  return fail(status, { error: info.message, code: info.code, requestId: info.requestId });
 }
 
 export const load = async ({ locals, cookies }: RequestEvent) => {
@@ -14,7 +20,27 @@ export const load = async ({ locals, cookies }: RequestEvent) => {
     headers: { Cookie: `humans_session=${sessionToken ?? ""}` },
   });
 
-  if (!res.ok) return { accounts: [] };
+  if (!res.ok) return { accounts: [], userRole: locals.user?.role ?? "viewer" };
   const raw: unknown = await res.json();
-  return { accounts: isListData(raw) ? raw.data : [] };
+  return { accounts: isListData(raw) ? raw.data : [], userRole: locals.user?.role ?? "viewer" };
+};
+
+export const actions = {
+  delete: async ({ request, cookies }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
+    const form = await request.formData();
+    const sessionToken = cookies.get("humans_session");
+    const accountId = form.get("id");
+
+    const res = await fetch(`${PUBLIC_API_URL}/api/accounts/${accountId}`, {
+      method: "DELETE",
+      headers: { Cookie: `humans_session=${sessionToken ?? ""}` },
+    });
+
+    if (!res.ok) {
+      const resBody: unknown = await res.json();
+      return failFromApi(resBody, res.status, "Failed to delete account");
+    }
+
+    return { success: true };
+  },
 };

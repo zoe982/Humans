@@ -1,8 +1,10 @@
 import { Hono } from "hono";
 import { desc, eq, and, gte, lte, lt } from "drizzle-orm";
 import { errorLog } from "@humans/db/schema";
+import { ERROR_CODES } from "@humans/shared";
 import { authMiddleware } from "../middleware/auth";
 import { requirePermission } from "../middleware/rbac";
+import { notFound } from "../lib/errors";
 import type { AppContext } from "../types";
 
 const errorLogRoutes = new Hono<AppContext>();
@@ -44,6 +46,22 @@ errorLogRoutes.get("/api/admin/error-log", requirePermission("manageColleagues")
   }
 
   return c.json({ data: results });
+});
+
+// Get single error log entry
+errorLogRoutes.get("/api/admin/error-log/:id", requirePermission("manageColleagues"), async (c) => {
+  const db = c.get("db");
+  const id = c.req.param("id");
+
+  const entry = await db.query.errorLog.findFirst({
+    where: eq(errorLog.id, id),
+  });
+
+  if (entry == null) {
+    throw notFound(ERROR_CODES.ERROR_LOG_NOT_FOUND, "Error log entry not found");
+  }
+
+  return c.json({ data: entry });
 });
 
 // Cleanup: purge entries older than 7 days

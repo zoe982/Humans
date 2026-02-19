@@ -299,7 +299,7 @@ accountRoutes.patch("/api/accounts/:id/status", requirePermission("manageAccount
 });
 
 // Delete account + cascade
-accountRoutes.delete("/api/accounts/:id", requirePermission("manageAccounts"), async (c) => {
+accountRoutes.delete("/api/accounts/:id", requirePermission("deleteAccounts"), async (c) => {
   const db = c.get("db");
   const id = c.req.param("id");
 

@@ -117,7 +117,7 @@ geoInterestRoutes.post("/api/geo-interests", requirePermission("manageHumans"), 
 });
 
 // Delete geo-interest + cascade expressions
-geoInterestRoutes.delete("/api/geo-interests/:id", requirePermission("manageHumans"), async (c) => {
+geoInterestRoutes.delete("/api/geo-interests/:id", requirePermission("deleteGeoInterests"), async (c) => {
   const db = c.get("db");
   const id = c.req.param("id");
 

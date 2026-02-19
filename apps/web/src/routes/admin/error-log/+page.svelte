@@ -89,7 +89,9 @@
                   {entry.status}
                 </span>
               </td>
-              <td class="font-mono text-xs text-text-secondary">{entry.code}</td>
+              <td class="font-mono text-xs">
+                <a href="/admin/error-log/{entry.id}" class="text-accent hover:text-cyan-300">{entry.code}</a>
+              </td>
               <td class="max-w-xs truncate text-text-primary" title={entry.message}>{entry.message}</td>
               <td class="font-mono text-xs text-text-muted">
                 {#if entry.method}<span class="text-accent">{entry.method}</span>{/if}

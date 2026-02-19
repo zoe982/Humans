@@ -38,6 +38,12 @@
       resetForm();
     }
   });
+
+  function handleDelete(e: Event) {
+    if (!confirm("Are you sure you want to delete this geo-interest? This cannot be undone.")) {
+      e.preventDefault();
+    }
+  }
 </script>
 
 <svelte:head>
@@ -103,6 +109,9 @@
           <th>Interested Humans</th>
           <th>Expressions</th>
           <th>Created</th>
+          {#if data.userRole === "admin"}
+            <th>Actions</th>
+          {/if}
         </tr>
       </thead>
       <tbody>
@@ -115,10 +124,18 @@
             <td>{gi.humanCount}</td>
             <td>{gi.expressionCount}</td>
             <td class="text-text-muted text-sm">{new Date(gi.createdAt).toLocaleDateString()}</td>
+            {#if data.userRole === "admin"}
+              <td>
+                <form method="POST" action="?/delete" onsubmit={handleDelete}>
+                  <input type="hidden" name="id" value={gi.id} />
+                  <button type="submit" class="text-red-400 hover:text-red-300 text-sm">Delete</button>
+                </form>
+              </td>
+            {/if}
           </tr>
         {:else}
           <tr>
-            <td colspan="5" class="px-6 py-8 text-center text-sm text-text-muted">No geo-interests found.</td>
+            <td colspan={data.userRole === "admin" ? 6 : 5} class="px-6 py-8 text-center text-sm text-text-muted">No geo-interests found.</td>
           </tr>
         {/each}
       </tbody>

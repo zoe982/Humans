@@ -20,9 +20,9 @@ export const load = async ({ locals, cookies }: RequestEvent) => {
     headers: { Cookie: `humans_session=${sessionToken ?? ""}` },
   });
 
-  if (!res.ok) return { geoInterests: [] };
+  if (!res.ok) return { geoInterests: [], userRole: locals.user?.role ?? "viewer" };
   const raw: unknown = await res.json();
-  return { geoInterests: isListData(raw) ? raw.data : [] };
+  return { geoInterests: isListData(raw) ? raw.data : [], userRole: locals.user?.role ?? "viewer" };
 };
 
 export const actions = {
@@ -48,6 +48,24 @@ export const actions = {
     if (!res.ok) {
       const resBody: unknown = await res.json();
       return failFromApi(resBody, res.status, "Failed to create geo-interest.");
+    }
+
+    return { success: true };
+  },
+
+  delete: async ({ request, cookies }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
+    const form = await request.formData();
+    const sessionToken = cookies.get("humans_session");
+    const geoInterestId = form.get("id");
+
+    const res = await fetch(`${PUBLIC_API_URL}/api/geo-interests/${geoInterestId}`, {
+      method: "DELETE",
+      headers: { Cookie: `humans_session=${sessionToken ?? ""}` },
+    });
+
+    if (!res.ok) {
+      const resBody: unknown = await res.json();
+      return failFromApi(resBody, res.status, "Failed to delete geo-interest");
     }
 
     return { success: true };

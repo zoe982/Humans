@@ -302,7 +302,7 @@ humanRoutes.patch("/api/humans/:id/status", requirePermission("manageHumans"), a
 });
 
 // Delete human + cascade related records
-humanRoutes.delete("/api/humans/:id", requirePermission("manageHumans"), async (c) => {
+humanRoutes.delete("/api/humans/:id", requirePermission("deleteHumans"), async (c) => {
   const db = c.get("db");
   const id = c.req.param("id");
 

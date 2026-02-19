@@ -1,9 +1,10 @@
 <script lang="ts">
-  import type { PageData } from "./$types";
+  import type { PageData, ActionData } from "./$types";
   import PageHeader from "$lib/components/PageHeader.svelte";
   import StatusBadge from "$lib/components/StatusBadge.svelte";
+  import AlertBanner from "$lib/components/AlertBanner.svelte";
 
-  let { data }: { data: PageData } = $props();
+  let { data, form }: { data: PageData; form: ActionData } = $props();
 
   type Signup = {
     id: string;
@@ -38,6 +39,12 @@
     const d = new Date(iso);
     return d.toLocaleDateString() + " " + d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
   }
+
+  function handleDelete(e: Event) {
+    if (!confirm("Are you sure you want to delete this route signup? This cannot be undone.")) {
+      e.preventDefault();
+    }
+  }
 </script>
 
 <svelte:head>
@@ -50,6 +57,10 @@
     breadcrumbs={[{ label: "Leads", href: "/leads" }, { label: "Route Signups" }]}
   />
 
+  {#if form?.error}
+    <AlertBanner type="error" message={form.error} />
+  {/if}
+
   <div class="glass-card overflow-hidden">
     <table class="min-w-full">
       <thead class="glass-thead">
@@ -60,11 +71,14 @@
           <th>Destination</th>
           <th>Status</th>
           <th class="hidden sm:table-cell">Date</th>
+          {#if data.userRole === "admin"}
+            <th>Actions</th>
+          {/if}
         </tr>
       </thead>
       <tbody>
         {#each signups as signup (signup.id)}
-          <tr class="glass-row-hover cursor-pointer" onclick={() => { window.location.href = `/leads/route-signups/${signup.id}`; }}>
+          <tr class="glass-row-hover">
             <td class="font-medium">
               <a href="/leads/route-signups/{signup.id}" class="text-accent hover:text-cyan-300">{displayName(signup)}</a>
             </td>
@@ -80,10 +94,18 @@
               }} />
             </td>
             <td class="hidden sm:table-cell text-text-muted">{formatDatetime(signup.inserted_at)}</td>
+            {#if data.userRole === "admin"}
+              <td>
+                <form method="POST" action="?/delete" onsubmit={handleDelete}>
+                  <input type="hidden" name="id" value={signup.id} />
+                  <button type="submit" class="text-red-400 hover:text-red-300 text-sm">Delete</button>
+                </form>
+              </td>
+            {/if}
           </tr>
         {:else}
           <tr>
-            <td colspan="6" class="px-6 py-8 text-center text-sm text-text-muted">No route signups found.</td>
+            <td colspan={data.userRole === "admin" ? 7 : 6} class="px-6 py-8 text-center text-sm text-text-muted">No route signups found.</td>
           </tr>
         {/each}
       </tbody>

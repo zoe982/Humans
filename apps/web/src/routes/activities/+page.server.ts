@@ -25,13 +25,14 @@ export const load = async ({ locals, cookies, url }: RequestEvent) => {
     headers: { Cookie: `humans_session=${sessionToken ?? ""}` },
   });
 
-  if (!res.ok) return { activities: [], type, dateFrom, dateTo };
+  if (!res.ok) return { activities: [], type, dateFrom, dateTo, userRole: locals.user?.role ?? "viewer" };
   const raw: unknown = await res.json();
   return {
     activities: isListData(raw) ? raw.data : [],
     type,
     dateFrom,
     dateTo,
+    userRole: locals.user?.role ?? "viewer",
   };
 };
 

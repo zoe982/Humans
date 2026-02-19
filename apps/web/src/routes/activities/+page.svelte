@@ -161,7 +161,9 @@
                 {activityTypeLabels[activity.type] ?? activity.type}
               </span>
             </td>
-            <td class="font-medium">{activity.subject}</td>
+            <td class="font-medium">
+              <a href="/activities/{activity.id}" class="text-accent hover:text-cyan-300">{activity.subject}</a>
+            </td>
             <td class="hidden sm:table-cell text-text-muted max-w-xs truncate">{truncate(activity.notes ?? activity.body, 80)}</td>
             <td>
               {#if linkedEntity(activity)}
@@ -173,13 +175,10 @@
             </td>
             <td class="text-text-muted">{new Date(activity.activityDate).toLocaleDateString()}</td>
             <td>
-              <div class="flex items-center gap-2">
-                <a href="/activities/{activity.id}" class="text-accent hover:text-cyan-300 text-sm">View</a>
-                <form method="POST" action="?/delete" onsubmit={handleDelete}>
-                  <input type="hidden" name="id" value={activity.id} />
-                  <button type="submit" class="text-red-400 hover:text-red-300 text-sm">Delete</button>
-                </form>
-              </div>
+              <form method="POST" action="?/delete" onsubmit={handleDelete}>
+                <input type="hidden" name="id" value={activity.id} />
+                <button type="submit" class="text-red-400 hover:text-red-300 text-sm">Delete</button>
+              </form>
             </td>
           </tr>
         {:else}

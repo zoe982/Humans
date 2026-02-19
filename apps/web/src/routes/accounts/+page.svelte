@@ -1,9 +1,10 @@
 <script lang="ts">
-  import type { PageData } from "./$types";
+  import type { PageData, ActionData } from "./$types";
   import PageHeader from "$lib/components/PageHeader.svelte";
   import StatusBadge from "$lib/components/StatusBadge.svelte";
+  import AlertBanner from "$lib/components/AlertBanner.svelte";
 
-  let { data }: { data: PageData } = $props();
+  let { data, form }: { data: PageData; form: ActionData } = $props();
 
   type AccountType = { id: string; name: string };
   type Account = {
@@ -21,6 +22,12 @@
     active: "bg-[rgba(34,197,94,0.15)] text-green-300",
     closed: "bg-[rgba(239,68,68,0.15)] text-red-300",
   };
+
+  function handleDelete(e: Event) {
+    if (!confirm("Are you sure you want to delete this account? This cannot be undone.")) {
+      e.preventDefault();
+    }
+  }
 </script>
 
 <svelte:head>
@@ -34,6 +41,10 @@
     {/snippet}
   </PageHeader>
 
+  {#if form?.error}
+    <AlertBanner type="error" message={form.error} />
+  {/if}
+
   <div class="glass-card overflow-hidden">
     <table class="min-w-full">
       <thead class="glass-thead">
@@ -42,13 +53,17 @@
           <th>Status</th>
           <th>Types</th>
           <th class="hidden sm:table-cell">Created</th>
-          <th>Actions</th>
+          {#if data.userRole === "admin"}
+            <th>Actions</th>
+          {/if}
         </tr>
       </thead>
       <tbody>
         {#each accounts as account (account.id)}
           <tr class="glass-row-hover">
-            <td class="font-medium">{account.name}</td>
+            <td class="font-medium">
+              <a href="/accounts/{account.id}" class="text-accent hover:text-cyan-300">{account.name}</a>
+            </td>
             <td>
               <StatusBadge status={account.status ?? "open"} colorMap={statusColors} />
             </td>
@@ -62,13 +77,18 @@
               </div>
             </td>
             <td class="hidden sm:table-cell text-text-muted">{new Date(account.createdAt).toLocaleDateString()}</td>
-            <td>
-              <a href="/accounts/{account.id}" class="btn-ghost text-xs py-1 px-2">View</a>
-            </td>
+            {#if data.userRole === "admin"}
+              <td>
+                <form method="POST" action="?/delete" onsubmit={handleDelete}>
+                  <input type="hidden" name="id" value={account.id} />
+                  <button type="submit" class="text-red-400 hover:text-red-300 text-sm">Delete</button>
+                </form>
+              </td>
+            {/if}
           </tr>
         {:else}
           <tr>
-            <td colspan="5" class="px-6 py-8 text-center text-sm text-text-muted">No accounts found.</td>
+            <td colspan={data.userRole === "admin" ? 5 : 4} class="px-6 py-8 text-center text-sm text-text-muted">No accounts found.</td>
           </tr>
         {/each}
       </tbody>
