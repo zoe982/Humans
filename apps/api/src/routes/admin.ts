@@ -3,8 +3,10 @@ import { eq, desc } from "drizzle-orm";
 import { colleagues, auditLog } from "@humans/db/schema";
 import { createId } from "@humans/db";
 import { createColleagueSchema, updateColleagueSchema } from "@humans/shared";
+import { ERROR_CODES } from "@humans/shared";
 import { authMiddleware } from "../middleware/auth";
 import { requirePermission } from "../middleware/rbac";
+import { notFound, conflict } from "../lib/errors";
 import type { AppContext } from "../types";
 
 const adminRoutes = new Hono<AppContext>();
@@ -24,7 +26,7 @@ adminRoutes.get("/api/admin/colleagues/:id", requirePermission("manageColleagues
     where: eq(colleagues.id, c.req.param("id")),
   });
   if (colleague == null) {
-    return c.json({ error: "Colleague not found" }, 404);
+    throw notFound(ERROR_CODES.COLLEAGUE_NOT_FOUND, "Colleague not found");
   }
   return c.json({ data: colleague });
 });
@@ -40,7 +42,7 @@ adminRoutes.post("/api/admin/colleagues", requirePermission("manageColleagues"),
     where: eq(colleagues.email, data.email),
   });
   if (existing != null) {
-    return c.json({ error: "Colleague with this email already exists" }, 409);
+    throw conflict(ERROR_CODES.COLLEAGUE_EMAIL_EXISTS, "Colleague with this email already exists");
   }
 
   const displayName = [data.firstName, data.middleNames, data.lastName].filter(Boolean).join(" ");
@@ -73,7 +75,7 @@ adminRoutes.patch("/api/admin/colleagues/:id", requirePermission("manageColleagu
     where: eq(colleagues.id, c.req.param("id")),
   });
   if (existing == null) {
-    return c.json({ error: "Colleague not found" }, 404);
+    throw notFound(ERROR_CODES.COLLEAGUE_NOT_FOUND, "Colleague not found");
   }
 
   // Build update, recalculate display name if name fields changed

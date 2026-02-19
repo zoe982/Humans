@@ -11,15 +11,17 @@
   const humanLabels = $derived(data.humanLabels as ConfigItem[]);
   const emailLabels = $derived(data.emailLabels as ConfigItem[]);
   const phoneLabels = $derived(data.phoneLabels as ConfigItem[]);
+  const humanEmailLabels = $derived(data.humanEmailLabels as ConfigItem[]);
+  const humanPhoneLabels = $derived(data.humanPhoneLabels as ConfigItem[]);
 </script>
 
 <svelte:head>
-  <title>Account Configuration - Humans CRM</title>
+  <title>Labels & Configuration - Humans CRM</title>
 </svelte:head>
 
 <div class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
   <PageHeader
-    title="Account Configuration"
+    title="Labels & Configuration"
     breadcrumbs={[{ label: "Admin", href: "/admin" }, { label: "Account Config" }]}
   />
 
@@ -122,6 +124,54 @@
         </div>
       {/if}
       <form method="POST" action="?/createPhoneLabel" class="flex gap-2">
+        <input name="name" type="text" required placeholder="New phone label..." class="glass-input flex-1 px-3 py-2 text-sm" />
+        <button type="submit" class="btn-primary text-sm">Add</button>
+      </form>
+    </div>
+
+    <!-- Human Email Labels -->
+    <div class="glass-card p-5">
+      <h2 class="text-lg font-semibold text-text-primary mb-4">Human Email Labels</h2>
+      {#if humanEmailLabels.length === 0}
+        <p class="text-text-muted text-sm mb-4">No human email labels yet.</p>
+      {:else}
+        <div class="space-y-2 mb-4">
+          {#each humanEmailLabels as item (item.id)}
+            <div class="flex items-center justify-between p-3 rounded-lg bg-glass hover:bg-glass-hover transition-colors">
+              <span class="text-sm text-text-primary">{item.name}</span>
+              <form method="POST" action="?/deleteHumanEmailLabel">
+                <input type="hidden" name="id" value={item.id} />
+                <button type="submit" class="text-red-400 hover:text-red-300 text-sm">Remove</button>
+              </form>
+            </div>
+          {/each}
+        </div>
+      {/if}
+      <form method="POST" action="?/createHumanEmailLabel" class="flex gap-2">
+        <input name="name" type="text" required placeholder="New email label..." class="glass-input flex-1 px-3 py-2 text-sm" />
+        <button type="submit" class="btn-primary text-sm">Add</button>
+      </form>
+    </div>
+
+    <!-- Human Phone Labels -->
+    <div class="glass-card p-5">
+      <h2 class="text-lg font-semibold text-text-primary mb-4">Human Phone Labels</h2>
+      {#if humanPhoneLabels.length === 0}
+        <p class="text-text-muted text-sm mb-4">No human phone labels yet.</p>
+      {:else}
+        <div class="space-y-2 mb-4">
+          {#each humanPhoneLabels as item (item.id)}
+            <div class="flex items-center justify-between p-3 rounded-lg bg-glass hover:bg-glass-hover transition-colors">
+              <span class="text-sm text-text-primary">{item.name}</span>
+              <form method="POST" action="?/deleteHumanPhoneLabel">
+                <input type="hidden" name="id" value={item.id} />
+                <button type="submit" class="text-red-400 hover:text-red-300 text-sm">Remove</button>
+              </form>
+            </div>
+          {/each}
+        </div>
+      {/if}
+      <form method="POST" action="?/createHumanPhoneLabel" class="flex gap-2">
         <input name="name" type="text" required placeholder="New phone label..." class="glass-input flex-1 px-3 py-2 text-sm" />
         <button type="submit" class="btn-primary text-sm">Add</button>
       </form>

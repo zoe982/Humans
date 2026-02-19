@@ -79,12 +79,12 @@
     class="glass-input mt-1 block w-full"
   />
   {#if open && filtered.length > 0}
-    <ul class="absolute z-50 mt-1 max-h-48 w-full overflow-auto rounded-lg border border-white/15 bg-[#1a3a58] shadow-lg">
+    <ul class="glass-popover absolute z-50 mt-1 max-h-48 w-full overflow-auto">
       {#each filtered as option, i}
         <li>
           <button
             type="button"
-            class="w-full px-3 py-2 text-left text-sm transition-colors {i === highlightIndex ? 'bg-white/12 text-text-primary' : 'text-text-secondary hover:bg-white/8 hover:text-text-primary'}"
+            class="w-full px-3 py-2 text-left text-sm transition-colors {i === highlightIndex ? 'bg-glass-hover text-text-primary' : 'text-text-secondary hover:bg-glass-hover hover:text-text-primary'}"
             onmousedown={(e: MouseEvent) => { e.preventDefault(); select(option); }}
             onmouseenter={() => { highlightIndex = i; }}
           >
@@ -95,7 +95,7 @@
     </ul>
   {/if}
   {#if open && query.trim() !== "" && filtered.length === 0}
-    <div class="absolute z-50 mt-1 w-full rounded-lg border border-white/15 bg-[#1a3a58] shadow-lg px-3 py-2 text-sm text-text-muted">
+    <div class="glass-popover absolute z-50 mt-1 w-full px-3 py-2 text-sm text-text-muted">
       {emptyMessage}
     </div>
   {/if}

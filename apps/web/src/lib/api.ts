@@ -6,8 +6,22 @@ interface FetchOptions extends RequestInit {
   params?: Record<string, string>;
 }
 
-function isErrorBody(value: unknown): value is { error?: string; details?: Record<string, string[]> } {
+function isErrorBody(value: unknown): value is { error?: string; code?: string; requestId?: string; details?: Record<string, string[]> } {
   return typeof value === "object" && value !== null;
+}
+
+/** Structured API error with code and request ID for traceability. */
+export class ApiRequestError extends Error {
+  constructor(
+    message: string,
+    public readonly code: string | undefined,
+    public readonly requestId: string | undefined,
+    public readonly details: Record<string, string[]> | undefined,
+    public readonly status: number,
+  ) {
+    super(message);
+    this.name = "ApiRequestError";
+  }
 }
 
 /** Extract a human-readable error message from an API error response body. */
@@ -21,6 +35,18 @@ export function extractApiError(resBody: unknown, fallback: string): string {
     if (fieldErrors.length > 0) return `${msg} — ${fieldErrors}`;
   }
   return msg;
+}
+
+/** Extract structured error info from an API error response body. */
+export function extractApiErrorInfo(resBody: unknown, fallback: string): { message: string; code?: string; requestId?: string; details?: Record<string, string[]> } {
+  const body = isErrorBody(resBody) ? resBody : {};
+  const message = extractApiError(resBody, fallback);
+  return {
+    message,
+    code: body.code,
+    requestId: body.requestId,
+    details: body.details,
+  };
 }
 
 export async function api(
@@ -57,7 +83,8 @@ export async function api(
 
   if (!res.ok) {
     const raw: unknown = await res.json().catch(() => ({ error: "Request failed" }));
-    throw new Error(extractApiError(raw, `HTTP ${String(res.status)}`));
+    const info = extractApiErrorInfo(raw, `HTTP ${String(res.status)}`);
+    throw new ApiRequestError(info.message, info.code, info.requestId, info.details, res.status);
   }
 
   return res.json();

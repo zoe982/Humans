@@ -1,6 +1,7 @@
 import { redirect, fail } from "@sveltejs/kit";
 import type { RequestEvent, ActionFailure } from "@sveltejs/kit";
 import { PUBLIC_API_URL } from "$env/static/public";
+import { extractApiErrorInfo } from "$lib/api";
 
 function isObjData(value: unknown): value is { data: Record<string, unknown> } {
   return typeof value === "object" && value !== null && "data" in value;
@@ -10,8 +11,9 @@ function isListData(value: unknown): value is { data: unknown[] } {
   return typeof value === "object" && value !== null && "data" in value && Array.isArray((value as { data: unknown }).data);
 }
 
-function isErrorBody(value: unknown): value is { error?: string } {
-  return typeof value === "object" && value !== null;
+function failFromApi(resBody: unknown, status: number, fallback: string): ActionFailure<{ error: string; code?: string; requestId?: string }> {
+  const info = extractApiErrorInfo(resBody, fallback);
+  return fail(status, { error: info.message, code: info.code, requestId: info.requestId });
 }
 
 export const load = async ({ locals, cookies, params }: RequestEvent) => {
@@ -45,7 +47,7 @@ export const load = async ({ locals, cookies, params }: RequestEvent) => {
 };
 
 export const actions = {
-  updateStatus: async ({ request, cookies, params }: RequestEvent): Promise<ActionFailure<{ error: string }> | { success: true }> => {
+  updateStatus: async ({ request, cookies, params }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
     const form = await request.formData();
     const sessionToken = cookies.get("humans_session");
 
@@ -60,14 +62,13 @@ export const actions = {
 
     if (!res.ok) {
       const resBody: unknown = await res.json();
-      const body = isErrorBody(resBody) ? resBody : {};
-      return fail(res.status, { error: body.error ?? "Failed to update status" });
+      return failFromApi(resBody, res.status, "Failed to update status");
     }
 
     return { success: true };
   },
 
-  updateNote: async ({ request, cookies, params }: RequestEvent): Promise<ActionFailure<{ error: string }> | { success: true }> => {
+  updateNote: async ({ request, cookies, params }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
     const form = await request.formData();
     const sessionToken = cookies.get("humans_session");
 
@@ -82,14 +83,13 @@ export const actions = {
 
     if (!res.ok) {
       const resBody: unknown = await res.json();
-      const body = isErrorBody(resBody) ? resBody : {};
-      return fail(res.status, { error: body.error ?? "Failed to update note" });
+      return failFromApi(resBody, res.status, "Failed to update note");
     }
 
     return { success: true };
   },
 
-  delete: async ({ cookies, params }: RequestEvent): Promise<ActionFailure<{ error: string }> | { success: true }> => {
+  delete: async ({ cookies, params }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
     const sessionToken = cookies.get("humans_session");
 
     const res = await fetch(`${PUBLIC_API_URL}/api/route-signups/${params.id}`, {
@@ -101,14 +101,13 @@ export const actions = {
 
     if (!res.ok) {
       const resBody: unknown = await res.json();
-      const body = isErrorBody(resBody) ? resBody : {};
-      return fail(res.status, { error: body.error ?? "Failed to delete" });
+      return failFromApi(resBody, res.status, "Failed to delete");
     }
 
     redirect(302, "/leads/route-signups");
   },
 
-  addActivity: async ({ request, cookies, params }: RequestEvent): Promise<ActionFailure<{ error: string }> | { success: true }> => {
+  addActivity: async ({ request, cookies, params }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
     const form = await request.formData();
     const sessionToken = cookies.get("humans_session");
 
@@ -131,14 +130,13 @@ export const actions = {
 
     if (!res.ok) {
       const resBody: unknown = await res.json();
-      const body = isErrorBody(resBody) ? resBody : {};
-      return fail(res.status, { error: body.error ?? "Failed to create activity" });
+      return failFromApi(resBody, res.status, "Failed to create activity");
     }
 
     return { success: true };
   },
 
-  convertToHuman: async ({ request, cookies, params }: RequestEvent): Promise<ActionFailure<{ error: string }> | { success: true }> => {
+  convertToHuman: async ({ request, cookies, params }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
     const form = await request.formData();
     const sessionToken = cookies.get("humans_session");
     const humanId = form.get("humanId") as string;
@@ -154,8 +152,7 @@ export const actions = {
 
     if (!res.ok) {
       const resBody: unknown = await res.json();
-      const body = isErrorBody(resBody) ? resBody : {};
-      return fail(res.status, { error: body.error ?? "Failed to convert" });
+      return failFromApi(resBody, res.status, "Failed to convert");
     }
 
     return { success: true };

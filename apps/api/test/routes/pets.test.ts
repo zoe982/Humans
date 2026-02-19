@@ -3,29 +3,29 @@ import { SELF } from "cloudflare:test";
 import { describe, it, expect } from "vitest";
 import { createUserAndSession, sessionCookie, getDb } from "../helpers";
 import * as schema from "@humans/db/schema";
-import { buildClient, buildPet } from "@humans/test-utils";
+import { buildHuman, buildPet } from "@humans/test-utils";
 
-async function createClient() {
+async function createHuman() {
   const db = getDb();
-  const client = buildClient({ email: `pet-client-${Date.now()}@test.com` });
-  await db.insert(schema.clients).values(client);
-  return client;
+  const human = buildHuman();
+  await db.insert(schema.humans).values(human);
+  return human;
 }
 
-describe("GET /api/clients/:clientId/pets", () => {
+describe("GET /api/humans/:humanId/pets", () => {
   it("returns 401 when unauthenticated", async () => {
-    const res = await SELF.fetch("http://localhost/api/clients/any/pets");
+    const res = await SELF.fetch("http://localhost/api/humans/any/pets");
     expect(res.status).toBe(401);
   });
 
-  it("returns pets for a client", async () => {
-    const client = await createClient();
+  it("returns pets for a human", async () => {
+    const human = await createHuman();
     const db = getDb();
-    const pet = buildPet({ clientId: client.id, name: "Buddy" });
+    const pet = buildPet({ humanId: human.id, name: "Buddy" });
     await db.insert(schema.pets).values(pet);
 
     const { token } = await createUserAndSession("viewer");
-    const res = await SELF.fetch(`http://localhost/api/clients/${client.id}/pets`, {
+    const res = await SELF.fetch(`http://localhost/api/humans/${human.id}/pets`, {
       headers: { Cookie: sessionCookie(token) },
     });
     expect(res.status).toBe(200);
@@ -46,9 +46,9 @@ describe("GET /api/pets/:id", () => {
   });
 
   it("returns pet by id", async () => {
-    const client = await createClient();
+    const human = await createHuman();
     const db = getDb();
-    const pet = buildPet({ clientId: client.id });
+    const pet = buildPet({ humanId: human.id });
     await db.insert(schema.pets).values(pet);
 
     const { token } = await createUserAndSession("agent");
@@ -63,37 +63,36 @@ describe("GET /api/pets/:id", () => {
 
 describe("POST /api/pets", () => {
   it("returns 403 for viewer role", async () => {
-    const client = await createClient();
+    const human = await createHuman();
     const { token } = await createUserAndSession("viewer");
     const res = await SELF.fetch("http://localhost/api/pets", {
       method: "POST",
       headers: { "Content-Type": "application/json", Cookie: sessionCookie(token) },
-      body: JSON.stringify({ clientId: client.id, name: "Fluffy" }),
+      body: JSON.stringify({ humanId: human.id, name: "Fluffy" }),
     });
     expect(res.status).toBe(403);
   });
 
   it("creates pet and returns 201", async () => {
-    const client = await createClient();
+    const human = await createHuman();
     const { token } = await createUserAndSession("agent");
     const res = await SELF.fetch("http://localhost/api/pets", {
       method: "POST",
       headers: { "Content-Type": "application/json", Cookie: sessionCookie(token) },
-      body: JSON.stringify({ clientId: client.id, name: "Fluffy" }),
+      body: JSON.stringify({ humanId: human.id, name: "Fluffy" }),
     });
     expect(res.status).toBe(201);
-    const body = (await res.json()) as { data: { name: string; clientId: string } };
+    const body = (await res.json()) as { data: { name: string; humanId: string } };
     expect(body.data.name).toBe("Fluffy");
-    expect(body.data.clientId).toBe(client.id);
+    expect(body.data.humanId).toBe(human.id);
   });
 
-  it("returns 400 for invalid data (missing name)", async () => {
-    const client = await createClient();
+  it("returns 400 for invalid data (missing humanId)", async () => {
     const { token } = await createUserAndSession("agent");
     const res = await SELF.fetch("http://localhost/api/pets", {
       method: "POST",
       headers: { "Content-Type": "application/json", Cookie: sessionCookie(token) },
-      body: JSON.stringify({ clientId: client.id }),
+      body: JSON.stringify({ name: "Fluffy" }),
     });
     expect(res.status).toBe(400);
   });
@@ -111,9 +110,9 @@ describe("PATCH /api/pets/:id", () => {
   });
 
   it("updates pet successfully", async () => {
-    const client = await createClient();
+    const human = await createHuman();
     const db = getDb();
-    const pet = buildPet({ clientId: client.id, name: "Old Name" });
+    const pet = buildPet({ humanId: human.id, name: "Old Name" });
     await db.insert(schema.pets).values(pet);
 
     const { token } = await createUserAndSession("agent");

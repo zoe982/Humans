@@ -1,10 +1,12 @@
 import { Hono } from "hono";
 import { eq, and, gte, lte } from "drizzle-orm";
-import { activities, humans } from "@humans/db/schema";
+import { activities, humans, accounts, geoInterestExpressions, geoInterests } from "@humans/db/schema";
 import { createId } from "@humans/db";
 import { createActivitySchema, updateActivitySchema } from "@humans/shared";
+import { ERROR_CODES } from "@humans/shared";
 import { authMiddleware } from "../middleware/auth";
 import { requirePermission } from "../middleware/rbac";
+import { notFound } from "../lib/errors";
 import type { AppContext } from "../types";
 
 const activityRoutes = new Hono<AppContext>();
@@ -39,17 +41,68 @@ activityRoutes.get("/api/activities", requirePermission("viewRecords"), async (c
     results = await db.select().from(activities);
   }
 
-  // Attach human names for the dedicated activities page
+  // Attach human names and account names for the dedicated activities page
   const allHumans = await db.select().from(humans);
+  const allAccounts = await db.select().from(accounts);
   const data = results.map((a) => {
     const human = a.humanId ? allHumans.find((h) => h.id === a.humanId) : null;
+    const account = a.accountId ? allAccounts.find((ac) => ac.id === a.accountId) : null;
     return {
       ...a,
       humanName: human ? `${human.firstName} ${human.lastName}` : null,
+      accountId: a.accountId,
+      accountName: account?.name ?? null,
     };
   });
 
   return c.json({ data });
+});
+
+// Get single activity with enriched data
+activityRoutes.get("/api/activities/:id", requirePermission("viewRecords"), async (c) => {
+  const db = c.get("db");
+  const id = c.req.param("id");
+
+  const activity = await db.query.activities.findFirst({
+    where: eq(activities.id, id),
+  });
+  if (activity == null) {
+    throw notFound(ERROR_CODES.ACTIVITY_NOT_FOUND, "Activity not found");
+  }
+
+  // Enrich with human name and account name
+  const human = activity.humanId
+    ? await db.query.humans.findFirst({ where: eq(humans.id, activity.humanId) })
+    : null;
+  const account = activity.accountId
+    ? await db.query.accounts.findFirst({ where: eq(accounts.id, activity.accountId) })
+    : null;
+
+  // Fetch linked geo-interest expressions
+  const expressions = await db
+    .select()
+    .from(geoInterestExpressions)
+    .where(eq(geoInterestExpressions.activityId, id));
+
+  const allGeoInterests = expressions.length > 0 ? await db.select().from(geoInterests) : [];
+
+  const geoExpressions = expressions.map((expr) => {
+    const gi = allGeoInterests.find((g) => g.id === expr.geoInterestId);
+    return {
+      ...expr,
+      city: gi?.city ?? null,
+      country: gi?.country ?? null,
+    };
+  });
+
+  return c.json({
+    data: {
+      ...activity,
+      humanName: human ? `${human.firstName} ${human.lastName}` : null,
+      accountName: account?.name ?? null,
+      geoInterestExpressions: geoExpressions,
+    },
+  });
 });
 
 // Create activity
@@ -92,7 +145,7 @@ activityRoutes.patch("/api/activities/:id", requirePermission("createEditRecords
     where: eq(activities.id, id),
   });
   if (existing == null) {
-    return c.json({ error: "Activity not found" }, 404);
+    throw notFound(ERROR_CODES.ACTIVITY_NOT_FOUND, "Activity not found");
   }
 
   const updateFields: Record<string, unknown> = { updatedAt: new Date().toISOString() };
@@ -126,8 +179,14 @@ activityRoutes.delete("/api/activities/:id", requirePermission("createEditRecord
     where: eq(activities.id, id),
   });
   if (existing == null) {
-    return c.json({ error: "Activity not found" }, 404);
+    throw notFound(ERROR_CODES.ACTIVITY_NOT_FOUND, "Activity not found");
   }
+
+  // Nullify activityId on any geo-interest expressions referencing this activity
+  await db
+    .update(geoInterestExpressions)
+    .set({ activityId: null })
+    .where(eq(geoInterestExpressions.activityId, id));
 
   await db.delete(activities).where(eq(activities.id, id));
   return c.json({ success: true });

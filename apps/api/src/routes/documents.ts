@@ -1,6 +1,8 @@
 import { Hono } from "hono";
+import { ERROR_CODES } from "@humans/shared";
 import { authMiddleware } from "../middleware/auth";
 import { requirePermission } from "../middleware/rbac";
+import { badRequest, notFound } from "../lib/errors";
 import type { AppContext } from "../types";
 
 const documentRoutes = new Hono<AppContext>();
@@ -12,12 +14,12 @@ documentRoutes.post("/api/documents/upload", requirePermission("createEditRecord
   const file = formData.get("file");
 
   if (file == null || !(file instanceof File)) {
-    return c.json({ error: "No file provided" }, 400);
+    throw badRequest(ERROR_CODES.FILE_NOT_PROVIDED, "No file provided");
   }
 
   // Validate file size (10MB max)
   if (file.size > 10 * 1024 * 1024) {
-    return c.json({ error: "File too large (max 10MB)" }, 400);
+    throw badRequest(ERROR_CODES.FILE_TOO_LARGE, "File too large (max 10MB)");
   }
 
   const key = `${crypto.randomUUID()}-${file.name}`;
@@ -33,7 +35,7 @@ documentRoutes.get("/api/documents/:key", requirePermission("viewRecords"), asyn
   const object = await c.env.DOCUMENTS.get(key);
 
   if (object == null) {
-    return c.json({ error: "Document not found" }, 404);
+    throw notFound(ERROR_CODES.DOCUMENT_NOT_FOUND, "Document not found");
   }
 
   const headers = new Headers();

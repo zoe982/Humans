@@ -3,8 +3,10 @@ import { eq } from "drizzle-orm";
 import { pets } from "@humans/db/schema";
 import { createId } from "@humans/db";
 import { createPetSchema, updatePetSchema } from "@humans/shared";
+import { ERROR_CODES } from "@humans/shared";
 import { authMiddleware } from "../middleware/auth";
 import { requirePermission } from "../middleware/rbac";
+import { notFound } from "../lib/errors";
 import type { AppContext } from "../types";
 
 const petRoutes = new Hono<AppContext>();
@@ -27,7 +29,7 @@ petRoutes.get("/api/pets/:id", requirePermission("viewRecords"), async (c) => {
     where: eq(pets.id, c.req.param("id")),
   });
   if (pet == null) {
-    return c.json({ error: "Pet not found" }, 404);
+    throw notFound(ERROR_CODES.PET_NOT_FOUND, "Pet not found");
   }
   return c.json({ data: pet });
 });
@@ -67,7 +69,7 @@ petRoutes.patch("/api/pets/:id", requirePermission("createEditRecords"), async (
     where: eq(pets.id, c.req.param("id")),
   });
   if (existing == null) {
-    return c.json({ error: "Pet not found" }, 404);
+    throw notFound(ERROR_CODES.PET_NOT_FOUND, "Pet not found");
   }
 
   await db

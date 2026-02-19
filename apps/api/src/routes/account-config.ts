@@ -5,11 +5,15 @@ import {
   accountHumanLabelsConfig,
   accountEmailLabelsConfig,
   accountPhoneLabelsConfig,
+  humanEmailLabelsConfig,
+  humanPhoneLabelsConfig,
 } from "@humans/db/schema";
 import { createId } from "@humans/db";
 import { createConfigItemSchema, updateConfigItemSchema } from "@humans/shared";
+import { ERROR_CODES } from "@humans/shared";
 import { authMiddleware } from "../middleware/auth";
 import { requirePermission } from "../middleware/rbac";
+import { badRequest } from "../lib/errors";
 import type { AppContext } from "../types";
 
 const configTableMap = {
@@ -17,6 +21,8 @@ const configTableMap = {
   "account-human-labels": accountHumanLabelsConfig,
   "account-email-labels": accountEmailLabelsConfig,
   "account-phone-labels": accountPhoneLabelsConfig,
+  "human-email-labels": humanEmailLabelsConfig,
+  "human-phone-labels": humanPhoneLabelsConfig,
 } as const;
 
 type ConfigType = keyof typeof configTableMap;
@@ -33,7 +39,7 @@ accountConfigRoutes.use("/*", authMiddleware);
 accountConfigRoutes.get("/api/admin/account-config/:configType", requirePermission("manageColleagues"), async (c) => {
   const configType = c.req.param("configType");
   if (!isValidConfigType(configType)) {
-    return c.json({ error: "Invalid config type" }, 400);
+    throw badRequest(ERROR_CODES.INVALID_CONFIG_TYPE, "Invalid config type");
   }
 
   const db = c.get("db");
@@ -47,7 +53,7 @@ accountConfigRoutes.get("/api/admin/account-config/:configType", requirePermissi
 accountConfigRoutes.post("/api/admin/account-config/:configType", requirePermission("manageColleagues"), async (c) => {
   const configType = c.req.param("configType");
   if (!isValidConfigType(configType)) {
-    return c.json({ error: "Invalid config type" }, 400);
+    throw badRequest(ERROR_CODES.INVALID_CONFIG_TYPE, "Invalid config type");
   }
 
   const body: unknown = await c.req.json();
@@ -70,7 +76,7 @@ accountConfigRoutes.post("/api/admin/account-config/:configType", requirePermiss
 accountConfigRoutes.patch("/api/admin/account-config/:configType/:id", requirePermission("manageColleagues"), async (c) => {
   const configType = c.req.param("configType");
   if (!isValidConfigType(configType)) {
-    return c.json({ error: "Invalid config type" }, 400);
+    throw badRequest(ERROR_CODES.INVALID_CONFIG_TYPE, "Invalid config type");
   }
 
   const body: unknown = await c.req.json();
@@ -88,7 +94,7 @@ accountConfigRoutes.patch("/api/admin/account-config/:configType/:id", requirePe
 accountConfigRoutes.delete("/api/admin/account-config/:configType/:id", requirePermission("manageColleagues"), async (c) => {
   const configType = c.req.param("configType");
   if (!isValidConfigType(configType)) {
-    return c.json({ error: "Invalid config type" }, 400);
+    throw badRequest(ERROR_CODES.INVALID_CONFIG_TYPE, "Invalid config type");
   }
 
   const db = c.get("db");

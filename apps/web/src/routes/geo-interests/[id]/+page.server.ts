@@ -1,6 +1,7 @@
 import { redirect, fail } from "@sveltejs/kit";
 import type { RequestEvent, ActionFailure } from "@sveltejs/kit";
 import { PUBLIC_API_URL } from "$env/static/public";
+import { extractApiErrorInfo } from "$lib/api";
 
 function isObjData(value: unknown): value is { data: Record<string, unknown> } {
   return typeof value === "object" && value !== null && "data" in value;
@@ -10,8 +11,9 @@ function isListData(value: unknown): value is { data: unknown[] } {
   return typeof value === "object" && value !== null && "data" in value && Array.isArray((value as { data: unknown }).data);
 }
 
-function isErrorBody(value: unknown): value is { error?: string } {
-  return typeof value === "object" && value !== null;
+function failFromApi(resBody: unknown, status: number, fallback: string): ActionFailure<{ error: string; code?: string; requestId?: string }> {
+  const info = extractApiErrorInfo(resBody, fallback);
+  return fail(status, { error: info.message, code: info.code, requestId: info.requestId });
 }
 
 export const load = async ({ locals, cookies, params }: RequestEvent) => {
@@ -41,7 +43,7 @@ export const load = async ({ locals, cookies, params }: RequestEvent) => {
 };
 
 export const actions = {
-  delete: async ({ cookies, params }: RequestEvent): Promise<ActionFailure<{ error: string }> | void> => {
+  delete: async ({ cookies, params }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | void> => {
     const sessionToken = cookies.get("humans_session");
     const id = params.id;
 
@@ -54,14 +56,13 @@ export const actions = {
 
     if (!res.ok) {
       const resBody: unknown = await res.json();
-      const body = isErrorBody(resBody) ? resBody : {};
-      return fail(res.status, { error: body.error ?? "Failed to delete geo-interest" });
+      return failFromApi(resBody, res.status, "Failed to delete geo-interest");
     }
 
     redirect(302, "/geo-interests");
   },
 
-  deleteExpression: async ({ request, cookies }: RequestEvent): Promise<ActionFailure<{ error: string }> | { success: true }> => {
+  deleteExpression: async ({ request, cookies }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
     const form = await request.formData();
     const sessionToken = cookies.get("humans_session");
     const expressionId = form.get("expressionId");
@@ -75,14 +76,13 @@ export const actions = {
 
     if (!res.ok) {
       const resBody: unknown = await res.json();
-      const body = isErrorBody(resBody) ? resBody : {};
-      return fail(res.status, { error: body.error ?? "Failed to delete expression" });
+      return failFromApi(resBody, res.status, "Failed to delete expression");
     }
 
     return { success: true };
   },
 
-  createExpression: async ({ request, cookies, params }: RequestEvent): Promise<ActionFailure<{ error: string }> | { success: true }> => {
+  createExpression: async ({ request, cookies, params }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
     const form = await request.formData();
     const sessionToken = cookies.get("humans_session");
     const humanId = (form.get("humanId") as string)?.trim();
@@ -107,8 +107,7 @@ export const actions = {
 
     if (!res.ok) {
       const resBody: unknown = await res.json();
-      const body = isErrorBody(resBody) ? resBody : {};
-      return fail(res.status, { error: body.error ?? "Failed to create expression." });
+      return failFromApi(resBody, res.status, "Failed to create expression.");
     }
 
     return { success: true };

@@ -72,7 +72,8 @@ export function buildClient(overrides: Partial<{
 
 export function buildPet(overrides: Partial<{
   id: string;
-  clientId: string;
+  clientId: string | null;
+  humanId: string | null;
   name: string;
   breed: string | null;
   weight: number | null;
@@ -87,7 +88,8 @@ export function buildPet(overrides: Partial<{
   const ts = now();
   return {
     id: createId(),
-    clientId: createId(),
+    clientId: null,
+    humanId: createId(),
     name: "Buddy",
     breed: "Golden Retriever",
     weight: 30,
@@ -98,6 +100,137 @@ export function buildPet(overrides: Partial<{
     isActive: true,
     createdAt: ts,
     updatedAt: ts,
+    ...overrides,
+  };
+}
+
+export function buildHuman(overrides: Partial<{
+  id: string;
+  firstName: string;
+  middleName: string | null;
+  lastName: string;
+  status: "open" | "active" | "closed";
+  createdAt: string;
+  updatedAt: string;
+}> = {}) {
+  const ts = now();
+  return {
+    id: createId(),
+    firstName: "Test",
+    middleName: null,
+    lastName: "Human",
+    status: "open" as const,
+    createdAt: ts,
+    updatedAt: ts,
+    ...overrides,
+  };
+}
+
+export function buildAccount(overrides: Partial<{
+  id: string;
+  name: string;
+  status: "open" | "active" | "closed";
+  createdAt: string;
+  updatedAt: string;
+}> = {}) {
+  const ts = now();
+  return {
+    id: createId(),
+    name: `Account ${createId().slice(0, 6)}`,
+    status: "open" as const,
+    createdAt: ts,
+    updatedAt: ts,
+    ...overrides,
+  };
+}
+
+export function buildActivity(overrides: Partial<{
+  id: string;
+  type: string;
+  subject: string;
+  body: string | null;
+  notes: string | null;
+  activityDate: string;
+  humanId: string | null;
+  accountId: string | null;
+  routeSignupId: string | null;
+  gmailId: string | null;
+  frontId: string | null;
+  createdByColleagueId: string;
+  createdAt: string;
+  updatedAt: string;
+}> = {}) {
+  const ts = now();
+  return {
+    id: createId(),
+    type: "email",
+    subject: "Test activity",
+    body: null,
+    notes: null,
+    activityDate: ts,
+    humanId: null,
+    accountId: null,
+    routeSignupId: null,
+    gmailId: null,
+    frontId: null,
+    createdByColleagueId: createId(),
+    createdAt: ts,
+    updatedAt: ts,
+    ...overrides,
+  };
+}
+
+export function buildGeoInterest(overrides: Partial<{
+  id: string;
+  city: string;
+  country: string;
+  createdAt: string;
+}> = {}) {
+  return {
+    id: createId(),
+    city: "London",
+    country: "United Kingdom",
+    createdAt: now(),
+    ...overrides,
+  };
+}
+
+export function buildEmail(overrides: Partial<{
+  id: string;
+  humanId: string;
+  email: string;
+  labelId: string | null;
+  isPrimary: boolean;
+  createdAt: string;
+}> = {}) {
+  return {
+    id: createId(),
+    humanId: createId(),
+    email: `email-${createId()}@test.com`,
+    labelId: null,
+    isPrimary: false,
+    createdAt: now(),
+    ...overrides,
+  };
+}
+
+export function buildPhoneNumber(overrides: Partial<{
+  id: string;
+  humanId: string;
+  phoneNumber: string;
+  labelId: string | null;
+  hasWhatsapp: boolean;
+  isPrimary: boolean;
+  createdAt: string;
+}> = {}) {
+  return {
+    id: createId(),
+    humanId: createId(),
+    phoneNumber: `+1${Math.floor(Math.random() * 9000000000 + 1000000000).toString()}`,
+    labelId: null,
+    hasWhatsapp: false,
+    isPrimary: false,
+    createdAt: now(),
     ...overrides,
   };
 }

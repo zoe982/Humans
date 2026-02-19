@@ -14,7 +14,10 @@ export const load = async ({ locals, cookies }: RequestEvent) => {
     headers: { Cookie: `humans_session=${sessionToken ?? ""}` },
   });
 
-  if (!res.ok) return { humans: [] };
+  if (!res.ok) {
+    console.error("[humans] Failed to load humans:", res.status);
+    return { humans: [] };
+  }
   const raw: unknown = await res.json();
   return { humans: isListData(raw) ? raw.data : [] };
 };

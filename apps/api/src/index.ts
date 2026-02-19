@@ -22,6 +22,7 @@ import { geoInterestRoutes } from "./routes/geo-interests";
 import { accountRoutes } from "./routes/accounts";
 import { accountConfigRoutes } from "./routes/account-config";
 import { auditLogRoutes } from "./routes/audit-log";
+import { errorLogRoutes } from "./routes/error-log";
 import type { AppContext } from "./types";
 
 const app = new Hono<AppContext>();
@@ -59,5 +60,6 @@ app.route("/", geoInterestRoutes);
 app.route("/", accountRoutes);
 app.route("/", accountConfigRoutes);
 app.route("/", auditLogRoutes);
+app.route("/", errorLogRoutes);
 
 export default app;

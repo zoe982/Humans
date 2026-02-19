@@ -7,8 +7,10 @@ import {
   createGeoInterestExpressionSchema,
   updateGeoInterestExpressionSchema,
 } from "@humans/shared";
+import { ERROR_CODES } from "@humans/shared";
 import { authMiddleware } from "../middleware/auth";
 import { requirePermission } from "../middleware/rbac";
+import { notFound } from "../lib/errors";
 import type { AppContext } from "../types";
 
 const geoInterestRoutes = new Hono<AppContext>();
@@ -60,7 +62,7 @@ geoInterestRoutes.get("/api/geo-interests/:id", requirePermission("viewRecords")
     where: eq(geoInterests.id, id),
   });
   if (geoInterest == null) {
-    return c.json({ error: "Geo-interest not found" }, 404);
+    throw notFound(ERROR_CODES.GEO_INTEREST_NOT_FOUND, "Geo-interest not found");
   }
 
   const expressions = await db
@@ -123,7 +125,7 @@ geoInterestRoutes.delete("/api/geo-interests/:id", requirePermission("manageHuma
     where: eq(geoInterests.id, id),
   });
   if (existing == null) {
-    return c.json({ error: "Geo-interest not found" }, 404);
+    throw notFound(ERROR_CODES.GEO_INTEREST_NOT_FOUND, "Geo-interest not found");
   }
 
   await db.delete(geoInterestExpressions).where(eq(geoInterestExpressions.geoInterestId, id));
@@ -132,33 +134,24 @@ geoInterestRoutes.delete("/api/geo-interests/:id", requirePermission("manageHuma
   return c.json({ success: true });
 });
 
-// List expressions, filterable by humanId and geoInterestId
+// List expressions, filterable by humanId, geoInterestId, and activityId
 geoInterestRoutes.get("/api/geo-interest-expressions", requirePermission("viewRecords"), async (c) => {
   const db = c.get("db");
   const humanId = c.req.query("humanId");
   const geoInterestId = c.req.query("geoInterestId");
+  const activityId = c.req.query("activityId");
+
+  const conditions = [];
+  if (humanId) conditions.push(eq(geoInterestExpressions.humanId, humanId));
+  if (geoInterestId) conditions.push(eq(geoInterestExpressions.geoInterestId, geoInterestId));
+  if (activityId) conditions.push(eq(geoInterestExpressions.activityId, activityId));
 
   let expressions;
-  if (humanId && geoInterestId) {
+  if (conditions.length > 0) {
     expressions = await db
       .select()
       .from(geoInterestExpressions)
-      .where(
-        and(
-          eq(geoInterestExpressions.humanId, humanId),
-          eq(geoInterestExpressions.geoInterestId, geoInterestId),
-        ),
-      );
-  } else if (humanId) {
-    expressions = await db
-      .select()
-      .from(geoInterestExpressions)
-      .where(eq(geoInterestExpressions.humanId, humanId));
-  } else if (geoInterestId) {
-    expressions = await db
-      .select()
-      .from(geoInterestExpressions)
-      .where(eq(geoInterestExpressions.geoInterestId, geoInterestId));
+      .where(and(...conditions));
   } else {
     expressions = await db.select().from(geoInterestExpressions);
   }
@@ -196,7 +189,7 @@ geoInterestRoutes.post("/api/geo-interest-expressions", requirePermission("manag
     where: eq(humans.id, data.humanId),
   });
   if (human == null) {
-    return c.json({ error: "Human not found" }, 404);
+    throw notFound(ERROR_CODES.HUMAN_NOT_FOUND, "Human not found");
   }
 
   // Resolve geo-interest
@@ -225,7 +218,7 @@ geoInterestRoutes.post("/api/geo-interest-expressions", requirePermission("manag
       where: eq(activities.id, data.activityId),
     });
     if (activity == null) {
-      return c.json({ error: "Activity not found" }, 404);
+      throw notFound(ERROR_CODES.ACTIVITY_NOT_FOUND, "Activity not found");
     }
   }
 
@@ -253,7 +246,7 @@ geoInterestRoutes.patch("/api/geo-interest-expressions/:id", requirePermission("
     where: eq(geoInterestExpressions.id, id),
   });
   if (existing == null) {
-    return c.json({ error: "Expression not found" }, 404);
+    throw notFound(ERROR_CODES.GEO_EXPRESSION_NOT_FOUND, "Expression not found");
   }
 
   await db
@@ -276,7 +269,7 @@ geoInterestRoutes.delete("/api/geo-interest-expressions/:id", requirePermission(
     where: eq(geoInterestExpressions.id, id),
   });
   if (existing == null) {
-    return c.json({ error: "Expression not found" }, 404);
+    throw notFound(ERROR_CODES.GEO_EXPRESSION_NOT_FOUND, "Expression not found");
   }
 
   await db.delete(geoInterestExpressions).where(eq(geoInterestExpressions.id, id));

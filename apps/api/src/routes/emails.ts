@@ -2,9 +2,10 @@ import { Hono } from "hono";
 import { eq } from "drizzle-orm";
 import { humanEmails, humans } from "@humans/db/schema";
 import { createId } from "@humans/db";
-import { createEmailSchema, updateEmailSchema } from "@humans/shared";
+import { createEmailSchema, ERROR_CODES } from "@humans/shared";
 import { authMiddleware } from "../middleware/auth";
 import { requirePermission } from "../middleware/rbac";
+import { notFound } from "../lib/errors";
 import type { AppContext } from "../types";
 
 const emailRoutes = new Hono<AppContext>();
@@ -39,7 +40,7 @@ emailRoutes.post("/api/emails", requirePermission("manageHumans"), async (c) => 
     id: createId(),
     humanId: data.humanId,
     email: data.email,
-    label: data.label ?? ("personal" as const),
+    labelId: data.labelId ?? null,
     isPrimary: data.isPrimary ?? false,
     createdAt: now,
   };
@@ -57,7 +58,7 @@ emailRoutes.delete("/api/emails/:id", requirePermission("manageHumans"), async (
     where: eq(humanEmails.id, id),
   });
   if (existing == null) {
-    return c.json({ error: "Email not found" }, 404);
+    throw notFound(ERROR_CODES.EMAIL_NOT_FOUND, "Email not found");
   }
 
   await db.delete(humanEmails).where(eq(humanEmails.id, id));

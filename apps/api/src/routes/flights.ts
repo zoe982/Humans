@@ -3,8 +3,10 @@ import { eq } from "drizzle-orm";
 import { flights } from "@humans/db/schema";
 import { createId } from "@humans/db";
 import { createFlightSchema, updateFlightSchema } from "@humans/shared";
+import { ERROR_CODES } from "@humans/shared";
 import { authMiddleware } from "../middleware/auth";
 import { requirePermission } from "../middleware/rbac";
+import { notFound } from "../lib/errors";
 import type { AppContext } from "../types";
 
 const flightRoutes = new Hono<AppContext>();
@@ -23,7 +25,7 @@ flightRoutes.get("/api/flights/:id", requirePermission("viewRecords"), async (c)
     where: eq(flights.id, c.req.param("id")),
   });
   if (flight == null) {
-    return c.json({ error: "Flight not found" }, 404);
+    throw notFound(ERROR_CODES.FLIGHT_NOT_FOUND, "Flight not found");
   }
   return c.json({ data: flight });
 });
@@ -56,7 +58,7 @@ flightRoutes.patch("/api/flights/:id", requirePermission("createEditRecords"), a
     where: eq(flights.id, c.req.param("id")),
   });
   if (existing == null) {
-    return c.json({ error: "Flight not found" }, 404);
+    throw notFound(ERROR_CODES.FLIGHT_NOT_FOUND, "Flight not found");
   }
 
   await db

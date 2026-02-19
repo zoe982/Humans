@@ -131,6 +131,16 @@ export default tseslint.config(
       "vitest/no-identical-title": "error",
       // Correctness: no duplicate beforeEach / afterEach hooks in the same block
       "vitest/no-duplicate-hooks": "error",
+      // Anti-gaming: forces toStrictEqual over toEqual (catches type mismatches)
+      "vitest/prefer-strict-equal": "error",
+      // Anti-gaming: forces toBe for primitives (clearer intent)
+      "vitest/prefer-to-be": "error",
+      // Anti-gaming: prevents deprecated test method aliases
+      "vitest/no-alias-methods": "error",
+      // Structure: every test must be inside a describe block
+      "vitest/require-top-level-describe": "error",
+      // Structure: prevents excessive nesting (max 3 levels)
+      "vitest/max-nested-describe": ["error", { max: 3 }],
     },
     languageOptions: {
       globals: {

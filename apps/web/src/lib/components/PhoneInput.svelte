@@ -75,8 +75,8 @@
     />
   </div>
   {#if showDropdown}
-    <div class="absolute z-50 mt-1 w-72 rounded-lg border border-white/15 bg-[#1a3a58] shadow-lg">
-      <div class="p-2 border-b border-white/10">
+    <div class="glass-popover absolute z-50 mt-1 w-72">
+      <div class="p-2 border-b border-glass-border">
         <input
           type="text"
           bind:value={codeSearch}
@@ -90,7 +90,7 @@
         {#each filteredCodes as code (code.iso2)}
           <button
             type="button"
-            class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition-colors {code.iso2 === selectedCode.iso2 ? 'bg-white/12 text-text-primary' : 'text-text-secondary hover:bg-white/8 hover:text-text-primary'}"
+            class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition-colors {code.iso2 === selectedCode.iso2 ? 'bg-glass-hover text-text-primary' : 'text-text-secondary hover:bg-glass-hover hover:text-text-primary'}"
             onmousedown={(e) => { e.preventDefault(); selectCode(code); }}
           >
             <span>{code.flag}</span>

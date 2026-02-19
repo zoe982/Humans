@@ -1,14 +1,16 @@
 import { redirect, fail } from "@sveltejs/kit";
 import type { RequestEvent, ActionFailure } from "@sveltejs/kit";
 import { PUBLIC_API_URL } from "$env/static/public";
+import { extractApiErrorInfo } from "$lib/api";
 import { createColleagueSchema, updateColleagueSchema } from "@humans/shared";
 
 function isListData(value: unknown): value is { data: unknown[] } {
   return typeof value === "object" && value !== null && "data" in value && Array.isArray((value as { data: unknown }).data);
 }
 
-function isErrorBody(value: unknown): value is { error?: string } {
-  return typeof value === "object" && value !== null;
+function failFromApi(resBody: unknown, status: number, fallback: string): ActionFailure<{ error: string; code?: string; requestId?: string }> {
+  const info = extractApiErrorInfo(resBody, fallback);
+  return fail(status, { error: info.message, code: info.code, requestId: info.requestId });
 }
 
 export const load = async ({ locals, cookies }: RequestEvent): Promise<{ colleagues: unknown[] }> => {
@@ -26,7 +28,7 @@ export const load = async ({ locals, cookies }: RequestEvent): Promise<{ colleag
 };
 
 export const actions = {
-  invite: async ({ request, cookies }: RequestEvent): Promise<ActionFailure<{ error: string; fields?: Record<string, string[]> }> | { success: true }> => {
+  invite: async ({ request, cookies }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string; fields?: Record<string, string[]> }> | { success: true }> => {
     const form = await request.formData();
     const raw = {
       email: form.get("email"),
@@ -53,14 +55,13 @@ export const actions = {
 
     if (!res.ok) {
       const resBody: unknown = await res.json();
-      const body = isErrorBody(resBody) ? resBody : {};
-      return fail(res.status, { error: body.error ?? "Failed to invite colleague" });
+      return failFromApi(resBody, res.status, "Failed to invite colleague");
     }
 
     return { success: true };
   },
 
-  update: async ({ request, cookies }: RequestEvent): Promise<ActionFailure<{ error: string }> | { success: true }> => {
+  update: async ({ request, cookies }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
     const form = await request.formData();
     const id = form.get("id");
     const idStr = typeof id === "string" ? id : "";
@@ -86,8 +87,7 @@ export const actions = {
 
     if (!res.ok) {
       const resBody: unknown = await res.json();
-      const body = isErrorBody(resBody) ? resBody : {};
-      return fail(res.status, { error: body.error ?? "Failed to update colleague" });
+      return failFromApi(resBody, res.status, "Failed to update colleague");
     }
 
     return { success: true };

@@ -52,5 +52,19 @@
         </div>
       </div>
     </a>
+
+    <a href="/admin/error-log" class="glass-card p-6 hover:bg-glass-hover transition-colors group">
+      <div class="flex items-start gap-4">
+        <div class="rounded-lg bg-accent-dim p-3 text-accent">
+          <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
+          </svg>
+        </div>
+        <div>
+          <h2 class="text-lg font-semibold text-text-primary">Error Log</h2>
+          <p class="mt-1 text-sm text-text-secondary">View recent API errors with codes, request IDs, and stack traces.</p>
+        </div>
+      </div>
+    </a>
   </div>
 </div>

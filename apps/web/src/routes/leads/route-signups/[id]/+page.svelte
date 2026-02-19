@@ -158,7 +158,7 @@
   <!-- Note (Read-only) -->
   <div class="glass-card p-6 mb-6">
     <h2 class="text-lg font-semibold text-text-primary">Note</h2>
-    <div class="mt-3 rounded-lg bg-white/5 border border-white/10 px-4 py-3 text-sm text-text-secondary min-h-[3rem]">
+    <div class="mt-3 rounded-xl bg-glass border border-glass-border px-4 py-3 text-sm text-text-secondary min-h-[3rem]">
       {#if signup.note}
         {signup.note}
       {:else}
@@ -185,9 +185,9 @@
             />
           </div>
           {#if searchResults.length > 0}
-            <ul class="mt-2 divide-y divide-white/10 rounded-lg border border-white/10 overflow-hidden">
+            <ul class="mt-2 divide-y divide-glass-border rounded-xl border border-glass-border overflow-hidden">
               {#each searchResults as human}
-                <li class="flex items-center justify-between px-4 py-3 bg-white/5 hover:bg-white/10 transition-colors">
+                <li class="flex items-center justify-between px-4 py-3 bg-glass hover:bg-glass-hover transition-colors">
                   <div>
                     <p class="text-sm font-medium text-text-primary">{human.firstName} {human.lastName}</p>
                     {#if human.emails?.[0]}
@@ -209,7 +209,7 @@
           {/if}
         </div>
 
-        <div class="border-t border-white/10 pt-4">
+        <div class="border-t border-glass-border pt-4">
           <p class="text-sm font-medium text-text-secondary">Or create a new human</p>
           <a
             href={convertUrl()}
@@ -236,7 +236,7 @@
     </div>
 
     {#if showActivityForm}
-      <form method="POST" action="?/addActivity" class="mt-4 space-y-3 rounded-lg border border-white/10 bg-white/5 p-4">
+      <form method="POST" action="?/addActivity" class="mt-4 space-y-3 rounded-xl border border-glass-border bg-glass p-4">
         <div>
           <label for="type" class="block text-sm font-medium text-text-secondary">Type</label>
           <select
@@ -278,12 +278,12 @@
       </form>
     {/if}
 
-    <ul class="mt-4 divide-y divide-white/10">
+    <ul class="mt-4 divide-y divide-glass-border">
       {#each activities as activity (activity.id)}
         <li class="py-3">
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-2">
-              <span class="inline-flex rounded-full bg-white/10 px-2 py-0.5 text-xs font-medium text-text-secondary">
+              <span class="glass-badge bg-glass text-text-secondary">
                 {activityTypeLabels[activity.type] ?? activity.type}
               </span>
               <p class="text-sm font-medium text-text-primary">{activity.subject}</p>

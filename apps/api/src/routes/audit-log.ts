@@ -10,9 +10,11 @@ import {
 } from "@humans/db/schema";
 import type { HumanType } from "@humans/db/schema";
 import { createId } from "@humans/db";
+import { ERROR_CODES } from "@humans/shared";
 import { authMiddleware } from "../middleware/auth";
 import { requirePermission } from "../middleware/rbac";
 import { logAuditEntry } from "../lib/audit";
+import { notFound, badRequest } from "../lib/errors";
 import type { AppContext } from "../types";
 import type { FieldDiff } from "../lib/audit";
 
@@ -27,7 +29,7 @@ auditLogRoutes.get("/api/audit-log", requirePermission("viewRecords"), async (c)
   const entityId = c.req.query("entityId");
 
   if (!entityType || !entityId) {
-    return c.json({ error: "entityType and entityId are required" }, 400);
+    throw badRequest(ERROR_CODES.VALIDATION_FAILED, "entityType and entityId are required");
   }
 
   const entries = await db
@@ -65,12 +67,12 @@ auditLogRoutes.post("/api/audit-log/:id/undo", requirePermission("createEditReco
   });
 
   if (!entry) {
-    return c.json({ error: "Audit entry not found" }, 404);
+    throw notFound(ERROR_CODES.AUDIT_ENTRY_NOT_FOUND, "Audit entry not found");
   }
 
   const changes = entry.changes as Record<string, FieldDiff> | null;
   if (!changes) {
-    return c.json({ error: "No changes to undo" }, 400);
+    throw badRequest(ERROR_CODES.NO_CHANGES_TO_UNDO, "No changes to undo");
   }
 
   // Build revert values from the "old" side of each diff
@@ -131,7 +133,7 @@ auditLogRoutes.post("/api/audit-log/:id/undo", requirePermission("createEditReco
       }
     }
   } else {
-    return c.json({ error: `Undo not supported for entity type: ${entry.entityType}` }, 400);
+    throw badRequest(ERROR_CODES.UNDO_NOT_SUPPORTED, `Undo not supported for entity type: ${entry.entityType}`);
   }
 
   // Log the undo as a new audit entry

@@ -7,7 +7,9 @@ import {
   SESSION_COOKIE_NAME,
   SESSION_TTL_SECONDS,
   OAUTH_STATE_TTL_SECONDS,
+  ERROR_CODES,
 } from "@humans/shared";
+import { badRequest, forbidden } from "../lib/errors";
 import type { AppContext } from "../types";
 
 const tokenResponseSchema = z.object({ access_token: z.string() });
@@ -45,13 +47,13 @@ auth.get("/auth/google/callback", async (c) => {
   const state = c.req.query("state");
 
   if (code == null || state == null) {
-    return c.json({ error: "Missing code or state" }, 400);
+    throw badRequest(ERROR_CODES.AUTH_OAUTH_MISSING_PARAMS, "Missing code or state");
   }
 
   // Verify state
   const storedState = await c.env.SESSIONS.get(`oauth_state:${state}`);
   if (storedState == null) {
-    return c.json({ error: "Invalid or expired state" }, 400);
+    throw badRequest(ERROR_CODES.AUTH_OAUTH_INVALID_STATE, "Invalid or expired state");
   }
   await c.env.SESSIONS.delete(`oauth_state:${state}`);
 
@@ -69,7 +71,7 @@ auth.get("/auth/google/callback", async (c) => {
   });
 
   if (!tokenRes.ok) {
-    return c.json({ error: "Token exchange failed" }, 400);
+    throw badRequest(ERROR_CODES.AUTH_OAUTH_TOKEN_FAILED, "Token exchange failed");
   }
 
   const tokens = tokenResponseSchema.parse(await tokenRes.json());
@@ -80,7 +82,7 @@ auth.get("/auth/google/callback", async (c) => {
   });
 
   if (!userInfoRes.ok) {
-    return c.json({ error: "Failed to get user info" }, 400);
+    throw badRequest(ERROR_CODES.AUTH_OAUTH_USER_INFO_FAILED, "Failed to get user info");
   }
 
   const googleUser = googleUserSchema.parse(await userInfoRes.json());
@@ -98,7 +100,7 @@ auth.get("/auth/google/callback", async (c) => {
     });
 
     if (colleague == null) {
-      return c.json({ error: `Access denied (debug: google email = ${googleUser.email})` }, 403);
+      throw forbidden(ERROR_CODES.AUTH_ACCESS_DENIED, `Access denied (debug: google email = ${googleUser.email})`);
     }
 
     // First Google login - populate googleId and avatar
@@ -114,7 +116,7 @@ auth.get("/auth/google/callback", async (c) => {
   }
 
   if (!colleague.isActive) {
-    return c.json({ error: "Account is deactivated" }, 403);
+    throw forbidden(ERROR_CODES.AUTH_ACCOUNT_DEACTIVATED, "Account is deactivated");
   }
 
   // Create session

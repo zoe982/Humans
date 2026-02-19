@@ -6,14 +6,17 @@
 
   let { data, form }: { data: PageData; form: ActionData } = $props();
 
+  type ConfigItem = { id: string; name: string; createdAt: string };
+
   const prefill = $derived(data.prefill);
+  const emailLabelConfigs = $derived(data.emailLabelConfigs as ConfigItem[]);
 
   let emailRows = $state([
-    { email: prefill.email || "", label: "personal", isPrimary: true },
+    { email: prefill.email || "", labelId: "", isPrimary: true },
   ]);
 
   function addEmail() {
-    emailRows = [...emailRows, { email: "", label: "personal", isPrimary: false }];
+    emailRows = [...emailRows, { email: "", labelId: "", isPrimary: false }];
   }
 
   function removeEmail(index: number) {
@@ -91,13 +94,14 @@
               class="glass-input flex-1 px-3 py-2 text-sm"
             />
             <select
-              name="emails[{i}].label"
-              bind:value={row.label}
+              name="emails[{i}].labelId"
+              bind:value={row.labelId}
               class="glass-input px-2 py-2 text-sm"
             >
-              <option value="personal">Personal</option>
-              <option value="work">Work</option>
-              <option value="other">Other</option>
+              <option value="">None</option>
+              {#each emailLabelConfigs as l (l.id)}
+                <option value={l.id}>{l.name}</option>
+              {/each}
             </select>
             <label class="flex items-center gap-1 text-xs text-text-muted">
               <input

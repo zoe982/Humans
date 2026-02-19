@@ -8,7 +8,7 @@ import { buildClient, buildPet, buildFlight } from "@humans/test-utils";
 async function createBookingFixtures() {
   const db = getDb();
   const client = buildClient({ email: `booking-client-${Date.now()}@test.com` });
-  const pet = buildPet({ clientId: client.id });
+  const pet = buildPet({ clientId: client.id, humanId: null });
   const flight = buildFlight();
   await db.insert(schema.clients).values(client);
   await db.insert(schema.pets).values(pet);

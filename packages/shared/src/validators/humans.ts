@@ -2,7 +2,7 @@ import { z } from "zod";
 
 const emailEntrySchema = z.object({
   email: z.string().email().max(255),
-  label: z.enum(["work", "personal", "other"]).default("personal"),
+  labelId: z.string().optional(),
   isPrimary: z.boolean().default(false),
 });
 

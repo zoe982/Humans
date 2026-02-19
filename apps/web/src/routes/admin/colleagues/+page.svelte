@@ -162,7 +162,7 @@
                 </button>
                 <button
                   type="submit"
-                  class="text-xs py-1 px-2 rounded {colleague.isActive ? 'btn-danger' : 'bg-[rgba(34,197,94,0.15)] border border-green-500/30 text-green-300'}"
+                  class="text-xs py-1 px-2 rounded-lg {colleague.isActive ? 'btn-danger' : 'bg-[rgba(34,197,94,0.15)] border border-green-500/30 text-green-300'}"
                 >
                   {colleague.isActive ? "Deactivate" : "Activate"}
                 </button>

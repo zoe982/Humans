@@ -20,14 +20,14 @@ export const createActivitySchema = z
     frontId: z.string().optional(),
   })
   .superRefine((data, ctx) => {
-    if (data.type === "email" && (!data.subject || data.subject.trim() === "")) {
+    if (data.type === "email" && (data.subject == null || data.subject.trim() === "")) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ["subject"],
         message: "Subject is required for email activities",
       });
     }
-    if (!data.humanId && !data.routeSignupId && !data.accountId) {
+    if (data.humanId == null && data.routeSignupId == null && data.accountId == null) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ["humanId"],

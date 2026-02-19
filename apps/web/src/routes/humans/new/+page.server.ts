@@ -1,17 +1,35 @@
 import { redirect, fail } from "@sveltejs/kit";
 import type { RequestEvent, ActionFailure } from "@sveltejs/kit";
 import { PUBLIC_API_URL } from "$env/static/public";
+import { extractApiErrorInfo } from "$lib/api";
 
-function isErrorBody(value: unknown): value is { error?: string } {
-  return typeof value === "object" && value !== null;
+function failFromApi(resBody: unknown, status: number, fallback: string): ActionFailure<{ error: string; code?: string; requestId?: string }> {
+  const info = extractApiErrorInfo(resBody, fallback);
+  return fail(status, { error: info.message, code: info.code, requestId: info.requestId });
 }
 
 function isDataWithId(value: unknown): value is { data: { id: string } } {
   return typeof value === "object" && value !== null && "data" in value;
 }
 
-export const load = async ({ locals, url }: RequestEvent) => {
+function isListData(value: unknown): value is { data: unknown[] } {
+  return typeof value === "object" && value !== null && "data" in value && Array.isArray((value as { data: unknown }).data);
+}
+
+export const load = async ({ locals, url, cookies }: RequestEvent) => {
   if (locals.user == null) redirect(302, "/login");
+
+  const sessionToken = cookies.get("humans_session") ?? "";
+
+  // Fetch human email label configs
+  let emailLabelConfigs: unknown[] = [];
+  const res = await fetch(`${PUBLIC_API_URL}/api/admin/account-config/human-email-labels`, {
+    headers: { Cookie: `humans_session=${sessionToken}` },
+  });
+  if (res.ok) {
+    const raw: unknown = await res.json();
+    emailLabelConfigs = isListData(raw) ? raw.data : [];
+  }
 
   return {
     prefill: {
@@ -21,23 +39,24 @@ export const load = async ({ locals, url }: RequestEvent) => {
       lastName: url.searchParams.get("lastName") ?? "",
       email: url.searchParams.get("email") ?? "",
     },
+    emailLabelConfigs,
   };
 };
 
 export const actions = {
-  create: async ({ request, cookies }: RequestEvent): Promise<ActionFailure<{ error: string }> | { success: true }> => {
+  create: async ({ request, cookies }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
     const form = await request.formData();
     const sessionToken = cookies.get("humans_session");
 
     // Collect emails from dynamic form fields
-    const emails: { email: string; label: string; isPrimary: boolean }[] = [];
+    const emails: { email: string; labelId?: string; isPrimary: boolean }[] = [];
     let i = 0;
     while (form.has(`emails[${i}].email`)) {
       const email = form.get(`emails[${i}].email`) as string;
-      const label = (form.get(`emails[${i}].label`) as string) || "personal";
+      const labelId = (form.get(`emails[${i}].labelId`) as string) || undefined;
       const isPrimary = form.get("primaryEmail") === String(i);
       if (email) {
-        emails.push({ email, label, isPrimary });
+        emails.push({ email, labelId, isPrimary });
       }
       i++;
     }
@@ -49,7 +68,7 @@ export const actions = {
       firstName: form.get("firstName"),
       middleName: form.get("middleName") || undefined,
       lastName: form.get("lastName"),
-      emails: emails.length > 0 ? emails : [{ email: "", label: "personal", isPrimary: true }],
+      emails: emails.length > 0 ? emails : [{ email: "", isPrimary: true }],
       types: types.length > 0 ? types : [],
     };
 
@@ -67,8 +86,7 @@ export const actions = {
 
     if (!res.ok) {
       const resBody: unknown = await res.json();
-      const body = isErrorBody(resBody) ? resBody : {};
-      return fail(res.status, { error: body.error ?? "Failed to create human" });
+      return failFromApi(resBody, res.status, "Failed to create human");
     }
 
     const created: unknown = await res.json();

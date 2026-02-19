@@ -7,10 +7,11 @@
   --color-surface-overlay: #1e4668;
 
   /* Glass colors — more prominent for liquid glass effect */
-  --color-glass: rgba(255, 255, 255, 0.09);
-  --color-glass-hover: rgba(255, 255, 255, 0.14);
-  --color-glass-border: rgba(255, 255, 255, 0.16);
-  --color-glass-border-strong: rgba(255, 255, 255, 0.28);
+  --color-glass: rgba(255, 255, 255, 0.11);
+  --color-glass-hover: rgba(255, 255, 255, 0.17);
+  --color-glass-border: rgba(255, 255, 255, 0.20);
+  --color-glass-border-strong: rgba(255, 255, 255, 0.32);
+  --color-glass-popover: rgba(20, 55, 90, 0.92);
 
   /* Accent colors */
   --color-accent: #06b6d4;
@@ -43,51 +44,68 @@
   background: linear-gradient(
     135deg,
     rgba(255, 255, 255, 0.10),
+    rgba(6, 182, 212, 0.03),
     rgba(255, 255, 255, 0.04)
   );
-  backdrop-filter: blur(16px) saturate(1.3);
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  border-radius: 0.75rem;
+  backdrop-filter: blur(24px) saturate(1.6);
+  -webkit-backdrop-filter: blur(24px) saturate(1.6);
+  border: 1px solid rgba(255, 255, 255, 0.20);
+  border-radius: 1rem;
   box-shadow:
-    0 4px 24px rgba(0, 0, 0, 0.08),
-    inset 0 1px 0 rgba(255, 255, 255, 0.12);
+    0 4px 24px rgba(0, 0, 0, 0.10),
+    0 1px 6px rgba(0, 0, 0, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.20);
 }
 
 @utility glass-card-strong {
   background: linear-gradient(
     135deg,
     rgba(255, 255, 255, 0.15),
+    rgba(6, 182, 212, 0.04),
     rgba(255, 255, 255, 0.06)
   );
-  backdrop-filter: blur(24px) saturate(1.4);
-  border: 1px solid rgba(255, 255, 255, 0.28);
-  border-radius: 0.75rem;
+  backdrop-filter: blur(30px) saturate(1.8);
+  -webkit-backdrop-filter: blur(30px) saturate(1.8);
+  border: 1px solid rgba(255, 255, 255, 0.32);
+  border-radius: 1.25rem;
   box-shadow:
-    0 8px 32px rgba(0, 0, 0, 0.10),
-    inset 0 1px 0 rgba(255, 255, 255, 0.18);
+    0 8px 32px rgba(0, 0, 0, 0.12),
+    0 2px 8px rgba(0, 0, 0, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.25);
 }
 
 @utility glass-nav {
   background: linear-gradient(
     135deg,
     rgba(255, 255, 255, 0.10),
+    rgba(6, 182, 212, 0.03),
     rgba(255, 255, 255, 0.05)
   );
-  backdrop-filter: blur(24px) saturate(1.6);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.14);
-  box-shadow: 0 2px 16px rgba(0, 0, 0, 0.06);
+  backdrop-filter: blur(30px) saturate(1.8);
+  -webkit-backdrop-filter: blur(30px) saturate(1.8);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.18);
+  box-shadow:
+    0 4px 20px rgba(0, 0, 0, 0.08),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.06);
 }
 
 @utility glass-input {
-  background-color: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  border-radius: 0.5rem;
+  background-color: rgba(255, 255, 255, 0.10);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 0.625rem;
   color: #f1f5f9;
-  transition: border-color 0.2s, box-shadow 0.2s;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  transition: border-color 0.2s, box-shadow 0.2s, background-color 0.2s;
+  &:hover {
+    background-color: rgba(255, 255, 255, 0.12);
+    border-color: rgba(255, 255, 255, 0.24);
+  }
   &:focus {
     outline: none;
     border-color: #06b6d4;
-    box-shadow: 0 0 0 2px rgba(6, 182, 212, 0.25);
+    box-shadow:
+      0 0 0 2px rgba(6, 182, 212, 0.25),
+      0 0 12px rgba(6, 182, 212, 0.10);
   }
   &::placeholder {
     color: #7b8fa6;
@@ -95,7 +113,7 @@
 }
 
 @utility glass-thead {
-  background-color: rgba(255, 255, 255, 0.06);
+  background-color: rgba(255, 255, 255, 0.08);
   & th {
     color: #a4b4c8;
     font-weight: 500;
@@ -104,15 +122,15 @@
     letter-spacing: 0.05em;
     padding: 0.75rem 1rem;
     text-align: left;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.14);
   }
 }
 
 @utility glass-row-hover {
-  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   transition: background-color 0.15s;
   &:hover {
-    background-color: rgba(255, 255, 255, 0.06);
+    background-color: rgba(255, 255, 255, 0.08);
   }
   & td {
     padding: 0.75rem 1rem;
@@ -123,25 +141,31 @@
 @utility glass-badge {
   display: inline-flex;
   align-items: center;
-  padding: 0.125rem 0.5rem;
+  padding: 0.1875rem 0.625rem;
   border-radius: 9999px;
   font-size: 0.75rem;
   font-weight: 500;
   line-height: 1.25rem;
+  backdrop-filter: blur(8px) saturate(1.3);
+  -webkit-backdrop-filter: blur(8px) saturate(1.3);
+  border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 @utility btn-primary {
   background: linear-gradient(135deg, #06b6d4, #3b82f6);
   color: white;
   font-weight: 500;
-  padding: 0.5rem 1rem;
-  border-radius: 0.5rem;
+  padding: 0.5rem 1.25rem;
+  border-radius: 0.625rem;
   font-size: 0.875rem;
-  transition: opacity 0.2s, box-shadow 0.2s;
-  box-shadow: 0 2px 8px rgba(6, 182, 212, 0.15);
+  transition: opacity 0.2s, box-shadow 0.2s, transform 0.2s;
+  box-shadow:
+    0 2px 8px rgba(6, 182, 212, 0.15),
+    inset 0 1px 0 rgba(255, 255, 255, 0.15);
   &:hover {
     opacity: 0.9;
     box-shadow: 0 0 16px rgba(6, 182, 212, 0.35);
+    transform: translateY(-0.5px);
   }
   &:disabled {
     opacity: 0.5;
@@ -155,12 +179,15 @@
   color: #f1f5f9;
   font-weight: 500;
   padding: 0.5rem 1rem;
-  border-radius: 0.5rem;
+  border-radius: 0.625rem;
   font-size: 0.875rem;
-  transition: background-color 0.2s, border-color 0.2s;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  transition: background-color 0.2s, border-color 0.2s, box-shadow 0.2s;
   &:hover {
     background-color: rgba(255, 255, 255, 0.08);
     border-color: rgba(255, 255, 255, 0.28);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.10);
   }
 }
 
@@ -170,12 +197,29 @@
   color: #fca5a5;
   font-weight: 500;
   padding: 0.5rem 1rem;
-  border-radius: 0.5rem;
+  border-radius: 0.625rem;
   font-size: 0.875rem;
-  transition: background-color 0.2s;
+  transition: background-color 0.2s, box-shadow 0.2s;
   &:hover {
     background-color: rgba(239, 68, 68, 0.25);
+    box-shadow: 0 0 12px rgba(239, 68, 68, 0.15);
   }
+}
+
+@utility glass-popover {
+  background: linear-gradient(
+    135deg,
+    rgba(20, 55, 90, 0.92),
+    rgba(15, 45, 75, 0.95)
+  );
+  backdrop-filter: blur(24px) saturate(1.5);
+  -webkit-backdrop-filter: blur(24px) saturate(1.5);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 0.75rem;
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.20),
+    0 2px 8px rgba(0, 0, 0, 0.10),
+    inset 0 1px 0 rgba(255, 255, 255, 0.10);
 }
 
 @layer base {
@@ -184,12 +228,44 @@
   }
 
   body {
-    background:
-      radial-gradient(ellipse at 20% 50%, rgba(6, 182, 212, 0.06) 0%, transparent 60%),
-      radial-gradient(ellipse at 80% 20%, rgba(59, 130, 246, 0.05) 0%, transparent 50%),
-      linear-gradient(160deg, #0f2440 0%, #163a58 35%, #1b4868 60%, #143352 100%);
+    background: linear-gradient(160deg, #0f2440 0%, #163a58 35%, #1b4868 60%, #143352 100%);
     min-height: 100vh;
     color: #f1f5f9;
+    position: relative;
+    overflow-x: hidden;
+  }
+
+  body::before,
+  body::after {
+    content: "";
+    position: fixed;
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 0;
+    will-change: transform;
+  }
+
+  body::before {
+    width: 60vw;
+    height: 60vw;
+    top: -15vw;
+    left: -15vw;
+    background: radial-gradient(circle, rgba(6, 182, 212, 0.08) 0%, transparent 70%);
+    animation: liquid-drift-1 25s ease-in-out infinite;
+  }
+
+  body::after {
+    width: 50vw;
+    height: 50vw;
+    bottom: -10vw;
+    right: -10vw;
+    background: radial-gradient(circle, rgba(59, 130, 246, 0.07) 0%, transparent 70%);
+    animation: liquid-drift-2 30s ease-in-out infinite;
+  }
+
+  body > * {
+    position: relative;
+    z-index: 1;
   }
 
   select,
@@ -201,6 +277,30 @@
     color: #06b6d4;
     &:hover {
       color: #22d3ee;
+    }
+  }
+
+  @keyframes liquid-drift-1 {
+    0%, 100% {
+      transform: translate(0, 0) scale(1);
+    }
+    33% {
+      transform: translate(5vw, 3vw) scale(1.05);
+    }
+    66% {
+      transform: translate(-3vw, 5vw) scale(0.97);
+    }
+  }
+
+  @keyframes liquid-drift-2 {
+    0%, 100% {
+      transform: translate(0, 0) scale(1);
+    }
+    33% {
+      transform: translate(-4vw, -3vw) scale(1.03);
+    }
+    66% {
+      transform: translate(3vw, -4vw) scale(0.95);
     }
   }
 }

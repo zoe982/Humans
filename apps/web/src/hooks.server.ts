@@ -1,4 +1,4 @@
-import type { Handle } from "@sveltejs/kit";
+import type { Handle, HandleServerError } from "@sveltejs/kit";
 import { PUBLIC_API_URL } from "$env/static/public";
 import { env } from "$env/dynamic/private";
 
@@ -37,7 +37,8 @@ export const handle: Handle = async ({ event, resolve }) => {
       } else {
         event.locals.user = null;
       }
-    } catch {
+    } catch (err) {
+      console.error("[hooks.server] Auth fetch failed:", err instanceof Error ? err.message : String(err));
       event.locals.user = null;
     }
   } else {
@@ -45,4 +46,16 @@ export const handle: Handle = async ({ event, resolve }) => {
   }
 
   return resolve(event);
+};
+
+export const handleError: HandleServerError = ({ error }) => {
+  const err = error instanceof Error ? error : new Error(String(error));
+  console.error("[server]", JSON.stringify({
+    message: err.message,
+    stack: err.stack,
+  }));
+
+  return {
+    message: err.message || "An unexpected error occurred",
+  };
 };

@@ -41,7 +41,7 @@
   </div>
 
   {#if formOpen && addForm}
-    <div class="mb-4 p-4 rounded-lg bg-glass border border-glass-border">
+    <div class="mb-4 p-4 rounded-xl bg-glass border border-glass-border">
       {@render addForm()}
     </div>
   {/if}
@@ -51,7 +51,7 @@
   {:else}
     <div class="space-y-2">
       {#each items as item (item.id)}
-        <div class="flex items-center justify-between p-3 rounded-lg bg-glass hover:bg-glass-hover transition-colors">
+        <div class="flex items-center justify-between p-3 rounded-xl bg-glass hover:bg-glass-hover transition-colors">
           <div class="flex-1">
             {@render itemRow(item)}
           </div>

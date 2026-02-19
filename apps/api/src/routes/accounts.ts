@@ -25,9 +25,11 @@ import {
   linkAccountHumanSchema,
   updateAccountHumanSchema,
 } from "@humans/shared";
+import { ERROR_CODES } from "@humans/shared";
 import { authMiddleware } from "../middleware/auth";
 import { requirePermission } from "../middleware/rbac";
 import { computeDiff, logAuditEntry } from "../lib/audit";
+import { notFound } from "../lib/errors";
 import type { AppContext } from "../types";
 
 const accountRoutes = new Hono<AppContext>();
@@ -63,7 +65,7 @@ accountRoutes.get("/api/accounts/:id", requirePermission("viewRecords"), async (
     where: eq(accounts.id, id),
   });
   if (account == null) {
-    return c.json({ error: "Account not found" }, 404);
+    throw notFound(ERROR_CODES.ACCOUNT_NOT_FOUND, "Account not found");
   }
 
   const [
@@ -201,7 +203,7 @@ accountRoutes.patch("/api/accounts/:id", requirePermission("manageAccounts"), as
     where: eq(accounts.id, id),
   });
   if (existing == null) {
-    return c.json({ error: "Account not found" }, 404);
+    throw notFound(ERROR_CODES.ACCOUNT_NOT_FOUND, "Account not found");
   }
 
   // Capture old values for audit
@@ -267,7 +269,7 @@ accountRoutes.patch("/api/accounts/:id/status", requirePermission("manageAccount
     where: eq(accounts.id, id),
   });
   if (existing == null) {
-    return c.json({ error: "Account not found" }, 404);
+    throw notFound(ERROR_CODES.ACCOUNT_NOT_FOUND, "Account not found");
   }
 
   const oldStatus = existing.status;
@@ -305,7 +307,7 @@ accountRoutes.delete("/api/accounts/:id", requirePermission("manageAccounts"), a
     where: eq(accounts.id, id),
   });
   if (existing == null) {
-    return c.json({ error: "Account not found" }, 404);
+    throw notFound(ERROR_CODES.ACCOUNT_NOT_FOUND, "Account not found");
   }
 
   await db.delete(accountTypes).where(eq(accountTypes.accountId, id));

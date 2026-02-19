@@ -1,5 +1,4 @@
-name = "humans-web"
-account_id = "4392783e6cdaccb136cacda5f9800ba6"
+name = "humans"
 compatibility_date = "2024-12-18"
 compatibility_flags = ["nodejs_compat"]
 pages_build_output_dir = ".svelte-kit/cloudflare"

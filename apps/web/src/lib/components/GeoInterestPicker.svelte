@@ -92,14 +92,14 @@
           class="glass-input block w-full"
         />
         {#if (results.length > 0 || loading) && searchQuery.trim()}
-          <div class="absolute z-50 mt-1 w-full max-h-48 overflow-y-auto rounded-lg border border-white/15 bg-[#1a3a58] shadow-lg">
+          <div class="glass-popover absolute z-50 mt-1 w-full max-h-48 overflow-y-auto">
             {#if loading && results.length === 0}
               <div class="px-3 py-2 text-sm text-text-muted">Searching...</div>
             {/if}
             {#each results as geo (geo.id)}
               <button
                 type="button"
-                class="block w-full px-3 py-2 text-left text-sm text-text-secondary hover:bg-white/8 hover:text-text-primary transition-colors"
+                class="block w-full px-3 py-2 text-left text-sm text-text-secondary hover:bg-glass-hover hover:text-text-primary transition-colors"
                 onmousedown={(e) => { e.preventDefault(); selectGeo(geo); }}
               >
                 {geo.city}, {geo.country}
@@ -107,7 +107,7 @@
             {/each}
             <button
               type="button"
-              class="block w-full px-3 py-2 text-left text-sm text-accent hover:bg-white/8 transition-colors border-t border-white/10"
+              class="block w-full px-3 py-2 text-left text-sm text-accent hover:bg-glass-hover transition-colors border-t border-glass-border"
               onmousedown={(e) => { e.preventDefault(); switchToCreate(); }}
             >
               + Create new geo-interest
@@ -115,11 +115,11 @@
           </div>
         {/if}
         {#if searchQuery.trim() && !loading && results.length === 0}
-          <div class="absolute z-50 mt-1 w-full rounded-lg border border-white/15 bg-[#1a3a58] shadow-lg">
+          <div class="glass-popover absolute z-50 mt-1 w-full">
             <div class="px-3 py-2 text-sm text-text-muted">No matches found</div>
             <button
               type="button"
-              class="block w-full px-3 py-2 text-left text-sm text-accent hover:bg-white/8 transition-colors border-t border-white/10"
+              class="block w-full px-3 py-2 text-left text-sm text-accent hover:bg-glass-hover transition-colors border-t border-glass-border"
               onmousedown={(e) => { e.preventDefault(); switchToCreate(); }}
             >
               + Create new geo-interest

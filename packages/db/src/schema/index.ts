@@ -15,7 +15,7 @@ export {
 export { leadEvents, leadEventTypes, type LeadEventType } from "./lead-events";
 export { auditLog } from "./audit-log";
 export { humans, humanStatuses, type HumanStatus } from "./humans";
-export { humanEmails, emailLabels, type EmailLabel } from "./human-emails";
+export { humanEmails } from "./human-emails";
 export {
   humanTypes,
   humanTypeValues,
@@ -27,11 +27,7 @@ export {
   activityTypeValues,
   type ActivityType,
 } from "./activities";
-export {
-  humanPhoneNumbers,
-  phoneLabels,
-  type PhoneLabel,
-} from "./human-phone-numbers";
+export { humanPhoneNumbers } from "./human-phone-numbers";
 export { geoInterests } from "./geo-interests";
 export { geoInterestExpressions } from "./geo-interest-expressions";
 export { accounts, accountStatuses, type AccountStatus } from "./accounts";
@@ -43,3 +39,6 @@ export { accountEmailLabelsConfig } from "./account-email-labels-config";
 export { accountEmails } from "./account-emails";
 export { accountPhoneLabelsConfig } from "./account-phone-labels-config";
 export { accountPhoneNumbers } from "./account-phone-numbers";
+export { humanEmailLabelsConfig } from "./human-email-labels-config";
+export { humanPhoneLabelsConfig } from "./human-phone-labels-config";
+export { errorLog } from "./error-log";

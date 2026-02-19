@@ -1,8 +1,9 @@
 <script lang="ts">
-  import type { PageData } from "./$types";
+  import type { PageData, ActionData } from "./$types";
   import PageHeader from "$lib/components/PageHeader.svelte";
+  import AlertBanner from "$lib/components/AlertBanner.svelte";
 
-  let { data }: { data: PageData } = $props();
+  let { data, form }: { data: PageData; form: ActionData } = $props();
 
   type Activity = {
     id: string;
@@ -13,6 +14,8 @@
     activityDate: string;
     humanId: string | null;
     humanName: string | null;
+    accountId: string | null;
+    accountName: string | null;
     routeSignupId: string | null;
     createdAt: string;
   };
@@ -40,6 +43,7 @@
 
   function linkedEntity(a: Activity): { label: string; href: string } | null {
     if (a.humanName && a.humanId) return { label: a.humanName, href: `/humans/${a.humanId}` };
+    if (a.accountName && a.accountId) return { label: a.accountName, href: `/accounts/${a.accountId}` };
     if (a.routeSignupId) return { label: `Signup ${a.routeSignupId.slice(0, 8)}...`, href: `/leads/route-signups/${a.routeSignupId}` };
     return null;
   }
@@ -60,7 +64,7 @@
 
   function sortArrow(column: SortColumn): string {
     if (sortColumn !== column) return "";
-    return sortDirection === "asc" ? " \u25B2" : " \u25BC";
+    return sortDirection === "asc" ? " ▲" : " ▼";
   }
 
   const sortedActivities = $derived.by(() => {
@@ -80,8 +84,8 @@
           bv = b.subject;
           break;
         case "linkedTo":
-          av = a.humanName ?? "";
-          bv = b.humanName ?? "";
+          av = a.humanName ?? a.accountName ?? "";
+          bv = b.humanName ?? b.accountName ?? "";
           break;
         case "date":
           av = a.activityDate;
@@ -91,6 +95,12 @@
       return av.localeCompare(bv) * dir;
     });
   });
+
+  function handleDelete(e: Event) {
+    if (!confirm("Are you sure you want to delete this activity?")) {
+      e.preventDefault();
+    }
+  }
 </script>
 
 <svelte:head>
@@ -103,6 +113,10 @@
       <a href="/activities/new" class="btn-primary">New Activity</a>
     {/snippet}
   </PageHeader>
+
+  {#if form?.error}
+    <AlertBanner type="error" message={form.error} />
+  {/if}
 
   <!-- Filters -->
   <form method="GET" class="mt-4 flex flex-wrap items-end gap-4 glass-card p-4 mb-6">
@@ -136,6 +150,7 @@
           <th class="hidden sm:table-cell">Notes</th>
           <th class="cursor-pointer select-none" onclick={() => toggleSort("linkedTo")}>Linked To{sortArrow("linkedTo")}</th>
           <th class="cursor-pointer select-none" onclick={() => toggleSort("date")}>Date{sortArrow("date")}</th>
+          <th>Actions</th>
         </tr>
       </thead>
       <tbody>
@@ -157,10 +172,19 @@
               {/if}
             </td>
             <td class="text-text-muted">{new Date(activity.activityDate).toLocaleDateString()}</td>
+            <td>
+              <div class="flex items-center gap-2">
+                <a href="/activities/{activity.id}" class="text-accent hover:text-cyan-300 text-sm">View</a>
+                <form method="POST" action="?/delete" onsubmit={handleDelete}>
+                  <input type="hidden" name="id" value={activity.id} />
+                  <button type="submit" class="text-red-400 hover:text-red-300 text-sm">Delete</button>
+                </form>
+              </div>
+            </td>
           </tr>
         {:else}
           <tr>
-            <td colspan="5" class="px-6 py-8 text-center text-sm text-text-muted">No activities found.</td>
+            <td colspan="6" class="px-6 py-8 text-center text-sm text-text-muted">No activities found.</td>
           </tr>
         {/each}
       </tbody>

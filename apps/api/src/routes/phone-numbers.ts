@@ -3,8 +3,10 @@ import { eq } from "drizzle-orm";
 import { humanPhoneNumbers, humans } from "@humans/db/schema";
 import { createId } from "@humans/db";
 import { createPhoneNumberSchema, updatePhoneNumberSchema } from "@humans/shared";
+import { ERROR_CODES } from "@humans/shared";
 import { authMiddleware } from "../middleware/auth";
 import { requirePermission } from "../middleware/rbac";
+import { notFound } from "../lib/errors";
 import type { AppContext } from "../types";
 
 const phoneNumberRoutes = new Hono<AppContext>();
@@ -50,7 +52,7 @@ phoneNumberRoutes.post("/api/phone-numbers", requirePermission("manageHumans"), 
     id: createId(),
     humanId: data.humanId,
     phoneNumber: data.phoneNumber,
-    label: data.label ?? ("mobile" as const),
+    labelId: data.labelId ?? null,
     hasWhatsapp: data.hasWhatsapp ?? false,
     isPrimary: data.isPrimary ?? false,
     createdAt: now,
@@ -71,7 +73,7 @@ phoneNumberRoutes.patch("/api/phone-numbers/:id", requirePermission("manageHuman
     where: eq(humanPhoneNumbers.id, id),
   });
   if (existing == null) {
-    return c.json({ error: "Phone number not found" }, 404);
+    throw notFound(ERROR_CODES.PHONE_NUMBER_NOT_FOUND, "Phone number not found");
   }
 
   await db
@@ -94,7 +96,7 @@ phoneNumberRoutes.delete("/api/phone-numbers/:id", requirePermission("manageHuma
     where: eq(humanPhoneNumbers.id, id),
   });
   if (existing == null) {
-    return c.json({ error: "Phone number not found" }, 404);
+    throw notFound(ERROR_CODES.PHONE_NUMBER_NOT_FOUND, "Phone number not found");
   }
 
   await db.delete(humanPhoneNumbers).where(eq(humanPhoneNumbers.id, id));

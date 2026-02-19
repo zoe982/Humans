@@ -144,6 +144,10 @@ log "Running typecheck..."
 pnpm turbo typecheck
 ok "Typecheck passed"
 
+log "Verifying test file existence..."
+bash scripts/check-test-files.sh
+ok "All packages have test files"
+
 log "Running tests with coverage..."
 pnpm turbo test -- --coverage
 ok "Tests passed with coverage thresholds"

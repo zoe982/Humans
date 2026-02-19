@@ -14,7 +14,7 @@ export const createGeoInterestExpressionSchema = z
     activityId: z.string().min(1).optional(),
     notes: z.string().max(2000).optional(),
   })
-  .refine((d) => d.geoInterestId || (d.city && d.country), {
+  .refine((d) => (d.geoInterestId != null && d.geoInterestId !== "") || (d.city != null && d.city !== "" && d.country != null && d.country !== ""), {
     message: "Either geoInterestId or both city and country are required",
   });
 

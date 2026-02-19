@@ -1,5 +1,6 @@
 import { defineConfig } from "vitest/config";
 import { svelte } from "@sveltejs/vite-plugin-svelte";
+import path from "node:path";
 
 // Web test strategy:
 //   Unit tests      – pure TS/JS logic (stores, utilities, validators)
@@ -16,11 +17,28 @@ export default defineConfig({
       // Disable HMR when running under vitest
       hot: !process.env["VITEST"],
       // Needed so Svelte compiles components for the test environment
-      compilerOptions: { hydratable: false },
+      compilerOptions: { css: "injected" },
+      // Skip vitePreprocess CSS pipeline — it requires a full Vite environment
+      // that isn't available in the test runner context
+      preprocess: [],
     }),
   ],
+  resolve: {
+    // Force Svelte 5 to use its browser (client) bundle in tests
+    conditions: ["browser"],
+    alias: {
+      "$env/static/public": path.resolve(__dirname, "test/mocks/env-static-public.ts"),
+      "$env/dynamic/private": path.resolve(__dirname, "test/mocks/env-dynamic-private.ts"),
+      "$lib": path.resolve(__dirname, "src/lib"),
+      "$app/environment": path.resolve(__dirname, "test/mocks/app-environment.ts"),
+      "$app/stores": path.resolve(__dirname, "test/mocks/app-stores.ts"),
+      "$app/navigation": path.resolve(__dirname, "test/mocks/app-navigation.ts"),
+      "@sveltejs/kit": path.resolve(__dirname, "test/mocks/sveltejs-kit.ts"),
+    },
+  },
   test: {
     globals: true,
+    css: false,
     // happy-dom provides a lightweight browser-like environment for component
     // tests; faster than jsdom and covers the DOM APIs SvelteKit components use.
     environment: "happy-dom",
@@ -28,19 +46,26 @@ export default defineConfig({
     coverage: {
       provider: "istanbul",
       all: true,
-      include: ["src/**/*.{ts,svelte}"],
+      // Only track .ts files — istanbul can't reliably instrument compiled
+      // Svelte components (coverage maps to JS output, not .svelte source).
+      // Components are tested via @testing-library/svelte; E2E covers pages.
+      include: ["src/**/*.ts"],
       exclude: [
-        "src/**/*.{test,spec}.{ts,svelte}",
+        "src/**/*.{test,spec}.ts",
         "src/**/*.d.ts",
-        // SvelteKit auto-generated files
         "src/app.d.ts",
+        // SvelteKit layout server — just session forwarding, tested via E2E
+        "src/routes/**/+layout.server.ts",
+        // API route handlers (server-only endpoints, not page loaders)
+        "src/routes/**/+server.ts",
       ],
       reportOnFailure: true,
       thresholds: {
-        lines: 0,
-        functions: 0,
-        branches: 0,
-        statements: 0,
+        lines: 95,
+        functions: 55,
+        branches: 70,
+        statements: 80,
+        perFile: true,
       },
     },
   },

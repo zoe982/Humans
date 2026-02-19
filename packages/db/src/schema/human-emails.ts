@@ -1,8 +1,6 @@
 import { sqliteTable, text, integer } from "drizzle-orm/sqlite-core";
 import { humans } from "./humans";
-
-export const emailLabels = ["work", "personal", "other"] as const;
-export type EmailLabel = (typeof emailLabels)[number];
+import { humanEmailLabelsConfig } from "./human-email-labels-config";
 
 export const humanEmails = sqliteTable("human_emails", {
   id: text("id").primaryKey(),
@@ -10,7 +8,7 @@ export const humanEmails = sqliteTable("human_emails", {
     .notNull()
     .references(() => humans.id),
   email: text("email").notNull(),
-  label: text("label", { enum: emailLabels }).notNull().default("personal"),
+  labelId: text("label_id").references(() => humanEmailLabelsConfig.id),
   isPrimary: integer("is_primary", { mode: "boolean" }).notNull().default(false),
   createdAt: text("created_at").notNull(),
 });

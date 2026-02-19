@@ -17,9 +17,10 @@
 
   let { data, form }: { data: PageData; form: ActionData } = $props();
 
-  type HumanEmail = { id: string; email: string; label: string; isPrimary: boolean };
+  type HumanEmail = { id: string; email: string; labelId: string | null; labelName: string | null; isPrimary: boolean };
   type LinkedSignup = { id: string; routeSignupId: string; linkedAt: string };
-  type PhoneNumber = { id: string; phoneNumber: string; label: string; hasWhatsapp: boolean; isPrimary: boolean };
+  type PhoneNumber = { id: string; phoneNumber: string; labelId: string | null; labelName: string | null; hasWhatsapp: boolean; isPrimary: boolean };
+  type ConfigItem = { id: string; name: string; createdAt: string };
   type Pet = { id: string; name: string; breed: string | null; weight: number | null };
   type GeoInterestExpression = {
     id: string;
@@ -77,6 +78,8 @@
   const human = $derived(data.human as Human);
   const activities = $derived(data.activities as Activity[]);
   const apiUrl = $derived(data.apiUrl as string);
+  const emailLabelConfigs = $derived(data.emailLabelConfigs as ConfigItem[]);
+  const phoneLabelConfigs = $derived(data.phoneLabelConfigs as ConfigItem[]);
 
   // Auto-save state
   let firstName = $state("");
@@ -228,18 +231,7 @@
     flight_broker: "Flight Broker",
   };
 
-  const emailLabelColors: Record<string, string> = {
-    work: "bg-[rgba(59,130,246,0.15)] text-blue-300",
-    personal: "bg-[rgba(34,197,94,0.15)] text-green-300",
-    other: "bg-glass text-text-secondary",
-  };
-
-  const phoneLabelColors: Record<string, string> = {
-    mobile: "bg-[rgba(59,130,246,0.15)] text-blue-300",
-    home: "bg-[rgba(34,197,94,0.15)] text-green-300",
-    work: "bg-[rgba(168,85,247,0.15)] text-purple-300",
-    other: "bg-glass text-text-secondary",
-  };
+  const labelBadgeColor = "bg-[rgba(168,85,247,0.15)] text-purple-300";
 
   const statusColorMap: Record<string, string> = {
     open: "bg-[rgba(59,130,246,0.15)] text-blue-300",
@@ -353,8 +345,8 @@
         {@const email = item as unknown as HumanEmail}
         <div class="flex items-center gap-3">
           <span class="text-sm font-medium text-text-primary">{email.email}</span>
-          <span class="glass-badge inline-flex rounded-full px-2 py-0.5 text-xs font-medium {emailLabelColors[email.label] ?? 'bg-glass text-text-secondary'}">
-            {email.label}
+          <span class="glass-badge inline-flex rounded-full px-2 py-0.5 text-xs font-medium {email.labelName ? labelBadgeColor : 'bg-glass text-text-secondary'}">
+            {email.labelName ?? 'No label'}
           </span>
           {#if email.isPrimary}
             <span class="glass-badge inline-flex rounded-full px-2 py-0.5 text-xs font-medium bg-[rgba(59,130,246,0.15)] text-blue-300">Primary</span>
@@ -375,12 +367,13 @@
             <div>
               <label for="emailLabel" class="block text-sm font-medium text-text-secondary">Label</label>
               <select
-                id="emailLabel" name="label"
+                id="emailLabel" name="labelId"
                 class="glass-input mt-1 block w-full"
               >
-                <option value="personal">Personal</option>
-                <option value="work">Work</option>
-                <option value="other">Other</option>
+                <option value="">None</option>
+                {#each emailLabelConfigs as l (l.id)}
+                  <option value={l.id}>{l.name}</option>
+                {/each}
               </select>
             </div>
           </div>
@@ -410,8 +403,8 @@
         {@const phone = item as unknown as PhoneNumber}
         <div class="flex items-center gap-3">
           <span class="text-sm font-medium text-text-primary">{phone.phoneNumber}</span>
-          <span class="glass-badge inline-flex rounded-full px-2 py-0.5 text-xs font-medium {phoneLabelColors[phone.label] ?? 'bg-glass text-text-secondary'}">
-            {phone.label}
+          <span class="glass-badge inline-flex rounded-full px-2 py-0.5 text-xs font-medium {phone.labelName ? labelBadgeColor : 'bg-glass text-text-secondary'}">
+            {phone.labelName ?? 'No label'}
           </span>
           {#if phone.hasWhatsapp}
             <span class="glass-badge inline-flex rounded-full px-2 py-0.5 text-xs font-medium bg-[rgba(34,197,94,0.15)] text-green-300">WhatsApp</span>
@@ -431,13 +424,13 @@
             <div>
               <label for="phoneLabel" class="block text-sm font-medium text-text-secondary">Label</label>
               <select
-                id="phoneLabel" name="label"
+                id="phoneLabel" name="labelId"
                 class="glass-input mt-1 block w-full"
               >
-                <option value="mobile">Mobile</option>
-                <option value="home">Home</option>
-                <option value="work">Work</option>
-                <option value="other">Other</option>
+                <option value="">None</option>
+                {#each phoneLabelConfigs as l (l.id)}
+                  <option value={l.id}>{l.name}</option>
+                {/each}
               </select>
             </div>
           </div>

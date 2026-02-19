@@ -3,8 +3,10 @@ import { eq } from "drizzle-orm";
 import { flightBookings } from "@humans/db/schema";
 import { createId } from "@humans/db";
 import { createBookingSchema, updateBookingSchema } from "@humans/shared";
+import { ERROR_CODES } from "@humans/shared";
 import { authMiddleware } from "../middleware/auth";
 import { requirePermission } from "../middleware/rbac";
+import { notFound } from "../lib/errors";
 import type { AppContext } from "../types";
 
 const bookingRoutes = new Hono<AppContext>();
@@ -23,7 +25,7 @@ bookingRoutes.get("/api/bookings/:id", requirePermission("viewRecords"), async (
     where: eq(flightBookings.id, c.req.param("id")),
   });
   if (booking == null) {
-    return c.json({ error: "Booking not found" }, 404);
+    throw notFound(ERROR_CODES.BOOKING_NOT_FOUND, "Booking not found");
   }
   return c.json({ data: booking });
 });
@@ -57,7 +59,7 @@ bookingRoutes.patch("/api/bookings/:id", requirePermission("createEditRecords"),
     where: eq(flightBookings.id, c.req.param("id")),
   });
   if (existing == null) {
-    return c.json({ error: "Booking not found" }, 404);
+    throw notFound(ERROR_CODES.BOOKING_NOT_FOUND, "Booking not found");
   }
 
   await db

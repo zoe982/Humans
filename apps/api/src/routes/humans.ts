@@ -13,6 +13,8 @@ import {
   accountHumans,
   accounts,
   accountHumanLabelsConfig,
+  humanEmailLabelsConfig,
+  humanPhoneLabelsConfig,
 } from "@humans/db/schema";
 import { createId } from "@humans/db";
 import {
@@ -21,10 +23,12 @@ import {
   updateHumanStatusSchema,
   linkRouteSignupSchema,
 } from "@humans/shared";
+import { ERROR_CODES } from "@humans/shared";
 import { authMiddleware } from "../middleware/auth";
 import { requirePermission } from "../middleware/rbac";
 import { supabaseMiddleware } from "../middleware/supabase";
 import { computeDiff, logAuditEntry } from "../lib/audit";
+import { notFound, internal } from "../lib/errors";
 import type { AppContext } from "../types";
 
 const humanRoutes = new Hono<AppContext>();
@@ -54,10 +58,10 @@ humanRoutes.get("/api/humans/:id", requirePermission("viewRecords"), async (c) =
     where: eq(humans.id, c.req.param("id")),
   });
   if (human == null) {
-    return c.json({ error: "Human not found" }, 404);
+    throw notFound(ERROR_CODES.HUMAN_NOT_FOUND, "Human not found");
   }
 
-  const [emails, types, linkedSignups, phoneNumbers, humanPets, geoExpressions, linkedAccountRows] = await Promise.all([
+  const [emails, types, linkedSignups, phoneNumbers, humanPets, geoExpressions, linkedAccountRows, emailLabelConfigs, phoneLabelConfigs] = await Promise.all([
     db.select().from(humanEmails).where(eq(humanEmails.humanId, human.id)),
     db.select().from(humanTypes).where(eq(humanTypes.humanId, human.id)),
     db.select().from(humanRouteSignups).where(eq(humanRouteSignups.humanId, human.id)),
@@ -65,6 +69,8 @@ humanRoutes.get("/api/humans/:id", requirePermission("viewRecords"), async (c) =
     db.select().from(pets).where(eq(pets.humanId, human.id)),
     db.select().from(geoInterestExpressions).where(eq(geoInterestExpressions.humanId, human.id)),
     db.select().from(accountHumans).where(eq(accountHumans.humanId, human.id)),
+    db.select().from(humanEmailLabelsConfig),
+    db.select().from(humanPhoneLabelsConfig),
   ]);
 
   // Resolve geo-interest city/country for expressions
@@ -100,13 +106,23 @@ humanRoutes.get("/api/humans/:id", requirePermission("viewRecords"), async (c) =
     });
   }
 
+  // Resolve label names for emails and phones
+  const emailsWithLabels = emails.map((e) => {
+    const label = e.labelId ? emailLabelConfigs.find((l) => l.id === e.labelId) : null;
+    return { ...e, labelName: label?.name ?? null };
+  });
+  const phoneNumbersWithLabels = phoneNumbers.map((p) => {
+    const label = p.labelId ? phoneLabelConfigs.find((l) => l.id === p.labelId) : null;
+    return { ...p, labelName: label?.name ?? null };
+  });
+
   return c.json({
     data: {
       ...human,
-      emails,
+      emails: emailsWithLabels,
       types: types.map((t) => t.type),
       linkedRouteSignups: linkedSignups,
-      phoneNumbers,
+      phoneNumbers: phoneNumbersWithLabels,
       pets: humanPets,
       geoInterestExpressions: geoInterestExpressionsWithDetails,
       linkedAccounts,
@@ -137,7 +153,7 @@ humanRoutes.post("/api/humans", requirePermission("manageHumans"), async (c) => 
       id: createId(),
       humanId,
       email: email.email,
-      label: email.label ?? "personal",
+      labelId: email.labelId ?? null,
       isPrimary: email.isPrimary ?? false,
       createdAt: now,
     });
@@ -167,7 +183,7 @@ humanRoutes.patch("/api/humans/:id", requirePermission("manageHumans"), async (c
     where: eq(humans.id, id),
   });
   if (existing == null) {
-    return c.json({ error: "Human not found" }, 404);
+    throw notFound(ERROR_CODES.HUMAN_NOT_FOUND, "Human not found");
   }
 
   // Capture old values for audit
@@ -198,7 +214,7 @@ humanRoutes.patch("/api/humans/:id", requirePermission("manageHumans"), async (c
         id: createId(),
         humanId: id,
         email: email.email,
-        label: email.label ?? "personal",
+        labelId: email.labelId ?? null,
         isPrimary: email.isPrimary ?? false,
         createdAt: now,
       });
@@ -256,7 +272,7 @@ humanRoutes.patch("/api/humans/:id/status", requirePermission("manageHumans"), a
     where: eq(humans.id, id),
   });
   if (existing == null) {
-    return c.json({ error: "Human not found" }, 404);
+    throw notFound(ERROR_CODES.HUMAN_NOT_FOUND, "Human not found");
   }
 
   const oldStatus = existing.status;
@@ -294,7 +310,7 @@ humanRoutes.delete("/api/humans/:id", requirePermission("manageHumans"), async (
     where: eq(humans.id, id),
   });
   if (existing == null) {
-    return c.json({ error: "Human not found" }, 404);
+    throw notFound(ERROR_CODES.HUMAN_NOT_FOUND, "Human not found");
   }
 
   await db.delete(humanEmails).where(eq(humanEmails.humanId, id));
@@ -320,7 +336,7 @@ humanRoutes.post("/api/humans/:id/route-signups", requirePermission("manageHuman
     where: eq(humans.id, id),
   });
   if (existing == null) {
-    return c.json({ error: "Human not found" }, 404);
+    throw notFound(ERROR_CODES.HUMAN_NOT_FOUND, "Human not found");
   }
 
   const link = {
@@ -360,7 +376,7 @@ humanRoutes.post(
       where: eq(humans.id, humanId),
     });
     if (existing == null) {
-      return c.json({ error: "Human not found" }, 404);
+      throw notFound(ERROR_CODES.HUMAN_NOT_FOUND, "Human not found");
     }
 
     // Create link in D1
@@ -379,7 +395,7 @@ humanRoutes.post(
       .eq("id", data.routeSignupId);
 
     if (supaError) {
-      return c.json({ error: `Supabase update failed: ${supaError.message}` }, 500);
+      throw internal(ERROR_CODES.SUPABASE_ERROR, `Supabase update failed: ${supaError.message}`);
     }
 
     // Re-parent activities: set human_id on all activities matching this route_signup_id

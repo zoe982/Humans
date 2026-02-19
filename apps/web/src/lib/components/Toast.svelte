@@ -50,14 +50,16 @@
   @keyframes slide-up {
     from {
       opacity: 0;
-      transform: translateY(1rem);
+      transform: translateY(1rem) scale(0.97);
+      filter: blur(4px);
     }
     to {
       opacity: 1;
-      transform: translateY(0);
+      transform: translateY(0) scale(1);
+      filter: blur(0);
     }
   }
   .animate-slide-up {
-    animation: slide-up 0.2s ease-out;
+    animation: slide-up 0.3s cubic-bezier(0.16, 1, 0.3, 1);
   }
 </style>

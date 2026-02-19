@@ -1,13 +1,19 @@
-import { api } from "$lib/api";
+import { api, ApiRequestError } from "$lib/api";
 
 export type SaveStatus = "idle" | "saving" | "saved" | "error";
+
+interface ErrorInfo {
+  message: string;
+  code?: string;
+  requestId?: string;
+}
 
 interface AutoSaverOptions {
   endpoint: string;
   debounceMs?: number;
   onStatusChange?: (status: SaveStatus) => void;
   onSaved?: (result: { auditEntryId?: string }) => void;
-  onError?: (error: string) => void;
+  onError?: (error: string, info?: ErrorInfo) => void;
 }
 
 interface SaveResult {
@@ -39,7 +45,11 @@ export function createAutoSaver(options: AutoSaverOptions) {
       onSaved?.({ auditEntryId: result.auditEntryId });
     } catch (err) {
       onStatusChange?.("error");
-      onError?.(err instanceof Error ? err.message : "Save failed");
+      if (err instanceof ApiRequestError) {
+        onError?.(err.message, { message: err.message, code: err.code, requestId: err.requestId });
+      } else {
+        onError?.(err instanceof Error ? err.message : "Save failed");
+      }
     }
   }
 

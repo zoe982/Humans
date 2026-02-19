@@ -18,6 +18,10 @@ export const load = async ({ locals, cookies }: RequestEvent) => {
     fetch(`${PUBLIC_API_URL}/api/geo-interests`, { headers }),
   ]);
 
+  if (!humansRes.ok) console.error("[dashboard] Failed to load humans:", humansRes.status);
+  if (!activitiesRes.ok) console.error("[dashboard] Failed to load activities:", activitiesRes.status);
+  if (!geoInterestsRes.ok) console.error("[dashboard] Failed to load geo-interests:", geoInterestsRes.status);
+
   const humansRaw: unknown = humansRes.ok ? await humansRes.json() : null;
   const activitiesRaw: unknown = activitiesRes.ok ? await activitiesRes.json() : null;
   const geoInterestsRaw: unknown = geoInterestsRes.ok ? await geoInterestsRes.json() : null;

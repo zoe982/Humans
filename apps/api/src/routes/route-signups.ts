@@ -1,8 +1,9 @@
 import { Hono } from "hono";
-import { updateRouteSignupSchema } from "@humans/shared";
+import { updateRouteSignupSchema, ERROR_CODES } from "@humans/shared";
 import { authMiddleware } from "../middleware/auth";
 import { requirePermission } from "../middleware/rbac";
 import { supabaseMiddleware } from "../middleware/supabase";
+import { internal, notFound, badRequest } from "../lib/errors";
 import type { AppContext } from "../types";
 
 const routeSignupRoutes = new Hono<AppContext>();
@@ -19,7 +20,7 @@ routeSignupRoutes.get("/api/route-signups", requirePermission("viewRouteSignups"
     .order("inserted_at", { ascending: false });
 
   if (error) {
-    return c.json({ error: error.message }, 500);
+    throw internal(ERROR_CODES.SUPABASE_ERROR, error.message);
   }
 
   return c.json({ data });
@@ -35,7 +36,7 @@ routeSignupRoutes.get("/api/route-signups/:id", requirePermission("viewRouteSign
     .single();
 
   if (error) {
-    return c.json({ error: error.message }, 404);
+    throw notFound(ERROR_CODES.ROUTE_SIGNUP_NOT_FOUND, error.message);
   }
 
   return c.json({ data });
@@ -46,7 +47,7 @@ routeSignupRoutes.patch("/api/route-signups/:id", requirePermission("manageRoute
   const body: unknown = await c.req.json();
   const parsed = updateRouteSignupSchema.safeParse(body);
   if (!parsed.success) {
-    return c.json({ error: "Invalid input", details: parsed.error.flatten().fieldErrors }, 400);
+    throw badRequest(ERROR_CODES.VALIDATION_FAILED, "Invalid input", parsed.error.flatten().fieldErrors);
   }
 
   const updateFields: Record<string, unknown> = {};
@@ -54,7 +55,7 @@ routeSignupRoutes.patch("/api/route-signups/:id", requirePermission("manageRoute
   if (parsed.data.note !== undefined) updateFields["note"] = parsed.data.note;
 
   if (Object.keys(updateFields).length === 0) {
-    return c.json({ error: "No fields to update" }, 400);
+    throw badRequest(ERROR_CODES.NO_FIELDS_TO_UPDATE, "No fields to update");
   }
 
   const supabase = c.get("supabase");
@@ -66,7 +67,7 @@ routeSignupRoutes.patch("/api/route-signups/:id", requirePermission("manageRoute
     .single();
 
   if (error) {
-    return c.json({ error: error.message }, 500);
+    throw internal(ERROR_CODES.SUPABASE_ERROR, error.message);
   }
 
   return c.json({ data });
@@ -81,7 +82,7 @@ routeSignupRoutes.delete("/api/route-signups/:id", requirePermission("deleteRout
     .eq("id", c.req.param("id"));
 
   if (error) {
-    return c.json({ error: error.message }, 500);
+    throw internal(ERROR_CODES.SUPABASE_ERROR, error.message);
   }
 
   return c.json({ success: true });

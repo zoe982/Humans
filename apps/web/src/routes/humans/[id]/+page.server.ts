@@ -1,6 +1,7 @@
 import { redirect, fail } from "@sveltejs/kit";
 import type { RequestEvent, ActionFailure } from "@sveltejs/kit";
 import { PUBLIC_API_URL } from "$env/static/public";
+import { extractApiErrorInfo } from "$lib/api";
 
 function isObjData(value: unknown): value is { data: Record<string, unknown> } {
   return typeof value === "object" && value !== null && "data" in value;
@@ -10,8 +11,18 @@ function isListData(value: unknown): value is { data: unknown[] } {
   return typeof value === "object" && value !== null && "data" in value && Array.isArray((value as { data: unknown }).data);
 }
 
-function isErrorBody(value: unknown): value is { error?: string } {
-  return typeof value === "object" && value !== null;
+async function fetchConfig(sessionToken: string, configType: string) {
+  const res = await fetch(`${PUBLIC_API_URL}/api/admin/account-config/${configType}`, {
+    headers: { Cookie: `humans_session=${sessionToken}` },
+  });
+  if (!res.ok) return [];
+  const raw: unknown = await res.json();
+  return isListData(raw) ? raw.data : [];
+}
+
+function failFromApi(resBody: unknown, status: number, fallback: string): ActionFailure<{ error: string; code?: string; requestId?: string }> {
+  const info = extractApiErrorInfo(resBody, fallback);
+  return fail(status, { error: info.message, code: info.code, requestId: info.requestId });
 }
 
 export const load = async ({ locals, cookies, params }: RequestEvent) => {
@@ -30,10 +41,14 @@ export const load = async ({ locals, cookies, params }: RequestEvent) => {
   const human = isObjData(humanRaw) ? humanRaw.data : null;
   if (human == null) redirect(302, "/humans");
 
-  // Fetch activities for this human
-  const activitiesRes = await fetch(`${PUBLIC_API_URL}/api/activities?humanId=${id}`, {
-    headers: { Cookie: `humans_session=${sessionToken ?? ""}` },
-  });
+  // Fetch activities and label configs in parallel
+  const [activitiesRes, emailLabelConfigs, phoneLabelConfigs] = await Promise.all([
+    fetch(`${PUBLIC_API_URL}/api/activities?humanId=${id}`, {
+      headers: { Cookie: `humans_session=${sessionToken ?? ""}` },
+    }),
+    fetchConfig(sessionToken ?? "", "human-email-labels"),
+    fetchConfig(sessionToken ?? "", "human-phone-labels"),
+  ]);
 
   let activities: unknown[] = [];
   if (activitiesRes.ok) {
@@ -41,11 +56,11 @@ export const load = async ({ locals, cookies, params }: RequestEvent) => {
     activities = isListData(activitiesRaw) ? activitiesRaw.data : [];
   }
 
-  return { human, activities, apiUrl: PUBLIC_API_URL };
+  return { human, activities, apiUrl: PUBLIC_API_URL, emailLabelConfigs, phoneLabelConfigs };
 };
 
 export const actions = {
-  addActivity: async ({ request, cookies, params }: RequestEvent): Promise<ActionFailure<{ error: string }> | { success: true }> => {
+  addActivity: async ({ request, cookies, params }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
     const form = await request.formData();
     const sessionToken = cookies.get("humans_session");
 
@@ -69,8 +84,7 @@ export const actions = {
     const resBody: unknown = await res.json();
 
     if (!res.ok) {
-      const body = isErrorBody(resBody) ? resBody : {};
-      return fail(res.status, { error: body.error ?? "Failed to create activity" });
+      return failFromApi(resBody, res.status, "Failed to create activity");
     }
 
     // If geo-interest fields are present, create a geo-interest expression linked to this activity
@@ -109,7 +123,7 @@ export const actions = {
     return { success: true };
   },
 
-  unlinkSignup: async ({ request, cookies, params }: RequestEvent): Promise<ActionFailure<{ error: string }> | { success: true }> => {
+  unlinkSignup: async ({ request, cookies, params }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
     const form = await request.formData();
     const sessionToken = cookies.get("humans_session");
     const linkId = form.get("linkId");
@@ -124,21 +138,21 @@ export const actions = {
 
     if (!res.ok) {
       const resBody: unknown = await res.json();
-      const body = isErrorBody(resBody) ? resBody : {};
-      return fail(res.status, { error: body.error ?? "Failed to unlink signup" });
+      return failFromApi(resBody, res.status, "Failed to unlink signup");
     }
 
     return { success: true };
   },
 
-  addEmail: async ({ request, cookies, params }: RequestEvent): Promise<ActionFailure<{ error: string }> | { success: true }> => {
+  addEmail: async ({ request, cookies, params }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
     const form = await request.formData();
     const sessionToken = cookies.get("humans_session");
 
+    const labelId = (form.get("labelId") as string) || undefined;
     const payload = {
       humanId: params.id,
       email: form.get("email"),
-      label: form.get("label") || "personal",
+      labelId,
       isPrimary: form.get("isPrimary") === "on",
     };
 
@@ -153,14 +167,13 @@ export const actions = {
 
     if (!res.ok) {
       const resBody: unknown = await res.json();
-      const body = isErrorBody(resBody) ? resBody : {};
-      return fail(res.status, { error: body.error ?? "Failed to add email" });
+      return failFromApi(resBody, res.status, "Failed to add email");
     }
 
     return { success: true };
   },
 
-  deleteEmail: async ({ request, cookies }: RequestEvent): Promise<ActionFailure<{ error: string }> | { success: true }> => {
+  deleteEmail: async ({ request, cookies }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
     const form = await request.formData();
     const sessionToken = cookies.get("humans_session");
     const emailId = form.get("id");
@@ -174,21 +187,21 @@ export const actions = {
 
     if (!res.ok) {
       const resBody: unknown = await res.json();
-      const body = isErrorBody(resBody) ? resBody : {};
-      return fail(res.status, { error: body.error ?? "Failed to delete email" });
+      return failFromApi(resBody, res.status, "Failed to delete email");
     }
 
     return { success: true };
   },
 
-  addPhoneNumber: async ({ request, cookies, params }: RequestEvent): Promise<ActionFailure<{ error: string }> | { success: true }> => {
+  addPhoneNumber: async ({ request, cookies, params }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
     const form = await request.formData();
     const sessionToken = cookies.get("humans_session");
 
+    const phoneLabelId = (form.get("labelId") as string) || undefined;
     const payload = {
       humanId: params.id,
       phoneNumber: form.get("phoneNumber"),
-      label: form.get("label") || "mobile",
+      labelId: phoneLabelId,
       hasWhatsapp: form.get("hasWhatsapp") === "on",
       isPrimary: form.get("isPrimary") === "on",
     };
@@ -204,14 +217,13 @@ export const actions = {
 
     if (!res.ok) {
       const resBody: unknown = await res.json();
-      const body = isErrorBody(resBody) ? resBody : {};
-      return fail(res.status, { error: body.error ?? "Failed to add phone number" });
+      return failFromApi(resBody, res.status, "Failed to add phone number");
     }
 
     return { success: true };
   },
 
-  deletePhoneNumber: async ({ request, cookies }: RequestEvent): Promise<ActionFailure<{ error: string }> | { success: true }> => {
+  deletePhoneNumber: async ({ request, cookies }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
     const form = await request.formData();
     const sessionToken = cookies.get("humans_session");
     const phoneId = form.get("phoneId");
@@ -225,14 +237,13 @@ export const actions = {
 
     if (!res.ok) {
       const resBody: unknown = await res.json();
-      const body = isErrorBody(resBody) ? resBody : {};
-      return fail(res.status, { error: body.error ?? "Failed to delete phone number" });
+      return failFromApi(resBody, res.status, "Failed to delete phone number");
     }
 
     return { success: true };
   },
 
-  addGeoInterestExpression: async ({ request, cookies, params }: RequestEvent): Promise<ActionFailure<{ error: string }> | { success: true }> => {
+  addGeoInterestExpression: async ({ request, cookies, params }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
     const form = await request.formData();
     const sessionToken = cookies.get("humans_session");
 
@@ -261,14 +272,13 @@ export const actions = {
 
     if (!res.ok) {
       const resBody: unknown = await res.json();
-      const body = isErrorBody(resBody) ? resBody : {};
-      return fail(res.status, { error: body.error ?? "Failed to add geo-interest expression" });
+      return failFromApi(resBody, res.status, "Failed to add geo-interest expression");
     }
 
     return { success: true };
   },
 
-  deleteGeoInterestExpression: async ({ request, cookies }: RequestEvent): Promise<ActionFailure<{ error: string }> | { success: true }> => {
+  deleteGeoInterestExpression: async ({ request, cookies }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
     const form = await request.formData();
     const sessionToken = cookies.get("humans_session");
     const expressionId = form.get("id");
@@ -282,14 +292,13 @@ export const actions = {
 
     if (!res.ok) {
       const resBody: unknown = await res.json();
-      const body = isErrorBody(resBody) ? resBody : {};
-      return fail(res.status, { error: body.error ?? "Failed to delete geo-interest expression" });
+      return failFromApi(resBody, res.status, "Failed to delete geo-interest expression");
     }
 
     return { success: true };
   },
 
-  addPet: async ({ request, cookies, params }: RequestEvent): Promise<ActionFailure<{ error: string }> | { success: true }> => {
+  addPet: async ({ request, cookies, params }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
     const form = await request.formData();
     const sessionToken = cookies.get("humans_session");
 
@@ -312,8 +321,7 @@ export const actions = {
 
     if (!res.ok) {
       const resBody: unknown = await res.json();
-      const body = isErrorBody(resBody) ? resBody : {};
-      return fail(res.status, { error: body.error ?? "Failed to add pet" });
+      return failFromApi(resBody, res.status, "Failed to add pet");
     }
 
     return { success: true };

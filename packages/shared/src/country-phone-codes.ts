@@ -1,9 +1,9 @@
-export type CountryPhoneCode = {
+export interface CountryPhoneCode {
   name: string;
   dialCode: string;
   flag: string;
   iso2: string;
-};
+}
 
 /** Phone codes for all countries in the COUNTRIES array. */
 export const COUNTRY_PHONE_CODES: readonly CountryPhoneCode[] = [
