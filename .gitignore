@@ -12,3 +12,5 @@ coverage/
 *.tsbuildinfo
 .DS_Store
 .mcp.json
+playwright-report/
+test-results/

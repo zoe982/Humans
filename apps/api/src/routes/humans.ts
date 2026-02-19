@@ -10,6 +10,9 @@ import {
   pets,
   geoInterestExpressions,
   geoInterests,
+  accountHumans,
+  accounts,
+  accountHumanLabelsConfig,
 } from "@humans/db/schema";
 import { createId } from "@humans/db";
 import {
@@ -53,13 +56,14 @@ humanRoutes.get("/api/humans/:id", requirePermission("viewRecords"), async (c) =
     return c.json({ error: "Human not found" }, 404);
   }
 
-  const [emails, types, linkedSignups, phoneNumbers, humanPets, geoExpressions] = await Promise.all([
+  const [emails, types, linkedSignups, phoneNumbers, humanPets, geoExpressions, linkedAccountRows] = await Promise.all([
     db.select().from(humanEmails).where(eq(humanEmails.humanId, human.id)),
     db.select().from(humanTypes).where(eq(humanTypes.humanId, human.id)),
     db.select().from(humanRouteSignups).where(eq(humanRouteSignups.humanId, human.id)),
     db.select().from(humanPhoneNumbers).where(eq(humanPhoneNumbers.humanId, human.id)),
     db.select().from(pets).where(eq(pets.humanId, human.id)),
     db.select().from(geoInterestExpressions).where(eq(geoInterestExpressions.humanId, human.id)),
+    db.select().from(accountHumans).where(eq(accountHumans.humanId, human.id)),
   ]);
 
   // Resolve geo-interest city/country for expressions
@@ -76,6 +80,25 @@ humanRoutes.get("/api/humans/:id", requirePermission("viewRecords"), async (c) =
     };
   });
 
+  // Resolve linked accounts with names and labels
+  let linkedAccounts: { id: string; accountId: string; accountName: string; labelName: string | null }[] = [];
+  if (linkedAccountRows.length > 0) {
+    const [allAccounts, allLabels] = await Promise.all([
+      db.select().from(accounts),
+      db.select().from(accountHumanLabelsConfig),
+    ]);
+    linkedAccounts = linkedAccountRows.map((row) => {
+      const account = allAccounts.find((a) => a.id === row.accountId);
+      const label = row.labelId ? allLabels.find((l) => l.id === row.labelId) : null;
+      return {
+        id: row.id,
+        accountId: row.accountId,
+        accountName: account?.name ?? "Unknown",
+        labelName: label?.name ?? null,
+      };
+    });
+  }
+
   return c.json({
     data: {
       ...human,
@@ -85,6 +108,7 @@ humanRoutes.get("/api/humans/:id", requirePermission("viewRecords"), async (c) =
       phoneNumbers,
       pets: humanPets,
       geoInterestExpressions: geoInterestExpressionsWithDetails,
+      linkedAccounts,
     },
   });
 });
@@ -228,6 +252,7 @@ humanRoutes.delete("/api/humans/:id", requirePermission("manageHumans"), async (
   await db.delete(humanPhoneNumbers).where(eq(humanPhoneNumbers.humanId, id));
   await db.delete(pets).where(eq(pets.humanId, id));
   await db.delete(geoInterestExpressions).where(eq(geoInterestExpressions.humanId, id));
+  await db.delete(accountHumans).where(eq(accountHumans.humanId, id));
   await db.delete(humans).where(eq(humans.id, id));
 
   return c.json({ success: true });

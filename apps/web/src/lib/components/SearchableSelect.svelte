@@ -5,9 +5,12 @@
     value?: string;
     placeholder?: string;
     id?: string;
+    emptyMessage?: string;
+    onOpenChange?: (isOpen: boolean) => void;
+    onSelect?: (value: string) => void;
   };
 
-  let { options, name, value = "", placeholder = "Search...", id }: Props = $props();
+  let { options, name, value = "", placeholder = "Search...", id, emptyMessage = "No matches found", onOpenChange, onSelect }: Props = $props();
 
   let query = $state(value);
   let open = $state(false);
@@ -23,6 +26,7 @@
     query = option;
     open = false;
     highlightIndex = -1;
+    onSelect?.(option);
   }
 
   function handleKeydown(e: KeyboardEvent) {
@@ -54,6 +58,10 @@
     open = true;
     highlightIndex = -1;
   }
+
+  $effect(() => {
+    onOpenChange?.(open);
+  });
 </script>
 
 <div class="relative">
@@ -71,7 +79,7 @@
     class="glass-input mt-1 block w-full"
   />
   {#if open && filtered.length > 0}
-    <ul class="absolute z-50 mt-1 max-h-48 w-full overflow-auto rounded-lg border border-white/15 bg-[#1a3a58] backdrop-blur-xl shadow-lg">
+    <ul class="absolute z-50 mt-1 max-h-48 w-full overflow-auto rounded-lg border border-white/15 bg-[#1a3a58] shadow-lg">
       {#each filtered as option, i}
         <li>
           <button
@@ -87,8 +95,8 @@
     </ul>
   {/if}
   {#if open && query.trim() !== "" && filtered.length === 0}
-    <div class="absolute z-50 mt-1 w-full rounded-lg border border-white/15 bg-[#1a3a58] backdrop-blur-xl shadow-lg px-3 py-2 text-sm text-text-muted">
-      No breeds found
+    <div class="absolute z-50 mt-1 w-full rounded-lg border border-white/15 bg-[#1a3a58] shadow-lg px-3 py-2 text-sm text-text-muted">
+      {emptyMessage}
     </div>
   {/if}
 </div>

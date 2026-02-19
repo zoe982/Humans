@@ -2,6 +2,7 @@
   import type { PageData, ActionData } from "./$types";
   import PageHeader from "$lib/components/PageHeader.svelte";
   import AlertBanner from "$lib/components/AlertBanner.svelte";
+  import SearchableSelect from "$lib/components/SearchableSelect.svelte";
   import { COUNTRIES } from "@humans/shared";
 
   let { data, form }: { data: PageData; form: ActionData } = $props();
@@ -22,43 +23,10 @@
   let showCreateForm = $state(false);
   let city = $state("");
   let country = $state("");
-  let countrySearch = $state("");
-  let showCountryDropdown = $state(false);
-
-  const filteredCountries = $derived(
-    countrySearch.trim().length === 0
-      ? [...COUNTRIES]
-      : COUNTRIES.filter((c) => c.toLowerCase().includes(countrySearch.toLowerCase()))
-  );
-
-  function selectCountry(c: string) {
-    country = c;
-    countrySearch = c;
-    showCountryDropdown = false;
-  }
-
-  function handleCountryInput() {
-    showCountryDropdown = true;
-    country = "";
-  }
-
-  function handleCountryBlur() {
-    // Delay to allow click on dropdown item
-    setTimeout(() => {
-      showCountryDropdown = false;
-      // If typed text matches a country exactly, select it
-      const match = COUNTRIES.find((c) => c.toLowerCase() === countrySearch.toLowerCase());
-      if (match) {
-        country = match;
-        countrySearch = match;
-      }
-    }, 200);
-  }
 
   function resetForm() {
     city = "";
     country = "";
-    countrySearch = "";
     showCreateForm = false;
   }
 
@@ -105,37 +73,16 @@
             class="glass-input block w-full px-3 py-2 text-sm"
           />
         </div>
-        <div class="relative">
-          <label for="countrySearch" class="block text-sm font-medium text-text-secondary mb-1">Country</label>
-          <input type="hidden" name="country" value={country} />
-          <input
-            id="countrySearch"
-            type="text"
-            autocomplete="off"
-            required
-            bind:value={countrySearch}
-            oninput={handleCountryInput}
-            onfocus={() => (showCountryDropdown = true)}
-            onblur={handleCountryBlur}
+        <div>
+          <label for="countrySelect" class="block text-sm font-medium text-text-secondary mb-1">Country</label>
+          <SearchableSelect
+            options={COUNTRIES}
+            name="country"
+            id="countrySelect"
             placeholder="Search countries..."
-            class="glass-input block w-full px-3 py-2 text-sm"
+            emptyMessage="No countries found"
+            onSelect={(v) => { country = v; }}
           />
-          {#if showCountryDropdown && filteredCountries.length > 0}
-            <div class="absolute z-50 mt-1 w-full max-h-48 overflow-y-auto rounded-lg border border-glass-border bg-surface-raised shadow-lg">
-              {#each filteredCountries as c (c)}
-                <button
-                  type="button"
-                  class="block w-full px-3 py-2 text-left text-sm text-text-primary hover:bg-glass-hover transition-colors {c === country ? 'bg-accent-dim text-accent' : ''}"
-                  onmousedown={(e) => { e.preventDefault(); selectCountry(c); }}
-                >
-                  {c}
-                </button>
-              {/each}
-            </div>
-          {/if}
-          {#if countrySearch && !country && !showCountryDropdown}
-            <p class="text-xs text-red-400 mt-1">Please select a country from the list.</p>
-          {/if}
         </div>
       </div>
       <div class="flex gap-3">

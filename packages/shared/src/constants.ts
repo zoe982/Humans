@@ -21,6 +21,7 @@ export const PERMISSIONS = {
   manageColleagues: ["admin"],
   viewAuditLog: ["admin"],
   manageHumans: ["agent", "manager", "admin"],
+  manageAccounts: ["agent", "manager", "admin"],
   viewRouteSignups: ["agent", "manager", "admin"],
   manageRouteSignups: ["manager", "admin"],
   deleteRouteSignups: ["admin"],

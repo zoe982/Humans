@@ -6,8 +6,21 @@ interface FetchOptions extends RequestInit {
   params?: Record<string, string>;
 }
 
-function isErrorBody(value: unknown): value is { error?: string } {
+function isErrorBody(value: unknown): value is { error?: string; details?: Record<string, string[]> } {
   return typeof value === "object" && value !== null;
+}
+
+/** Extract a human-readable error message from an API error response body. */
+export function extractApiError(resBody: unknown, fallback: string): string {
+  const body = isErrorBody(resBody) ? resBody : {};
+  const msg = body.error ?? fallback;
+  if (body.details != null) {
+    const fieldErrors = Object.entries(body.details)
+      .map(([field, msgs]) => `${field}: ${msgs.join(", ")}`)
+      .join("; ");
+    if (fieldErrors.length > 0) return `${msg} — ${fieldErrors}`;
+  }
+  return msg;
 }
 
 export async function api(
@@ -44,8 +57,7 @@ export async function api(
 
   if (!res.ok) {
     const raw: unknown = await res.json().catch(() => ({ error: "Request failed" }));
-    const body = isErrorBody(raw) ? raw : { error: "Request failed" };
-    throw new Error(body.error ?? `HTTP ${String(res.status)}`);
+    throw new Error(extractApiError(raw, `HTTP ${String(res.status)}`));
   }
 
   return res.json();

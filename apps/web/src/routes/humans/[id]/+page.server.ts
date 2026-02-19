@@ -41,7 +41,7 @@ export const load = async ({ locals, cookies, params }: RequestEvent) => {
     activities = isListData(activitiesRaw) ? activitiesRaw.data : [];
   }
 
-  return { human, activities };
+  return { human, activities, apiUrl: PUBLIC_API_URL };
 };
 
 export const actions = {
@@ -130,21 +130,27 @@ export const actions = {
     }
 
     // If geo-interest fields are present, create a geo-interest expression linked to this activity
+    const geoInterestId = (form.get("geoInterestId") as string)?.trim();
     const geoCity = (form.get("geoCity") as string)?.trim();
     const geoCountry = (form.get("geoCountry") as string)?.trim();
-    if (geoCity && geoCountry) {
+    if (geoInterestId || (geoCity && geoCountry)) {
       let activityId: string | undefined;
       if (isObjData(resBody)) {
         activityId = (resBody.data as { id?: string }).id;
       }
 
-      const geoPayload = {
+      const geoPayload: Record<string, unknown> = {
         humanId: params.id,
-        city: geoCity,
-        country: geoCountry,
         notes: (form.get("geoNotes") as string)?.trim() || undefined,
         activityId,
       };
+
+      if (geoInterestId) {
+        geoPayload.geoInterestId = geoInterestId;
+      } else {
+        geoPayload.city = geoCity;
+        geoPayload.country = geoCountry;
+      }
 
       await fetch(`${PUBLIC_API_URL}/api/geo-interest-expressions`, {
         method: "POST",
@@ -286,12 +292,19 @@ export const actions = {
     const form = await request.formData();
     const sessionToken = cookies.get("humans_session");
 
-    const payload = {
+    const geoInterestId = (form.get("geoInterestId") as string)?.trim();
+
+    const payload: Record<string, unknown> = {
       humanId: params.id,
-      city: form.get("city"),
-      country: form.get("country"),
       notes: form.get("notes") || undefined,
     };
+
+    if (geoInterestId) {
+      payload.geoInterestId = geoInterestId;
+    } else {
+      payload.city = form.get("city");
+      payload.country = form.get("country");
+    }
 
     const res = await fetch(`${PUBLIC_API_URL}/api/geo-interest-expressions`, {
       method: "POST",

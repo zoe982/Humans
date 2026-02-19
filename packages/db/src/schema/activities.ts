@@ -1,5 +1,6 @@
 import { sqliteTable, text } from "drizzle-orm/sqlite-core";
 import { humans } from "./humans";
+import { accounts } from "./accounts";
 import { colleagues } from "./colleagues";
 
 export const activityTypeValues = [
@@ -18,6 +19,7 @@ export const activities = sqliteTable("activities", {
   notes: text("notes"),
   activityDate: text("activity_date").notNull(),
   humanId: text("human_id").references(() => humans.id),
+  accountId: text("account_id").references(() => accounts.id),
   routeSignupId: text("route_signup_id"),
   gmailId: text("gmail_id"),
   frontId: text("front_id"),

@@ -14,12 +14,13 @@ export const createActivitySchema = z
     notes: z.string().max(10000).optional(),
     activityDate: z.string().datetime(),
     humanId: z.string().optional(),
+    accountId: z.string().optional(),
     routeSignupId: z.string().uuid().optional(),
     gmailId: z.string().optional(),
     frontId: z.string().optional(),
   })
-  .refine((data) => data.humanId || data.routeSignupId, {
-    message: "At least one of humanId or routeSignupId is required",
+  .refine((data) => data.humanId || data.routeSignupId || data.accountId, {
+    message: "At least one of humanId, accountId, or routeSignupId is required",
   });
 
 export const updateActivitySchema = z.object({
@@ -28,6 +29,7 @@ export const updateActivitySchema = z.object({
   notes: z.string().max(10000).optional(),
   activityDate: z.string().datetime().optional(),
   humanId: z.string().optional(),
+  accountId: z.string().optional(),
   routeSignupId: z.string().uuid().optional(),
   gmailId: z.string().optional(),
   frontId: z.string().optional(),

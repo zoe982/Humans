@@ -19,6 +19,8 @@ import { phoneNumberRoutes } from "./routes/phone-numbers";
 import { searchRoutes } from "./routes/search";
 import { emailRoutes } from "./routes/emails";
 import { geoInterestRoutes } from "./routes/geo-interests";
+import { accountRoutes } from "./routes/accounts";
+import { accountConfigRoutes } from "./routes/account-config";
 import type { AppContext } from "./types";
 
 const app = new Hono<AppContext>();
@@ -53,5 +55,7 @@ app.route("/", phoneNumberRoutes);
 app.route("/", searchRoutes);
 app.route("/", emailRoutes);
 app.route("/", geoInterestRoutes);
+app.route("/", accountRoutes);
+app.route("/", accountConfigRoutes);
 
 export default app;

@@ -15,6 +15,7 @@ activityRoutes.use("/*", authMiddleware);
 activityRoutes.get("/api/activities", requirePermission("viewRecords"), async (c) => {
   const db = c.get("db");
   const humanId = c.req.query("humanId");
+  const accountId = c.req.query("accountId");
   const routeSignupId = c.req.query("routeSignupId");
   const type = c.req.query("type");
   const dateFrom = c.req.query("dateFrom");
@@ -22,6 +23,7 @@ activityRoutes.get("/api/activities", requirePermission("viewRecords"), async (c
 
   const conditions = [];
   if (humanId) conditions.push(eq(activities.humanId, humanId));
+  if (accountId) conditions.push(eq(activities.accountId, accountId));
   if (routeSignupId) conditions.push(eq(activities.routeSignupId, routeSignupId));
   if (type) conditions.push(eq(activities.type, type as typeof activities.type.enumValues[number]));
   if (dateFrom) conditions.push(gte(activities.activityDate, dateFrom));
@@ -66,6 +68,7 @@ activityRoutes.post("/api/activities", requirePermission("createEditRecords"), a
     notes: data.notes ?? null,
     activityDate: data.activityDate,
     humanId: data.humanId ?? null,
+    accountId: data.accountId ?? null,
     routeSignupId: data.routeSignupId ?? null,
     gmailId: data.gmailId ?? null,
     frontId: data.frontId ?? null,
@@ -101,6 +104,7 @@ activityRoutes.patch("/api/activities/:id", requirePermission("createEditRecords
   }
   if (data.activityDate !== undefined) updateFields["activityDate"] = data.activityDate;
   if (data.humanId !== undefined) updateFields["humanId"] = data.humanId;
+  if (data.accountId !== undefined) updateFields["accountId"] = data.accountId;
   if (data.routeSignupId !== undefined) updateFields["routeSignupId"] = data.routeSignupId;
   if (data.gmailId !== undefined) updateFields["gmailId"] = data.gmailId;
   if (data.frontId !== undefined) updateFields["frontId"] = data.frontId;

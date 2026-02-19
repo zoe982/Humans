@@ -1,5 +1,6 @@
 import type { Handle } from "@sveltejs/kit";
 import { PUBLIC_API_URL } from "$env/static/public";
+import { env } from "$env/dynamic/private";
 
 const API_BASE = PUBLIC_API_URL !== "" ? PUBLIC_API_URL : "http://localhost:8787";
 
@@ -8,6 +9,19 @@ function isUserResponse(value: unknown): value is { user: App.Locals["user"] } {
 }
 
 export const handle: Handle = async ({ event, resolve }) => {
+  // Test-only auth bypass: set a synthetic user so E2E tests can reach
+  // authenticated pages without a real OAuth flow.
+  if (env["TEST_BYPASS_AUTH"] === "1") {
+    event.locals.user = {
+      id: "test-user-id",
+      name: "Test User",
+      email: "test@example.com",
+      role: "admin",
+      avatarUrl: null,
+    };
+    return resolve(event);
+  }
+
   const sessionCookie = event.cookies.get("humans_session");
 
   if (sessionCookie != null && sessionCookie !== "") {

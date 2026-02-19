@@ -38,11 +38,20 @@
     humanCount: number;
   };
 
+  type AccountType = { id: string; name: string };
+  type AccountResult = {
+    id: string;
+    name: string;
+    status: string;
+    types: AccountType[];
+  };
+
   const humans = $derived(data.humans as HumanResult[]);
   const routeSignups = $derived(data.routeSignups as SignupResult[]);
   const activities = $derived(data.activities as ActivityResult[]);
   const geoInterests = $derived(data.geoInterests as GeoInterestResult[]);
-  const hasResults = $derived(humans.length > 0 || routeSignups.length > 0 || activities.length > 0 || geoInterests.length > 0);
+  const accounts = $derived(data.accounts as AccountResult[]);
+  const hasResults = $derived(humans.length > 0 || routeSignups.length > 0 || activities.length > 0 || geoInterests.length > 0 || accounts.length > 0);
 
   const statusColors: Record<string, string> = {
     open: "bg-[rgba(59,130,246,0.15)] text-blue-300",
@@ -72,7 +81,7 @@
         name="q"
         type="text"
         value={data.q}
-        placeholder="Search humans, signups, activities..."
+        placeholder="Search humans, accounts, signups, activities..."
         class="glass-input flex-1 px-4 py-3 text-sm"
         autofocus
       />
@@ -82,6 +91,26 @@
 
   {#if data.q && !hasResults}
     <p class="mt-8 text-center text-sm text-text-muted">No results found for "{data.q}".</p>
+  {/if}
+
+  {#if accounts.length > 0}
+    <div class="mt-8">
+      <h2 class="text-lg font-semibold text-text-primary">Accounts ({accounts.length})</h2>
+      <ul class="mt-3 glass-card divide-y divide-glass-border">
+        {#each accounts as account (account.id)}
+          <li>
+            <a href="/accounts/{account.id}" class="block px-6 py-4 hover:bg-glass-hover transition-colors">
+              <div class="flex items-center gap-2">
+                <p class="text-sm font-medium text-accent">{account.name}</p>
+                {#each account.types as t}
+                  <span class="glass-badge bg-[rgba(168,85,247,0.15)] text-purple-300 text-xs">{t.name}</span>
+                {/each}
+              </div>
+            </a>
+          </li>
+        {/each}
+      </ul>
+    </div>
   {/if}
 
   {#if humans.length > 0}

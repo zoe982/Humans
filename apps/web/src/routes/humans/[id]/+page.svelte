@@ -4,6 +4,8 @@
   import LinkedRecordBox from "$lib/components/LinkedRecordBox.svelte";
   import AlertBanner from "$lib/components/AlertBanner.svelte";
   import SearchableSelect from "$lib/components/SearchableSelect.svelte";
+  import GeoInterestPicker from "$lib/components/GeoInterestPicker.svelte";
+  import PhoneInput from "$lib/components/PhoneInput.svelte";
   import { PET_BREEDS } from "@humans/shared/constants";
 
   let { data, form }: { data: PageData; form: ActionData } = $props();
@@ -33,6 +35,12 @@
     frontId: string | null;
     createdAt: string;
   };
+  type LinkedAccount = {
+    id: string;
+    accountId: string;
+    accountName: string;
+    labelName: string | null;
+  };
   type Human = {
     id: string;
     firstName: string;
@@ -45,15 +53,18 @@
     phoneNumbers: PhoneNumber[];
     pets: Pet[];
     geoInterestExpressions: GeoInterestExpression[];
+    linkedAccounts: LinkedAccount[];
     createdAt: string;
     updatedAt: string;
   };
 
   const human = $derived(data.human as Human);
   const activities = $derived(data.activities as Activity[]);
+  const apiUrl = $derived(data.apiUrl as string);
 
   let showActivityForm = $state(false);
   let showGeoInterestInActivity = $state(false);
+  let breedDropdownOpen = $state(false);
 
   const typeColors: Record<string, string> = {
     client: "bg-[rgba(59,130,246,0.15)] text-blue-300",
@@ -277,11 +288,7 @@
           <div class="grid gap-3 sm:grid-cols-2">
             <div>
               <label for="phoneNumber" class="block text-sm font-medium text-text-secondary">Phone Number</label>
-              <input
-                id="phoneNumber" name="phoneNumber" type="tel" required
-                class="glass-input mt-1 block w-full"
-                placeholder="+1 (555) 123-4567"
-              />
+              <PhoneInput name="phoneNumber" id="phoneNumber" />
             </div>
             <div>
               <label for="phoneLabel" class="block text-sm font-medium text-text-secondary">Label</label>
@@ -315,7 +322,7 @@
   </div>
 
   <!-- Pets Section -->
-  <div class="mt-6">
+  <div class="mt-6 {breedDropdownOpen ? 'relative z-10' : ''}">
     <LinkedRecordBox
       title="Pets"
       items={human.pets}
@@ -351,6 +358,7 @@
                 name="breed"
                 id="petBreed"
                 placeholder="Search breeds..."
+                onOpenChange={(isOpen) => { breedDropdownOpen = isOpen; }}
               />
             </div>
             <div>
@@ -383,7 +391,7 @@
         <div>
           <div class="flex items-center gap-3">
             <a href="/geo-interests/{expr.geoInterestId}" class="text-sm font-medium text-accent hover:text-cyan-300">
-              {expr.city ?? "—"}, {expr.country ?? "—"}
+              {expr.city ?? "\u2014"}, {expr.country ?? "\u2014"}
             </a>
             {#if expr.activityId}
               <span class="text-xs text-text-muted">linked to activity</span>
@@ -396,32 +404,7 @@
       {/snippet}
       {#snippet addForm()}
         <form method="POST" action="?/addGeoInterestExpression" class="space-y-3">
-          <div class="grid gap-3 sm:grid-cols-2">
-            <div>
-              <label for="geoCity" class="block text-sm font-medium text-text-secondary">City</label>
-              <input
-                id="geoCity" name="city" type="text" required
-                class="glass-input mt-1 block w-full"
-                placeholder="e.g. Doha"
-              />
-            </div>
-            <div>
-              <label for="geoCountry" class="block text-sm font-medium text-text-secondary">Country</label>
-              <input
-                id="geoCountry" name="country" type="text" required
-                class="glass-input mt-1 block w-full"
-                placeholder="e.g. Qatar"
-              />
-            </div>
-          </div>
-          <div>
-            <label for="geoNotes" class="block text-sm font-medium text-text-secondary">Notes</label>
-            <textarea
-              id="geoNotes" name="notes" rows="2"
-              class="glass-input mt-1 block w-full"
-              placeholder="Optional context..."
-            ></textarea>
-          </div>
+          <GeoInterestPicker {apiUrl} />
           <button type="submit" class="btn-primary text-sm">
             Add Geo-Interest Expression
           </button>
@@ -429,6 +412,27 @@
       {/snippet}
     </LinkedRecordBox>
   </div>
+
+  <!-- Linked Accounts -->
+  {#if human.linkedAccounts && human.linkedAccounts.length > 0}
+    <div class="mt-6 glass-card p-5">
+      <h2 class="text-lg font-semibold text-text-primary mb-4">Linked Accounts</h2>
+      <div class="space-y-2">
+        {#each human.linkedAccounts as link (link.id)}
+          <div class="flex items-center gap-3 p-3 rounded-lg bg-glass hover:bg-glass-hover transition-colors">
+            <a href="/accounts/{link.accountId}" class="text-sm font-medium text-accent hover:text-cyan-300">
+              {link.accountName}
+            </a>
+            {#if link.labelName}
+              <span class="glass-badge inline-flex rounded-full px-2 py-0.5 text-xs font-medium bg-[rgba(249,115,22,0.15)] text-orange-300">
+                {link.labelName}
+              </span>
+            {/if}
+          </div>
+        {/each}
+      </div>
+    </div>
+  {/if}
 
   <!-- Linked Route Signups -->
   {#if human.linkedRouteSignups.length > 0}
@@ -517,33 +521,14 @@
             </label>
           </div>
           {#if showGeoInterestInActivity}
-            <div class="p-3 rounded-lg bg-glass border border-glass-border space-y-3">
-              <div class="grid gap-3 sm:grid-cols-2">
-                <div>
-                  <label for="actGeoCity" class="block text-sm font-medium text-text-secondary">City</label>
-                  <input
-                    id="actGeoCity" name="geoCity" type="text"
-                    class="glass-input mt-1 block w-full"
-                    placeholder="e.g. Doha"
-                  />
-                </div>
-                <div>
-                  <label for="actGeoCountry" class="block text-sm font-medium text-text-secondary">Country</label>
-                  <input
-                    id="actGeoCountry" name="geoCountry" type="text"
-                    class="glass-input mt-1 block w-full"
-                    placeholder="e.g. Qatar"
-                  />
-                </div>
-              </div>
-              <div>
-                <label for="actGeoNotes" class="block text-sm font-medium text-text-secondary">Geo-Interest Notes</label>
-                <textarea
-                  id="actGeoNotes" name="geoNotes" rows="2"
-                  class="glass-input mt-1 block w-full"
-                  placeholder="Optional context..."
-                ></textarea>
-              </div>
+            <div class="p-3 rounded-lg bg-glass border border-glass-border">
+              <GeoInterestPicker
+                {apiUrl}
+                geoInterestIdName="geoInterestId"
+                cityName="geoCity"
+                countryName="geoCountry"
+                notesName="geoNotes"
+              />
             </div>
           {/if}
           <button type="submit" class="btn-primary text-sm">

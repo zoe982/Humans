@@ -1,6 +1,18 @@
 import { Hono } from "hono";
 import { like, or } from "drizzle-orm";
-import { humans, humanEmails, humanPhoneNumbers, activities, geoInterests, geoInterestExpressions } from "@humans/db/schema";
+import {
+  humans,
+  humanEmails,
+  humanPhoneNumbers,
+  activities,
+  geoInterests,
+  geoInterestExpressions,
+  accounts,
+  accountEmails,
+  accountPhoneNumbers,
+  accountTypes,
+  accountTypesConfig,
+} from "@humans/db/schema";
 import { authMiddleware } from "../middleware/auth";
 import { requirePermission } from "../middleware/rbac";
 import { supabaseMiddleware } from "../middleware/supabase";
@@ -13,7 +25,7 @@ searchRoutes.use("/*", authMiddleware);
 searchRoutes.get("/api/search", requirePermission("viewRecords"), supabaseMiddleware, async (c) => {
   const q = c.req.query("q");
   if (!q || q.trim().length === 0) {
-    return c.json({ humans: [], routeSignups: [], activities: [], geoInterests: [] });
+    return c.json({ humans: [], routeSignups: [], activities: [], geoInterests: [], accounts: [] });
   }
 
   const db = c.get("db");
@@ -21,7 +33,7 @@ searchRoutes.get("/api/search", requirePermission("viewRecords"), supabaseMiddle
   const pattern = `%${q}%`;
 
   // Search D1 in parallel
-  const [humanResults, emailResults, phoneResults, activityResults, geoInterestResults, supabaseResult] =
+  const [humanResults, emailResults, phoneResults, activityResults, geoInterestResults, supabaseResult, accountResults, accountEmailResults, accountPhoneResults] =
     await Promise.all([
       db
         .select()
@@ -46,6 +58,9 @@ searchRoutes.get("/api/search", requirePermission("viewRecords"), supabaseMiddle
         .or(
           `first_name.ilike.${pattern},last_name.ilike.${pattern},email.ilike.${pattern},origin.ilike.${pattern},destination.ilike.${pattern}`,
         ),
+      db.select().from(accounts).where(like(accounts.name, pattern)),
+      db.select().from(accountEmails).where(like(accountEmails.email, pattern)),
+      db.select().from(accountPhoneNumbers).where(like(accountPhoneNumbers.phoneNumber, pattern)),
     ]);
 
   // Fetch expressions for matched geo-interests to find linked humans
@@ -84,11 +99,34 @@ searchRoutes.get("/api/search", requirePermission("viewRecords"), supabaseMiddle
     };
   });
 
+  // Merge account results: collect unique account IDs from name, email, phone matches
+  const accountIds = new Set<string>();
+  accountResults.forEach((a) => accountIds.add(a.id));
+  accountEmailResults.forEach((e) => accountIds.add(e.accountId));
+  accountPhoneResults.forEach((p) => accountIds.add(p.accountId));
+
+  const allAccounts = accountIds.size > 0 ? await db.select().from(accounts) : [];
+  const allAccountTypes = accountIds.size > 0 ? await db.select().from(accountTypes) : [];
+  const allTypeConfigs = accountIds.size > 0 ? await db.select().from(accountTypesConfig) : [];
+
+  const matchedAccounts = allAccounts
+    .filter((a) => accountIds.has(a.id))
+    .map((a) => ({
+      ...a,
+      types: allAccountTypes
+        .filter((t) => t.accountId === a.id)
+        .map((t) => {
+          const config = allTypeConfigs.find((c) => c.id === t.typeId);
+          return { id: t.typeId, name: config?.name ?? t.typeId };
+        }),
+    }));
+
   return c.json({
     humans: matchedHumans,
     routeSignups: supabaseResult.data ?? [],
     activities: activityResults,
     geoInterests: geoInterestsWithCounts,
+    accounts: matchedAccounts,
   });
 });
 

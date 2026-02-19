@@ -25,6 +25,20 @@
       </div>
     </a>
 
+    <a href="/admin/account-config" class="glass-card p-6 hover:bg-glass-hover transition-colors group">
+      <div class="flex items-start gap-4">
+        <div class="rounded-lg bg-accent-dim p-3 text-accent">
+          <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 21h16.5M4.5 3h15M5.25 3v18m13.5-18v18M9 6.75h1.5m-1.5 3h1.5m-1.5 3h1.5m3-6H15m-1.5 3H15m-1.5 3H15M9 21v-3.375c0-.621.504-1.125 1.125-1.125h3.75c.621 0 1.125.504 1.125 1.125V21" />
+          </svg>
+        </div>
+        <div>
+          <h2 class="text-lg font-semibold text-text-primary">Account Configuration</h2>
+          <p class="mt-1 text-sm text-text-secondary">Manage account types, role labels, email labels, and phone labels.</p>
+        </div>
+      </div>
+    </a>
+
     <a href="/admin/audit-log" class="glass-card p-6 hover:bg-glass-hover transition-colors group">
       <div class="flex items-start gap-4">
         <div class="rounded-lg bg-accent-dim p-3 text-accent">

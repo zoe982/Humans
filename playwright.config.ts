@@ -16,18 +16,21 @@ export default defineConfig({
       name: "chromium",
       use: { ...devices["Desktop Chrome"] },
     },
+  ],
+  webServer: [
     {
-      name: "firefox",
-      use: { ...devices["Desktop Firefox"] },
+      command: "npx tsx apps/web/tests/mock-api.ts",
+      port: 4799,
+      reuseExistingServer: !process.env["CI"],
     },
     {
-      name: "mobile-chrome",
-      use: { ...devices["Pixel 5"] },
+      command: "pnpm --filter @humans/web dev",
+      url: "http://localhost:5173",
+      reuseExistingServer: !process.env["CI"],
+      env: {
+        PUBLIC_API_URL: "http://localhost:4799",
+        TEST_BYPASS_AUTH: "1",
+      },
     },
   ],
-  webServer: {
-    command: "pnpm --filter @humans/web dev",
-    url: "http://localhost:5173",
-    reuseExistingServer: !process.env["CI"],
-  },
 });

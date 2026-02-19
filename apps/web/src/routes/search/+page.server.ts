@@ -7,7 +7,7 @@ export const load = async ({ locals, cookies, url }: RequestEvent) => {
 
   const q = url.searchParams.get("q") ?? "";
   if (!q.trim()) {
-    return { q, humans: [], routeSignups: [], activities: [], geoInterests: [] };
+    return { q, humans: [], routeSignups: [], activities: [], geoInterests: [], accounts: [] };
   }
 
   const sessionToken = cookies.get("humans_session");
@@ -16,11 +16,11 @@ export const load = async ({ locals, cookies, url }: RequestEvent) => {
   });
 
   if (!res.ok) {
-    return { q, humans: [], routeSignups: [], activities: [], geoInterests: [] };
+    return { q, humans: [], routeSignups: [], activities: [], geoInterests: [], accounts: [] };
   }
 
   const data: unknown = await res.json();
-  const result = data as { humans?: unknown[]; routeSignups?: unknown[]; activities?: unknown[]; geoInterests?: unknown[] };
+  const result = data as { humans?: unknown[]; routeSignups?: unknown[]; activities?: unknown[]; geoInterests?: unknown[]; accounts?: unknown[] };
 
   return {
     q,
@@ -28,5 +28,6 @@ export const load = async ({ locals, cookies, url }: RequestEvent) => {
     routeSignups: result.routeSignups ?? [],
     activities: result.activities ?? [],
     geoInterests: result.geoInterests ?? [],
+    accounts: result.accounts ?? [],
   };
 };

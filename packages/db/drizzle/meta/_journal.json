@@ -36,6 +36,13 @@
       "when": 1771762800000,
       "tag": "0004_geo_interests",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1771849200000,
+      "tag": "0005_accounts",
+      "breakpoints": true
     }
   ]
 }

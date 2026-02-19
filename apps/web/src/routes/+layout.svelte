@@ -19,6 +19,7 @@
               <a href="/dashboard" class="rounded-md px-3 py-2 text-sm font-medium text-text-secondary hover:bg-glass-hover hover:text-text-primary">Dashboard</a>
               <a href="/leads" class="rounded-md px-3 py-2 text-sm font-medium text-text-secondary hover:bg-glass-hover hover:text-text-primary">Leads</a>
               <a href="/humans" class="rounded-md px-3 py-2 text-sm font-medium text-text-secondary hover:bg-glass-hover hover:text-text-primary">Humans</a>
+              <a href="/accounts" class="rounded-md px-3 py-2 text-sm font-medium text-text-secondary hover:bg-glass-hover hover:text-text-primary">Accounts</a>
               <a href="/activities" class="rounded-md px-3 py-2 text-sm font-medium text-text-secondary hover:bg-glass-hover hover:text-text-primary">Activities</a>
               <a href="/flights" class="rounded-md px-3 py-2 text-sm font-medium text-text-secondary hover:bg-glass-hover hover:text-text-primary">Flights</a>
               <a href="/geo-interests" class="rounded-md px-3 py-2 text-sm font-medium text-text-secondary hover:bg-glass-hover hover:text-text-primary">Geo-Interests</a>
