@@ -1,6 +1,6 @@
 import { sqliteTable, text } from "drizzle-orm/sqlite-core";
 import { clients } from "./clients";
-import { users } from "./users";
+import { colleagues } from "./colleagues";
 
 export const leadEventTypes = [
   "inquiry",
@@ -21,6 +21,6 @@ export const leadEvents = sqliteTable("lead_events", {
   eventType: text("event_type", { enum: leadEventTypes }).notNull(),
   notes: text("notes"),
   metadata: text("metadata", { mode: "json" }).$type<Record<string, unknown>>(),
-  createdByUserId: text("created_by_user_id").references(() => users.id),
+  createdByColleagueId: text("created_by_user_id").references(() => colleagues.id),
   createdAt: text("created_at").notNull(),
 });

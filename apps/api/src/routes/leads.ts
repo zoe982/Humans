@@ -64,7 +64,7 @@ leadRoutes.post("/api/leads/events", requirePermission("recordLeadEvents"), asyn
     ...data,
     notes: data.notes ?? null,
     metadata: data.metadata ?? null,
-    createdByUserId: session?.userId ?? null,
+    createdByColleagueId: session?.colleagueId ?? null,
     createdAt: new Date().toISOString(),
   };
 

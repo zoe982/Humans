@@ -1,9 +1,9 @@
 import { sqliteTable, text } from "drizzle-orm/sqlite-core";
-import { users } from "./users";
+import { colleagues } from "./colleagues";
 
 export const auditLog = sqliteTable("audit_log", {
   id: text("id").primaryKey(),
-  userId: text("user_id").references(() => users.id),
+  colleagueId: text("user_id").references(() => colleagues.id),
   action: text("action").notNull(),
   entityType: text("entity_type").notNull(),
   entityId: text("entity_id").notNull(),

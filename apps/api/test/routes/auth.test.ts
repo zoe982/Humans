@@ -3,7 +3,7 @@ import { SELF, env } from "cloudflare:test";
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { createUserAndSession, sessionCookie, getDb } from "../helpers";
 import * as schema from "@humans/db/schema";
-import { buildUser } from "@humans/test-utils";
+import { buildColleague } from "@humans/test-utils";
 
 describe("GET /auth/google/login", () => {
   it("redirects to Google OAuth", async () => {
@@ -121,8 +121,8 @@ describe("GET /auth/google/callback", () => {
 
   it("returns 403 when user account is deactivated", async () => {
     const db = getDb();
-    const user = buildUser({ email: "inactive@test.com", isActive: false });
-    await db.insert(schema.users).values(user);
+    const user = buildColleague({ email: "inactive@test.com", isActive: false });
+    await db.insert(schema.colleagues).values(user);
 
     await env.SESSIONS.put("oauth_state:test-state", "1", { expirationTtl: 600 });
 
@@ -164,8 +164,8 @@ describe("GET /auth/google/callback", () => {
 
   it("creates session and redirects on successful login", async () => {
     const db = getDb();
-    const user = buildUser({ email: "active@test.com", isActive: true });
-    await db.insert(schema.users).values(user);
+    const user = buildColleague({ email: "active@test.com", isActive: true });
+    await db.insert(schema.colleagues).values(user);
 
     await env.SESSIONS.put("oauth_state:test-state", "1", { expirationTtl: 600 });
 

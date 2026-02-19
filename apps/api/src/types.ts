@@ -1,4 +1,5 @@
 import type { DrizzleD1Database } from "drizzle-orm/d1";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import type * as schema from "@humans/db/schema";
 
 export interface Env {
@@ -10,10 +11,12 @@ export interface Env {
   GOOGLE_REDIRECT_URI: string;
   APP_URL: string;
   ENVIRONMENT: string;
+  SUPABASE_URL: string;
+  SUPABASE_SERVICE_ROLE_KEY: string;
 }
 
 export interface SessionData {
-  userId: string;
+  colleagueId: string;
   email: string;
   role: string;
 }
@@ -24,5 +27,6 @@ export interface AppContext {
     db: DrizzleD1Database<typeof schema>;
     session: SessionData | null;
     requestId: string;
+    supabase: SupabaseClient;
   };
 }

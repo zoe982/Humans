@@ -11,11 +11,11 @@
 {#if !data.user}
   <div class="flex min-h-screen items-center justify-center">
     <div class="text-center">
-      <h1 class="mb-4 text-4xl font-bold text-gray-900">Humans CRM</h1>
-      <p class="mb-8 text-lg text-gray-600">Pet Air Valet Customer Management</p>
+      <h1 class="mb-4 text-4xl font-bold text-text-primary">Humans CRM</h1>
+      <p class="mb-8 text-lg text-text-secondary">Pet Air Valet Customer Management</p>
       <a
         href="/login"
-        class="rounded-lg bg-brand px-6 py-3 text-white hover:bg-brand-dark"
+        class="btn-primary inline-block px-6 py-3"
       >
         Sign In
       </a>

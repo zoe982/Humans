@@ -1,1 +1,1 @@
-export { buildUser, buildClient, buildPet, buildFlight } from "./factories";
+export { buildColleague, buildUser, buildClient, buildPet, buildFlight } from "./factories";

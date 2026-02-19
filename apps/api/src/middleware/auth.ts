@@ -6,7 +6,7 @@ import type { AppContext } from "../types";
 import { getCookie } from "hono/cookie";
 
 const sessionSchema = z.object({
-  userId: z.string(),
+  colleagueId: z.string(),
   email: z.string(),
   role: z.string(),
 });

@@ -2,6 +2,7 @@ import { sqliteTable, text, integer } from "drizzle-orm/sqlite-core";
 import { flights } from "./flights";
 import { clients } from "./clients";
 import { pets } from "./pets";
+import { humans } from "./humans";
 
 export const bookingStatuses = [
   "pending",
@@ -23,6 +24,8 @@ export const flightBookings = sqliteTable("flight_bookings", {
   petId: text("pet_id")
     .notNull()
     .references(() => pets.id),
+  humanId: text("human_id")
+    .references(() => humans.id),
   bookingStatus: text("booking_status", { enum: bookingStatuses })
     .notNull()
     .default("pending"),

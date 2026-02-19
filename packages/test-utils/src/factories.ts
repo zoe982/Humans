@@ -3,9 +3,12 @@ import type { Role } from "@humans/shared";
 
 const now = () => new Date().toISOString();
 
-export function buildUser(overrides: Partial<{
+export function buildColleague(overrides: Partial<{
   id: string;
   email: string;
+  firstName: string;
+  middleNames: string | null;
+  lastName: string;
   name: string;
   avatarUrl: string | null;
   googleId: string | null;
@@ -17,8 +20,11 @@ export function buildUser(overrides: Partial<{
   const ts = now();
   return {
     id: createId(),
-    email: `user-${createId()}@test.com`,
-    name: "Test User",
+    email: `colleague-${createId()}@test.com`,
+    firstName: "Test",
+    middleNames: null,
+    lastName: "Colleague",
+    name: "Test Colleague",
     avatarUrl: null,
     googleId: null,
     role: "agent" as Role,
@@ -28,6 +34,9 @@ export function buildUser(overrides: Partial<{
     ...overrides,
   };
 }
+
+/** @deprecated Use buildColleague instead */
+export const buildUser = buildColleague;
 
 export function buildClient(overrides: Partial<{
   id: string;
@@ -39,7 +48,7 @@ export function buildClient(overrides: Partial<{
   status: "active" | "inactive" | "prospect";
   notes: string | null;
   leadSourceId: string | null;
-  assignedToUserId: string | null;
+  assignedToColleagueId: string | null;
   createdAt: string;
   updatedAt: string;
 }> = {}) {
@@ -54,7 +63,7 @@ export function buildClient(overrides: Partial<{
     status: "prospect" as const,
     notes: null,
     leadSourceId: null,
-    assignedToUserId: null,
+    assignedToColleagueId: null,
     createdAt: ts,
     updatedAt: ts,
     ...overrides,

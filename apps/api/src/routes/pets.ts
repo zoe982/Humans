@@ -11,13 +11,14 @@ const petRoutes = new Hono<AppContext>();
 
 petRoutes.use("/*", authMiddleware);
 
-petRoutes.get("/api/clients/:clientId/pets", requirePermission("viewRecords"), async (c) => {
+// List pets for a human
+petRoutes.get("/api/humans/:humanId/pets", requirePermission("viewRecords"), async (c) => {
   const db = c.get("db");
-  const clientPets = await db
+  const humanPets = await db
     .select()
     .from(pets)
-    .where(eq(pets.clientId, c.req.param("clientId")));
-  return c.json({ data: clientPets });
+    .where(eq(pets.humanId, c.req.param("humanId")));
+  return c.json({ data: humanPets });
 });
 
 petRoutes.get("/api/pets/:id", requirePermission("viewRecords"), async (c) => {
@@ -39,11 +40,13 @@ petRoutes.post("/api/pets", requirePermission("createEditRecords"), async (c) =>
 
   const newPet = {
     id: createId(),
-    ...data,
+    clientId: null,
+    humanId: data.humanId,
+    name: data.name,
     breed: data.breed ?? null,
     weight: data.weight ?? null,
-    age: data.age ?? null,
-    specialNeeds: data.specialNeeds ?? null,
+    age: null,
+    specialNeeds: null,
     healthCertR2Key: null,
     vaccinationR2Key: null,
     isActive: true,

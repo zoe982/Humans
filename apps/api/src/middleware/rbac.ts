@@ -16,10 +16,18 @@ function getAllowedRoles(permission: Permission): readonly string[] {
       return PERMISSIONS.viewReports;
     case "manageLeadSources":
       return PERMISSIONS.manageLeadSources;
-    case "manageUsers":
-      return PERMISSIONS.manageUsers;
+    case "manageColleagues":
+      return PERMISSIONS.manageColleagues;
     case "viewAuditLog":
       return PERMISSIONS.viewAuditLog;
+    case "manageHumans":
+      return PERMISSIONS.manageHumans;
+    case "viewRouteSignups":
+      return PERMISSIONS.viewRouteSignups;
+    case "manageRouteSignups":
+      return PERMISSIONS.manageRouteSignups;
+    case "deleteRouteSignups":
+      return PERMISSIONS.deleteRouteSignups;
   }
 }
 

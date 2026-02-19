@@ -8,15 +8,15 @@
   <title>Sign In - Humans CRM</title>
 </svelte:head>
 
-<div class="flex min-h-screen items-center justify-center bg-gray-50">
-  <div class="w-full max-w-md rounded-xl bg-white p-8 shadow-lg">
+<div class="flex min-h-screen items-center justify-center">
+  <div class="w-full max-w-md glass-card-strong p-8">
     <div class="mb-8 text-center">
-      <h1 class="text-3xl font-bold text-gray-900">Humans CRM</h1>
-      <p class="mt-2 text-gray-600">Sign in to manage Pet Air Valet</p>
+      <h1 class="text-3xl font-bold text-accent">Humans CRM</h1>
+      <p class="mt-2 text-text-secondary">Sign in to manage Pet Air Valet</p>
     </div>
     <a
       href="{apiUrl}/auth/google/login"
-      class="flex w-full items-center justify-center gap-3 rounded-lg border border-gray-300 bg-white px-4 py-3 text-gray-700 shadow-sm hover:bg-gray-50"
+      class="flex w-full items-center justify-center gap-3 glass-card px-4 py-3 text-text-primary hover:bg-glass-hover transition-colors"
     >
       <svg class="h-5 w-5" viewBox="0 0 24 24">
         <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"/>

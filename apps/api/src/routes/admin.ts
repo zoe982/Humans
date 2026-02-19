@@ -1,8 +1,8 @@
 import { Hono } from "hono";
 import { eq, desc } from "drizzle-orm";
-import { users, auditLog } from "@humans/db/schema";
+import { colleagues, auditLog } from "@humans/db/schema";
 import { createId } from "@humans/db";
-import { createUserSchema, updateUserSchema } from "@humans/shared";
+import { createColleagueSchema, updateColleagueSchema } from "@humans/shared";
 import { authMiddleware } from "../middleware/auth";
 import { requirePermission } from "../middleware/rbac";
 import type { AppContext } from "../types";
@@ -11,71 +11,92 @@ const adminRoutes = new Hono<AppContext>();
 
 adminRoutes.use("/*", authMiddleware);
 
-// User management
-adminRoutes.get("/api/admin/users", requirePermission("manageUsers"), async (c) => {
+// Colleague management
+adminRoutes.get("/api/admin/colleagues", requirePermission("manageColleagues"), async (c) => {
   const db = c.get("db");
-  const allUsers = await db.select().from(users);
-  return c.json({ data: allUsers });
+  const allColleagues = await db.select().from(colleagues);
+  return c.json({ data: allColleagues });
 });
 
-adminRoutes.get("/api/admin/users/:id", requirePermission("manageUsers"), async (c) => {
+adminRoutes.get("/api/admin/colleagues/:id", requirePermission("manageColleagues"), async (c) => {
   const db = c.get("db");
-  const user = await db.query.users.findFirst({
-    where: eq(users.id, c.req.param("id")),
+  const colleague = await db.query.colleagues.findFirst({
+    where: eq(colleagues.id, c.req.param("id")),
   });
-  if (user == null) {
-    return c.json({ error: "User not found" }, 404);
+  if (colleague == null) {
+    return c.json({ error: "Colleague not found" }, 404);
   }
-  return c.json({ data: user });
+  return c.json({ data: colleague });
 });
 
-adminRoutes.post("/api/admin/users", requirePermission("manageUsers"), async (c) => {
+adminRoutes.post("/api/admin/colleagues", requirePermission("manageColleagues"), async (c) => {
   const body: unknown = await c.req.json();
-  const data = createUserSchema.parse(body);
+  const data = createColleagueSchema.parse(body);
   const db = c.get("db");
   const now = new Date().toISOString();
 
   // Check for duplicate email
-  const existing = await db.query.users.findFirst({
-    where: eq(users.email, data.email),
+  const existing = await db.query.colleagues.findFirst({
+    where: eq(colleagues.email, data.email),
   });
   if (existing != null) {
-    return c.json({ error: "User with this email already exists" }, 409);
+    return c.json({ error: "Colleague with this email already exists" }, 409);
   }
 
-  const newUser = {
+  const displayName = [data.firstName, data.middleNames, data.lastName].filter(Boolean).join(" ");
+
+  const newColleague = {
     id: createId(),
-    ...data,
+    email: data.email,
+    firstName: data.firstName,
+    middleNames: data.middleNames ?? null,
+    lastName: data.lastName,
+    name: displayName,
     avatarUrl: null,
     googleId: null,
+    role: data.role,
     isActive: true,
     createdAt: now,
     updatedAt: now,
   };
 
-  await db.insert(users).values(newUser);
-  return c.json({ data: newUser }, 201);
+  await db.insert(colleagues).values(newColleague);
+  return c.json({ data: newColleague }, 201);
 });
 
-adminRoutes.patch("/api/admin/users/:id", requirePermission("manageUsers"), async (c) => {
+adminRoutes.patch("/api/admin/colleagues/:id", requirePermission("manageColleagues"), async (c) => {
   const body: unknown = await c.req.json();
-  const data = updateUserSchema.parse(body);
+  const data = updateColleagueSchema.parse(body);
   const db = c.get("db");
 
-  const existing = await db.query.users.findFirst({
-    where: eq(users.id, c.req.param("id")),
+  const existing = await db.query.colleagues.findFirst({
+    where: eq(colleagues.id, c.req.param("id")),
   });
   if (existing == null) {
-    return c.json({ error: "User not found" }, 404);
+    return c.json({ error: "Colleague not found" }, 404);
   }
 
-  await db
-    .update(users)
-    .set({ ...data, updatedAt: new Date().toISOString() })
-    .where(eq(users.id, c.req.param("id")));
+  // Build update, recalculate display name if name fields changed
+  const updateFields: Record<string, unknown> = { updatedAt: new Date().toISOString() };
+  if (data.firstName !== undefined) updateFields["firstName"] = data.firstName;
+  if (data.middleNames !== undefined) updateFields["middleNames"] = data.middleNames;
+  if (data.lastName !== undefined) updateFields["lastName"] = data.lastName;
+  if (data.role !== undefined) updateFields["role"] = data.role;
+  if (data.isActive !== undefined) updateFields["isActive"] = data.isActive;
 
-  const updated = await db.query.users.findFirst({
-    where: eq(users.id, c.req.param("id")),
+  // Recalculate display name
+  const newFirst = data.firstName ?? existing.firstName;
+  const newMiddle = data.middleNames !== undefined ? data.middleNames : existing.middleNames;
+  const newLast = data.lastName ?? existing.lastName;
+  updateFields["name"] = [newFirst, newMiddle, newLast].filter(Boolean).join(" ");
+
+  await db
+    .update(colleagues)
+    .set(updateFields)
+    .where(eq(colleagues.id, c.req.param("id")));
+
+  const updated = await db.query.colleagues.findFirst({
+    where: eq(colleagues.id, c.req.param("id")),
   });
   return c.json({ data: updated });
 });

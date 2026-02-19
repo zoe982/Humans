@@ -8,6 +8,34 @@
       "when": 1771425556659,
       "tag": "0000_volatile_shocker",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1771505137685,
+      "tag": "0001_exotic_dreadnoughts",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1771590000000,
+      "tag": "0002_crm_overhaul",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1771676400000,
+      "tag": "0003_colleagues_and_human_status",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1771762800000,
+      "tag": "0004_geo_interests",
+      "breakpoints": true
     }
   ]
 }

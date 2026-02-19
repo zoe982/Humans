@@ -1,12 +1,4 @@
 export {
-  createClientSchema,
-  updateClientSchema,
-  addressSchema,
-  type CreateClientInput,
-  type UpdateClientInput,
-} from "./clients";
-
-export {
   createPetSchema,
   updatePetSchema,
   type CreatePetInput,
@@ -35,8 +27,65 @@ export {
 } from "./leads";
 
 export {
-  createUserSchema,
-  updateUserSchema,
-  type CreateUserInput,
-  type UpdateUserInput,
-} from "./users";
+  createColleagueSchema,
+  updateColleagueSchema,
+  type CreateColleagueInput,
+  type UpdateColleagueInput,
+} from "./colleagues";
+
+export {
+  createHumanSchema,
+  updateHumanSchema,
+  updateHumanStatusSchema,
+  linkRouteSignupSchema,
+  humanTypeEnum,
+  humanStatusEnum,
+  type CreateHumanInput,
+  type UpdateHumanInput,
+  type UpdateHumanStatusInput,
+} from "./humans";
+
+export {
+  updateRouteSignupStatusSchema,
+  updateRouteSignupSchema,
+  routeSignupStatuses,
+  type RouteSignupStatus,
+  type UpdateRouteSignupStatusInput,
+  type UpdateRouteSignupInput,
+} from "./route-signups";
+
+export {
+  createActivitySchema,
+  updateActivitySchema,
+  activityTypes,
+  type CreateActivityInput,
+  type UpdateActivityInput,
+} from "./activities";
+
+export {
+  createPhoneNumberSchema,
+  updatePhoneNumberSchema,
+  type CreatePhoneNumberInput,
+  type UpdatePhoneNumberInput,
+} from "./phone-numbers";
+
+export {
+  searchQuerySchema,
+  type SearchQueryInput,
+} from "./search";
+
+export {
+  createGeoInterestSchema,
+  createGeoInterestExpressionSchema,
+  updateGeoInterestExpressionSchema,
+  type CreateGeoInterestInput,
+  type CreateGeoInterestExpressionInput,
+  type UpdateGeoInterestExpressionInput,
+} from "./geo-interests";
+
+export {
+  createEmailSchema,
+  updateEmailSchema,
+  type CreateEmailInput,
+  type UpdateEmailInput,
+} from "./emails";

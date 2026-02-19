@@ -1,8 +1,206 @@
 @import "tailwindcss";
 
 @theme {
-  --color-brand: #1e40af;
-  --color-brand-light: #3b82f6;
-  --color-brand-dark: #1e3a8a;
+  /* Surface colors — lighter steel-blue */
+  --color-surface-deepest: #122c4a;
+  --color-surface-raised: #173858;
+  --color-surface-overlay: #1e4668;
+
+  /* Glass colors — more prominent for liquid glass effect */
+  --color-glass: rgba(255, 255, 255, 0.09);
+  --color-glass-hover: rgba(255, 255, 255, 0.14);
+  --color-glass-border: rgba(255, 255, 255, 0.16);
+  --color-glass-border-strong: rgba(255, 255, 255, 0.28);
+
+  /* Accent colors */
+  --color-accent: #06b6d4;
+  --color-accent-dim: rgba(6, 182, 212, 0.18);
+  --color-brand: #3b82f6;
+  --color-brand-dim: rgba(59, 130, 246, 0.18);
+
+  /* Text colors — slightly lifted for contrast on lighter bg */
+  --color-text-primary: #f1f5f9;
+  --color-text-secondary: #a4b4c8;
+  --color-text-muted: #7b8fa6;
+
+  /* Status colors */
+  --color-status-open: rgba(59, 130, 246, 0.15);
+  --color-status-active: rgba(34, 197, 94, 0.15);
+  --color-status-closed: rgba(239, 68, 68, 0.15);
+  --color-status-qualified: rgba(234, 179, 8, 0.15);
+  --color-status-converted: rgba(34, 197, 94, 0.15);
+  --color-status-rejected: rgba(239, 68, 68, 0.15);
+
+  /* Danger */
+  --color-danger: rgba(239, 68, 68, 0.15);
+  --color-danger-border: rgba(239, 68, 68, 0.30);
+
+  /* Font */
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+}
+
+@utility glass-card {
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.10),
+    rgba(255, 255, 255, 0.04)
+  );
+  backdrop-filter: blur(16px) saturate(1.3);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 0.75rem;
+  box-shadow:
+    0 4px 24px rgba(0, 0, 0, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+
+@utility glass-card-strong {
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.15),
+    rgba(255, 255, 255, 0.06)
+  );
+  backdrop-filter: blur(24px) saturate(1.4);
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-radius: 0.75rem;
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.10),
+    inset 0 1px 0 rgba(255, 255, 255, 0.18);
+}
+
+@utility glass-nav {
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.10),
+    rgba(255, 255, 255, 0.05)
+  );
+  backdrop-filter: blur(24px) saturate(1.6);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow: 0 2px 16px rgba(0, 0, 0, 0.06);
+}
+
+@utility glass-input {
+  background-color: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 0.5rem;
+  color: #f1f5f9;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  &:focus {
+    outline: none;
+    border-color: #06b6d4;
+    box-shadow: 0 0 0 2px rgba(6, 182, 212, 0.25);
+  }
+  &::placeholder {
+    color: #7b8fa6;
+  }
+}
+
+@utility glass-thead {
+  background-color: rgba(255, 255, 255, 0.06);
+  & th {
+    color: #a4b4c8;
+    font-weight: 500;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 0.75rem 1rem;
+    text-align: left;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  }
+}
+
+@utility glass-row-hover {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  transition: background-color 0.15s;
+  &:hover {
+    background-color: rgba(255, 255, 255, 0.06);
+  }
+  & td {
+    padding: 0.75rem 1rem;
+    color: #f1f5f9;
+  }
+}
+
+@utility glass-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.125rem 0.5rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1.25rem;
+}
+
+@utility btn-primary {
+  background: linear-gradient(135deg, #06b6d4, #3b82f6);
+  color: white;
+  font-weight: 500;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  transition: opacity 0.2s, box-shadow 0.2s;
+  box-shadow: 0 2px 8px rgba(6, 182, 212, 0.15);
+  &:hover {
+    opacity: 0.9;
+    box-shadow: 0 0 16px rgba(6, 182, 212, 0.35);
+  }
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+@utility btn-ghost {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: #f1f5f9;
+  font-weight: 500;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  transition: background-color 0.2s, border-color 0.2s;
+  &:hover {
+    background-color: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.28);
+  }
+}
+
+@utility btn-danger {
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.30);
+  color: #fca5a5;
+  font-weight: 500;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  transition: background-color 0.2s;
+  &:hover {
+    background-color: rgba(239, 68, 68, 0.25);
+  }
+}
+
+@layer base {
+  html {
+    background-color: #0f2440;
+  }
+
+  body {
+    background:
+      radial-gradient(ellipse at 20% 50%, rgba(6, 182, 212, 0.06) 0%, transparent 60%),
+      radial-gradient(ellipse at 80% 20%, rgba(59, 130, 246, 0.05) 0%, transparent 50%),
+      linear-gradient(160deg, #0f2440 0%, #163a58 35%, #1b4868 60%, #143352 100%);
+    min-height: 100vh;
+    color: #f1f5f9;
+  }
+
+  select,
+  input[type="date"] {
+    color-scheme: dark;
+  }
+
+  a {
+    color: #06b6d4;
+    &:hover {
+      color: #22d3ee;
+    }
+  }
 }

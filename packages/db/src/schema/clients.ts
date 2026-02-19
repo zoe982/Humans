@@ -1,5 +1,5 @@
 import { sqliteTable, text } from "drizzle-orm/sqlite-core";
-import { users } from "./users";
+import { colleagues } from "./colleagues";
 
 export const clientStatuses = ["active", "inactive", "prospect"] as const;
 export type ClientStatus = (typeof clientStatuses)[number];
@@ -20,7 +20,7 @@ export const clients = sqliteTable("clients", {
   status: text("status", { enum: clientStatuses }).notNull().default("prospect"),
   notes: text("notes"),
   leadSourceId: text("lead_source_id"),
-  assignedToUserId: text("assigned_to_user_id").references(() => users.id),
+  assignedToColleagueId: text("assigned_to_user_id").references(() => colleagues.id),
   createdAt: text("created_at").notNull(),
   updatedAt: text("updated_at").notNull(),
 });

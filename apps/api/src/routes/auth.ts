@@ -2,7 +2,7 @@ import { Hono } from "hono";
 import { getCookie, setCookie, deleteCookie } from "hono/cookie";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
-import { users } from "@humans/db/schema";
+import { colleagues } from "@humans/db/schema";
 import {
   SESSION_COOKIE_NAME,
   SESSION_TTL_SECONDS,
@@ -17,7 +17,7 @@ const googleUserSchema = z.object({
   name: z.string(),
   picture: z.string(),
 });
-const meSessionSchema = z.object({ userId: z.string() });
+const meSessionSchema = z.object({ colleagueId: z.string() });
 
 const auth = new Hono<AppContext>();
 
@@ -87,33 +87,33 @@ auth.get("/auth/google/callback", async (c) => {
 
   const db = c.get("db");
 
-  // Look up user by googleId or email
-  let user = await db.query.users.findFirst({
-    where: eq(users.googleId, googleUser.id),
+  // Look up colleague by googleId or email
+  let colleague = await db.query.colleagues.findFirst({
+    where: eq(colleagues.googleId, googleUser.id),
   });
 
-  if (user == null) {
-    user = await db.query.users.findFirst({
-      where: eq(users.email, googleUser.email),
+  if (colleague == null) {
+    colleague = await db.query.colleagues.findFirst({
+      where: eq(colleagues.email, googleUser.email),
     });
 
-    if (user == null) {
+    if (colleague == null) {
       return c.json({ error: `Access denied (debug: google email = ${googleUser.email})` }, 403);
     }
 
     // First Google login - populate googleId and avatar
     await db
-      .update(users)
+      .update(colleagues)
       .set({
         googleId: googleUser.id,
         avatarUrl: googleUser.picture,
         name: googleUser.name,
         updatedAt: new Date().toISOString(),
       })
-      .where(eq(users.id, user.id));
+      .where(eq(colleagues.id, colleague.id));
   }
 
-  if (!user.isActive) {
+  if (!colleague.isActive) {
     return c.json({ error: "Account is deactivated" }, 403);
   }
 
@@ -122,12 +122,14 @@ auth.get("/auth/google/callback", async (c) => {
   await c.env.SESSIONS.put(
     `session:${sessionToken}`,
     JSON.stringify({
-      userId: user.id,
-      email: user.email,
-      role: user.role,
+      colleagueId: colleague.id,
+      email: colleague.email,
+      role: colleague.role,
     }),
     { expirationTtl: SESSION_TTL_SECONDS },
   );
+
+  const appDomain = new URL(c.env.APP_URL).hostname;
 
   setCookie(c, SESSION_COOKIE_NAME, sessionToken, {
     httpOnly: true,
@@ -135,6 +137,7 @@ auth.get("/auth/google/callback", async (c) => {
     sameSite: "Lax",
     path: "/",
     maxAge: SESSION_TTL_SECONDS,
+    domain: appDomain,
   });
 
   return c.redirect(c.env.APP_URL);
@@ -145,7 +148,8 @@ auth.post("/auth/logout", async (c) => {
   if (sessionToken != null && sessionToken !== "") {
     await c.env.SESSIONS.delete(`session:${sessionToken}`);
   }
-  deleteCookie(c, SESSION_COOKIE_NAME, { path: "/" });
+  const appDomain = new URL(c.env.APP_URL).hostname;
+  deleteCookie(c, SESSION_COOKIE_NAME, { path: "/", domain: appDomain });
   return c.json({ success: true });
 });
 
@@ -162,8 +166,8 @@ auth.get("/auth/me", async (c) => {
 
   const session = meSessionSchema.parse(JSON.parse(sessionJson) as unknown);
   const db = c.get("db");
-  const user = await db.query.users.findFirst({
-    where: eq(users.id, session.userId),
+  const colleague = await db.query.colleagues.findFirst({
+    where: eq(colleagues.id, session.colleagueId),
     columns: {
       id: true,
       email: true,
@@ -173,7 +177,8 @@ auth.get("/auth/me", async (c) => {
     },
   });
 
-  return c.json({ user: user ?? null });
+  // Keep "user" response key for web compatibility
+  return c.json({ user: colleague ?? null });
 });
 
 export { auth };
