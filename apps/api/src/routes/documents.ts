@@ -11,7 +11,7 @@ documentRoutes.post("/api/documents/upload", requirePermission("createEditRecord
   const formData = await c.req.formData();
   const file = formData.get("file");
 
-  if (!file || !(file instanceof File)) {
+  if (file == null || !(file instanceof File)) {
     return c.json({ error: "No file provided" }, 400);
   }
 
@@ -32,7 +32,7 @@ documentRoutes.get("/api/documents/:key", requirePermission("viewRecords"), asyn
   const key = c.req.param("key");
   const object = await c.env.DOCUMENTS.get(key);
 
-  if (!object) {
+  if (object == null) {
     return c.json({ error: "Document not found" }, 404);
   }
 

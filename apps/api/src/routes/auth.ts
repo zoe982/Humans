@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import { getCookie, setCookie, deleteCookie } from "hono/cookie";
 import { eq } from "drizzle-orm";
+import { z } from "zod";
 import { users } from "@humans/db/schema";
 import {
   SESSION_COOKIE_NAME,
@@ -8,6 +9,15 @@ import {
   OAUTH_STATE_TTL_SECONDS,
 } from "@humans/shared";
 import type { AppContext } from "../types";
+
+const tokenResponseSchema = z.object({ access_token: z.string() });
+const googleUserSchema = z.object({
+  id: z.string(),
+  email: z.string(),
+  name: z.string(),
+  picture: z.string(),
+});
+const meSessionSchema = z.object({ userId: z.string() });
 
 const auth = new Hono<AppContext>();
 
@@ -34,13 +44,13 @@ auth.get("/auth/google/callback", async (c) => {
   const code = c.req.query("code");
   const state = c.req.query("state");
 
-  if (!code || !state) {
+  if (code == null || state == null) {
     return c.json({ error: "Missing code or state" }, 400);
   }
 
   // Verify state
   const storedState = await c.env.SESSIONS.get(`oauth_state:${state}`);
-  if (!storedState) {
+  if (storedState == null) {
     return c.json({ error: "Invalid or expired state" }, 400);
   }
   await c.env.SESSIONS.delete(`oauth_state:${state}`);
@@ -62,7 +72,7 @@ auth.get("/auth/google/callback", async (c) => {
     return c.json({ error: "Token exchange failed" }, 400);
   }
 
-  const tokens = (await tokenRes.json()) as { access_token: string };
+  const tokens = tokenResponseSchema.parse(await tokenRes.json());
 
   // Get user info
   const userInfoRes = await fetch("https://www.googleapis.com/oauth2/v2/userinfo", {
@@ -73,12 +83,7 @@ auth.get("/auth/google/callback", async (c) => {
     return c.json({ error: "Failed to get user info" }, 400);
   }
 
-  const googleUser = (await userInfoRes.json()) as {
-    id: string;
-    email: string;
-    name: string;
-    picture: string;
-  };
+  const googleUser = googleUserSchema.parse(await userInfoRes.json());
 
   const db = c.get("db");
 
@@ -87,13 +92,13 @@ auth.get("/auth/google/callback", async (c) => {
     where: eq(users.googleId, googleUser.id),
   });
 
-  if (!user) {
+  if (user == null) {
     user = await db.query.users.findFirst({
       where: eq(users.email, googleUser.email),
     });
 
-    if (!user) {
-      return c.json({ error: "Access denied. Contact an admin to get an account." }, 403);
+    if (user == null) {
+      return c.json({ error: `Access denied (debug: google email = ${googleUser.email})` }, 403);
     }
 
     // First Google login - populate googleId and avatar
@@ -137,7 +142,7 @@ auth.get("/auth/google/callback", async (c) => {
 
 auth.post("/auth/logout", async (c) => {
   const sessionToken = getCookie(c, SESSION_COOKIE_NAME);
-  if (sessionToken) {
+  if (sessionToken != null && sessionToken !== "") {
     await c.env.SESSIONS.delete(`session:${sessionToken}`);
   }
   deleteCookie(c, SESSION_COOKIE_NAME, { path: "/" });
@@ -146,16 +151,16 @@ auth.post("/auth/logout", async (c) => {
 
 auth.get("/auth/me", async (c) => {
   const sessionToken = getCookie(c, SESSION_COOKIE_NAME);
-  if (!sessionToken) {
+  if (sessionToken == null || sessionToken === "") {
     return c.json({ user: null });
   }
 
   const sessionJson = await c.env.SESSIONS.get(`session:${sessionToken}`);
-  if (!sessionJson) {
+  if (sessionJson == null) {
     return c.json({ user: null });
   }
 
-  const session = JSON.parse(sessionJson) as { userId: string };
+  const session = meSessionSchema.parse(JSON.parse(sessionJson) as unknown);
   const db = c.get("db");
   const user = await db.query.users.findFirst({
     where: eq(users.id, session.userId),

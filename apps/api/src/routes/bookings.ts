@@ -22,14 +22,14 @@ bookingRoutes.get("/api/bookings/:id", requirePermission("viewRecords"), async (
   const booking = await db.query.flightBookings.findFirst({
     where: eq(flightBookings.id, c.req.param("id")),
   });
-  if (!booking) {
+  if (booking == null) {
     return c.json({ error: "Booking not found" }, 404);
   }
   return c.json({ data: booking });
 });
 
 bookingRoutes.post("/api/bookings", requirePermission("createEditRecords"), async (c) => {
-  const body = await c.req.json();
+  const body: unknown = await c.req.json();
   const data = createBookingSchema.parse(body);
   const db = c.get("db");
   const now = new Date().toISOString();
@@ -49,14 +49,14 @@ bookingRoutes.post("/api/bookings", requirePermission("createEditRecords"), asyn
 });
 
 bookingRoutes.patch("/api/bookings/:id", requirePermission("createEditRecords"), async (c) => {
-  const body = await c.req.json();
+  const body: unknown = await c.req.json();
   const data = updateBookingSchema.parse(body);
   const db = c.get("db");
 
   const existing = await db.query.flightBookings.findFirst({
     where: eq(flightBookings.id, c.req.param("id")),
   });
-  if (!existing) {
+  if (existing == null) {
     return c.json({ error: "Booking not found" }, 404);
   }
 

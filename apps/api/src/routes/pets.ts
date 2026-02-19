@@ -25,14 +25,14 @@ petRoutes.get("/api/pets/:id", requirePermission("viewRecords"), async (c) => {
   const pet = await db.query.pets.findFirst({
     where: eq(pets.id, c.req.param("id")),
   });
-  if (!pet) {
+  if (pet == null) {
     return c.json({ error: "Pet not found" }, 404);
   }
   return c.json({ data: pet });
 });
 
 petRoutes.post("/api/pets", requirePermission("createEditRecords"), async (c) => {
-  const body = await c.req.json();
+  const body: unknown = await c.req.json();
   const data = createPetSchema.parse(body);
   const db = c.get("db");
   const now = new Date().toISOString();
@@ -56,14 +56,14 @@ petRoutes.post("/api/pets", requirePermission("createEditRecords"), async (c) =>
 });
 
 petRoutes.patch("/api/pets/:id", requirePermission("createEditRecords"), async (c) => {
-  const body = await c.req.json();
+  const body: unknown = await c.req.json();
   const data = updatePetSchema.parse(body);
   const db = c.get("db");
 
   const existing = await db.query.pets.findFirst({
     where: eq(pets.id, c.req.param("id")),
   });
-  if (!existing) {
+  if (existing == null) {
     return c.json({ error: "Pet not found" }, 404);
   }
 

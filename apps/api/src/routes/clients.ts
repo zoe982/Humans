@@ -22,14 +22,14 @@ clientRoutes.get("/api/clients/:id", requirePermission("viewRecords"), async (c)
   const client = await db.query.clients.findFirst({
     where: eq(clients.id, c.req.param("id")),
   });
-  if (!client) {
+  if (client == null) {
     return c.json({ error: "Client not found" }, 404);
   }
   return c.json({ data: client });
 });
 
 clientRoutes.post("/api/clients", requirePermission("createEditRecords"), async (c) => {
-  const body = await c.req.json();
+  const body: unknown = await c.req.json();
   const data = createClientSchema.parse(body);
   const db = c.get("db");
   const now = new Date().toISOString();
@@ -52,14 +52,14 @@ clientRoutes.post("/api/clients", requirePermission("createEditRecords"), async 
 });
 
 clientRoutes.patch("/api/clients/:id", requirePermission("createEditRecords"), async (c) => {
-  const body = await c.req.json();
+  const body: unknown = await c.req.json();
   const data = updateClientSchema.parse(body);
   const db = c.get("db");
 
   const existing = await db.query.clients.findFirst({
     where: eq(clients.id, c.req.param("id")),
   });
-  if (!existing) {
+  if (existing == null) {
     return c.json({ error: "Client not found" }, 404);
   }
 
@@ -79,7 +79,7 @@ clientRoutes.delete("/api/clients/:id", requirePermission("createEditRecords"), 
   const existing = await db.query.clients.findFirst({
     where: eq(clients.id, c.req.param("id")),
   });
-  if (!existing) {
+  if (existing == null) {
     return c.json({ error: "Client not found" }, 404);
   }
 

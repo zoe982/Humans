@@ -19,7 +19,7 @@ leadRoutes.get("/api/leads/sources", requirePermission("viewRecords"), async (c)
 });
 
 leadRoutes.post("/api/leads/sources", requirePermission("manageLeadSources"), async (c) => {
-  const body = await c.req.json();
+  const body: unknown = await c.req.json();
   const data = createLeadSourceSchema.parse(body);
   const db = c.get("db");
   const now = new Date().toISOString();
@@ -41,7 +41,7 @@ leadRoutes.get("/api/leads/events", requirePermission("viewRecords"), async (c) 
   const db = c.get("db");
   const clientId = c.req.query("clientId");
 
-  if (clientId) {
+  if (clientId != null && clientId !== "") {
     const events = await db
       .select()
       .from(leadEvents)
@@ -54,7 +54,7 @@ leadRoutes.get("/api/leads/events", requirePermission("viewRecords"), async (c) 
 });
 
 leadRoutes.post("/api/leads/events", requirePermission("recordLeadEvents"), async (c) => {
-  const body = await c.req.json();
+  const body: unknown = await c.req.json();
   const data = createLeadEventSchema.parse(body);
   const db = c.get("db");
   const session = c.get("session");

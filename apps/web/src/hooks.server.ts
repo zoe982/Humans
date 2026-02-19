@@ -1,12 +1,16 @@
 import type { Handle } from "@sveltejs/kit";
 import { PUBLIC_API_URL } from "$env/static/public";
 
-const API_BASE = PUBLIC_API_URL ?? "http://localhost:8787";
+const API_BASE = PUBLIC_API_URL !== "" ? PUBLIC_API_URL : "http://localhost:8787";
+
+function isUserResponse(value: unknown): value is { user: App.Locals["user"] } {
+  return typeof value === "object" && value !== null && "user" in value;
+}
 
 export const handle: Handle = async ({ event, resolve }) => {
   const sessionCookie = event.cookies.get("humans_session");
 
-  if (sessionCookie) {
+  if (sessionCookie != null && sessionCookie !== "") {
     try {
       const res = await fetch(`${API_BASE}/auth/me`, {
         headers: {
@@ -14,8 +18,8 @@ export const handle: Handle = async ({ event, resolve }) => {
         },
       });
       if (res.ok) {
-        const data = (await res.json()) as { user: App.Locals["user"] };
-        event.locals.user = data.user;
+        const data: unknown = await res.json();
+        event.locals.user = isUserResponse(data) ? data.user : null;
       } else {
         event.locals.user = null;
       }

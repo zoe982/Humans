@@ -23,14 +23,14 @@ adminRoutes.get("/api/admin/users/:id", requirePermission("manageUsers"), async 
   const user = await db.query.users.findFirst({
     where: eq(users.id, c.req.param("id")),
   });
-  if (!user) {
+  if (user == null) {
     return c.json({ error: "User not found" }, 404);
   }
   return c.json({ data: user });
 });
 
 adminRoutes.post("/api/admin/users", requirePermission("manageUsers"), async (c) => {
-  const body = await c.req.json();
+  const body: unknown = await c.req.json();
   const data = createUserSchema.parse(body);
   const db = c.get("db");
   const now = new Date().toISOString();
@@ -39,7 +39,7 @@ adminRoutes.post("/api/admin/users", requirePermission("manageUsers"), async (c)
   const existing = await db.query.users.findFirst({
     where: eq(users.email, data.email),
   });
-  if (existing) {
+  if (existing != null) {
     return c.json({ error: "User with this email already exists" }, 409);
   }
 
@@ -58,14 +58,14 @@ adminRoutes.post("/api/admin/users", requirePermission("manageUsers"), async (c)
 });
 
 adminRoutes.patch("/api/admin/users/:id", requirePermission("manageUsers"), async (c) => {
-  const body = await c.req.json();
+  const body: unknown = await c.req.json();
   const data = updateUserSchema.parse(body);
   const db = c.get("db");
 
   const existing = await db.query.users.findFirst({
     where: eq(users.id, c.req.param("id")),
   });
-  if (!existing) {
+  if (existing == null) {
     return c.json({ error: "User not found" }, 404);
   }
 
