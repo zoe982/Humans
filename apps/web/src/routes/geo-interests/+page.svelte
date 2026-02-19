@@ -61,7 +61,7 @@
   {/if}
 
   {#if showCreateForm}
-    <form method="POST" action="?/create" class="glass-card p-5 mb-6 space-y-4">
+    <form method="POST" action="?/create" class="glass-card p-5 mb-6 space-y-4 relative z-10">
       <h2 class="text-lg font-semibold text-text-primary">New Geo-Interest</h2>
       <div class="grid gap-4 sm:grid-cols-2">
         <div>
