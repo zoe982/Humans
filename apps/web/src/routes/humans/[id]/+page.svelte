@@ -25,7 +25,7 @@
   type LinkedSignup = { id: string; routeSignupId: string; linkedAt: string };
   type PhoneNumber = { id: string; phoneNumber: string; labelId: string | null; labelName: string | null; hasWhatsapp: boolean; isPrimary: boolean };
   type ConfigItem = { id: string; name: string; createdAt: string };
-  type Pet = { id: string; name: string; breed: string | null; weight: number | null };
+  type Pet = { id: string; name: string; type: string; breed: string | null; weight: number | null };
   type GeoInterestExpression = {
     id: string;
     humanId: string;
@@ -121,6 +121,7 @@
   let showActivityForm = $state(false);
   let showGeoInterestInActivity = $state(false);
   let breedDropdownOpen = $state(false);
+  let newPetType = $state("dog");
 
   // Initialize state from data — runs on each data update (e.g. after invalidateAll)
   $effect(() => {
@@ -457,8 +458,11 @@
       {#snippet itemRow(item)}
         {@const pet = item as unknown as Pet}
         <div class="flex items-center gap-3">
-          <span class="text-sm font-medium text-text-primary">{pet.name}</span>
-          {#if pet.breed}
+          <a href="/pets/{pet.id}" class="text-sm font-medium text-accent hover:text-cyan-300">{pet.name}</a>
+          <span class="glass-badge inline-flex rounded-full px-2 py-0.5 text-xs font-medium {pet.type === 'cat' ? 'bg-[rgba(168,85,247,0.15)] text-purple-300' : 'bg-[rgba(59,130,246,0.15)] text-blue-300'}">
+            {pet.type === "cat" ? "Cat" : "Dog"}
+          </span>
+          {#if pet.type === "dog" && pet.breed}
             <span class="text-sm text-text-secondary">{pet.breed}</span>
           {/if}
           {#if pet.weight}
@@ -468,6 +472,26 @@
       {/snippet}
       {#snippet addForm()}
         <form method="POST" action="?/addPet" class="space-y-3">
+          <input type="hidden" name="type" value={newPetType} />
+          <div>
+            <label class="block text-sm font-medium text-text-secondary mb-2">Type</label>
+            <div class="flex gap-2">
+              <button
+                type="button"
+                onclick={() => { newPetType = "dog"; }}
+                class="px-4 py-2 rounded-lg text-sm font-medium transition-colors {newPetType === 'dog' ? 'bg-[rgba(59,130,246,0.2)] text-blue-300 ring-1 ring-blue-400/30' : 'bg-glass text-text-secondary hover:bg-glass-hover'}"
+              >
+                Dog
+              </button>
+              <button
+                type="button"
+                onclick={() => { newPetType = "cat"; }}
+                class="px-4 py-2 rounded-lg text-sm font-medium transition-colors {newPetType === 'cat' ? 'bg-[rgba(168,85,247,0.2)] text-purple-300 ring-1 ring-purple-400/30' : 'bg-glass text-text-secondary hover:bg-glass-hover'}"
+              >
+                Cat
+              </button>
+            </div>
+          </div>
           <div class="grid gap-3 sm:grid-cols-3">
             <div>
               <label for="petName" class="block text-sm font-medium text-text-secondary">Name</label>
@@ -476,16 +500,18 @@
                 class="glass-input mt-1 block w-full"
               />
             </div>
-            <div>
-              <label for="petBreed" class="block text-sm font-medium text-text-secondary">Breed</label>
-              <SearchableSelect
-                options={PET_BREEDS}
-                name="breed"
-                id="petBreed"
-                placeholder="Search breeds..."
-                onOpenChange={(isOpen) => { breedDropdownOpen = isOpen; }}
-              />
-            </div>
+            {#if newPetType === "dog"}
+              <div>
+                <label for="petBreed" class="block text-sm font-medium text-text-secondary">Breed</label>
+                <SearchableSelect
+                  options={PET_BREEDS}
+                  name="breed"
+                  id="petBreed"
+                  placeholder="Search breeds..."
+                  onOpenChange={(isOpen) => { breedDropdownOpen = isOpen; }}
+                />
+              </div>
+            {/if}
             <div>
               <label for="petWeight" class="block text-sm font-medium text-text-secondary">Weight (kg)</label>
               <input

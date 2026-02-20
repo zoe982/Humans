@@ -1,6 +1,7 @@
 export {
   createPetSchema,
   updatePetSchema,
+  petTypeSchema,
   type CreatePetInput,
   type UpdatePetInput,
 } from "./pets";

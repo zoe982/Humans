@@ -75,3 +75,6 @@ export const PET_BREEDS = [
 ] as const;
 
 export type PetBreed = (typeof PET_BREEDS)[number];
+
+export const PET_TYPES = ["dog", "cat"] as const;
+export type PetType = (typeof PET_TYPES)[number];

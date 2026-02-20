@@ -1,5 +1,5 @@
 import { eq, sql } from "drizzle-orm";
-import { pets } from "@humans/db/schema";
+import { pets, humans } from "@humans/db/schema";
 import { createId } from "@humans/db";
 import { ERROR_CODES } from "@humans/shared";
 import { notFound } from "../lib/errors";
@@ -12,6 +12,44 @@ export async function getPetCount(db: DB) {
   return { total };
 }
 
+export async function listPets(db: DB) {
+  const rows = await db
+    .select({
+      id: pets.id,
+      displayId: pets.displayId,
+      humanId: pets.humanId,
+      type: pets.type,
+      name: pets.name,
+      breed: pets.breed,
+      weight: pets.weight,
+      isActive: pets.isActive,
+      createdAt: pets.createdAt,
+      updatedAt: pets.updatedAt,
+      ownerFirstName: humans.firstName,
+      ownerLastName: humans.lastName,
+      ownerDisplayId: humans.displayId,
+    })
+    .from(pets)
+    .leftJoin(humans, eq(pets.humanId, humans.id));
+
+  return rows.map((r) => ({
+    id: r.id,
+    displayId: r.displayId,
+    humanId: r.humanId,
+    type: r.type,
+    name: r.name,
+    breed: r.breed,
+    weight: r.weight,
+    isActive: r.isActive,
+    createdAt: r.createdAt,
+    updatedAt: r.updatedAt,
+    ownerName: r.ownerFirstName && r.ownerLastName
+      ? `${r.ownerFirstName} ${r.ownerLastName}`
+      : null,
+    ownerDisplayId: r.ownerDisplayId,
+  }));
+}
+
 export async function listPetsForHuman(db: DB, humanId: string) {
   const humanPets = await db
     .select()
@@ -21,22 +59,57 @@ export async function listPetsForHuman(db: DB, humanId: string) {
 }
 
 export async function getPet(db: DB, id: string) {
-  const pet = await db.query.pets.findFirst({
-    where: eq(pets.id, id),
-  });
-  if (pet == null) {
+  const rows = await db
+    .select({
+      id: pets.id,
+      displayId: pets.displayId,
+      humanId: pets.humanId,
+      type: pets.type,
+      name: pets.name,
+      breed: pets.breed,
+      weight: pets.weight,
+      isActive: pets.isActive,
+      createdAt: pets.createdAt,
+      updatedAt: pets.updatedAt,
+      ownerFirstName: humans.firstName,
+      ownerLastName: humans.lastName,
+      ownerDisplayId: humans.displayId,
+    })
+    .from(pets)
+    .leftJoin(humans, eq(pets.humanId, humans.id))
+    .where(eq(pets.id, id));
+
+  const row = rows[0];
+  if (row == null) {
     throw notFound(ERROR_CODES.PET_NOT_FOUND, "Pet not found");
   }
-  return pet;
+
+  return {
+    id: row.id,
+    displayId: row.displayId,
+    humanId: row.humanId,
+    type: row.type,
+    name: row.name,
+    breed: row.breed,
+    weight: row.weight,
+    isActive: row.isActive,
+    createdAt: row.createdAt,
+    updatedAt: row.updatedAt,
+    ownerName: row.ownerFirstName && row.ownerLastName
+      ? `${row.ownerFirstName} ${row.ownerLastName}`
+      : null,
+    ownerDisplayId: row.ownerDisplayId,
+  };
 }
 
 export async function createPet(
   db: DB,
   data: {
     humanId: string;
+    type?: string | undefined;
     name: string;
-    breed?: string | null;
-    weight?: number | null;
+    breed?: string | null | undefined;
+    weight?: number | null | undefined;
   },
 ) {
   const now = new Date().toISOString();
@@ -46,13 +119,10 @@ export async function createPet(
     id: createId(),
     displayId,
     humanId: data.humanId,
+    type: data.type ?? "dog",
     name: data.name,
     breed: data.breed ?? null,
     weight: data.weight ?? null,
-    age: null,
-    specialNeeds: null,
-    healthCertR2Key: null,
-    vaccinationR2Key: null,
     isActive: true,
     createdAt: now,
     updatedAt: now,

@@ -4,6 +4,7 @@ import { authMiddleware } from "../middleware/auth";
 import { requirePermission } from "../middleware/rbac";
 import {
   getPetCount,
+  listPets,
   listPetsForHuman,
   getPet,
   createPet,
@@ -18,6 +19,12 @@ petRoutes.use("/*", authMiddleware);
 // Total pet count
 petRoutes.get("/api/pets/count", requirePermission("viewRecords"), async (c) => {
   const data = await getPetCount(c.get("db"));
+  return c.json({ data });
+});
+
+// List all pets
+petRoutes.get("/api/pets", requirePermission("viewRecords"), async (c) => {
+  const data = await listPets(c.get("db"));
   return c.json({ data });
 });
 

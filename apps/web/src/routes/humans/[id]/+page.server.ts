@@ -370,10 +370,13 @@ export const actions = {
     const sessionToken = cookies.get("humans_session");
 
     const weightStr = form.get("weight") as string;
+    const petType = (form.get("type") as string) || "dog";
+    const breed = petType === "dog" ? (form.get("breed") as string) || undefined : undefined;
     const payload = {
       humanId: params.id,
+      type: petType,
       name: form.get("name"),
-      breed: form.get("breed") || undefined,
+      breed,
       weight: weightStr ? parseFloat(weightStr) : undefined,
     };
 

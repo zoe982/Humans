@@ -19,6 +19,7 @@
       { href: "/dashboard", label: "Dashboard" },
       { href: "/leads", label: "Leads" },
       { href: "/humans", label: "Humans" },
+      { href: "/pets", label: "Pets" },
       { href: "/accounts", label: "Accounts" },
       { href: "/activities", label: "Activities" },
       { href: "/emails", label: "Emails" },
