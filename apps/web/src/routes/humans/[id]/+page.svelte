@@ -21,6 +21,11 @@
 
   let { data, form }: { data: PageData; form: ActionData } = $props();
 
+  function truncateText(s: string | null, len: number): string {
+    if (!s) return "—";
+    return s.length > len ? s.slice(0, len) + "..." : s;
+  }
+
   type HumanEmail = { id: string; email: string; labelId: string | null; labelName: string | null; isPrimary: boolean };
   type LinkedSignup = { id: string; routeSignupId: string; linkedAt: string };
   type PhoneNumber = { id: string; phoneNumber: string; labelId: string | null; labelName: string | null; hasWhatsapp: boolean; isPrimary: boolean };
@@ -54,6 +59,7 @@
   };
   type Activity = {
     id: string;
+    displayId: string;
     type: string;
     subject: string;
     notes: string | null;
@@ -731,33 +737,35 @@
     {#if activities.length === 0}
       <p class="text-text-muted text-sm">No activities yet.</p>
     {:else}
-      <div class="space-y-2">
-        {#each activities as activity (activity.id)}
-          <div class="p-3 rounded-lg bg-glass hover:bg-glass-hover transition-colors">
-            <div class="flex items-center justify-between">
-              <div class="flex items-center gap-2">
-                <span class="glass-badge inline-flex rounded-full px-2 py-0.5 text-xs font-medium {activityTypeColors[activity.type] ?? 'bg-glass text-text-secondary'}">
-                  {activityTypeLabels[activity.type] ?? activity.type}
-                </span>
-                <p class="text-sm font-medium text-text-primary">{activity.subject}</p>
-              </div>
-              <span class="text-xs text-text-muted">{new Date(activity.activityDate).toLocaleDateString()}</span>
-            </div>
-            {#if activity.notes || activity.body}
-              <p class="mt-1 text-sm text-text-secondary">{activity.notes ?? activity.body}</p>
-            {/if}
-            {#if activity.gmailId || activity.frontId}
-              <div class="mt-1 flex gap-2">
-                {#if activity.gmailId}
-                  <span class="text-xs text-text-muted">Gmail: {activity.gmailId}</span>
-                {/if}
-                {#if activity.frontId}
-                  <span class="text-xs text-text-muted">Front: {activity.frontId}</span>
-                {/if}
-              </div>
-            {/if}
-          </div>
-        {/each}
+      <div class="glass-card overflow-hidden">
+        <table class="min-w-full">
+          <thead class="glass-thead">
+            <tr>
+              <th scope="col">ID</th>
+              <th scope="col">Type</th>
+              <th scope="col">Subject</th>
+              <th scope="col">Notes</th>
+              <th scope="col">Date</th>
+            </tr>
+          </thead>
+          <tbody>
+            {#each activities as activity (activity.id)}
+              <tr class="glass-row-hover">
+                <td class="font-mono text-sm">
+                  <a href="/activities/{activity.id}" class="text-accent hover:text-cyan-300">{activity.displayId}</a>
+                </td>
+                <td>
+                  <span class="glass-badge {activityTypeColors[activity.type] ?? 'bg-glass text-text-secondary'}">
+                    {activityTypeLabels[activity.type] ?? activity.type}
+                  </span>
+                </td>
+                <td class="font-medium">{activity.subject}</td>
+                <td class="text-text-muted max-w-xs truncate">{truncateText(activity.notes ?? activity.body, 80)}</td>
+                <td class="text-text-muted">{new Date(activity.activityDate).toLocaleDateString()}</td>
+              </tr>
+            {/each}
+          </tbody>
+        </table>
       </div>
     {/if}
   </div>
