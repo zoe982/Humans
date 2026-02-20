@@ -10,7 +10,11 @@ export const createPhoneNumberSchema = z.object({
 
 export const updatePhoneNumberSchema = createPhoneNumberSchema
   .omit({ humanId: true })
-  .partial();
+  .partial()
+  .extend({
+    ownerType: z.enum(["human", "account"]).optional(),
+    ownerId: z.string().min(1).optional(),
+  });
 
 export type CreatePhoneNumberInput = z.infer<typeof createPhoneNumberSchema>;
 export type UpdatePhoneNumberInput = z.infer<typeof updatePhoneNumberSchema>;

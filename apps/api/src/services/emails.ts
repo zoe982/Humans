@@ -36,6 +36,61 @@ export async function listEmails(db: DB) {
   return data;
 }
 
+export async function getEmail(db: DB, id: string) {
+  const allEmails = await db.select().from(emails).where(eq(emails.id, id));
+  const email = allEmails[0];
+  if (email == null) {
+    throw notFound(ERROR_CODES.EMAIL_NOT_FOUND, "Email not found");
+  }
+
+  const allHumans = await db.select().from(humans);
+  const allAccounts = await db.select().from(accounts);
+  const allLabels = await db.select().from(emailLabelsConfig);
+
+  let ownerName: string | null = null;
+  let ownerDisplayId: string | null = null;
+  if (email.ownerType === "human") {
+    const human = allHumans.find((h) => h.id === email.ownerId);
+    ownerName = human ? `${human.firstName} ${human.lastName}` : null;
+    ownerDisplayId = human?.displayId ?? null;
+  } else {
+    const account = allAccounts.find((a) => a.id === email.ownerId);
+    ownerName = account?.name ?? null;
+    ownerDisplayId = account?.displayId ?? null;
+  }
+  const label = email.labelId ? allLabels.find((l) => l.id === email.labelId) : null;
+
+  return {
+    ...email,
+    ownerName,
+    ownerDisplayId,
+    labelName: label?.name ?? null,
+  };
+}
+
+export async function updateEmail(
+  db: DB,
+  id: string,
+  data: Record<string, unknown>,
+) {
+  const existing = await db.query.emails.findFirst({
+    where: eq(emails.id, id),
+  });
+  if (existing == null) {
+    throw notFound(ERROR_CODES.EMAIL_NOT_FOUND, "Email not found");
+  }
+
+  await db
+    .update(emails)
+    .set(data)
+    .where(eq(emails.id, id));
+
+  const updated = await db.query.emails.findFirst({
+    where: eq(emails.id, id),
+  });
+  return updated;
+}
+
 export async function createEmail(
   db: DB,
   data: {

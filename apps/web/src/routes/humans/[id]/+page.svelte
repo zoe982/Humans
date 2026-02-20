@@ -292,10 +292,26 @@
       {#snippet itemRow(item)}
         {@const email = item as unknown as HumanEmail}
         <div class="flex items-center gap-3">
-          <span class="text-sm font-medium text-text-primary">{email.email}</span>
-          <span class="glass-badge inline-flex rounded-full px-2 py-0.5 text-xs font-medium {email.labelName ? labelBadgeColor : 'bg-glass text-text-secondary'}">
-            {email.labelName ?? 'No label'}
-          </span>
+          <a href="/emails/{email.id}" class="text-sm font-medium text-accent hover:text-cyan-300">{email.email}</a>
+          <div class="w-36">
+            <SearchableSelect
+              options={emailLabelOptions}
+              name="emailLabel-{email.id}"
+              id="emailLabel-{email.id}"
+              value={email.labelId ?? ""}
+              emptyOption="None"
+              placeholder="Label..."
+              onSelect={async (value) => {
+                try {
+                  await api(`/api/emails/${email.id}`, {
+                    method: "PATCH",
+                    body: JSON.stringify({ labelId: value || null }),
+                  });
+                  await invalidateAll();
+                } catch { toast("Failed to update label"); }
+              }}
+            />
+          </div>
           {#if email.isPrimary}
             <span class="glass-badge inline-flex rounded-full px-2 py-0.5 text-xs font-medium bg-[rgba(59,130,246,0.15)] text-blue-300">Primary</span>
           {/if}
@@ -348,10 +364,26 @@
       {#snippet itemRow(item)}
         {@const phone = item as unknown as PhoneNumber}
         <div class="flex items-center gap-3">
-          <span class="text-sm font-medium text-text-primary">{phone.phoneNumber}</span>
-          <span class="glass-badge inline-flex rounded-full px-2 py-0.5 text-xs font-medium {phone.labelName ? labelBadgeColor : 'bg-glass text-text-secondary'}">
-            {phone.labelName ?? 'No label'}
-          </span>
+          <a href="/phone-numbers/{phone.id}" class="text-sm font-medium text-accent hover:text-cyan-300">{phone.phoneNumber}</a>
+          <div class="w-36">
+            <SearchableSelect
+              options={phoneLabelOptions}
+              name="phoneLabel-{phone.id}"
+              id="phoneLabel-{phone.id}"
+              value={phone.labelId ?? ""}
+              emptyOption="None"
+              placeholder="Label..."
+              onSelect={async (value) => {
+                try {
+                  await api(`/api/phone-numbers/${phone.id}`, {
+                    method: "PATCH",
+                    body: JSON.stringify({ labelId: value || null }),
+                  });
+                  await invalidateAll();
+                } catch { toast("Failed to update label"); }
+              }}
+            />
+          </div>
           {#if phone.hasWhatsapp}
             <span class="glass-badge inline-flex rounded-full px-2 py-0.5 text-xs font-medium bg-[rgba(34,197,94,0.15)] text-green-300">WhatsApp</span>
           {/if}

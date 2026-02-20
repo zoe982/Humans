@@ -5,6 +5,7 @@ import { requirePermission } from "../middleware/rbac";
 import {
   listPhoneNumbers,
   listPhoneNumbersForHuman,
+  getPhoneNumber,
   createPhoneNumber,
   updatePhoneNumber,
   deletePhoneNumber,
@@ -24,6 +25,12 @@ phoneNumberRoutes.get("/api/phone-numbers", requirePermission("viewRecords"), as
 // List phone numbers for a human
 phoneNumberRoutes.get("/api/humans/:humanId/phone-numbers", requirePermission("viewRecords"), async (c) => {
   const data = await listPhoneNumbersForHuman(c.get("db"), c.req.param("humanId"));
+  return c.json({ data });
+});
+
+// Get single phone number
+phoneNumberRoutes.get("/api/phone-numbers/:id", requirePermission("viewRecords"), async (c) => {
+  const data = await getPhoneNumber(c.get("db"), c.req.param("id"));
   return c.json({ data });
 });
 

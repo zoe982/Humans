@@ -44,6 +44,38 @@ export async function listPhoneNumbersForHuman(db: DB, humanId: string) {
   return results;
 }
 
+export async function getPhoneNumber(db: DB, id: string) {
+  const allPhones = await db.select().from(phones).where(eq(phones.id, id));
+  const phone = allPhones[0];
+  if (phone == null) {
+    throw notFound(ERROR_CODES.PHONE_NUMBER_NOT_FOUND, "Phone number not found");
+  }
+
+  const allHumans = await db.select().from(humans);
+  const allAccounts = await db.select().from(accounts);
+  const allLabels = await db.select().from(phoneLabelsConfig);
+
+  let ownerName: string | null = null;
+  let ownerDisplayId: string | null = null;
+  if (phone.ownerType === "human") {
+    const human = allHumans.find((h) => h.id === phone.ownerId);
+    ownerName = human ? `${human.firstName} ${human.lastName}` : null;
+    ownerDisplayId = human?.displayId ?? null;
+  } else {
+    const account = allAccounts.find((a) => a.id === phone.ownerId);
+    ownerName = account?.name ?? null;
+    ownerDisplayId = account?.displayId ?? null;
+  }
+  const label = phone.labelId ? allLabels.find((l) => l.id === phone.labelId) : null;
+
+  return {
+    ...phone,
+    ownerName,
+    ownerDisplayId,
+    labelName: label?.name ?? null,
+  };
+}
+
 export async function createPhoneNumber(
   db: DB,
   data: {

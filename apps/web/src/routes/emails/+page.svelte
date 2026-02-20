@@ -73,7 +73,7 @@
       <tbody>
         {#each filtered as email (email.id)}
           <tr class="glass-row-hover">
-            <td class="font-mono text-sm text-text-muted">{email.displayId}</td>
+            <td class="font-mono text-sm"><a href="/emails/{email.id}" class="text-accent hover:text-cyan-300">{email.displayId}</a></td>
             <td class="font-medium">
               <a href={ownerHref(email)} class="text-accent hover:text-cyan-300">{email.ownerName ?? "—"}</a>
               {#if email.ownerDisplayId}

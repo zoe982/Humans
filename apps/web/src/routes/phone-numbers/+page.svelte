@@ -69,7 +69,7 @@
       <tbody>
         {#each filtered as phone (phone.id)}
           <tr class="glass-row-hover">
-            <td class="font-mono text-sm text-text-muted">{phone.displayId}</td>
+            <td class="font-mono text-sm"><a href="/phone-numbers/{phone.id}" class="text-accent hover:text-cyan-300">{phone.displayId}</a></td>
             <td class="font-medium">
               <a href={ownerHref(phone)} class="text-accent hover:text-cyan-300">{phone.ownerName ?? "—"}</a>
               {#if phone.ownerDisplayId}
