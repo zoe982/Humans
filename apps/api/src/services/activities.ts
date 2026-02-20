@@ -10,6 +10,7 @@ interface ActivityFilters {
   humanId?: string;
   accountId?: string;
   routeSignupId?: string;
+  websiteBookingRequestId?: string;
   type?: string;
   dateFrom?: string;
   dateTo?: string;
@@ -25,6 +26,7 @@ export async function listActivities(db: DB, filters: ActivityFilters) {
   if (filters.humanId) conditions.push(eq(activities.humanId, filters.humanId));
   if (filters.accountId) conditions.push(eq(activities.accountId, filters.accountId));
   if (filters.routeSignupId) conditions.push(eq(activities.routeSignupId, filters.routeSignupId));
+  if (filters.websiteBookingRequestId) conditions.push(eq(activities.websiteBookingRequestId, filters.websiteBookingRequestId));
   if (filters.type) conditions.push(eq(activities.type, filters.type as typeof activities.type.enumValues[number]));
   if (filters.dateFrom) conditions.push(gte(activities.activityDate, filters.dateFrom));
   if (filters.dateTo) conditions.push(lte(activities.activityDate, filters.dateTo));
@@ -113,6 +115,7 @@ export async function createActivity(
     humanId?: string | null;
     accountId?: string | null;
     routeSignupId?: string | null;
+    websiteBookingRequestId?: string | null;
     gmailId?: string | null;
     frontId?: string | null;
   },
@@ -132,6 +135,7 @@ export async function createActivity(
     humanId: data.humanId ?? null,
     accountId: data.accountId ?? null,
     routeSignupId: data.routeSignupId ?? null,
+    websiteBookingRequestId: data.websiteBookingRequestId ?? null,
     gmailId: data.gmailId ?? null,
     frontId: data.frontId ?? null,
     createdByColleagueId: colleagueId,
@@ -154,6 +158,7 @@ export async function updateActivity(
     humanId?: string | null;
     accountId?: string | null;
     routeSignupId?: string | null;
+    websiteBookingRequestId?: string | null;
     gmailId?: string | null;
     frontId?: string | null;
   },
@@ -176,6 +181,7 @@ export async function updateActivity(
   if (data.humanId !== undefined) updateFields["humanId"] = data.humanId;
   if (data.accountId !== undefined) updateFields["accountId"] = data.accountId;
   if (data.routeSignupId !== undefined) updateFields["routeSignupId"] = data.routeSignupId;
+  if (data.websiteBookingRequestId !== undefined) updateFields["websiteBookingRequestId"] = data.websiteBookingRequestId;
   if (data.gmailId !== undefined) updateFields["gmailId"] = data.gmailId;
   if (data.frontId !== undefined) updateFields["frontId"] = data.frontId;
 

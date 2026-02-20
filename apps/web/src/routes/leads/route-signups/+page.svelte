@@ -111,7 +111,7 @@
       <tbody>
         {#each signups as signup (signup.id)}
           <tr class="glass-row-hover">
-            <td class="font-mono text-sm">
+            <td class="font-mono text-sm whitespace-nowrap">
               <a href="/leads/route-signups/{signup.id}" class="text-accent hover:text-cyan-300">{signup.display_id ?? "—"}</a>
             </td>
             <td class="font-medium">

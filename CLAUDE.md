@@ -7,12 +7,12 @@ The web app deploys to the **`humans`** Pages project (NOT `humans-web` or any o
 - Production URL: https://humans.pavinfo.app
 - Pages project: `humans`
 
-Always deploy with:
+Always deploy from inside `apps/web` (so wrangler reads `apps/web/wrangler.toml`):
 ```bash
-npx wrangler pages deploy apps/web/.svelte-kit/cloudflare --project-name humans --commit-dirty=true --branch=main
+cd apps/web && npx wrangler pages deploy --commit-dirty=true --branch=main
 ```
 
-**IMPORTANT**: Always include `--branch=main` to deploy directly to production. Never create preview deployments.
+**IMPORTANT**: Always include `--branch=main` to deploy directly to production. Never create preview deployments. Always run from `apps/web/` so wrangler uses the Pages wrangler.toml (not the API's).
 
 ### API Worker
 - Production URL: https://api.humans.pavinfo.app
@@ -37,8 +37,8 @@ cd apps/web && pnpm build && cd ../..
 # 2. Deploy API
 cd apps/api && npx wrangler deploy && cd ../..
 
-# 3. Deploy web
-npx wrangler pages deploy apps/web/.svelte-kit/cloudflare --project-name humans --commit-dirty=true --branch=main
+# 3. Deploy web (must run from apps/web for wrangler.toml)
+cd apps/web && npx wrangler pages deploy --commit-dirty=true --branch=main
 ```
 
 ### Secrets

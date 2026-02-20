@@ -14,5 +14,9 @@
       <h2 class="text-lg font-semibold text-text-primary">Route Signups</h2>
       <p class="mt-2 text-sm text-text-secondary">View and manage route announcement signups from the website.</p>
     </a>
+    <a href="/leads/website-booking-requests" class="glass-card p-6 hover:bg-glass-hover transition-colors">
+      <h2 class="text-lg font-semibold text-text-primary">Website Booking Requests</h2>
+      <p class="mt-2 text-sm text-text-secondary">View and manage booking requests submitted through the website.</p>
+    </a>
   </div>
 </div>

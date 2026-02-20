@@ -41,6 +41,13 @@ export {
 } from "./route-signups";
 
 export {
+  updateWebsiteBookingRequestSchema,
+  websiteBookingRequestStatuses,
+  type WebsiteBookingRequestStatus,
+  type UpdateWebsiteBookingRequestInput,
+} from "./website-booking-requests";
+
+export {
   createActivitySchema,
   updateActivitySchema,
   activityTypes,

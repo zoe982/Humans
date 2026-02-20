@@ -22,6 +22,7 @@ export const activities = sqliteTable("activities", {
   humanId: text("human_id").references(() => humans.id),
   accountId: text("account_id").references(() => accounts.id),
   routeSignupId: text("route_signup_id"),
+  websiteBookingRequestId: text("website_booking_request_id"),
   gmailId: text("gmail_id"),
   frontId: text("front_id"),
   createdByColleagueId: text("created_by_user_id")

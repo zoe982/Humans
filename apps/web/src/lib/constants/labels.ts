@@ -37,3 +37,23 @@ export const signupStatusLabels: Record<string, string> = {
   closed_converted: "Converted",
   closed_rejected: "Rejected",
 };
+
+/** Booking request status display labels */
+export const bookingRequestStatusLabels: Record<string, string> = {
+  confirmed: "Confirmed",
+  closed_cancelled: "Cancelled",
+};
+
+/** Deposit status display labels */
+export const depositStatusLabels: Record<string, string> = {
+  pending: "Pending",
+  paid: "Paid",
+  refunded: "Refunded",
+};
+
+/** Balance status display labels */
+export const balanceStatusLabels: Record<string, string> = {
+  pending: "Pending",
+  paid: "Paid",
+  refunded: "Refunded",
+};

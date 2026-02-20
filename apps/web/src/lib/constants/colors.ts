@@ -29,6 +29,19 @@ export const signupStatusColors: Record<string, string> = {
   closed_rejected: "bg-[rgba(239,68,68,0.15)] text-red-300",
 };
 
+/** Booking request status colors */
+export const bookingRequestStatusColors: Record<string, string> = {
+  confirmed: "bg-[rgba(34,197,94,0.15)] text-green-300",
+  closed_cancelled: "bg-[rgba(239,68,68,0.15)] text-red-300",
+};
+
+/** Deposit/balance status colors */
+export const paymentStatusColors: Record<string, string> = {
+  pending: "bg-[rgba(234,179,8,0.15)] text-yellow-300",
+  paid: "bg-[rgba(34,197,94,0.15)] text-green-300",
+  refunded: "bg-[rgba(168,85,247,0.15)] text-purple-300",
+};
+
 /** Label badge color (purple) */
 export const labelBadgeColor = "bg-[rgba(168,85,247,0.15)] text-purple-300";
 

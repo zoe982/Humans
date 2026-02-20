@@ -24,6 +24,7 @@ activityRoutes.get("/api/activities", requirePermission("viewRecords"), async (c
     humanId: c.req.query("humanId"),
     accountId: c.req.query("accountId"),
     routeSignupId: c.req.query("routeSignupId"),
+    websiteBookingRequestId: c.req.query("websiteBookingRequestId"),
     type: c.req.query("type"),
     dateFrom: c.req.query("dateFrom"),
     dateTo: c.req.query("dateTo"),
