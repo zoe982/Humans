@@ -113,16 +113,15 @@
 </svelte:head>
 
 <div class="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8">
-  <!-- Record Management Bar (status is read-only) -->
   <RecordManagementBar
     backHref="/leads/website-booking-requests"
     backLabel="Booking Requests"
     title="{booking.crm_display_id ? booking.crm_display_id + ' — ' : ''}{displayName(booking)}"
-    status={bookingRequestStatusLabels[booking.status ?? ""] ?? booking.status ?? undefined}
-    statusColorMap={{
-      "Confirmed": "bg-[rgba(34,197,94,0.15)] text-green-300",
-      "Cancelled": "bg-[rgba(239,68,68,0.15)] text-red-300",
-    }}
+    status={booking.status ?? undefined}
+    statusOptions={["confirmed", "closed_cancelled"]}
+    statusLabels={bookingRequestStatusLabels}
+    statusColorMap={bookingRequestStatusColors}
+    statusFormAction="?/updateStatus"
   >
     {#snippet actions()}
       <a href={convertUrl()} class="btn-primary text-sm py-1.5">

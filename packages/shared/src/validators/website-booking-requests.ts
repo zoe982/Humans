@@ -9,6 +9,7 @@ export type WebsiteBookingRequestStatus = (typeof websiteBookingRequestStatuses)
 
 export const updateWebsiteBookingRequestSchema = z.object({
   crm_note: z.string().max(5000).optional(),
+  status: z.enum(websiteBookingRequestStatuses).optional(),
 });
 
 export type UpdateWebsiteBookingRequestInput = z.infer<typeof updateWebsiteBookingRequestSchema>;

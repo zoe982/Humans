@@ -11,6 +11,7 @@
     status?: string;
     statusOptions?: string[];
     statusColorMap?: Record<string, string>;
+    statusLabels?: Record<string, string>;
     statusFormAction?: string;
     onStatusChange?: (newStatus: string) => void;
     actions?: Snippet;
@@ -23,12 +24,21 @@
     status,
     statusOptions = [],
     statusColorMap = {},
+    statusLabels,
     statusFormAction,
     onStatusChange,
     actions,
   }: Props = $props();
 
   let selectedStatus = $state(status ?? "");
+
+  // When statusLabels is provided, remap colorMap keys from raw values to display labels
+  // so StatusBadge can look up colors by the display label it renders
+  let displayColorMap = $derived(
+    statusLabels
+      ? Object.fromEntries(Object.entries(statusColorMap).map(([k, v]) => [statusLabels[k] ?? k, v]))
+      : statusColorMap
+  );
 
   function handleStatusDropdownChange(e: Event) {
     const value = (e.target as HTMLSelectElement).value;
@@ -45,7 +55,7 @@
       </a>
       <h1 class="text-xl font-bold text-text-primary">{title}</h1>
       {#if status}
-        <StatusBadge {status} colorMap={statusColorMap} />
+        <StatusBadge status={statusLabels?.[status] ?? status} colorMap={displayColorMap} />
       {/if}
     </div>
     <div class="flex items-center gap-3">
@@ -57,7 +67,7 @@
             onchange={handleStatusDropdownChange}
           >
             {#each statusOptions as opt}
-              <option value={opt}>{opt}</option>
+              <option value={opt}>{statusLabels?.[opt] ?? opt}</option>
             {/each}
           </select>
         {:else if statusFormAction}
@@ -68,7 +78,7 @@
               bind:value={selectedStatus}
             >
               {#each statusOptions as opt}
-                <option value={opt}>{opt}</option>
+                <option value={opt}>{statusLabels?.[opt] ?? opt}</option>
               {/each}
             </select>
             <Button variant="ghost" size="sm" type="submit">Update</Button>

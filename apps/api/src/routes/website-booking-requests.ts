@@ -94,7 +94,7 @@ websiteBookingRequestRoutes.get(
   },
 );
 
-// Update website booking request (CRM note only — status is read-only)
+// Update website booking request (CRM note and status)
 websiteBookingRequestRoutes.patch(
   "/api/website-booking-requests/:id",
   requirePermission("manageWebsiteBookingRequests"),
@@ -107,6 +107,7 @@ websiteBookingRequestRoutes.patch(
 
     const updateFields: Record<string, unknown> = {};
     if (parsed.data.crm_note !== undefined) updateFields["crm_note"] = parsed.data.crm_note;
+    if (parsed.data.status !== undefined) updateFields["status"] = parsed.data.status;
 
     if (Object.keys(updateFields).length === 0) {
       throw badRequest(ERROR_CODES.NO_FIELDS_TO_UPDATE, "No fields to update");
