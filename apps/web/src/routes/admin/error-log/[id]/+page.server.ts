@@ -26,3 +26,25 @@ export const load = async ({ locals, cookies, params }: RequestEvent) => {
 
   return { entry: raw.data };
 };
+
+export const actions = {
+  toggleResolution: async ({ request, locals, cookies, params }: RequestEvent) => {
+    if (locals.user == null) redirect(302, "/login");
+    if (locals.user.role !== "admin") redirect(302, "/dashboard");
+
+    const form = await request.formData();
+    const status = form.get("status") as string;
+    const sessionToken = cookies.get("humans_session");
+
+    await fetch(`${PUBLIC_API_URL}/api/admin/error-log/${params.id}/resolution`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        Cookie: `humans_session=${sessionToken ?? ""}`,
+      },
+      body: JSON.stringify({ resolutionStatus: status }),
+    });
+
+    return { success: true };
+  },
+};

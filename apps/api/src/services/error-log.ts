@@ -11,6 +11,7 @@ interface ErrorLogFilters {
   path?: string;
   dateFrom?: string;
   dateTo?: string;
+  resolutionStatus?: string;
 }
 
 export async function listErrorLogEntries(db: DB, filters: ErrorLogFilters) {
@@ -21,6 +22,7 @@ export async function listErrorLogEntries(db: DB, filters: ErrorLogFilters) {
   if (filters.path) conditions.push(eq(errorLog.path, filters.path));
   if (filters.dateFrom) conditions.push(gte(errorLog.createdAt, filters.dateFrom));
   if (filters.dateTo) conditions.push(lte(errorLog.createdAt, filters.dateTo));
+  if (filters.resolutionStatus) conditions.push(eq(errorLog.resolutionStatus, filters.resolutionStatus));
 
   let results;
   if (conditions.length > 0) {
@@ -53,6 +55,20 @@ export async function getErrorLogEntry(db: DB, id: string) {
   }
 
   return entry;
+}
+
+export async function updateErrorLogResolution(db: DB, id: string, resolutionStatus: string) {
+  const entry = await db.query.errorLog.findFirst({
+    where: eq(errorLog.id, id),
+  });
+
+  if (entry == null) {
+    throw notFound(ERROR_CODES.ERROR_LOG_NOT_FOUND, "Error log entry not found");
+  }
+
+  await db.update(errorLog).set({ resolutionStatus }).where(eq(errorLog.id, id));
+
+  return { ...entry, resolutionStatus };
 }
 
 export async function cleanupErrorLog(db: DB) {

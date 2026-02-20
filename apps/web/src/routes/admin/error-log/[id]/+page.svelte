@@ -1,15 +1,20 @@
 <script lang="ts">
   import type { PageData } from "./$types";
   import RecordManagementBar from "$lib/components/RecordManagementBar.svelte";
+  import { Copy, Check } from "lucide-svelte";
+  import { toast } from "svelte-sonner";
+  import { formatErrorForClipboard } from "$lib/utils/error-format";
 
   let { data }: { data: PageData } = $props();
 
   type ErrorEntry = {
     id: string;
+    displayId: string;
     requestId: string;
     code: string;
     message: string;
     status: number;
+    resolutionStatus: string;
     method: string | null;
     path: string | null;
     userId: string | null;
@@ -20,6 +25,15 @@
 
   const entry = $derived(data.entry as ErrorEntry);
 
+  let copied = $state(false);
+
+  async function copyError() {
+    await navigator.clipboard.writeText(formatErrorForClipboard(entry));
+    copied = true;
+    toast.success("Copied to clipboard");
+    setTimeout(() => { copied = false; }, 2000);
+  }
+
   function formatDetails(details: unknown): string {
     if (details == null) return "—";
     try {
@@ -28,21 +42,54 @@
       return String(details);
     }
   }
+
+  const resolutionColorMap: Record<string, string> = {
+    open: "bg-amber-500/20 text-amber-300",
+    resolved: "bg-green-500/20 text-green-300",
+  };
+
+  const resolutionLabels: Record<string, string> = {
+    open: "Open",
+    resolved: "Resolved",
+  };
 </script>
 
 <svelte:head>
-  <title>Error {entry.code} - Admin - Humans CRM</title>
+  <title>Error {entry.displayId} - Admin - Humans CRM</title>
 </svelte:head>
 
 <div class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
   <RecordManagementBar
     backHref="/admin/error-log"
     backLabel="Error Log"
-    title="Error Detail"
-  />
+    title={entry.displayId}
+    status={entry.resolutionStatus}
+    statusOptions={["open", "resolved"]}
+    statusColorMap={resolutionColorMap}
+    statusLabels={resolutionLabels}
+    statusFormAction="?/toggleResolution"
+  >
+    {#snippet actions()}
+      <button
+        type="button"
+        onclick={copyError}
+        class="btn-ghost text-sm py-1.5 px-3 inline-flex items-center gap-2"
+      >
+        {#if copied}
+          <Check size={14} class="text-green-400" /> Copied
+        {:else}
+          <Copy size={14} /> Copy for Claude
+        {/if}
+      </button>
+    {/snippet}
+  </RecordManagementBar>
 
   <div class="glass-card p-6 space-y-6">
     <div class="grid gap-4 sm:grid-cols-2">
+      <div>
+        <dt class="text-xs text-text-muted uppercase tracking-wider">Display ID</dt>
+        <dd class="mt-1 font-mono text-sm text-text-primary">{entry.displayId}</dd>
+      </div>
       <div>
         <dt class="text-xs text-text-muted uppercase tracking-wider">Status</dt>
         <dd class="mt-1">

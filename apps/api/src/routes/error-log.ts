@@ -4,6 +4,7 @@ import { requirePermission } from "../middleware/rbac";
 import {
   listErrorLogEntries,
   getErrorLogEntry,
+  updateErrorLogResolution,
   cleanupErrorLog,
 } from "../services/error-log";
 import type { AppContext } from "../types";
@@ -24,13 +25,25 @@ errorLogRoutes.get("/api/admin/error-log", requirePermission("manageColleagues")
     path: c.req.query("path"),
     dateFrom: c.req.query("dateFrom"),
     dateTo: c.req.query("dateTo"),
+    resolutionStatus: c.req.query("resolutionStatus"),
   });
+
+  // Auto-purge entries older than 7 days
+  c.executionCtx.waitUntil(cleanupErrorLog(c.get("db")));
+
   return c.json({ data });
 });
 
 // Get single error log entry
 errorLogRoutes.get("/api/admin/error-log/:id", requirePermission("manageColleagues"), async (c) => {
   const data = await getErrorLogEntry(c.get("db"), c.req.param("id"));
+  return c.json({ data });
+});
+
+// Update resolution status
+errorLogRoutes.patch("/api/admin/error-log/:id/resolution", requirePermission("manageColleagues"), async (c) => {
+  const { resolutionStatus } = await c.req.json<{ resolutionStatus: string }>();
+  const data = await updateErrorLogResolution(c.get("db"), c.req.param("id"), resolutionStatus);
   return c.json({ data });
 });
 

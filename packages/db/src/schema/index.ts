@@ -41,4 +41,8 @@ export { accountTypes } from "./account-types";
 export { accountHumanLabelsConfig } from "./account-human-labels-config";
 export { accountHumans } from "./account-humans";
 export { displayIdCounters } from "./display-id-counters";
-export { errorLog } from "./error-log";
+export {
+  errorLog,
+  errorLogResolutionStatuses,
+  type ErrorLogResolutionStatus,
+} from "./error-log";

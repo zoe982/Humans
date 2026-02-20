@@ -2,6 +2,7 @@ import type { Context } from "hono";
 import { errorLog } from "@humans/db/schema";
 import type { AppContext } from "../types";
 import { logError } from "./logger";
+import { nextDisplayId } from "./display-id";
 
 interface ErrorLogEntry {
   requestId: string;
@@ -26,12 +27,15 @@ export function persistError(c: Context<AppContext>, entry: ErrorLogEntry) {
   const task = (async () => {
     try {
       const db = c.get("db");
+      const displayId = await nextDisplayId(db, "ERR");
       await db.insert(errorLog).values({
         id,
+        displayId,
         requestId: entry.requestId,
         code: entry.code,
         message: entry.message,
         status: entry.status,
+        resolutionStatus: "open",
         method: entry.method,
         path: entry.path,
         userId: entry.userId ?? null,
