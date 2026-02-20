@@ -1,6 +1,7 @@
-import { redirect } from "@sveltejs/kit";
-import type { RequestEvent } from "@sveltejs/kit";
+import { redirect, fail } from "@sveltejs/kit";
+import type { RequestEvent, ActionFailure } from "@sveltejs/kit";
 import { PUBLIC_API_URL } from "$env/static/public";
+import { extractApiErrorInfo } from "$lib/api";
 
 function isObjData(value: unknown): value is { data: Record<string, unknown> } {
   return typeof value === "object" && value !== null && "data" in value;
@@ -22,4 +23,26 @@ export const load = async ({ locals, cookies, params }: RequestEvent) => {
   if (expression == null) redirect(302, "/route-interests");
 
   return { expression, apiUrl: PUBLIC_API_URL };
+};
+
+export const actions = {
+  delete: async ({ request, cookies, params }: RequestEvent): Promise<ActionFailure<{ error: string }> | void> => {
+    const formData = await request.formData();
+    const sessionToken = cookies.get("humans_session");
+    const id = params.id;
+    const routeInterestId = formData.get("routeInterestId") as string;
+
+    const res = await fetch(`${PUBLIC_API_URL}/api/route-interest-expressions/${id}`, {
+      method: "DELETE",
+      headers: { Cookie: `humans_session=${sessionToken ?? ""}` },
+    });
+
+    if (!res.ok) {
+      const resBody: unknown = await res.json();
+      const info = extractApiErrorInfo(resBody, "Failed to delete expression.");
+      return fail(res.status, { error: info.message });
+    }
+
+    redirect(302, `/route-interests/${routeInterestId}`);
+  },
 };

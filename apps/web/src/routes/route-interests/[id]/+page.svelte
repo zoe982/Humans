@@ -42,6 +42,7 @@
 
   type RouteInterest = {
     id: string;
+    displayId: string;
     originCity: string;
     originCountry: string;
     destinationCity: string;
@@ -49,6 +50,16 @@
     createdAt: string;
     expressions: Expression[];
   };
+
+  type ReverseRoute = {
+    id: string;
+    displayId: string;
+    originCity: string;
+    originCountry: string;
+    destinationCity: string;
+    destinationCountry: string;
+    expressions: Expression[];
+  } | null;
 
   type Human = {
     id: string;
@@ -59,6 +70,25 @@
 
   const routeInterest = $derived(data.routeInterest as RouteInterest);
   const humans = $derived(data.humans as Human[]);
+  const reverseRoute = $derived(data.reverseRoute as ReverseRoute);
+
+  // Summary statistics
+  const uniqueHumanCount = $derived(new Set(routeInterest.expressions.map(e => e.humanId)).size);
+  const oneTimeCount = $derived(routeInterest.expressions.filter(e => e.frequency === "one_time").length);
+  const repeatCount = $derived(routeInterest.expressions.filter(e => e.frequency === "repeat").length);
+
+  // Reverse route stats
+  const reverseUniqueHumans = $derived(reverseRoute ? new Set(reverseRoute.expressions.map(e => e.humanId)).size : 0);
+  const reverseOneTime = $derived(reverseRoute ? reverseRoute.expressions.filter(e => e.frequency === "one_time").length : 0);
+  const reverseRepeat = $derived(reverseRoute ? reverseRoute.expressions.filter(e => e.frequency === "repeat").length : 0);
+
+  const differentialText = $derived.by(() => {
+    if (!reverseRoute) return "";
+    const diff = routeInterest.expressions.length - reverseRoute.expressions.length;
+    if (diff === 0) return "Outbound and return have equal demand.";
+    const direction = diff > 0 ? "Outbound" : "Return";
+    return `${direction} has ${Math.abs(diff)} more expression${Math.abs(diff) === 1 ? "" : "s"} than ${diff > 0 ? "return" : "outbound"}.`;
+  });
 
   let showAddForm = $state(false);
   let humanSearch = $state("");
@@ -128,12 +158,13 @@
   <title>{routeInterest.originCity} &rarr; {routeInterest.destinationCity} - Humans CRM</title>
 </svelte:head>
 
-<div class="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8">
+<div class="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
   <RecordManagementBar
     backHref="/route-interests"
     backLabel="Route Interests"
     title="{routeInterest.originCity}, {routeInterest.originCountry} → {routeInterest.destinationCity}, {routeInterest.destinationCountry}"
   />
+  <span class="font-mono text-xs text-text-muted tracking-wide -mt-2 mb-4 px-1 block">{routeInterest.displayId}</span>
 
   {#if formResult?.error}
     <AlertBanner type="error" message={formResult.error} />
@@ -141,6 +172,92 @@
   {#if formResult?.success}
     <AlertBanner type="success" message="Expression added." />
   {/if}
+
+  <!-- Summary Statistics -->
+  <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+    <div class="glass-card p-4">
+      <p class="text-2xl font-bold text-accent">{routeInterest.expressions.length}</p>
+      <p class="text-xs text-text-muted mt-1">Expressions</p>
+    </div>
+    <div class="glass-card p-4">
+      <p class="text-2xl font-bold text-cyan-300">{uniqueHumanCount}</p>
+      <p class="text-xs text-text-muted mt-1">Unique Humans</p>
+    </div>
+    <div class="glass-card p-4">
+      <p class="text-2xl font-bold text-text-secondary">{oneTimeCount}</p>
+      <p class="text-xs text-text-muted mt-1">One-time</p>
+    </div>
+    <div class="glass-card p-4">
+      <p class="text-2xl font-bold text-purple-300">{repeatCount}</p>
+      <p class="text-xs text-text-muted mt-1">Repeat</p>
+    </div>
+  </div>
+
+  <!-- Route Pair -->
+  <div class="glass-card p-5 mb-6">
+    <h2 class="text-lg font-semibold text-text-primary mb-4">Route Pair</h2>
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <!-- Current route -->
+      <div class="rounded-xl border border-accent/30 bg-accent-dim p-4">
+        <p class="text-sm font-semibold text-accent mb-1">{routeInterest.originCity} &rarr; {routeInterest.destinationCity}</p>
+        <span class="font-mono text-xs text-text-muted">{routeInterest.displayId}</span>
+        <div class="mt-3 grid grid-cols-2 gap-2 text-sm">
+          <div>
+            <span class="text-text-muted text-xs">Expressions</span>
+            <p class="font-semibold text-text-primary">{routeInterest.expressions.length}</p>
+          </div>
+          <div>
+            <span class="text-text-muted text-xs">Unique Humans</span>
+            <p class="font-semibold text-text-primary">{uniqueHumanCount}</p>
+          </div>
+          <div>
+            <span class="text-text-muted text-xs">One-time</span>
+            <p class="font-semibold text-text-primary">{oneTimeCount}</p>
+          </div>
+          <div>
+            <span class="text-text-muted text-xs">Repeat</span>
+            <p class="font-semibold text-text-primary">{repeatCount}</p>
+          </div>
+        </div>
+        <p class="mt-3 text-xs text-accent">Viewing this route</p>
+      </div>
+
+      <!-- Reverse route -->
+      {#if reverseRoute}
+        <a href="/route-interests/{reverseRoute.id}" class="group rounded-xl border border-glass-border bg-glass p-4 hover:border-accent/30 transition-colors block">
+          <p class="text-sm font-semibold text-text-primary group-hover:text-accent transition-colors mb-1">{reverseRoute.originCity} &rarr; {reverseRoute.destinationCity}</p>
+          <span class="font-mono text-xs text-text-muted">{reverseRoute.displayId}</span>
+          <div class="mt-3 grid grid-cols-2 gap-2 text-sm">
+            <div>
+              <span class="text-text-muted text-xs">Expressions</span>
+              <p class="font-semibold text-text-primary">{reverseRoute.expressions.length}</p>
+            </div>
+            <div>
+              <span class="text-text-muted text-xs">Unique Humans</span>
+              <p class="font-semibold text-text-primary">{reverseUniqueHumans}</p>
+            </div>
+            <div>
+              <span class="text-text-muted text-xs">One-time</span>
+              <p class="font-semibold text-text-primary">{reverseOneTime}</p>
+            </div>
+            <div>
+              <span class="text-text-muted text-xs">Repeat</span>
+              <p class="font-semibold text-text-primary">{reverseRepeat}</p>
+            </div>
+          </div>
+          <p class="mt-3 text-xs text-text-muted group-hover:text-accent transition-colors">View return route &rarr;</p>
+        </a>
+      {:else}
+        <div class="rounded-xl border-2 border-dashed border-glass-border p-4 flex flex-col items-center justify-center text-center">
+          <p class="text-sm text-text-muted">No return route tracked</p>
+          <p class="text-xs text-text-muted mt-1">{routeInterest.destinationCity} &rarr; {routeInterest.originCity}</p>
+        </div>
+      {/if}
+    </div>
+    {#if differentialText}
+      <p class="mt-3 text-sm text-text-secondary">{differentialText}</p>
+    {/if}
+  </div>
 
   <!-- Delete route interest -->
   <div class="mb-6 flex justify-end">
@@ -276,7 +393,7 @@
       </div>
 
       <!-- Desktop table view -->
-      <div class="hidden sm:block overflow-x-auto -mx-5">
+      <div class="hidden sm:block">
         <table class="min-w-full">
           <thead class="glass-thead">
             <tr>
@@ -284,9 +401,7 @@
               <th scope="col">Human</th>
               <th scope="col">Frequency</th>
               <th scope="col">Travel Date</th>
-              <th scope="col">Activity</th>
               <th scope="col">Notes</th>
-              <th scope="col">Created</th>
               <th scope="col"></th>
             </tr>
           </thead>
@@ -309,9 +424,7 @@
                   </span>
                 </td>
                 <td class="text-text-muted text-sm">{formatTravelDate(expr) || "\u2014"}</td>
-                <td class="text-sm text-text-secondary">{expr.activitySubject ?? "\u2014"}</td>
                 <td class="text-sm text-text-secondary max-w-[200px] truncate">{expr.notes ?? "\u2014"}</td>
-                <td class="text-text-muted text-sm">{new Date(expr.createdAt).toLocaleDateString()}</td>
                 <td>
                   <form method="POST" action="?/deleteExpression">
                     <input type="hidden" name="expressionId" value={expr.id} />

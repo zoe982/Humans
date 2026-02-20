@@ -21,14 +21,12 @@ export const load = async ({ locals, cookies, params }: RequestEvent) => {
 
   const sessionToken = cookies.get("humans_session");
   const id = params.id;
+  const headers = { Cookie: `humans_session=${sessionToken ?? ""}` };
 
-  const [riRes, humansRes] = await Promise.all([
-    fetch(`${PUBLIC_API_URL}/api/route-interests/${id}`, {
-      headers: { Cookie: `humans_session=${sessionToken ?? ""}` },
-    }),
-    fetch(`${PUBLIC_API_URL}/api/humans`, {
-      headers: { Cookie: `humans_session=${sessionToken ?? ""}` },
-    }),
+  const [riRes, humansRes, listRes] = await Promise.all([
+    fetch(`${PUBLIC_API_URL}/api/route-interests/${id}`, { headers }),
+    fetch(`${PUBLIC_API_URL}/api/humans`, { headers }),
+    fetch(`${PUBLIC_API_URL}/api/route-interests`, { headers }),
   ]);
 
   if (!riRes.ok) redirect(302, "/route-interests");
@@ -39,7 +37,34 @@ export const load = async ({ locals, cookies, params }: RequestEvent) => {
   const humansRaw: unknown = await humansRes.json();
   const humans = isListData(humansRaw) ? humansRaw.data : [];
 
-  return { routeInterest, humans };
+  // Find reverse route (swap origin/destination)
+  const ri = routeInterest as { id: string; originCity: string; originCountry: string; destinationCity: string; destinationCountry: string };
+  let reverseRoute: Record<string, unknown> | null = null;
+
+  if (listRes.ok) {
+    const listRaw: unknown = await listRes.json();
+    if (isListData(listRaw)) {
+      const reverseEntry = (listRaw.data as Array<Record<string, unknown>>).find(
+        (r) =>
+          r.id !== ri.id &&
+          r.originCity === ri.destinationCity &&
+          r.originCountry === ri.destinationCountry &&
+          r.destinationCity === ri.originCity &&
+          r.destinationCountry === ri.originCountry,
+      );
+      if (reverseEntry) {
+        const reverseRes = await fetch(`${PUBLIC_API_URL}/api/route-interests/${reverseEntry.id as string}`, { headers });
+        if (reverseRes.ok) {
+          const reverseRaw: unknown = await reverseRes.json();
+          if (isObjData(reverseRaw)) {
+            reverseRoute = reverseRaw.data;
+          }
+        }
+      }
+    }
+  }
+
+  return { routeInterest, humans, reverseRoute };
 };
 
 export const actions = {

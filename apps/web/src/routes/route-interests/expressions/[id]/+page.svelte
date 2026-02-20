@@ -1,15 +1,19 @@
 <script lang="ts">
   import { invalidateAll } from "$app/navigation";
-  import type { PageData } from "./$types";
+  import type { PageData, ActionData } from "./$types";
   import RecordManagementBar from "$lib/components/RecordManagementBar.svelte";
   import SearchableSelect from "$lib/components/SearchableSelect.svelte";
   import SaveIndicator from "$lib/components/SaveIndicator.svelte";
+  import ConfirmDialog from "$lib/components/ConfirmDialog.svelte";
   import { toast } from "svelte-sonner";
   import { createAutoSaver, type SaveStatus } from "$lib/autosave";
   import { api } from "$lib/api";
   import { onDestroy } from "svelte";
 
-  let { data }: { data: PageData } = $props();
+  let { data, form }: { data: PageData; form: ActionData } = $props();
+
+  let showDeleteConfirm = $state(false);
+  let deleteFormEl = $state<HTMLFormElement>();
 
   type Expression = {
     id: string;
@@ -253,4 +257,28 @@
       </div>
     </dl>
   </div>
+
+  <!-- Danger Zone -->
+  <div class="mt-6 rounded-xl border border-[rgba(239,68,68,0.20)] bg-[rgba(239,68,68,0.06)] p-5">
+    <h2 class="text-lg font-semibold text-red-400 mb-2">Danger Zone</h2>
+    <p class="text-sm text-text-secondary mb-4">Permanently delete this expression. This action cannot be undone.</p>
+    {#if form?.error}
+      <p class="text-sm text-red-400 mb-3">{form.error}</p>
+    {/if}
+    <button type="button" class="btn-danger text-sm" onclick={() => { showDeleteConfirm = true; }}>
+      Delete Expression
+    </button>
+  </div>
 </div>
+
+<form method="POST" action="?/delete" bind:this={deleteFormEl} class="hidden">
+  <input type="hidden" name="routeInterestId" value={expr.routeInterestId} />
+</form>
+
+<ConfirmDialog
+  open={showDeleteConfirm}
+  message="Permanently delete this expression? This cannot be undone."
+  confirmLabel="Delete Expression"
+  onConfirm={() => { deleteFormEl?.requestSubmit(); showDeleteConfirm = false; }}
+  onCancel={() => { showDeleteConfirm = false; }}
+/>
