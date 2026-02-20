@@ -41,6 +41,8 @@ export const DISPLAY_ID_PREFIXES = [
   "GEX",
   "ROU",
   "BOR",
+  "ROI",
+  "REX",
 ] as const;
 
 export type DisplayIdPrefix = (typeof DISPLAY_ID_PREFIXES)[number];

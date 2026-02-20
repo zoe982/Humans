@@ -12,6 +12,7 @@ export const activityTypeLabels: Record<string, string> = {
   whatsapp_message: "WhatsApp",
   online_meeting: "Meeting",
   phone_call: "Phone Call",
+  social_message: "Social",
 };
 
 /** Activity type options for SearchableSelect */
@@ -20,6 +21,7 @@ export const ACTIVITY_TYPE_OPTIONS = [
   { value: "whatsapp_message", label: "WhatsApp" },
   { value: "online_meeting", label: "Meeting" },
   { value: "phone_call", label: "Phone Call" },
+  { value: "social_message", label: "Social" },
 ] as const;
 
 /** Role options for SearchableSelect */

@@ -5,6 +5,7 @@ export const activityTypes = [
   "whatsapp_message",
   "online_meeting",
   "phone_call",
+  "social_message",
 ] as const;
 
 export const createActivitySchema = z
@@ -19,6 +20,7 @@ export const createActivitySchema = z
     websiteBookingRequestId: z.string().uuid().optional(),
     gmailId: z.string().optional(),
     frontId: z.string().optional(),
+    frontConversationId: z.string().optional(),
   })
   .superRefine((data, ctx) => {
     if (data.type === "email" && (data.subject == null || data.subject.trim() === "")) {
@@ -48,6 +50,7 @@ export const updateActivitySchema = z.object({
   websiteBookingRequestId: z.string().uuid().optional(),
   gmailId: z.string().optional(),
   frontId: z.string().optional(),
+  frontConversationId: z.string().optional(),
 });
 
 export type CreateActivityInput = z.infer<typeof createActivitySchema>;

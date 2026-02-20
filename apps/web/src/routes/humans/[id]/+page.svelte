@@ -6,6 +6,7 @@
   import AlertBanner from "$lib/components/AlertBanner.svelte";
   import SearchableSelect from "$lib/components/SearchableSelect.svelte";
   import GeoInterestPicker from "$lib/components/GeoInterestPicker.svelte";
+  import RouteInterestPicker from "$lib/components/RouteInterestPicker.svelte";
   import PhoneInput from "$lib/components/PhoneInput.svelte";
   import SaveIndicator from "$lib/components/SaveIndicator.svelte";
   import { toast } from "svelte-sonner";
@@ -33,6 +34,22 @@
     notes: string | null;
     city: string | null;
     country: string | null;
+    createdAt: string;
+  };
+  type RouteInterestExpression = {
+    id: string;
+    humanId: string;
+    routeInterestId: string;
+    activityId: string | null;
+    frequency: string;
+    travelYear: number | null;
+    travelMonth: number | null;
+    travelDay: number | null;
+    notes: string | null;
+    originCity: string | null;
+    originCountry: string | null;
+    destinationCity: string | null;
+    destinationCountry: string | null;
     createdAt: string;
   };
   type Activity = {
@@ -64,6 +81,7 @@
     phoneNumbers: PhoneNumber[];
     pets: Pet[];
     geoInterestExpressions: GeoInterestExpression[];
+    routeInterestExpressions: RouteInterestExpression[];
     linkedAccounts: LinkedAccount[];
     createdAt: string;
     updatedAt: string;
@@ -514,6 +532,47 @@
           <GeoInterestPicker {apiUrl} />
           <button type="submit" class="btn-primary text-sm">
             Add Geo-Interest Expression
+          </button>
+        </form>
+      {/snippet}
+    </LinkedRecordBox>
+  </div>
+
+  <!-- Route Interest Expressions Section -->
+  <div class="mt-6">
+    <LinkedRecordBox
+      title="Route Interest Expressions"
+      items={human.routeInterestExpressions}
+      emptyMessage="No route interest expressions yet."
+      addLabel="Route Interest"
+      deleteFormAction="?/deleteRouteInterestExpression"
+    >
+      {#snippet itemRow(item)}
+        {@const expr = item as unknown as RouteInterestExpression}
+        <div>
+          <div class="flex items-center gap-3 flex-wrap">
+            <a href="/route-interests/{expr.routeInterestId}" class="text-sm font-medium text-accent hover:text-cyan-300">
+              {expr.originCity ?? "\u2014"}, {expr.originCountry ?? "\u2014"} &rarr; {expr.destinationCity ?? "\u2014"}, {expr.destinationCountry ?? "\u2014"}
+            </a>
+            <span class="glass-badge inline-flex rounded-full px-2 py-0.5 text-xs font-medium {expr.frequency === 'repeat' ? 'bg-[rgba(168,85,247,0.15)] text-purple-300' : 'bg-glass text-text-secondary'}">
+              {expr.frequency === "repeat" ? "Repeat" : "One-time"}
+            </span>
+            {#if expr.travelYear}
+              <span class="text-xs text-text-muted">
+                {expr.travelYear}{#if expr.travelMonth}-{String(expr.travelMonth).padStart(2, "0")}{#if expr.travelDay}-{String(expr.travelDay).padStart(2, "0")}{/if}{/if}
+              </span>
+            {/if}
+          </div>
+          {#if expr.notes}
+            <p class="mt-0.5 text-sm text-text-secondary">{expr.notes}</p>
+          {/if}
+        </div>
+      {/snippet}
+      {#snippet addForm()}
+        <form method="POST" action="?/addRouteInterestExpression" class="space-y-3">
+          <RouteInterestPicker {apiUrl} />
+          <button type="submit" class="btn-primary text-sm">
+            Add Route Interest Expression
           </button>
         </form>
       {/snippet}

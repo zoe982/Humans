@@ -29,6 +29,12 @@ export { accountPhoneLabelsConfig } from "./account-phone-labels-config";
 export { humanPhoneLabelsConfig } from "./human-phone-labels-config";
 export { geoInterests } from "./geo-interests";
 export { geoInterestExpressions } from "./geo-interest-expressions";
+export { routeInterests } from "./route-interests";
+export {
+  routeInterestExpressions,
+  routeInterestFrequencyValues,
+  type RouteInterestFrequency,
+} from "./route-interest-expressions";
 export { accounts, accountStatuses, type AccountStatus } from "./accounts";
 export { accountTypesConfig } from "./account-types-config";
 export { accountTypes } from "./account-types";

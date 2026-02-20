@@ -118,6 +118,7 @@ export async function createActivity(
     websiteBookingRequestId?: string | null;
     gmailId?: string | null;
     frontId?: string | null;
+    frontConversationId?: string | null;
   },
   colleagueId: string,
 ) {
@@ -138,6 +139,7 @@ export async function createActivity(
     websiteBookingRequestId: data.websiteBookingRequestId ?? null,
     gmailId: data.gmailId ?? null,
     frontId: data.frontId ?? null,
+    frontConversationId: data.frontConversationId ?? null,
     createdByColleagueId: colleagueId,
     createdAt: now,
     updatedAt: now,
@@ -161,6 +163,7 @@ export async function updateActivity(
     websiteBookingRequestId?: string | null;
     gmailId?: string | null;
     frontId?: string | null;
+    frontConversationId?: string | null;
   },
 ) {
   const existing = await db.query.activities.findFirst({
@@ -184,6 +187,7 @@ export async function updateActivity(
   if (data.websiteBookingRequestId !== undefined) updateFields["websiteBookingRequestId"] = data.websiteBookingRequestId;
   if (data.gmailId !== undefined) updateFields["gmailId"] = data.gmailId;
   if (data.frontId !== undefined) updateFields["frontId"] = data.frontId;
+  if (data.frontConversationId !== undefined) updateFields["frontConversationId"] = data.frontConversationId;
 
   await db.update(activities).set(updateFields).where(eq(activities.id, id));
 

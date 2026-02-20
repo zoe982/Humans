@@ -18,10 +18,12 @@ import { phoneNumberRoutes } from "./routes/phone-numbers";
 import { searchRoutes } from "./routes/search";
 import { emailRoutes } from "./routes/emails";
 import { geoInterestRoutes } from "./routes/geo-interests";
+import { routeInterestRoutes } from "./routes/route-interests-crud";
 import { accountRoutes } from "./routes/accounts";
 import { accountConfigRoutes } from "./routes/account-config";
 import { auditLogRoutes } from "./routes/audit-log";
 import { errorLogRoutes } from "./routes/error-log";
+import { frontRoutes } from "./routes/front";
 import type { AppContext } from "./types";
 
 const app = new Hono<AppContext>();
@@ -55,9 +57,11 @@ app.route("/", phoneNumberRoutes);
 app.route("/", searchRoutes);
 app.route("/", emailRoutes);
 app.route("/", geoInterestRoutes);
+app.route("/", routeInterestRoutes);
 app.route("/", accountRoutes);
 app.route("/", accountConfigRoutes);
 app.route("/", auditLogRoutes);
 app.route("/", errorLogRoutes);
+app.route("/", frontRoutes);
 
 export default app;

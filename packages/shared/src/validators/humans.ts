@@ -14,7 +14,7 @@ export const createHumanSchema = z.object({
   firstName: z.string().min(1).max(100),
   middleName: z.string().max(100).optional(),
   lastName: z.string().min(1).max(100),
-  emails: z.array(emailEntrySchema).min(1),
+  emails: z.array(emailEntrySchema).default([]),
   types: z.array(humanTypeEnum).min(1),
   status: humanStatusEnum.default("open"),
 });
@@ -23,7 +23,7 @@ export const updateHumanSchema = z.object({
   firstName: z.string().min(1).max(100).optional(),
   middleName: z.string().max(100).optional().nullable(),
   lastName: z.string().min(1).max(100).optional(),
-  emails: z.array(emailEntrySchema).min(1).optional(),
+  emails: z.array(emailEntrySchema).optional(),
   types: z.array(humanTypeEnum).min(1).optional(),
   status: humanStatusEnum.optional(),
 });

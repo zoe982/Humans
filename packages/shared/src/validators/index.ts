@@ -77,6 +77,16 @@ export {
 } from "./geo-interests";
 
 export {
+  routeInterestFrequencyEnum,
+  createRouteInterestSchema,
+  createRouteInterestExpressionSchema,
+  updateRouteInterestExpressionSchema,
+  type CreateRouteInterestInput,
+  type CreateRouteInterestExpressionInput,
+  type UpdateRouteInterestExpressionInput,
+} from "./route-interests";
+
+export {
   createEmailSchema,
   updateEmailSchema,
   type CreateEmailInput,

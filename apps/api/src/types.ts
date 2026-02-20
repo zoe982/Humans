@@ -13,6 +13,7 @@ export interface Env {
   ENVIRONMENT: string;
   SUPABASE_URL: string;
   SUPABASE_SERVICE_ROLE_KEY: string;
+  FRONT_API_TOKEN: string;
 }
 
 export interface SessionData {

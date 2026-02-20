@@ -13,16 +13,15 @@
   const emailLabelConfigs = $derived(data.emailLabelConfigs as ConfigItem[]);
   const emailLabelOptions = $derived(emailLabelConfigs.map((l) => ({ value: l.id, label: l.name })));
 
-  let emailRows = $state([
-    { email: prefill.email || "", labelId: "", isPrimary: true },
-  ]);
+  let emailRows = $state(
+    prefill.email ? [{ email: prefill.email, labelId: "", isPrimary: true }] : [] as { email: string; labelId: string; isPrimary: boolean }[],
+  );
 
   function addEmail() {
-    emailRows = [...emailRows, { email: "", labelId: "", isPrimary: false }];
+    emailRows = [...emailRows, { email: "", labelId: "", isPrimary: emailRows.length === 0 }];
   }
 
   function removeEmail(index: number) {
-    if (emailRows.length <= 1) return;
     emailRows = emailRows.filter((_, i) => i !== index);
     if (!emailRows.some((e) => e.isPrimary) && emailRows.length > 0) {
       emailRows[0].isPrimary = true;
@@ -90,7 +89,7 @@
         {#each emailRows as row, i}
           <div class="flex items-center gap-2">
             <input
-              type="email" name="emails[{i}].email" required
+              type="email" name="emails[{i}].email"
               bind:value={row.email}
               placeholder="email@example.com"
               class="glass-input flex-1 px-3 py-2 text-sm"
@@ -111,9 +110,7 @@
               />
               Primary
             </label>
-            {#if emailRows.length > 1}
-              <button type="button" onclick={() => removeEmail(i)} class="text-red-400 hover:text-red-300 text-sm">Remove</button>
-            {/if}
+            <button type="button" onclick={() => removeEmail(i)} class="text-red-400 hover:text-red-300 text-sm">Remove</button>
           </div>
         {/each}
       </div>

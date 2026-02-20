@@ -19,6 +19,7 @@ export const activityTypeColors: Record<string, string> = {
   whatsapp_message: "bg-[rgba(34,197,94,0.15)] text-green-300",
   online_meeting: "bg-[rgba(168,85,247,0.15)] text-purple-300",
   phone_call: "bg-[rgba(249,115,22,0.15)] text-orange-300",
+  social_message: "bg-[rgba(236,72,153,0.15)] text-pink-300",
 };
 
 /** Route signup status colors */

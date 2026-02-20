@@ -68,7 +68,7 @@ export const actions = {
       firstName: form.get("firstName"),
       middleName: form.get("middleName") || undefined,
       lastName: form.get("lastName"),
-      emails: emails.length > 0 ? emails : [{ email: "", isPrimary: true }],
+      emails,
       types: types.length > 0 ? types : [],
     };
 

@@ -298,6 +298,73 @@ export const actions = {
     return { success: true };
   },
 
+  addRouteInterestExpression: async ({ request, cookies, params }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
+    const form = await request.formData();
+    const sessionToken = cookies.get("humans_session");
+
+    const routeInterestId = (form.get("routeInterestId") as string)?.trim();
+
+    const payload: Record<string, unknown> = {
+      humanId: params.id,
+      notes: (form.get("notes") as string)?.trim() || undefined,
+    };
+
+    if (routeInterestId) {
+      payload.routeInterestId = routeInterestId;
+    } else {
+      payload.originCity = form.get("originCity");
+      payload.originCountry = form.get("originCountry");
+      payload.destinationCity = form.get("destinationCity");
+      payload.destinationCountry = form.get("destinationCountry");
+    }
+
+    const frequency = form.get("frequency") as string;
+    if (frequency) payload.frequency = frequency;
+
+    const travelYearStr = form.get("travelYear") as string;
+    if (travelYearStr) payload.travelYear = parseInt(travelYearStr, 10);
+    const travelMonthStr = form.get("travelMonth") as string;
+    if (travelMonthStr) payload.travelMonth = parseInt(travelMonthStr, 10);
+    const travelDayStr = form.get("travelDay") as string;
+    if (travelDayStr) payload.travelDay = parseInt(travelDayStr, 10);
+
+    const res = await fetch(`${PUBLIC_API_URL}/api/route-interest-expressions`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Cookie: `humans_session=${sessionToken ?? ""}`,
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!res.ok) {
+      const resBody: unknown = await res.json();
+      return failFromApi(resBody, res.status, "Failed to add route interest expression");
+    }
+
+    return { success: true };
+  },
+
+  deleteRouteInterestExpression: async ({ request, cookies }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
+    const form = await request.formData();
+    const sessionToken = cookies.get("humans_session");
+    const expressionId = form.get("id");
+
+    const res = await fetch(`${PUBLIC_API_URL}/api/route-interest-expressions/${expressionId}`, {
+      method: "DELETE",
+      headers: {
+        Cookie: `humans_session=${sessionToken ?? ""}`,
+      },
+    });
+
+    if (!res.ok) {
+      const resBody: unknown = await res.json();
+      return failFromApi(resBody, res.status, "Failed to delete route interest expression");
+    }
+
+    return { success: true };
+  },
+
   addPet: async ({ request, cookies, params }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
     const form = await request.formData();
     const sessionToken = cookies.get("humans_session");

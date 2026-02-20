@@ -24,6 +24,7 @@
       { href: "/emails", label: "Emails" },
       { href: "/phone-numbers", label: "Phones" },
       { href: "/geo-interests", label: "Geo-Interests" },
+      { href: "/route-interests", label: "Routes" },
     ];
     if (isManager) links.push({ href: "/reports", label: "Reports" });
     if (isAdmin) links.push({ href: "/admin", label: "Admin" });

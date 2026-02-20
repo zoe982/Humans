@@ -8,6 +8,8 @@ import {
   pets,
   geoInterestExpressions,
   geoInterests,
+  routeInterestExpressions,
+  routeInterests,
   accountHumans,
   accounts,
   accountHumanLabelsConfig,
@@ -60,13 +62,14 @@ export async function getHumanDetail(db: DB, humanId: string) {
     throw notFound(ERROR_CODES.HUMAN_NOT_FOUND, "Human not found");
   }
 
-  const [humanEmails, types, linkedSignups, humanPhones, humanPets, geoExpressions, linkedAccountRows, emailLabelConfigs, phoneLabelConfigs] = await Promise.all([
+  const [humanEmails, types, linkedSignups, humanPhones, humanPets, geoExpressions, routeExpressions, linkedAccountRows, emailLabelConfigs, phoneLabelConfigs] = await Promise.all([
     db.select().from(emails).where(eq(emails.ownerId, human.id)),
     db.select().from(humanTypes).where(eq(humanTypes.humanId, human.id)),
     db.select().from(humanRouteSignups).where(eq(humanRouteSignups.humanId, human.id)),
     db.select().from(phones).where(eq(phones.ownerId, human.id)),
     db.select().from(pets).where(eq(pets.humanId, human.id)),
     db.select().from(geoInterestExpressions).where(eq(geoInterestExpressions.humanId, human.id)),
+    db.select().from(routeInterestExpressions).where(eq(routeInterestExpressions.humanId, human.id)),
     db.select().from(accountHumans).where(eq(accountHumans.humanId, human.id)),
     db.select().from(emailLabelsConfig),
     db.select().from(phoneLabelsConfig),
@@ -82,6 +85,21 @@ export async function getHumanDetail(db: DB, humanId: string) {
       ...expr,
       city: gi?.city ?? null,
       country: gi?.country ?? null,
+    };
+  });
+
+  const allRouteInterests = routeExpressions.length > 0
+    ? await db.select().from(routeInterests)
+    : [];
+
+  const routeInterestExpressionsWithDetails = routeExpressions.map((expr) => {
+    const ri = allRouteInterests.find((r) => r.id === expr.routeInterestId);
+    return {
+      ...expr,
+      originCity: ri?.originCity ?? null,
+      originCountry: ri?.originCountry ?? null,
+      destinationCity: ri?.destinationCity ?? null,
+      destinationCountry: ri?.destinationCountry ?? null,
     };
   });
 
@@ -124,6 +142,7 @@ export async function getHumanDetail(db: DB, humanId: string) {
     phoneNumbers: phoneNumbersWithLabels,
     pets: humanPets,
     geoInterestExpressions: geoInterestExpressionsWithDetails,
+    routeInterestExpressions: routeInterestExpressionsWithDetails,
     linkedAccounts,
   };
 }
@@ -306,6 +325,7 @@ export async function deleteHuman(db: DB, id: string) {
   await db.delete(phones).where(eq(phones.ownerId, id));
   await db.delete(pets).where(eq(pets.humanId, id));
   await db.delete(geoInterestExpressions).where(eq(geoInterestExpressions.humanId, id));
+  await db.delete(routeInterestExpressions).where(eq(routeInterestExpressions.humanId, id));
   await db.delete(accountHumans).where(eq(accountHumans.humanId, id));
   await db.delete(humans).where(eq(humans.id, id));
 }

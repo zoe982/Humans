@@ -8,6 +8,7 @@ export const activityTypeValues = [
   "whatsapp_message",
   "online_meeting",
   "phone_call",
+  "social_message",
 ] as const;
 export type ActivityType = (typeof activityTypeValues)[number];
 
@@ -25,6 +26,7 @@ export const activities = sqliteTable("activities", {
   websiteBookingRequestId: text("website_booking_request_id"),
   gmailId: text("gmail_id"),
   frontId: text("front_id"),
+  frontConversationId: text("front_conversation_id"),
   createdByColleagueId: text("created_by_user_id")
     .notNull()
     .references(() => colleagues.id),
