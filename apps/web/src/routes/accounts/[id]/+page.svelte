@@ -14,7 +14,8 @@
   import { api } from "$lib/api";
   import { onDestroy } from "svelte";
   import { statusColors as statusColorMap, activityTypeColors } from "$lib/constants/colors";
-  import { activityTypeLabels } from "$lib/constants/labels";
+  import { activityTypeLabels, ACTIVITY_TYPE_OPTIONS } from "$lib/constants/labels";
+  import SearchableSelect from "$lib/components/SearchableSelect.svelte";
   import { formatRelativeTime, summarizeChanges } from "$lib/utils/format";
 
   let { data, form }: { data: PageData; form: ActionData } = $props();
@@ -76,6 +77,11 @@
   const emailLabelConfigs = $derived(data.emailLabelConfigs as ConfigItem[]);
   const phoneLabelConfigs = $derived(data.phoneLabelConfigs as ConfigItem[]);
   const allHumans = $derived(data.allHumans as HumanListItem[]);
+
+  const humanOptions = $derived(allHumans.map((h) => ({ value: h.id, label: `${h.firstName} ${h.lastName}` })));
+  const emailLabelOptions = $derived(emailLabelConfigs.map((l) => ({ value: l.id, label: l.name })));
+  const phoneLabelOptions = $derived(phoneLabelConfigs.map((l) => ({ value: l.id, label: l.name })));
+  const humanLabelOptions = $derived(humanLabelConfigs.map((l) => ({ value: l.id, label: l.name })));
 
   // Auto-save state
   let accountName = $state("");
@@ -301,12 +307,13 @@
             </div>
             <div>
               <label for="emailLabel" class="block text-sm font-medium text-text-secondary">Label</label>
-              <select id="emailLabel" name="labelId" class="glass-input mt-1 block w-full">
-                <option value="">None</option>
-                {#each emailLabelConfigs as l (l.id)}
-                  <option value={l.id}>{l.name}</option>
-                {/each}
-              </select>
+              <SearchableSelect
+                options={emailLabelOptions}
+                name="labelId"
+                id="emailLabel"
+                emptyOption="None"
+                placeholder="Select label..."
+              />
             </div>
           </div>
           <div>
@@ -356,12 +363,13 @@
             </div>
             <div>
               <label for="phoneLabel" class="block text-sm font-medium text-text-secondary">Label</label>
-              <select id="phoneLabel" name="labelId" class="glass-input mt-1 block w-full">
-                <option value="">None</option>
-                {#each phoneLabelConfigs as l (l.id)}
-                  <option value={l.id}>{l.name}</option>
-                {/each}
-              </select>
+              <SearchableSelect
+                options={phoneLabelOptions}
+                name="labelId"
+                id="phoneLabel"
+                emptyOption="None"
+                placeholder="Select label..."
+              />
             </div>
           </div>
           <div class="flex gap-4">
@@ -446,21 +454,24 @@
             <div class="grid gap-3 sm:grid-cols-2">
               <div>
                 <label for="humanSelect" class="block text-sm font-medium text-text-secondary">Human</label>
-                <select id="humanSelect" name="humanId" required class="glass-input mt-1 block w-full">
-                  <option value="">Select a human...</option>
-                  {#each allHumans as h (h.id)}
-                    <option value={h.id}>{h.firstName} {h.lastName}</option>
-                  {/each}
-                </select>
+                <SearchableSelect
+                  options={humanOptions}
+                  name="humanId"
+                  id="humanSelect"
+                  required={true}
+                  emptyOption="Select a human..."
+                  placeholder="Search humans..."
+                />
               </div>
               <div>
                 <label for="humanLabel" class="block text-sm font-medium text-text-secondary">Role Label</label>
-                <select id="humanLabel" name="labelId" class="glass-input mt-1 block w-full">
-                  <option value="">None</option>
-                  {#each humanLabelConfigs as l (l.id)}
-                    <option value={l.id}>{l.name}</option>
-                  {/each}
-                </select>
+                <SearchableSelect
+                  options={humanLabelOptions}
+                  name="labelId"
+                  id="humanLabel"
+                  emptyOption="None"
+                  placeholder="Select role..."
+                />
               </div>
             </div>
             <button type="submit" class="btn-primary text-sm">Link Human</button>
@@ -487,12 +498,13 @@
             </div>
             <div>
               <label for="newHumanLabel" class="block text-sm font-medium text-text-secondary">Role Label</label>
-              <select id="newHumanLabel" name="labelId" class="glass-input mt-1 block w-full">
-                <option value="">None</option>
-                {#each humanLabelConfigs as l (l.id)}
-                  <option value={l.id}>{l.name}</option>
-                {/each}
-              </select>
+              <SearchableSelect
+                options={humanLabelOptions}
+                name="labelId"
+                id="newHumanLabel"
+                emptyOption="None"
+                placeholder="Select role..."
+              />
             </div>
             <button type="submit" class="btn-primary text-sm">Create & Link</button>
           </form>
@@ -524,12 +536,13 @@
         <form method="POST" action="?/addActivity" class="space-y-3">
           <div>
             <label for="activityType" class="block text-sm font-medium text-text-secondary">Type</label>
-            <select id="activityType" name="type" class="glass-input mt-1 block w-full">
-              <option value="email">Email</option>
-              <option value="whatsapp_message">WhatsApp Message</option>
-              <option value="online_meeting">Online Meeting</option>
-              <option value="phone_call">Phone Call</option>
-            </select>
+            <SearchableSelect
+              options={ACTIVITY_TYPE_OPTIONS}
+              name="type"
+              id="activityType"
+              value="email"
+              placeholder="Select type..."
+            />
           </div>
           <div>
             <label for="subject" class="block text-sm font-medium text-text-secondary">Subject</label>

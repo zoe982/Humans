@@ -10,16 +10,13 @@
   import SaveIndicator from "$lib/components/SaveIndicator.svelte";
   import Toast from "$lib/components/Toast.svelte";
   import TypeTogglePills from "$lib/components/TypeTogglePills.svelte";
-  import TabBar from "$lib/components/TabBar.svelte";
-  import { ChevronRight, ChevronDown } from "lucide-svelte";
   import { createAutoSaver, type SaveStatus } from "$lib/autosave";
   import { api } from "$lib/api";
   import { statusColors as statusColorMap, humanTypeColors as typeColors, activityTypeColors, labelBadgeColor } from "$lib/constants/colors";
-  import { humanTypeLabels as typeLabels, activityTypeLabels } from "$lib/constants/labels";
+  import { humanTypeLabels as typeLabels, activityTypeLabels, ACTIVITY_TYPE_OPTIONS } from "$lib/constants/labels";
   import { formatRelativeTime, summarizeChanges } from "$lib/utils/format";
   import { PET_BREEDS } from "@humans/shared/constants";
   import { onDestroy } from "svelte";
-  import { slide } from "svelte/transition";
 
   let { data, form }: { data: PageData; form: ActionData } = $props();
 
@@ -87,6 +84,9 @@
   const emailLabelConfigs = $derived(data.emailLabelConfigs as ConfigItem[]);
   const phoneLabelConfigs = $derived(data.phoneLabelConfigs as ConfigItem[]);
 
+  const emailLabelOptions = $derived(emailLabelConfigs.map((l) => ({ value: l.id, label: l.name })));
+  const phoneLabelOptions = $derived(phoneLabelConfigs.map((l) => ({ value: l.id, label: l.name })));
+
   // Auto-save state
   let firstName = $state("");
   let middleName = $state("");
@@ -98,21 +98,12 @@
   let initialized = $state(false);
 
   // Change history
-  let historyOpen = $state(false);
   let historyEntries = $state<AuditEntry[]>([]);
   let historyLoaded = $state(false);
 
-  let activeTab = $state("overview");
   let showActivityForm = $state(false);
   let showGeoInterestInActivity = $state(false);
   let breedDropdownOpen = $state(false);
-
-  const humanTabs = [
-    { id: "overview", label: "Overview" },
-    { id: "relationships", label: "Relationships" },
-    { id: "activity", label: "Activity" },
-    { id: "history", label: "History" },
-  ];
 
   // Initialize state from data — runs on each data update (e.g. after invalidateAll)
   $effect(() => {
@@ -202,11 +193,12 @@
     }
   }
 
-  function toggleHistory() {
-    historyOpen = !historyOpen;
-    if (historyOpen) loadHistory();
-  }
-
+  // Auto-load history on mount and when historyLoaded is reset
+  $effect(() => {
+    if (!historyLoaded) {
+      void loadHistory();
+    }
+  });
 
 </script>
 
@@ -240,11 +232,6 @@
   {#if form?.error}
     <AlertBanner type="error" message={form.error} />
   {/if}
-
-  <TabBar tabs={humanTabs} {activeTab} onTabChange={(id) => { activeTab = id; }} />
-
-  <!-- Overview Tab -->
-  <div id="panel-overview" role="tabpanel" aria-labelledby="tab-overview" class={activeTab !== "overview" ? "hidden" : ""}>
 
   <!-- Details (auto-save, no form submission) -->
   <div class="glass-card p-6 space-y-6">
@@ -326,15 +313,13 @@
             </div>
             <div>
               <label for="emailLabel" class="block text-sm font-medium text-text-secondary">Label</label>
-              <select
-                id="emailLabel" name="labelId"
-                class="glass-input mt-1 block w-full"
-              >
-                <option value="">None</option>
-                {#each emailLabelConfigs as l (l.id)}
-                  <option value={l.id}>{l.name}</option>
-                {/each}
-              </select>
+              <SearchableSelect
+                options={emailLabelOptions}
+                name="labelId"
+                id="emailLabel"
+                emptyOption="None"
+                placeholder="Select label..."
+              />
             </div>
           </div>
           <div>
@@ -383,15 +368,13 @@
             </div>
             <div>
               <label for="phoneLabel" class="block text-sm font-medium text-text-secondary">Label</label>
-              <select
-                id="phoneLabel" name="labelId"
-                class="glass-input mt-1 block w-full"
-              >
-                <option value="">None</option>
-                {#each phoneLabelConfigs as l (l.id)}
-                  <option value={l.id}>{l.name}</option>
-                {/each}
-              </select>
+              <SearchableSelect
+                options={phoneLabelOptions}
+                name="labelId"
+                id="phoneLabel"
+                emptyOption="None"
+                placeholder="Select label..."
+              />
             </div>
           </div>
           <div class="flex gap-4">
@@ -411,11 +394,6 @@
       {/snippet}
     </LinkedRecordBox>
   </div>
-
-  </div><!-- /panel-overview -->
-
-  <!-- Relationships Tab -->
-  <div id="panel-relationships" role="tabpanel" aria-labelledby="tab-relationships" class={activeTab !== "relationships" ? "hidden" : ""}>
 
   <!-- Pets Section -->
   <div class="mt-6 {breedDropdownOpen ? 'relative z-10' : ''}">
@@ -555,11 +533,6 @@
     </div>
   {/if}
 
-  </div><!-- /panel-relationships -->
-
-  <!-- Activity Tab -->
-  <div id="panel-activity" role="tabpanel" aria-labelledby="tab-activity" class={activeTab !== "activity" ? "hidden" : ""}>
-
   <!-- Activities -->
   <div class="mt-6 glass-card p-5">
     <div class="flex items-center justify-between mb-4">
@@ -578,15 +551,13 @@
         <form method="POST" action="?/addActivity" class="space-y-3">
           <div>
             <label for="activityType" class="block text-sm font-medium text-text-secondary">Type</label>
-            <select
-              id="activityType" name="type"
-              class="glass-input mt-1 block w-full"
-            >
-              <option value="email">Email</option>
-              <option value="whatsapp_message">WhatsApp Message</option>
-              <option value="online_meeting">Online Meeting</option>
-              <option value="phone_call">Phone Call</option>
-            </select>
+            <SearchableSelect
+              options={ACTIVITY_TYPE_OPTIONS}
+              name="type"
+              id="activityType"
+              value="email"
+              placeholder="Select type..."
+            />
           </div>
           <div>
             <label for="subject" class="block text-sm font-medium text-text-secondary">Subject</label>
@@ -673,50 +644,31 @@
     {/if}
   </div>
 
-  </div><!-- /panel-activity -->
-
-  <!-- History Tab -->
-  <div id="panel-history" role="tabpanel" aria-labelledby="tab-history" class={activeTab !== "history" ? "hidden" : ""}>
-
   <!-- Change History -->
   <div class="mt-6 glass-card p-5">
-    <button
-      type="button"
-      aria-expanded={historyOpen}
-      onclick={toggleHistory}
-      class="flex items-center gap-2 w-full text-left"
-    >
-      <span class="text-lg font-semibold text-text-primary">Change History</span>
-      <span class="text-text-muted" aria-hidden="true">
-        {#if historyOpen}<ChevronDown size={16} />{:else}<ChevronRight size={16} />{/if}
-      </span>
-    </button>
-
-    {#if historyOpen}
-      <div transition:slide={{ duration: 200 }} class="mt-4 space-y-2">
-        {#if historyEntries.length === 0}
-          <p class="text-text-muted text-sm">No changes recorded yet.</p>
-        {:else}
-          {#each historyEntries as entry (entry.id)}
-            <div class="p-3 rounded-lg bg-glass">
-              <div class="flex items-center justify-between">
-                <div class="flex items-center gap-2">
-                  <span class="text-sm font-medium text-text-primary">{entry.colleagueName ?? "System"}</span>
-                  <span class="glass-badge inline-flex rounded-full px-2 py-0.5 text-xs font-medium bg-glass text-text-secondary">
-                    {entry.action}
-                  </span>
-                </div>
-                <span class="text-xs text-text-muted">{formatRelativeTime(entry.createdAt)}</span>
+    <h2 class="text-lg font-semibold text-text-primary mb-4">Change History</h2>
+    <div class="space-y-2">
+      {#if historyEntries.length === 0}
+        <p class="text-text-muted text-sm">No changes recorded yet.</p>
+      {:else}
+        {#each historyEntries as entry (entry.id)}
+          <div class="p-3 rounded-lg bg-glass">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <span class="text-sm font-medium text-text-primary">{entry.colleagueName ?? "System"}</span>
+                <span class="glass-badge inline-flex rounded-full px-2 py-0.5 text-xs font-medium bg-glass text-text-secondary">
+                  {entry.action}
+                </span>
               </div>
-              <p class="mt-1 text-xs text-text-secondary">{summarizeChanges(entry.changes)}</p>
+              <span class="text-xs text-text-muted">{formatRelativeTime(entry.createdAt)}</span>
             </div>
-          {/each}
-        {/if}
-      </div>
-    {/if}
+            <p class="mt-1 text-xs text-text-secondary">{summarizeChanges(entry.changes)}</p>
+          </div>
+        {/each}
+      {/if}
+    </div>
   </div>
 
-  </div><!-- /panel-history -->
 </div>
 
 <!-- Toast -->

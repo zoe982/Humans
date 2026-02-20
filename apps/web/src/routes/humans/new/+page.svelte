@@ -2,6 +2,7 @@
   import type { PageData, ActionData } from "./$types";
   import PageHeader from "$lib/components/PageHeader.svelte";
   import AlertBanner from "$lib/components/AlertBanner.svelte";
+  import SearchableSelect from "$lib/components/SearchableSelect.svelte";
   import TypeTogglePills from "$lib/components/TypeTogglePills.svelte";
 
   let { data, form }: { data: PageData; form: ActionData } = $props();
@@ -10,6 +11,7 @@
 
   const prefill = $derived(data.prefill);
   const emailLabelConfigs = $derived(data.emailLabelConfigs as ConfigItem[]);
+  const emailLabelOptions = $derived(emailLabelConfigs.map((l) => ({ value: l.id, label: l.name })));
 
   let emailRows = $state([
     { email: prefill.email || "", labelId: "", isPrimary: true },
@@ -93,16 +95,14 @@
               placeholder="email@example.com"
               class="glass-input flex-1 px-3 py-2 text-sm"
             />
-            <select
+            <SearchableSelect
+              options={emailLabelOptions}
               name="emails[{i}].labelId"
-              bind:value={row.labelId}
-              class="glass-input px-2 py-2 text-sm"
-            >
-              <option value="">None</option>
-              {#each emailLabelConfigs as l (l.id)}
-                <option value={l.id}>{l.name}</option>
-              {/each}
-            </select>
+              value={row.labelId}
+              emptyOption="None"
+              placeholder="Label..."
+              onSelect={(v) => { row.labelId = v; }}
+            />
             <label class="flex items-center gap-1 text-xs text-text-muted">
               <input
                 type="radio" name="primaryEmail" value={String(i)}

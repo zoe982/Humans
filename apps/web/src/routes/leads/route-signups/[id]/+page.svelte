@@ -5,7 +5,8 @@
   import { invalidateAll } from "$app/navigation";
   import { api } from "$lib/api";
   import { signupStatusColors as statusColorMap } from "$lib/constants/colors";
-  import { activityTypeLabels } from "$lib/constants/labels";
+  import { activityTypeLabels, ACTIVITY_TYPE_OPTIONS } from "$lib/constants/labels";
+  import SearchableSelect from "$lib/components/SearchableSelect.svelte";
 
   let { data, form }: { data: PageData; form: ActionData } = $props();
 
@@ -241,15 +242,13 @@
       <form method="POST" action="?/addActivity" class="mt-4 space-y-3 rounded-xl border border-glass-border bg-glass p-4">
         <div>
           <label for="type" class="block text-sm font-medium text-text-secondary">Type</label>
-          <select
-            id="type" name="type"
-            class="glass-input mt-1 block w-full px-3 py-2 text-sm"
-          >
-            <option value="email">Email</option>
-            <option value="whatsapp_message">WhatsApp Message</option>
-            <option value="online_meeting">Online Meeting</option>
-            <option value="phone_call">Phone Call</option>
-          </select>
+          <SearchableSelect
+            options={ACTIVITY_TYPE_OPTIONS}
+            name="type"
+            id="type"
+            value="email"
+            placeholder="Select type..."
+          />
         </div>
         <div>
           <label for="subject" class="block text-sm font-medium text-text-secondary">Subject</label>

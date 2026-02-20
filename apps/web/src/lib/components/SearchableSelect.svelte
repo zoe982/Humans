@@ -32,14 +32,14 @@
     return found ? found.label : v;
   }
 
-  let selectedValue = $state(value);
-  let query = $state(labelForValue(value));
+  let selectedValue = $state("");
+  let query = $state("");
   let open = $state(false);
   let highlightIndex = $state(-1);
 
   const listboxId = $derived(`${id ?? name}-listbox`);
 
-  // Sync external value prop changes (e.g. auto-save pages reinitializing state)
+  // Sync external value prop changes (and initialize on mount)
   $effect(() => {
     selectedValue = value;
     query = labelForValue(value);

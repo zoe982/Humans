@@ -9,8 +9,10 @@ The web app deploys to the **`humans`** Pages project (NOT `humans-web` or any o
 
 Always deploy with:
 ```bash
-npx wrangler pages deploy apps/web/.svelte-kit/cloudflare --project-name humans --commit-dirty=true
+npx wrangler pages deploy apps/web/.svelte-kit/cloudflare --project-name humans --commit-dirty=true --branch=main
 ```
+
+**IMPORTANT**: Always include `--branch=main` to deploy directly to production. Never create preview deployments.
 
 ### API Worker
 - Production URL: https://api.humans.pavinfo.app
@@ -36,7 +38,7 @@ cd apps/web && pnpm build && cd ../..
 cd apps/api && npx wrangler deploy && cd ../..
 
 # 3. Deploy web
-npx wrangler pages deploy apps/web/.svelte-kit/cloudflare --project-name humans --commit-dirty=true
+npx wrangler pages deploy apps/web/.svelte-kit/cloudflare --project-name humans --commit-dirty=true --branch=main
 ```
 
 ### Secrets

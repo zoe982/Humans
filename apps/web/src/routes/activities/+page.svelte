@@ -5,7 +5,8 @@
   import ConfirmDialog from "$lib/components/ConfirmDialog.svelte";
   import Pagination from "$lib/components/Pagination.svelte";
   import { activityTypeColors } from "$lib/constants/colors";
-  import { activityTypeLabels } from "$lib/constants/labels";
+  import { activityTypeLabels, ACTIVITY_TYPE_OPTIONS } from "$lib/constants/labels";
+  import SearchableSelect from "$lib/components/SearchableSelect.svelte";
 
   let { data, form }: { data: PageData; form: ActionData } = $props();
 
@@ -123,13 +124,14 @@
   <form method="GET" class="mt-4 flex flex-wrap items-end gap-4 glass-card p-4 mb-6">
     <div>
       <label for="typeFilter" class="block text-sm font-medium text-text-secondary mb-1">Type</label>
-      <select id="typeFilter" name="type" class="glass-input px-3 py-2 text-sm">
-        <option value="">All</option>
-        <option value="email" selected={data.type === "email"}>Email</option>
-        <option value="whatsapp_message" selected={data.type === "whatsapp_message"}>WhatsApp</option>
-        <option value="online_meeting" selected={data.type === "online_meeting"}>Meeting</option>
-        <option value="phone_call" selected={data.type === "phone_call"}>Phone Call</option>
-      </select>
+      <SearchableSelect
+        options={ACTIVITY_TYPE_OPTIONS}
+        name="type"
+        id="typeFilter"
+        value={data.type ?? ""}
+        emptyOption="All"
+        placeholder="Filter by type..."
+      />
     </div>
     <div>
       <label for="dateFrom" class="block text-sm font-medium text-text-secondary mb-1">From</label>

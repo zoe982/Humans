@@ -2,6 +2,8 @@
   import type { PageData, ActionData } from "./$types";
   import PageHeader from "$lib/components/PageHeader.svelte";
   import AlertBanner from "$lib/components/AlertBanner.svelte";
+  import SearchableSelect from "$lib/components/SearchableSelect.svelte";
+  import { ROLE_OPTIONS } from "$lib/constants/labels";
 
   let { data, form }: { data: PageData; form: ActionData } = $props();
 
@@ -93,12 +95,14 @@
         </div>
         <div>
           <label for="role" class="block text-sm font-medium text-text-secondary mb-1">Role</label>
-          <select id="role" name="role" required class="glass-input block w-full px-3 py-2 text-sm">
-            <option value="viewer">Viewer</option>
-            <option value="agent">Agent</option>
-            <option value="manager">Manager</option>
-            <option value="admin">Admin</option>
-          </select>
+          <SearchableSelect
+            options={ROLE_OPTIONS}
+            name="role"
+            id="role"
+            value="viewer"
+            required={true}
+            placeholder="Select role..."
+          />
         </div>
         <div class="sm:col-span-3 flex gap-3 items-end">
           <button type="submit" class="btn-primary">Send Invite</button>

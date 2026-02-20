@@ -9,8 +9,9 @@
   import Toast from "$lib/components/Toast.svelte";
   import { createAutoSaver, type SaveStatus } from "$lib/autosave";
   import { onDestroy } from "svelte";
-  import { activityTypeLabels } from "$lib/constants/labels";
+  import { activityTypeLabels, ACTIVITY_TYPE_OPTIONS } from "$lib/constants/labels";
   import { displayName } from "$lib/utils/format";
+  import SearchableSelect from "$lib/components/SearchableSelect.svelte";
   import ConfirmDialog from "$lib/components/ConfirmDialog.svelte";
 
   let { data, form }: { data: PageData; form: ActionData } = $props();
@@ -49,6 +50,9 @@
   const humans = $derived(data.humans as Human[]);
   const accountsList = $derived(data.accounts as Account[]);
   const apiUrl = $derived(data.apiUrl as string);
+
+  const humanOptions = $derived(humans.map((h) => ({ value: h.id, label: displayName(h) })));
+  const accountOptions = $derived(accountsList.map((a) => ({ value: a.id, label: a.name })));
 
   // Auto-save state
   let type = $state("");
@@ -142,17 +146,14 @@
     <div class="grid gap-4 sm:grid-cols-2">
       <div>
         <label for="type" class="block text-sm font-medium text-text-secondary">Type</label>
-        <select
+        <SearchableSelect
+          options={ACTIVITY_TYPE_OPTIONS}
+          name="type"
           id="type"
-          bind:value={type}
-          onchange={triggerSaveImmediate}
-          class="glass-input mt-1 block w-full"
-        >
-          <option value="email">Email</option>
-          <option value="whatsapp_message">WhatsApp</option>
-          <option value="online_meeting">Meeting</option>
-          <option value="phone_call">Phone Call</option>
-        </select>
+          value={type}
+          placeholder="Select type..."
+          onSelect={(v) => { type = v; triggerSaveImmediate(); }}
+        />
       </div>
       <div>
         <label for="activityDate" class="block text-sm font-medium text-text-secondary">Activity Date</label>
@@ -193,31 +194,27 @@
     <div class="grid gap-4 sm:grid-cols-2">
       <div>
         <label for="humanId" class="block text-sm font-medium text-text-secondary">Linked Human</label>
-        <select
+        <SearchableSelect
+          options={humanOptions}
+          name="humanId"
           id="humanId"
-          bind:value={humanId}
-          onchange={triggerSaveImmediate}
-          class="glass-input mt-1 block w-full"
-        >
-          <option value="">— None —</option>
-          {#each humans as human (human.id)}
-            <option value={human.id}>{displayName(human)}</option>
-          {/each}
-        </select>
+          value={humanId}
+          emptyOption="— None —"
+          placeholder="Search humans..."
+          onSelect={(v) => { humanId = v; triggerSaveImmediate(); }}
+        />
       </div>
       <div>
         <label for="accountId" class="block text-sm font-medium text-text-secondary">Linked Account</label>
-        <select
+        <SearchableSelect
+          options={accountOptions}
+          name="accountId"
           id="accountId"
-          bind:value={accountId}
-          onchange={triggerSaveImmediate}
-          class="glass-input mt-1 block w-full"
-        >
-          <option value="">— None —</option>
-          {#each accountsList as account (account.id)}
-            <option value={account.id}>{account.name}</option>
-          {/each}
-        </select>
+          value={accountId}
+          emptyOption="— None —"
+          placeholder="Search accounts..."
+          onSelect={(v) => { accountId = v; triggerSaveImmediate(); }}
+        />
       </div>
     </div>
   </div>
