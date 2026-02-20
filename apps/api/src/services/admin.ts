@@ -109,8 +109,19 @@ export async function updateColleague(
 
 export async function listAuditLog(db: DB, limit: number, offset: number) {
   const logs = await db
-    .select()
+    .select({
+      id: auditLog.id,
+      colleagueId: auditLog.colleagueId,
+      action: auditLog.action,
+      entityType: auditLog.entityType,
+      entityId: auditLog.entityId,
+      changes: auditLog.changes,
+      ipAddress: auditLog.ipAddress,
+      createdAt: auditLog.createdAt,
+      colleagueName: colleagues.name,
+    })
     .from(auditLog)
+    .leftJoin(colleagues, eq(auditLog.colleagueId, colleagues.id))
     .orderBy(desc(auditLog.createdAt))
     .limit(limit)
     .offset(offset);

@@ -41,7 +41,7 @@
     accountName: string | null;
     routeSignupId: string | null;
     geoInterestExpressions: GeoInterestExpression[];
-    createdByColleagueId: string;
+    colleagueId: string | null;
     createdAt: string;
     updatedAt: string;
   };
@@ -262,7 +262,7 @@
     <div class="grid gap-2 text-sm text-text-secondary">
       <p>Created: {new Date(activity.createdAt).toLocaleString()}</p>
       <p>Updated: {new Date(activity.updatedAt).toLocaleString()}</p>
-      <p>Created by: {activity.createdByColleagueId}</p>
+      <p>Created by: {activity.colleagueId ?? "—"}</p>
     </div>
   </div>
 </div>

@@ -146,7 +146,7 @@ describe("getGeoInterestDetail", () => {
 
     await db.insert(schema.activities).values({
       id: "act-1", displayId: nextDisplayId("ACT"), type: "email", subject: "Paris trip", activityDate: ts,
-      createdByColleagueId: "col-1", createdAt: ts, updatedAt: ts,
+      colleagueId: "col-1", createdAt: ts, updatedAt: ts,
     });
 
     await db.insert(schema.geoInterestExpressions).values({
@@ -296,7 +296,7 @@ describe("listExpressions", () => {
 
     await db.insert(schema.activities).values({
       id: "act-1", displayId: nextDisplayId("ACT"), type: "email", subject: "Tokyo inquiry", activityDate: ts,
-      createdByColleagueId: "col-1", createdAt: ts, updatedAt: ts,
+      colleagueId: "col-1", createdAt: ts, updatedAt: ts,
     });
 
     await db.insert(schema.geoInterestExpressions).values({
@@ -393,7 +393,7 @@ describe("createExpression", () => {
 
     await db.insert(schema.activities).values({
       id: "act-1", displayId: nextDisplayId("ACT"), type: "email", subject: "Test", activityDate: ts,
-      createdByColleagueId: "col-1", createdAt: ts, updatedAt: ts,
+      colleagueId: "col-1", createdAt: ts, updatedAt: ts,
     });
 
     const result = await createExpression(db, {

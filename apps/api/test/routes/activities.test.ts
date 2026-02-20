@@ -27,8 +27,8 @@ describe("GET /api/activities", () => {
     const human = buildHuman();
     await db.insert(schema.humans).values(human);
 
-    const a1 = buildActivity({ humanId: human.id, createdByColleagueId: user.id, subject: "Activity 1" });
-    const a2 = buildActivity({ humanId: human.id, createdByColleagueId: user.id, subject: "Activity 2" });
+    const a1 = buildActivity({ humanId: human.id, colleagueId: user.id, subject: "Activity 1" });
+    const a2 = buildActivity({ humanId: human.id, colleagueId: user.id, subject: "Activity 2" });
     await db.insert(schema.activities).values([a1, a2]);
 
     const res = await SELF.fetch("http://localhost/api/activities", {
@@ -46,8 +46,8 @@ describe("GET /api/activities", () => {
     const human2 = buildHuman({ firstName: "Bob" });
     await db.insert(schema.humans).values([human1, human2]);
 
-    const a1 = buildActivity({ humanId: human1.id, createdByColleagueId: user.id, subject: "For Alice" });
-    const a2 = buildActivity({ humanId: human2.id, createdByColleagueId: user.id, subject: "For Bob" });
+    const a1 = buildActivity({ humanId: human1.id, colleagueId: user.id, subject: "For Alice" });
+    const a2 = buildActivity({ humanId: human2.id, colleagueId: user.id, subject: "For Bob" });
     await db.insert(schema.activities).values([a1, a2]);
 
     const res = await SELF.fetch(`http://localhost/api/activities?humanId=${human1.id}`, {
@@ -78,7 +78,7 @@ describe("GET /api/activities/:id", () => {
 
     const activity = buildActivity({
       humanId: human.id,
-      createdByColleagueId: user.id,
+      colleagueId: user.id,
       subject: "Find this",
     });
     await db.insert(schema.activities).values(activity);
@@ -204,7 +204,7 @@ describe("PATCH /api/activities/:id", () => {
 
     const activity = buildActivity({
       humanId: human.id,
-      createdByColleagueId: user.id,
+      colleagueId: user.id,
       subject: "Old subject",
     });
     await db.insert(schema.activities).values(activity);

@@ -75,7 +75,7 @@ async function seedActivity(
     humanId: string | null;
     accountId: string | null;
     routeSignupId: string | null;
-    createdByColleagueId: string;
+    colleagueId: string;
   }> = {},
 ) {
   const ts = now();
@@ -90,7 +90,7 @@ async function seedActivity(
     humanId: overrides.humanId ?? null,
     accountId: overrides.accountId ?? null,
     routeSignupId: overrides.routeSignupId ?? null,
-    createdByColleagueId: overrides.createdByColleagueId ?? "col-1",
+    colleagueId: overrides.colleagueId ?? "col-1",
     createdAt: ts,
     updatedAt: ts,
   });
@@ -207,7 +207,7 @@ describe("createActivity", () => {
     expect(result.id).toBeDefined();
     expect(result.type).toBe("email");
     expect(result.subject).toBe("");
-    expect(result.createdByColleagueId).toBe("col-1");
+    expect(result.colleagueId).toBe("col-1");
 
     const rows = await db.select().from(schema.activities);
     expect(rows).toHaveLength(1);

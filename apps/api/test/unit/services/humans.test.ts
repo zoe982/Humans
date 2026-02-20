@@ -143,7 +143,7 @@ describe("getHumanDetail", () => {
 
     await db.insert(schema.activities).values({
       id: "act-1", displayId: nextDisplayId("ACT"), type: "email", subject: "Test", activityDate: ts,
-      createdByColleagueId: "col-1", createdAt: ts, updatedAt: ts,
+      colleagueId: "col-1", createdAt: ts, updatedAt: ts,
     });
 
     await db.insert(schema.geoInterestExpressions).values({

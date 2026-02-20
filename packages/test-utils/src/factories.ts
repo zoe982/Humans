@@ -145,7 +145,8 @@ export function buildActivity(overrides: Partial<{
   routeSignupId: string | null;
   gmailId: string | null;
   frontId: string | null;
-  createdByColleagueId: string;
+  syncRunId: string | null;
+  colleagueId: string | null;
   createdAt: string;
   updatedAt: string;
 }> = {}) {
@@ -163,7 +164,8 @@ export function buildActivity(overrides: Partial<{
     routeSignupId: null,
     gmailId: null,
     frontId: null,
-    createdByColleagueId: createId(),
+    syncRunId: null,
+    colleagueId: createId(),
     createdAt: ts,
     updatedAt: ts,
     ...overrides,

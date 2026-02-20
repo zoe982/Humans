@@ -2,6 +2,7 @@ import { sqliteTable, text } from "drizzle-orm/sqlite-core";
 import { humans } from "./humans";
 import { accounts } from "./accounts";
 import { colleagues } from "./colleagues";
+import { frontSyncRuns } from "./front-sync-runs";
 
 export const activityTypeValues = [
   "email",
@@ -27,9 +28,8 @@ export const activities = sqliteTable("activities", {
   gmailId: text("gmail_id"),
   frontId: text("front_id"),
   frontConversationId: text("front_conversation_id"),
-  createdByColleagueId: text("created_by_user_id")
-    .notNull()
-    .references(() => colleagues.id),
+  syncRunId: text("sync_run_id").references(() => frontSyncRuns.id),
+  colleagueId: text("colleague_id").references(() => colleagues.id),
   createdAt: text("created_at").notNull(),
   updatedAt: text("updated_at").notNull(),
 });

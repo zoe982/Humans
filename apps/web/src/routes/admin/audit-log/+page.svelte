@@ -7,6 +7,7 @@
   type LogEntry = {
     id: string;
     colleagueId: string | null;
+    colleagueName: string | null;
     action: string;
     entityType: string;
     entityId: string;
@@ -32,6 +33,7 @@
       <thead class="glass-thead">
         <tr>
           <th>Time</th>
+          <th>User</th>
           <th>Action</th>
           <th>Entity</th>
           <th>IP</th>
@@ -44,17 +46,26 @@
               {new Date(log.createdAt).toLocaleString()}
             </td>
             <td>
+              {#if log.colleagueName}
+                <span class="text-text-primary" title={log.colleagueId ?? ""}>{log.colleagueName}</span>
+              {:else if log.colleagueId}
+                <span class="font-mono text-xs text-text-muted" title={log.colleagueId}>{log.colleagueId.slice(0, 8)}...</span>
+              {:else}
+                <span class="text-text-muted">—</span>
+              {/if}
+            </td>
+            <td>
               <span class="glass-badge bg-glass text-text-secondary">{log.action}</span>
             </td>
             <td>
               <span class="font-medium">{log.entityType}</span>
-              <span class="ml-1 font-mono text-xs text-text-muted">{log.entityId.slice(0, 8)}…</span>
+              <span class="ml-1 font-mono text-xs text-text-muted">{log.entityId.slice(0, 8)}...</span>
             </td>
             <td class="text-text-muted font-mono text-xs">{log.ipAddress ?? "—"}</td>
           </tr>
         {:else}
           <tr>
-            <td colspan="4" class="px-4 py-8 text-center text-text-muted">No audit log entries yet.</td>
+            <td colspan="5" class="px-4 py-8 text-center text-text-muted">No audit log entries yet.</td>
           </tr>
         {/each}
       </tbody>

@@ -124,6 +124,7 @@ export async function createActivity(
     gmailId?: string | null;
     frontId?: string | null;
     frontConversationId?: string | null;
+    syncRunId?: string | null;
   },
   colleagueId: string,
 ) {
@@ -145,7 +146,8 @@ export async function createActivity(
     gmailId: data.gmailId ?? null,
     frontId: data.frontId ?? null,
     frontConversationId: data.frontConversationId ?? null,
-    createdByColleagueId: colleagueId,
+    syncRunId: data.syncRunId ?? null,
+    colleagueId,
     createdAt: now,
     updatedAt: now,
   };
@@ -169,6 +171,7 @@ export async function updateActivity(
     gmailId?: string | null;
     frontId?: string | null;
     frontConversationId?: string | null;
+    syncRunId?: string | null;
   },
 ) {
   const existing = await db.query.activities.findFirst({
@@ -193,6 +196,7 @@ export async function updateActivity(
   if (data.gmailId !== undefined) updateFields["gmailId"] = data.gmailId;
   if (data.frontId !== undefined) updateFields["frontId"] = data.frontId;
   if (data.frontConversationId !== undefined) updateFields["frontConversationId"] = data.frontConversationId;
+  if (data.syncRunId !== undefined) updateFields["syncRunId"] = data.syncRunId;
 
   await db.update(activities).set(updateFields).where(eq(activities.id, id));
 

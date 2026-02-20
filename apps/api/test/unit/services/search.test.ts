@@ -87,7 +87,7 @@ describe("searchD1", () => {
     const ts = now();
     await db.insert(schema.activities).values({
       id: "act-1", displayId: nextDisplayId("ACT"), type: "email", subject: "Meeting about Paris trip",
-      activityDate: ts, createdByColleagueId: "col-1", createdAt: ts, updatedAt: ts,
+      activityDate: ts, colleagueId: "col-1", createdAt: ts, updatedAt: ts,
     });
 
     const result = await searchD1(db, "Paris");

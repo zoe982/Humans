@@ -21,6 +21,7 @@ export const createActivitySchema = z
     gmailId: z.string().optional(),
     frontId: z.string().optional(),
     frontConversationId: z.string().optional(),
+    syncRunId: z.string().optional(),
   })
   .superRefine((data, ctx) => {
     if (data.type === "email" && (data.subject == null || data.subject.trim() === "")) {
@@ -51,6 +52,7 @@ export const updateActivitySchema = z.object({
   gmailId: z.string().optional(),
   frontId: z.string().optional(),
   frontConversationId: z.string().optional(),
+  syncRunId: z.string().optional(),
 });
 
 export type CreateActivityInput = z.infer<typeof createActivitySchema>;

@@ -162,13 +162,13 @@ describe("getAccountDetail", () => {
     // Direct activity on account
     await db.insert(schema.activities).values({
       id: "act-1", displayId: nextDisplayId("ACT"), type: "email", subject: "Account Meeting", activityDate: ts,
-      accountId: "acc-1", createdByColleagueId: "col-1", createdAt: ts, updatedAt: ts,
+      accountId: "acc-1", colleagueId: "col-1", createdAt: ts, updatedAt: ts,
     });
 
     // Activity on linked human
     await db.insert(schema.activities).values({
       id: "act-2", displayId: nextDisplayId("ACT"), type: "call", subject: "Follow-up", activityDate: ts,
-      humanId: "h-1", createdByColleagueId: "col-1", createdAt: ts, updatedAt: ts,
+      humanId: "h-1", colleagueId: "col-1", createdAt: ts, updatedAt: ts,
     });
 
     const result = await getAccountDetail(db, "acc-1");
