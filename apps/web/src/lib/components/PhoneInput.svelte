@@ -75,7 +75,13 @@
   }
 </script>
 
-<div class="relative">
+<div class="relative" onfocusout={(e) => {
+  if (!(e.currentTarget as HTMLElement).contains(e.relatedTarget as Node)) {
+    showDropdown = false;
+    codeSearch = "";
+    highlightIndex = -1;
+  }
+}}>
   <input type="hidden" {name} value={combinedValue} />
   <div class="flex gap-1">
     <button
@@ -85,7 +91,6 @@
       aria-haspopup="listbox"
       class="glass-input mt-1 flex items-center gap-1 px-2 py-1.5 text-sm whitespace-nowrap shrink-0"
       onclick={() => { showDropdown = !showDropdown; highlightIndex = -1; }}
-      onblur={() => { setTimeout(() => { showDropdown = false; codeSearch = ""; highlightIndex = -1; }, 200); }}
     >
       <span>{selectedCode.flag}</span>
       <span class="text-text-secondary">{selectedCode.dialCode}</span>
@@ -109,7 +114,6 @@
           autocomplete="off"
           aria-label="Search countries"
           class="glass-input block w-full text-sm"
-          onfocus={(e) => { e.stopPropagation(); }}
           oninput={() => { highlightIndex = -1; }}
           onkeydown={handleDropdownKeydown}
         />

@@ -1,6 +1,6 @@
 <script lang="ts">
   import PageHeader from "$lib/components/PageHeader.svelte";
-  import { Users, Building2, ClipboardList, AlertTriangle } from "lucide-svelte";
+  import { Users, Building2, ClipboardList, AlertTriangle, RefreshCw } from "lucide-svelte";
 </script>
 
 <svelte:head>
@@ -56,6 +56,18 @@
         <div>
           <h2 class="text-lg font-semibold text-text-primary">Error Log</h2>
           <p class="mt-1 text-sm text-text-secondary">View recent API errors with codes, request IDs, and stack traces.</p>
+        </div>
+      </div>
+    </a>
+
+    <a href="/admin/front-sync" class="glass-card p-6 hover:bg-glass-hover transition-colors group">
+      <div class="flex items-start gap-4">
+        <div class="rounded-lg bg-accent-dim p-3 text-accent">
+          <RefreshCw size={24} />
+        </div>
+        <div>
+          <h2 class="text-lg font-semibold text-text-primary">Front Sync</h2>
+          <p class="mt-1 text-sm text-text-secondary">Import conversations from Front.com as activities.</p>
         </div>
       </div>
     </a>
