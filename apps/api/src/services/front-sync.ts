@@ -1,4 +1,3 @@
-import { eq } from "drizzle-orm";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { activities, emails, phones } from "@humans/db/schema";
 import { createId } from "@humans/db";
@@ -75,8 +74,10 @@ async function matchByEmail(
     .select("id")
     .ilike("email", lowerEmail)
     .limit(1);
-  if (signups && signups.length > 0) {
-    return { ...noMatch, routeSignupId: signups[0].id, matchedEntity: `signup:${signups[0].id}` };
+  const signup = signups?.[0];
+  if (signup) {
+    const sid = signup["id"] as string;
+    return { ...noMatch, routeSignupId: sid, matchedEntity: `signup:${sid}` };
   }
 
   // 3. Check Supabase bookings
@@ -85,8 +86,10 @@ async function matchByEmail(
     .select("id")
     .or(`client_email.ilike.${lowerEmail},email_for_notifications.ilike.${lowerEmail}`)
     .limit(1);
-  if (bookings && bookings.length > 0) {
-    return { ...noMatch, websiteBookingRequestId: bookings[0].id, matchedEntity: `booking:${bookings[0].id}` };
+  const booking = bookings?.[0];
+  if (booking) {
+    const bid = booking["id"] as string;
+    return { ...noMatch, websiteBookingRequestId: bid, matchedEntity: `booking:${bid}` };
   }
 
   return noMatch;
@@ -113,14 +116,15 @@ async function matchByPhone(
     .from("bookings")
     .select("id, phone_number, alt_whatsapp_phone_number");
   if (bookings) {
-    const match = bookings.find((b: Record<string, unknown>) => {
-      const phone = b.phone_number as string | null;
-      const alt = b.alt_whatsapp_phone_number as string | null;
+    const matched = bookings.find((b) => {
+      const phone = b["phone_number"] as string | null;
+      const alt = b["alt_whatsapp_phone_number"] as string | null;
       return (phone && normalizePhone(phone).slice(-9) === suffix) ||
              (alt && normalizePhone(alt).slice(-9) === suffix);
     });
-    if (match) {
-      return { ...noMatch, websiteBookingRequestId: (match as Record<string, unknown>).id as string, matchedEntity: `booking:${(match as Record<string, unknown>).id}` };
+    if (matched) {
+      const bid = matched["id"] as string;
+      return { ...noMatch, websiteBookingRequestId: bid, matchedEntity: `booking:${bid}` };
     }
   }
 
@@ -155,11 +159,6 @@ interface FrontPagination {
   next?: string | null;
 }
 
-interface FrontRecipient {
-  handle: string;
-  role: string;
-}
-
 interface FrontMessage {
   id: string;
   type: string;
@@ -170,7 +169,7 @@ interface FrontMessage {
   body: string;
   text: string;
   author?: { handle: string; name?: string };
-  recipients: FrontRecipient[];
+  recipients: { handle: string; role: string }[];
 }
 
 interface FrontConversation {
@@ -242,19 +241,11 @@ export async function syncFrontConversations(
         _pagination: FrontPagination;
       }>(messagesUrl, frontToken);
 
-      // Determine the contact handle and channel from the conversation
+      // Determine the contact handle from the conversation
       const contactHandle = conversation.recipient?.handle ?? "";
 
-      // Get channel ID from the first message's recipients to classify the channel
-      const firstMsg = msgResponse._results[0];
-      let channelId: string | undefined;
-      if (firstMsg) {
-        // Front messages don't directly expose channel_id, so we classify by handle pattern
-        // and fall back to our known channel sets
-        channelId = undefined; // We'll rely on handle-based classification
-      }
-
-      const activityType = classifyChannel(channelId, contactHandle);
+      // Classify by handle pattern (Front custom channels don't expose channel_id on messages)
+      const activityType = classifyChannel(undefined, contactHandle);
 
       // Match contact
       const match = await matchContact(db, supabase, contactHandle, activityType);

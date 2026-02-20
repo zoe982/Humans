@@ -242,41 +242,86 @@
     {#if routeInterest.expressions.length === 0 && !showAddForm}
       <p class="text-text-muted text-sm">No expressions yet.</p>
     {:else}
-      <div class="space-y-2">
+      <!-- Mobile card view -->
+      <div class="sm:hidden space-y-2">
         {#each routeInterest.expressions as expr (expr.id)}
-          <div class="flex items-center justify-between p-3 rounded-lg bg-glass hover:bg-glass-hover transition-colors">
-            <div class="flex-1">
-              <div class="flex items-center gap-3 flex-wrap">
+          <div class="p-3 rounded-lg bg-glass hover:bg-glass-hover transition-colors">
+            <div class="flex items-center justify-between mb-1">
+              <a href="/route-interests/expressions/{expr.id}" class="font-mono text-xs text-accent hover:text-cyan-300">{expr.displayId}</a>
+              <span class="glass-badge inline-flex rounded-full px-2 py-0.5 text-xs font-medium {expr.frequency === 'repeat' ? 'bg-[rgba(168,85,247,0.15)] text-purple-300' : 'bg-glass text-text-secondary'}">
+                {expr.frequency === "repeat" ? "Repeat" : "One-time"}
+              </span>
+            </div>
+            <div class="flex items-center justify-between">
+              <div>
                 {#if expr.humanName}
-                  <a href="/humans/{expr.humanId}" class="text-sm font-medium text-accent hover:text-cyan-300">
-                    {expr.humanName}
-                  </a>
+                  <a href="/humans/{expr.humanId}" class="text-sm font-medium text-accent hover:text-cyan-300">{expr.humanName}</a>
                 {:else}
                   <span class="text-sm text-text-muted">Unknown human</span>
                 {/if}
-                <span class="glass-badge inline-flex rounded-full px-2 py-0.5 text-xs font-medium {expr.frequency === 'repeat' ? 'bg-[rgba(168,85,247,0.15)] text-purple-300' : 'bg-glass text-text-secondary'}">
-                  {expr.frequency === "repeat" ? "Repeat" : "One-time"}
-                </span>
                 {#if formatTravelDate(expr)}
-                  <span class="text-xs text-text-muted">Travel: {formatTravelDate(expr)}</span>
-                {/if}
-                {#if expr.activitySubject}
-                  <span class="text-xs text-text-muted">via activity: {expr.activitySubject}</span>
+                  <span class="text-xs text-text-muted ml-2">Travel: {formatTravelDate(expr)}</span>
                 {/if}
               </div>
-              {#if expr.notes}
-                <p class="mt-1 text-sm text-text-secondary">{expr.notes}</p>
-              {/if}
-              <p class="mt-1 text-xs text-text-muted">{new Date(expr.createdAt).toLocaleDateString()}</p>
+              <form method="POST" action="?/deleteExpression">
+                <input type="hidden" name="expressionId" value={expr.id} />
+                <button type="submit" class="text-red-400 hover:text-red-300 text-xs">Remove</button>
+              </form>
             </div>
-            <form method="POST" action="?/deleteExpression">
-              <input type="hidden" name="expressionId" value={expr.id} />
-              <button type="submit" class="text-red-400 hover:text-red-300 text-sm ml-3">
-                Remove
-              </button>
-            </form>
+            {#if expr.notes}
+              <p class="mt-1 text-sm text-text-secondary">{expr.notes}</p>
+            {/if}
           </div>
         {/each}
+      </div>
+
+      <!-- Desktop table view -->
+      <div class="hidden sm:block overflow-x-auto -mx-5">
+        <table class="min-w-full">
+          <thead class="glass-thead">
+            <tr>
+              <th scope="col">ID</th>
+              <th scope="col">Human</th>
+              <th scope="col">Frequency</th>
+              <th scope="col">Travel Date</th>
+              <th scope="col">Activity</th>
+              <th scope="col">Notes</th>
+              <th scope="col">Created</th>
+              <th scope="col"></th>
+            </tr>
+          </thead>
+          <tbody>
+            {#each routeInterest.expressions as expr (expr.id)}
+              <tr class="glass-row-hover">
+                <td class="font-mono text-sm">
+                  <a href="/route-interests/expressions/{expr.id}" class="text-accent hover:text-cyan-300">{expr.displayId}</a>
+                </td>
+                <td>
+                  {#if expr.humanName}
+                    <a href="/humans/{expr.humanId}" class="text-accent hover:text-cyan-300">{expr.humanName}</a>
+                  {:else}
+                    <span class="text-text-muted">Unknown</span>
+                  {/if}
+                </td>
+                <td>
+                  <span class="glass-badge inline-flex rounded-full px-2 py-0.5 text-xs font-medium {expr.frequency === 'repeat' ? 'bg-[rgba(168,85,247,0.15)] text-purple-300' : 'bg-glass text-text-secondary'}">
+                    {expr.frequency === "repeat" ? "Repeat" : "One-time"}
+                  </span>
+                </td>
+                <td class="text-text-muted text-sm">{formatTravelDate(expr) || "\u2014"}</td>
+                <td class="text-sm text-text-secondary">{expr.activitySubject ?? "\u2014"}</td>
+                <td class="text-sm text-text-secondary max-w-[200px] truncate">{expr.notes ?? "\u2014"}</td>
+                <td class="text-text-muted text-sm">{new Date(expr.createdAt).toLocaleDateString()}</td>
+                <td>
+                  <form method="POST" action="?/deleteExpression">
+                    <input type="hidden" name="expressionId" value={expr.id} />
+                    <button type="submit" class="text-red-400 hover:text-red-300 text-sm">Remove</button>
+                  </form>
+                </td>
+              </tr>
+            {/each}
+          </tbody>
+        </table>
       </div>
     {/if}
   </div>

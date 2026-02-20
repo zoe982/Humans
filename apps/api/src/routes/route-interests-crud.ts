@@ -12,6 +12,7 @@ import {
   createRouteInterest,
   deleteRouteInterest,
   listRouteInterestExpressions,
+  getRouteInterestExpressionDetail,
   createRouteInterestExpression,
   updateRouteInterestExpression,
   deleteRouteInterestExpression,
@@ -63,6 +64,12 @@ routeInterestRoutes.get("/api/route-interest-expressions", requirePermission("vi
     routeInterestId: c.req.query("routeInterestId"),
     activityId: c.req.query("activityId"),
   });
+  return c.json({ data });
+});
+
+// Get single expression with details
+routeInterestRoutes.get("/api/route-interest-expressions/:id", requirePermission("viewRecords"), async (c) => {
+  const data = await getRouteInterestExpressionDetail(c.get("db"), c.req.param("id"));
   return c.json({ data });
 });
 

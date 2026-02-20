@@ -239,6 +239,33 @@ export async function createRouteInterestExpression(
   return expression;
 }
 
+export async function getRouteInterestExpressionDetail(db: DB, id: string) {
+  const expr = await db.query.routeInterestExpressions.findFirst({
+    where: eq(routeInterestExpressions.id, id),
+  });
+  if (expr == null) {
+    throw notFound(ERROR_CODES.ROUTE_EXPRESSION_NOT_FOUND, "Route interest expression not found");
+  }
+
+  const [ri, human, activity] = await Promise.all([
+    db.query.routeInterests.findFirst({ where: eq(routeInterests.id, expr.routeInterestId) }),
+    db.query.humans.findFirst({ where: eq(humans.id, expr.humanId) }),
+    expr.activityId ? db.query.activities.findFirst({ where: eq(activities.id, expr.activityId) }) : null,
+  ]);
+
+  return {
+    ...expr,
+    humanName: human ? `${human.firstName} ${human.lastName}` : null,
+    humanDisplayId: human?.displayId ?? null,
+    originCity: ri?.originCity ?? null,
+    originCountry: ri?.originCountry ?? null,
+    destinationCity: ri?.destinationCity ?? null,
+    destinationCountry: ri?.destinationCountry ?? null,
+    routeDisplayId: ri?.displayId ?? null,
+    activitySubject: activity?.subject ?? null,
+  };
+}
+
 export async function updateRouteInterestExpression(
   db: DB,
   id: string,
