@@ -19,12 +19,12 @@
     "mode-watcher": "^0.5.0"
   },
   "devDependencies": {
-    "@sveltejs/adapter-cloudflare": "^4.8.2",
+    "@sveltejs/adapter-cloudflare": "^7.2.8",
     "@sveltejs/kit": "^2.15.2",
     "@sveltejs/vite-plugin-svelte": "^5.0.3",
     "@tailwindcss/vite": "^4.0.0",
-    "@testing-library/svelte": "^5.2.0",
     "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/svelte": "^5.2.0",
     "@vitest/coverage-istanbul": "~2.1.8",
     "happy-dom": "^16.0.0",
     "svelte": "^5.16.6",
