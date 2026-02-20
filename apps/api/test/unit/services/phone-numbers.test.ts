@@ -13,10 +13,14 @@ function now() {
   return new Date().toISOString();
 }
 
+let seedCounter = 0;
+
 async function seedHuman(db: ReturnType<typeof getTestDb>, id = "h-1", first = "John", last = "Doe") {
+  seedCounter++;
   const ts = now();
   await db.insert(schema.humans).values({
     id,
+    displayId: `HUM-${String(seedCounter).padStart(6, "0")}`,
     firstName: first,
     lastName: last,
     status: "open",
@@ -29,13 +33,16 @@ async function seedHuman(db: ReturnType<typeof getTestDb>, id = "h-1", first = "
 async function seedPhone(
   db: ReturnType<typeof getTestDb>,
   id = "ph-1",
-  humanId = "h-1",
+  ownerId = "h-1",
   phoneNumber = "+1234567890",
 ) {
+  seedCounter++;
   const ts = now();
-  await db.insert(schema.humanPhoneNumbers).values({
+  await db.insert(schema.phones).values({
     id,
-    humanId,
+    displayId: `FON-${String(seedCounter).padStart(6, "0")}`,
+    ownerType: "human",
+    ownerId,
     phoneNumber,
     hasWhatsapp: false,
     isPrimary: true,
@@ -59,7 +66,7 @@ describe("listPhoneNumbers", () => {
     const result = await listPhoneNumbers(db);
     expect(result).toHaveLength(1);
     expect(result[0]!.phoneNumber).toBe("+1111111111");
-    expect(result[0]!.humanName).toBe("Alice Smith");
+    expect(result[0]!.ownerName).toBe("Alice Smith");
   });
 
   it("returns multiple phone numbers across different humans", async () => {
@@ -72,10 +79,10 @@ describe("listPhoneNumbers", () => {
     const result = await listPhoneNumbers(db);
     expect(result).toHaveLength(2);
 
-    const alice = result.find((p) => p.humanId === "h-1");
-    const bob = result.find((p) => p.humanId === "h-2");
-    expect(alice!.humanName).toBe("Alice Smith");
-    expect(bob!.humanName).toBe("Bob Jones");
+    const alice = result.find((p) => p.ownerId === "h-1");
+    const bob = result.find((p) => p.ownerId === "h-2");
+    expect(alice!.ownerName).toBe("Alice Smith");
+    expect(bob!.ownerName).toBe("Bob Jones");
   });
 });
 
@@ -110,13 +117,14 @@ describe("createPhoneNumber", () => {
     });
 
     expect(result.id).toBeDefined();
-    expect(result.humanId).toBe("h-1");
+    expect(result.ownerId).toBe("h-1");
+    expect(result.ownerType).toBe("human");
     expect(result.phoneNumber).toBe("+9876543210");
     expect(result.hasWhatsapp).toBe(false);
     expect(result.isPrimary).toBe(false);
     expect(result.labelId).toBeNull();
 
-    const rows = await db.select().from(schema.humanPhoneNumbers);
+    const rows = await db.select().from(schema.phones);
     expect(rows).toHaveLength(1);
   });
 
@@ -174,7 +182,7 @@ describe("deletePhoneNumber", () => {
 
     await deletePhoneNumber(db, "ph-1");
 
-    const rows = await db.select().from(schema.humanPhoneNumbers);
+    const rows = await db.select().from(schema.phones);
     expect(rows).toHaveLength(0);
   });
 });

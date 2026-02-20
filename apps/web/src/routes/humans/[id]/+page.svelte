@@ -204,7 +204,7 @@
 </script>
 
 <svelte:head>
-  <title>{human.firstName} {human.lastName} - Humans CRM</title>
+  <title>{human.displayId} — {human.firstName} {human.lastName} - Humans CRM</title>
 </svelte:head>
 
 <div class="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8">
@@ -212,7 +212,7 @@
   <RecordManagementBar
     backHref="/humans"
     backLabel="Humans"
-    title="{human.firstName} {human.middleName ?? ''} {human.lastName}"
+    title="{human.displayId} — {human.firstName} {human.middleName ?? ''} {human.lastName}"
     status={human.status}
     statusOptions={["open", "active", "closed"]}
     {statusColorMap}

@@ -1,12 +1,5 @@
 export { colleagues, roles, type Role } from "./colleagues";
-export { clients, clientStatuses, type ClientStatus } from "./clients";
 export { pets } from "./pets";
-export { flights, flightStatuses, type FlightStatus } from "./flights";
-export {
-  flightBookings,
-  bookingStatuses,
-  type BookingStatus,
-} from "./flight-bookings";
 export {
   leadSources,
   leadSourceCategories,
@@ -15,7 +8,8 @@ export {
 export { leadEvents, leadEventTypes, type LeadEventType } from "./lead-events";
 export { auditLog } from "./audit-log";
 export { humans, humanStatuses, type HumanStatus } from "./humans";
-export { humanEmails } from "./human-emails";
+export { emails, emailOwnerTypes, type EmailOwnerType } from "./emails";
+export { emailLabelsConfig } from "./email-labels-config";
 export {
   humanTypes,
   humanTypeValues,
@@ -27,7 +21,8 @@ export {
   activityTypeValues,
   type ActivityType,
 } from "./activities";
-export { humanPhoneNumbers } from "./human-phone-numbers";
+export { phones, phoneOwnerTypes, type PhoneOwnerType } from "./phones";
+export { phoneLabelsConfig } from "./phone-labels-config";
 export { geoInterests } from "./geo-interests";
 export { geoInterestExpressions } from "./geo-interest-expressions";
 export { accounts, accountStatuses, type AccountStatus } from "./accounts";
@@ -35,10 +30,5 @@ export { accountTypesConfig } from "./account-types-config";
 export { accountTypes } from "./account-types";
 export { accountHumanLabelsConfig } from "./account-human-labels-config";
 export { accountHumans } from "./account-humans";
-export { accountEmailLabelsConfig } from "./account-email-labels-config";
-export { accountEmails } from "./account-emails";
-export { accountPhoneLabelsConfig } from "./account-phone-labels-config";
-export { accountPhoneNumbers } from "./account-phone-numbers";
-export { humanEmailLabelsConfig } from "./human-email-labels-config";
-export { humanPhoneLabelsConfig } from "./human-phone-labels-config";
+export { displayIdCounters } from "./display-id-counters";
 export { errorLog } from "./error-log";

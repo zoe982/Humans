@@ -5,6 +5,7 @@ export type Role = (typeof roles)[number];
 
 export const colleagues = sqliteTable("colleagues", {
   id: text("id").primaryKey(),
+  displayId: text("display_id").notNull().unique(),
   email: text("email").notNull().unique(),
   firstName: text("first_name").notNull(),
   middleNames: text("middle_names"),

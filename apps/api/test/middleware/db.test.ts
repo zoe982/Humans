@@ -7,7 +7,7 @@ describe("db middleware", () => {
   it("sets drizzle instance enabling database operations", async () => {
     const { token } = await createUserAndSession("agent");
     // If db middleware didn't work, any route touching the DB would fail.
-    // clients list is the simplest route that hits the DB.
+    // humans list is the simplest route that hits the DB.
     const res = await SELF.fetch("http://localhost/api/humans", {
       headers: { Cookie: sessionCookie(token) },
     });

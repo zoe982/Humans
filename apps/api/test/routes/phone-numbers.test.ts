@@ -25,17 +25,17 @@ describe("GET /api/phone-numbers", () => {
     const db = getDb();
     const human = buildHuman({ firstName: "Alice", lastName: "Smith" });
     await db.insert(schema.humans).values(human);
-    const phone = buildPhoneNumber({ humanId: human.id, phoneNumber: "+15551234567" });
-    await db.insert(schema.humanPhoneNumbers).values(phone);
+    const phone = buildPhoneNumber({ ownerType: "human", ownerId: human.id, phoneNumber: "+15551234567" });
+    await db.insert(schema.phones).values(phone);
 
     const { token } = await createUserAndSession("agent");
     const res = await SELF.fetch("http://localhost/api/phone-numbers", {
       headers: { Cookie: sessionCookie(token) },
     });
     expect(res.status).toBe(200);
-    const body = (await res.json()) as { data: { phoneNumber: string; humanName: string }[] };
+    const body = (await res.json()) as { data: { phoneNumber: string; ownerName: string }[] };
     expect(body.data).toHaveLength(1);
-    expect(body.data[0].humanName).toBe("Alice Smith");
+    expect(body.data[0].ownerName).toBe("Alice Smith");
   });
 });
 
@@ -62,9 +62,10 @@ describe("POST /api/phone-numbers", () => {
       body: JSON.stringify({ humanId: human.id, phoneNumber: "+15559876543" }),
     });
     expect(res.status).toBe(201);
-    const body = (await res.json()) as { data: { phoneNumber: string; humanId: string } };
+    const body = (await res.json()) as { data: { phoneNumber: string; ownerId: string; ownerType: string } };
     expect(body.data.phoneNumber).toBe("+15559876543");
-    expect(body.data.humanId).toBe(human.id);
+    expect(body.data.ownerId).toBe(human.id);
+    expect(body.data.ownerType).toBe("human");
   });
 
   it("returns 400 for missing phone number", async () => {
@@ -97,8 +98,8 @@ describe("PATCH /api/phone-numbers/:id", () => {
     const db = getDb();
     const human = buildHuman();
     await db.insert(schema.humans).values(human);
-    const phone = buildPhoneNumber({ humanId: human.id, phoneNumber: "+15551111111" });
-    await db.insert(schema.humanPhoneNumbers).values(phone);
+    const phone = buildPhoneNumber({ ownerType: "human", ownerId: human.id, phoneNumber: "+15551111111" });
+    await db.insert(schema.phones).values(phone);
 
     const { token } = await createUserAndSession("agent");
     const res = await SELF.fetch(`http://localhost/api/phone-numbers/${phone.id}`, {
@@ -126,8 +127,8 @@ describe("DELETE /api/phone-numbers/:id", () => {
     const db = getDb();
     const human = buildHuman();
     await db.insert(schema.humans).values(human);
-    const phone = buildPhoneNumber({ humanId: human.id, phoneNumber: "+15553333333" });
-    await db.insert(schema.humanPhoneNumbers).values(phone);
+    const phone = buildPhoneNumber({ ownerType: "human", ownerId: human.id, phoneNumber: "+15553333333" });
+    await db.insert(schema.phones).values(phone);
 
     const { token } = await createUserAndSession("agent");
     const res = await SELF.fetch(`http://localhost/api/phone-numbers/${phone.id}`, {

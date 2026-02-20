@@ -6,6 +6,7 @@
 
   type Expression = {
     id: string;
+    displayId: string;
     humanId: string;
     geoInterestId: string;
     activityId: string | null;
@@ -31,6 +32,7 @@
     <table class="min-w-full">
       <thead class="glass-thead">
         <tr>
+          <th>ID</th>
           <th>Human</th>
           <th>City / Country</th>
           <th>Activity</th>
@@ -41,6 +43,7 @@
       <tbody>
         {#each expressions as expr (expr.id)}
           <tr class="glass-row-hover">
+            <td class="font-mono text-sm text-text-muted">{expr.displayId}</td>
             <td class="font-medium">
               <a href="/humans/{expr.humanId}" class="text-accent hover:text-cyan-300">{expr.humanName ?? "—"}</a>
             </td>
@@ -61,7 +64,7 @@
           </tr>
         {:else}
           <tr>
-            <td colspan="5" class="px-6 py-8 text-center text-sm text-text-muted">No expressions found.</td>
+            <td colspan="6" class="px-6 py-8 text-center text-sm text-text-muted">No expressions found.</td>
           </tr>
         {/each}
       </tbody>

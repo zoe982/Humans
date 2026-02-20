@@ -1,23 +1,24 @@
 import { eq, sql, inArray, desc } from "drizzle-orm";
 import {
   humans,
-  humanEmails,
+  emails,
   humanTypes,
   humanRouteSignups,
-  humanPhoneNumbers,
+  phones,
   pets,
   geoInterestExpressions,
   geoInterests,
   accountHumans,
   accounts,
   accountHumanLabelsConfig,
-  humanEmailLabelsConfig,
-  humanPhoneLabelsConfig,
+  emailLabelsConfig,
+  phoneLabelsConfig,
 } from "@humans/db/schema";
 import { createId } from "@humans/db";
 import { ERROR_CODES } from "@humans/shared";
 import { computeDiff, logAuditEntry } from "../lib/audit";
 import { notFound } from "../lib/errors";
+import { nextDisplayId } from "../lib/display-id";
 import type { DB } from "./types";
 
 export async function listHumans(db: DB, page: number, limit: number) {
@@ -36,7 +37,7 @@ export async function listHumans(db: DB, page: number, limit: number) {
   const humanIds = pagedHumans.map((h) => h.id);
 
   const relatedEmails = humanIds.length > 0
-    ? await db.select().from(humanEmails).where(inArray(humanEmails.humanId, humanIds))
+    ? await db.select().from(emails).where(inArray(emails.ownerId, humanIds))
     : [];
   const relatedTypes = humanIds.length > 0
     ? await db.select().from(humanTypes).where(inArray(humanTypes.humanId, humanIds))
@@ -44,7 +45,7 @@ export async function listHumans(db: DB, page: number, limit: number) {
 
   const data = pagedHumans.map((h) => ({
     ...h,
-    emails: relatedEmails.filter((e) => e.humanId === h.id),
+    emails: relatedEmails.filter((e) => e.ownerType === "human" && e.ownerId === h.id),
     types: relatedTypes.filter((t) => t.humanId === h.id).map((t) => t.type),
   }));
 
@@ -59,16 +60,16 @@ export async function getHumanDetail(db: DB, humanId: string) {
     throw notFound(ERROR_CODES.HUMAN_NOT_FOUND, "Human not found");
   }
 
-  const [emails, types, linkedSignups, phoneNumbers, humanPets, geoExpressions, linkedAccountRows, emailLabelConfigs, phoneLabelConfigs] = await Promise.all([
-    db.select().from(humanEmails).where(eq(humanEmails.humanId, human.id)),
+  const [humanEmails, types, linkedSignups, humanPhones, humanPets, geoExpressions, linkedAccountRows, emailLabelConfigs, phoneLabelConfigs] = await Promise.all([
+    db.select().from(emails).where(eq(emails.ownerId, human.id)),
     db.select().from(humanTypes).where(eq(humanTypes.humanId, human.id)),
     db.select().from(humanRouteSignups).where(eq(humanRouteSignups.humanId, human.id)),
-    db.select().from(humanPhoneNumbers).where(eq(humanPhoneNumbers.humanId, human.id)),
+    db.select().from(phones).where(eq(phones.ownerId, human.id)),
     db.select().from(pets).where(eq(pets.humanId, human.id)),
     db.select().from(geoInterestExpressions).where(eq(geoInterestExpressions.humanId, human.id)),
     db.select().from(accountHumans).where(eq(accountHumans.humanId, human.id)),
-    db.select().from(humanEmailLabelsConfig),
-    db.select().from(humanPhoneLabelsConfig),
+    db.select().from(emailLabelsConfig),
+    db.select().from(phoneLabelsConfig),
   ]);
 
   const allGeoInterests = geoExpressions.length > 0
@@ -102,14 +103,18 @@ export async function getHumanDetail(db: DB, humanId: string) {
     });
   }
 
-  const emailsWithLabels = emails.map((e) => {
-    const label = e.labelId ? emailLabelConfigs.find((l) => l.id === e.labelId) : null;
-    return { ...e, labelName: label?.name ?? null };
-  });
-  const phoneNumbersWithLabels = phoneNumbers.map((p) => {
-    const label = p.labelId ? phoneLabelConfigs.find((l) => l.id === p.labelId) : null;
-    return { ...p, labelName: label?.name ?? null };
-  });
+  const emailsWithLabels = humanEmails
+    .filter((e) => e.ownerType === "human")
+    .map((e) => {
+      const label = e.labelId ? emailLabelConfigs.find((l) => l.id === e.labelId) : null;
+      return { ...e, labelName: label?.name ?? null };
+    });
+  const phoneNumbersWithLabels = humanPhones
+    .filter((p) => p.ownerType === "human")
+    .map((p) => {
+      const label = p.labelId ? phoneLabelConfigs.find((l) => l.id === p.labelId) : null;
+      return { ...p, labelName: label?.name ?? null };
+    });
 
   return {
     ...human,
@@ -129,9 +134,11 @@ export async function createHuman(
 ) {
   const now = new Date().toISOString();
   const humanId = createId();
+  const displayId = await nextDisplayId(db, "HUM");
 
   await db.insert(humans).values({
     id: humanId,
+    displayId,
     firstName: data.firstName,
     middleName: data.middleName ?? null,
     lastName: data.lastName,
@@ -141,9 +148,12 @@ export async function createHuman(
   });
 
   for (const email of data.emails) {
-    await db.insert(humanEmails).values({
+    const emailDisplayId = await nextDisplayId(db, "EML");
+    await db.insert(emails).values({
       id: createId(),
-      humanId,
+      displayId: emailDisplayId,
+      ownerType: "human",
+      ownerId: humanId,
       email: email.email,
       labelId: email.labelId ?? null,
       isPrimary: email.isPrimary ?? false,
@@ -160,7 +170,7 @@ export async function createHuman(
     });
   }
 
-  return { id: humanId };
+  return { id: humanId, displayId };
 }
 
 export async function updateHuman(
@@ -197,11 +207,14 @@ export async function updateHuman(
   await db.update(humans).set(updateFields).where(eq(humans.id, id));
 
   if (data.emails) {
-    await db.delete(humanEmails).where(eq(humanEmails.humanId, id));
+    await db.delete(emails).where(eq(emails.ownerId, id));
     for (const email of data.emails) {
-      await db.insert(humanEmails).values({
+      const emailDisplayId = await nextDisplayId(db, "EML");
+      await db.insert(emails).values({
         id: createId(),
-        humanId: id,
+        displayId: emailDisplayId,
+        ownerType: "human",
+        ownerId: id,
         email: email.email,
         labelId: email.labelId ?? null,
         isPrimary: email.isPrimary ?? false,
@@ -287,10 +300,10 @@ export async function deleteHuman(db: DB, id: string) {
     throw notFound(ERROR_CODES.HUMAN_NOT_FOUND, "Human not found");
   }
 
-  await db.delete(humanEmails).where(eq(humanEmails.humanId, id));
+  await db.delete(emails).where(eq(emails.ownerId, id));
   await db.delete(humanTypes).where(eq(humanTypes.humanId, id));
   await db.delete(humanRouteSignups).where(eq(humanRouteSignups.humanId, id));
-  await db.delete(humanPhoneNumbers).where(eq(humanPhoneNumbers.humanId, id));
+  await db.delete(phones).where(eq(phones.ownerId, id));
   await db.delete(pets).where(eq(pets.humanId, id));
   await db.delete(geoInterestExpressions).where(eq(geoInterestExpressions.humanId, id));
   await db.delete(accountHumans).where(eq(accountHumans.humanId, id));

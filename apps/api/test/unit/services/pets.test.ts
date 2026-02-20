@@ -13,10 +13,14 @@ function now() {
   return new Date().toISOString();
 }
 
+let seedCounter = 0;
+
 async function seedHuman(db: ReturnType<typeof getTestDb>, id = "h-1", first = "John", last = "Doe") {
+  seedCounter++;
   const ts = now();
   await db.insert(schema.humans).values({
     id,
+    displayId: `HUM-${String(seedCounter).padStart(6, "0")}`,
     firstName: first,
     lastName: last,
     status: "open",
@@ -32,11 +36,12 @@ async function seedPet(
   humanId = "h-1",
   name = "Buddy",
 ) {
+  seedCounter++;
   const ts = now();
   await db.insert(schema.pets).values({
     id,
+    displayId: `PET-${String(seedCounter).padStart(6, "0")}`,
     humanId,
-    clientId: null,
     name,
     breed: "Labrador",
     weight: 30,

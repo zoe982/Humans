@@ -11,6 +11,7 @@
 
   type Signup = {
     id: string;
+    display_id: string | null;
     first_name: string | null;
     middle_name: string | null;
     last_name: string | null;
@@ -58,6 +59,9 @@
   <div class="sm:hidden space-y-3">
     {#each signups as signup (signup.id)}
       <a href="/leads/route-signups/{signup.id}" class="glass-card p-4 block hover:ring-1 hover:ring-accent/40 transition">
+        {#if signup.display_id}
+          <span class="font-mono text-xs text-text-muted">{signup.display_id}</span>
+        {/if}
         <div class="flex items-center justify-between mb-2">
           <span class="font-medium text-accent">{displayName(signup)}</span>
           <StatusBadge status={signupStatusLabels[signup.status ?? ""] ?? signup.status ?? "—"} colorMap={{
@@ -92,6 +96,7 @@
     <table class="min-w-full">
       <thead class="glass-thead">
         <tr>
+          <th scope="col">ID</th>
           <th scope="col">Name</th>
           <th scope="col">Email</th>
           <th scope="col">Origin</th>
@@ -106,6 +111,9 @@
       <tbody>
         {#each signups as signup (signup.id)}
           <tr class="glass-row-hover">
+            <td class="font-mono text-sm">
+              <a href="/leads/route-signups/{signup.id}" class="text-accent hover:text-cyan-300">{signup.display_id ?? "—"}</a>
+            </td>
             <td class="font-medium">
               <a href="/leads/route-signups/{signup.id}" class="text-accent hover:text-cyan-300">{displayName(signup)}</a>
             </td>
@@ -129,7 +137,7 @@
           </tr>
         {:else}
           <tr>
-            <td colspan={data.userRole === "admin" ? 7 : 6} class="px-6 py-8 text-center text-sm text-text-muted">No route signups found.</td>
+            <td colspan={data.userRole === "admin" ? 8 : 7} class="px-6 py-8 text-center text-sm text-text-muted">No route signups found.</td>
           </tr>
         {/each}
       </tbody>

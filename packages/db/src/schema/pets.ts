@@ -1,11 +1,9 @@
 import { sqliteTable, text, integer, real } from "drizzle-orm/sqlite-core";
-import { clients } from "./clients";
 import { humans } from "./humans";
 
 export const pets = sqliteTable("pets", {
   id: text("id").primaryKey(),
-  clientId: text("client_id")
-    .references(() => clients.id),
+  displayId: text("display_id").notNull().unique(),
   humanId: text("human_id")
     .references(() => humans.id),
   name: text("name").notNull(),

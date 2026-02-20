@@ -3,7 +3,7 @@ import { SELF } from "cloudflare:test";
 import { describe, it, expect } from "vitest";
 import { createUserAndSession, sessionCookie, getDb } from "../helpers";
 import * as schema from "@humans/db/schema";
-import { buildHuman, buildGeoInterest } from "@humans/test-utils";
+import { buildHuman, buildGeoInterest, nextTestDisplayId } from "@humans/test-utils";
 import { createId } from "@humans/db";
 
 describe("GET /api/geo-interests", () => {
@@ -31,6 +31,7 @@ describe("GET /api/geo-interests", () => {
     await db.insert(schema.humans).values(human);
     await db.insert(schema.geoInterestExpressions).values({
       id: createId(),
+      displayId: nextTestDisplayId("GIE"),
       humanId: human.id,
       geoInterestId: gi.id,
       activityId: null,
@@ -224,6 +225,7 @@ describe("PATCH /api/geo-interest-expressions/:id", () => {
     const expressionId = createId();
     await db.insert(schema.geoInterestExpressions).values({
       id: expressionId,
+      displayId: nextTestDisplayId("GIE"),
       humanId: human.id,
       geoInterestId: gi.id,
       activityId: null,
@@ -263,6 +265,7 @@ describe("DELETE /api/geo-interest-expressions/:id", () => {
     const expressionId = createId();
     await db.insert(schema.geoInterestExpressions).values({
       id: expressionId,
+      displayId: nextTestDisplayId("GIE"),
       humanId: human.id,
       geoInterestId: gi.id,
       activityId: null,

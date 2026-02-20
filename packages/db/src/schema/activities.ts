@@ -13,6 +13,7 @@ export type ActivityType = (typeof activityTypeValues)[number];
 
 export const activities = sqliteTable("activities", {
   id: text("id").primaryKey(),
+  displayId: text("display_id").notNull().unique(),
   type: text("type", { enum: activityTypeValues }).notNull().default("email"),
   subject: text("subject").notNull(),
   body: text("body"),

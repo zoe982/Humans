@@ -18,10 +18,17 @@ function now() {
   return new Date().toISOString();
 }
 
+let seedCounter = 0;
+function nextDisplayId(prefix: string) {
+  seedCounter++;
+  return `${prefix}-${String(seedCounter).padStart(6, "0")}`;
+}
+
 async function seedColleague(db: ReturnType<typeof getTestDb>, id = "col-1") {
   const ts = now();
   await db.insert(schema.colleagues).values({
     id,
+    displayId: nextDisplayId("COL"),
     email: `${id}@test.com`,
     firstName: "Test",
     lastName: "User",
@@ -38,6 +45,7 @@ async function seedHuman(db: ReturnType<typeof getTestDb>, id = "h-1", first = "
   const ts = now();
   await db.insert(schema.humans).values({
     id,
+    displayId: nextDisplayId("HUM"),
     firstName: first,
     lastName: last,
     status: "open",
@@ -62,8 +70,8 @@ describe("listHumans", () => {
     await seedHuman(db, "h-1", "Alice", "Smith");
     await seedHuman(db, "h-2", "Bob", "Jones");
 
-    await db.insert(schema.humanEmails).values({
-      id: "e-1", humanId: "h-1", email: "alice@test.com", isPrimary: true, createdAt: ts,
+    await db.insert(schema.emails).values({
+      id: "e-1", displayId: nextDisplayId("EML"), ownerType: "human", ownerId: "h-1", email: "alice@test.com", isPrimary: true, createdAt: ts,
     });
     await db.insert(schema.humanTypes).values({
       id: "t-1", humanId: "h-1", type: "flight_broker", createdAt: ts,
@@ -104,14 +112,14 @@ describe("getHumanDetail", () => {
     const ts = now();
     await seedHuman(db, "h-1", "Jane", "Doe");
 
-    await db.insert(schema.humanEmails).values({
-      id: "e-1", humanId: "h-1", email: "jane@test.com", isPrimary: true, createdAt: ts,
+    await db.insert(schema.emails).values({
+      id: "e-1", displayId: nextDisplayId("EML"), ownerType: "human", ownerId: "h-1", email: "jane@test.com", isPrimary: true, createdAt: ts,
     });
     await db.insert(schema.humanTypes).values({
       id: "t-1", humanId: "h-1", type: "flight_broker", createdAt: ts,
     });
-    await db.insert(schema.humanPhoneNumbers).values({
-      id: "p-1", humanId: "h-1", phoneNumber: "+1234567890", hasWhatsapp: false, isPrimary: true, createdAt: ts,
+    await db.insert(schema.phones).values({
+      id: "p-1", displayId: nextDisplayId("FON"), ownerType: "human", ownerId: "h-1", phoneNumber: "+1234567890", hasWhatsapp: false, isPrimary: true, createdAt: ts,
     });
 
     const result = await getHumanDetail(db, "h-1");
@@ -131,15 +139,15 @@ describe("getHumanDetail", () => {
     await seedHuman(db, "h-1");
     await seedColleague(db);
 
-    await db.insert(schema.geoInterests).values({ id: "gi-1", city: "Paris", country: "France", createdAt: ts });
+    await db.insert(schema.geoInterests).values({ id: "gi-1", displayId: nextDisplayId("GEO"), city: "Paris", country: "France", createdAt: ts });
 
     await db.insert(schema.activities).values({
-      id: "act-1", type: "email", subject: "Test", activityDate: ts,
+      id: "act-1", displayId: nextDisplayId("ACT"), type: "email", subject: "Test", activityDate: ts,
       createdByColleagueId: "col-1", createdAt: ts, updatedAt: ts,
     });
 
     await db.insert(schema.geoInterestExpressions).values({
-      id: "expr-1", humanId: "h-1", geoInterestId: "gi-1", activityId: "act-1", createdAt: ts,
+      id: "expr-1", displayId: nextDisplayId("GEX"), humanId: "h-1", geoInterestId: "gi-1", activityId: "act-1", createdAt: ts,
     });
 
     const result = await getHumanDetail(db, "h-1");
@@ -154,7 +162,7 @@ describe("getHumanDetail", () => {
     await seedHuman(db, "h-1");
 
     await db.insert(schema.accounts).values({
-      id: "acc-1", name: "Acme Corp", status: "open", createdAt: ts, updatedAt: ts,
+      id: "acc-1", displayId: nextDisplayId("ACC"), name: "Acme Corp", status: "open", createdAt: ts, updatedAt: ts,
     });
     await db.insert(schema.accountHumanLabelsConfig).values({
       id: "lbl-1", name: "Primary Contact", createdAt: ts,
@@ -182,12 +190,12 @@ describe("createHuman", () => {
 
     expect(result.id).toBeDefined();
 
-    const humans = await db.select().from(schema.humans);
-    expect(humans).toHaveLength(1);
-    expect(humans[0]!.firstName).toBe("New");
+    const humanRows = await db.select().from(schema.humans);
+    expect(humanRows).toHaveLength(1);
+    expect(humanRows[0]!.firstName).toBe("New");
 
-    const emails = await db.select().from(schema.humanEmails);
-    expect(emails).toHaveLength(1);
+    const emailRows = await db.select().from(schema.emails);
+    expect(emailRows).toHaveLength(1);
 
     const types = await db.select().from(schema.humanTypes);
     expect(types).toHaveLength(1);
@@ -203,8 +211,8 @@ describe("createHuman", () => {
       types: [],
     });
 
-    const humans = await db.select().from(schema.humans);
-    expect(humans[0]!.status).toBe("open");
+    const humanRows = await db.select().from(schema.humans);
+    expect(humanRows[0]!.status).toBe("open");
   });
 
   it("supports custom status", async () => {
@@ -217,8 +225,8 @@ describe("createHuman", () => {
       types: [],
     });
 
-    const humans = await db.select().from(schema.humans);
-    expect(humans[0]!.status).toBe("closed");
+    const humanRows = await db.select().from(schema.humans);
+    expect(humanRows[0]!.status).toBe("closed");
   });
 });
 
@@ -251,17 +259,17 @@ describe("updateHuman", () => {
     await seedColleague(db);
     await seedHuman(db, "h-1");
 
-    await db.insert(schema.humanEmails).values({
-      id: "e-1", humanId: "h-1", email: "old@test.com", isPrimary: true, createdAt: ts,
+    await db.insert(schema.emails).values({
+      id: "e-1", displayId: nextDisplayId("EML"), ownerType: "human", ownerId: "h-1", email: "old@test.com", isPrimary: true, createdAt: ts,
     });
 
     await updateHuman(db, "h-1", {
       emails: [{ email: "new@test.com", isPrimary: false }],
     }, "col-1");
 
-    const emails = await db.select().from(schema.humanEmails);
-    expect(emails).toHaveLength(1);
-    expect(emails[0]!.email).toBe("new@test.com");
+    const emailRows = await db.select().from(schema.emails);
+    expect(emailRows).toHaveLength(1);
+    expect(emailRows[0]!.email).toBe("new@test.com");
   });
 
   it("replaces types when provided", async () => {
@@ -333,22 +341,22 @@ describe("deleteHuman", () => {
     const ts = now();
     await seedHuman(db, "h-1");
 
-    await db.insert(schema.humanEmails).values({
-      id: "e-1", humanId: "h-1", email: "test@test.com", isPrimary: true, createdAt: ts,
+    await db.insert(schema.emails).values({
+      id: "e-1", displayId: nextDisplayId("EML"), ownerType: "human", ownerId: "h-1", email: "test@test.com", isPrimary: true, createdAt: ts,
     });
     await db.insert(schema.humanTypes).values({
       id: "t-1", humanId: "h-1", type: "flight_broker", createdAt: ts,
     });
-    await db.insert(schema.humanPhoneNumbers).values({
-      id: "p-1", humanId: "h-1", phoneNumber: "+1234567890", hasWhatsapp: false, isPrimary: true, createdAt: ts,
+    await db.insert(schema.phones).values({
+      id: "p-1", displayId: nextDisplayId("FON"), ownerType: "human", ownerId: "h-1", phoneNumber: "+1234567890", hasWhatsapp: false, isPrimary: true, createdAt: ts,
     });
 
     await deleteHuman(db, "h-1");
 
     expect(await db.select().from(schema.humans)).toHaveLength(0);
-    expect(await db.select().from(schema.humanEmails)).toHaveLength(0);
+    expect(await db.select().from(schema.emails)).toHaveLength(0);
     expect(await db.select().from(schema.humanTypes)).toHaveLength(0);
-    expect(await db.select().from(schema.humanPhoneNumbers)).toHaveLength(0);
+    expect(await db.select().from(schema.phones)).toHaveLength(0);
   });
 });
 

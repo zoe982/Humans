@@ -5,6 +5,7 @@ export type AccountStatus = (typeof accountStatuses)[number];
 
 export const accounts = sqliteTable("accounts", {
   id: text("id").primaryKey(),
+  displayId: text("display_id").notNull().unique(),
   name: text("name").notNull(),
   status: text("status", { enum: accountStatuses }).notNull().default("open"),
   createdAt: text("created_at").notNull(),

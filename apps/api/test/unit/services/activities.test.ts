@@ -13,10 +13,17 @@ function now() {
   return new Date().toISOString();
 }
 
+let seedCounter = 0;
+function nextDisplayId(prefix: string) {
+  seedCounter++;
+  return `${prefix}-${String(seedCounter).padStart(6, "0")}`;
+}
+
 async function seedColleague(db: ReturnType<typeof getTestDb>, id = "col-1") {
   const ts = now();
   await db.insert(schema.colleagues).values({
     id,
+    displayId: nextDisplayId("COL"),
     email: `${id}@test.com`,
     firstName: "Test",
     lastName: "User",
@@ -33,6 +40,7 @@ async function seedHuman(db: ReturnType<typeof getTestDb>, id = "h-1", first = "
   const ts = now();
   await db.insert(schema.humans).values({
     id,
+    displayId: nextDisplayId("HUM"),
     firstName: first,
     lastName: last,
     status: "open",
@@ -46,6 +54,7 @@ async function seedAccount(db: ReturnType<typeof getTestDb>, id = "acc-1", name 
   const ts = now();
   await db.insert(schema.accounts).values({
     id,
+    displayId: nextDisplayId("ACC"),
     name,
     status: "open",
     createdAt: ts,
@@ -72,6 +81,7 @@ async function seedActivity(
   const ts = now();
   await db.insert(schema.activities).values({
     id,
+    displayId: nextDisplayId("ACT"),
     type: overrides.type ?? "email",
     subject: overrides.subject ?? "Test Subject",
     body: overrides.body ?? null,
@@ -174,9 +184,9 @@ describe("getActivityDetail", () => {
     await seedHuman(db, "h-1");
     await seedActivity(db, "act-1", { humanId: "h-1" });
 
-    await db.insert(schema.geoInterests).values({ id: "gi-1", city: "Paris", country: "France", createdAt: ts });
+    await db.insert(schema.geoInterests).values({ id: "gi-1", displayId: nextDisplayId("GEO"), city: "Paris", country: "France", createdAt: ts });
     await db.insert(schema.geoInterestExpressions).values({
-      id: "expr-1", humanId: "h-1", geoInterestId: "gi-1", activityId: "act-1", createdAt: ts,
+      id: "expr-1", displayId: nextDisplayId("GIE"), humanId: "h-1", geoInterestId: "gi-1", activityId: "act-1", createdAt: ts,
     });
 
     const result = await getActivityDetail(db, "act-1");
@@ -282,9 +292,9 @@ describe("deleteActivity", () => {
     await seedHuman(db, "h-1");
     await seedActivity(db, "act-1", { humanId: "h-1" });
 
-    await db.insert(schema.geoInterests).values({ id: "gi-1", city: "Paris", country: "France", createdAt: ts });
+    await db.insert(schema.geoInterests).values({ id: "gi-1", displayId: nextDisplayId("GEO"), city: "Paris", country: "France", createdAt: ts });
     await db.insert(schema.geoInterestExpressions).values({
-      id: "expr-1", humanId: "h-1", geoInterestId: "gi-1", activityId: "act-1", createdAt: ts,
+      id: "expr-1", displayId: nextDisplayId("GIE"), humanId: "h-1", geoInterestId: "gi-1", activityId: "act-1", createdAt: ts,
     });
 
     await deleteActivity(db, "act-1");

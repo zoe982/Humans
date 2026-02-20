@@ -3,6 +3,7 @@ import { pets } from "@humans/db/schema";
 import { createId } from "@humans/db";
 import { ERROR_CODES } from "@humans/shared";
 import { notFound } from "../lib/errors";
+import { nextDisplayId } from "../lib/display-id";
 import type { DB } from "./types";
 
 export async function getPetCount(db: DB) {
@@ -39,10 +40,11 @@ export async function createPet(
   },
 ) {
   const now = new Date().toISOString();
+  const displayId = await nextDisplayId(db, "PET");
 
   const newPet = {
     id: createId(),
-    clientId: null,
+    displayId,
     humanId: data.humanId,
     name: data.name,
     breed: data.breed ?? null,

@@ -1,19 +1,35 @@
-import { eq } from "drizzle-orm";
-import { humanEmails, humans } from "@humans/db/schema";
+import { eq, and } from "drizzle-orm";
+import { emails, humans, accounts, emailLabelsConfig } from "@humans/db/schema";
 import { createId } from "@humans/db";
 import { ERROR_CODES } from "@humans/shared";
 import { notFound } from "../lib/errors";
+import { nextDisplayId } from "../lib/display-id";
 import type { DB } from "./types";
 
 export async function listEmails(db: DB) {
-  const allEmails = await db.select().from(humanEmails);
+  const allEmails = await db.select().from(emails);
   const allHumans = await db.select().from(humans);
+  const allAccounts = await db.select().from(accounts);
+  const allLabels = await db.select().from(emailLabelsConfig);
 
   const data = allEmails.map((e) => {
-    const human = allHumans.find((h) => h.id === e.humanId);
+    let ownerName: string | null = null;
+    let ownerDisplayId: string | null = null;
+    if (e.ownerType === "human") {
+      const human = allHumans.find((h) => h.id === e.ownerId);
+      ownerName = human ? `${human.firstName} ${human.lastName}` : null;
+      ownerDisplayId = human?.displayId ?? null;
+    } else {
+      const account = allAccounts.find((a) => a.id === e.ownerId);
+      ownerName = account?.name ?? null;
+      ownerDisplayId = account?.displayId ?? null;
+    }
+    const label = e.labelId ? allLabels.find((l) => l.id === e.labelId) : null;
     return {
       ...e,
-      humanName: human ? `${human.firstName} ${human.lastName}` : null,
+      ownerName,
+      ownerDisplayId,
+      labelName: label?.name ?? null,
     };
   });
 
@@ -30,27 +46,30 @@ export async function createEmail(
   },
 ) {
   const now = new Date().toISOString();
+  const displayId = await nextDisplayId(db, "EML");
 
   const email = {
     id: createId(),
-    humanId: data.humanId,
+    displayId,
+    ownerType: "human" as const,
+    ownerId: data.humanId,
     email: data.email,
     labelId: data.labelId ?? null,
     isPrimary: data.isPrimary ?? false,
     createdAt: now,
   };
 
-  await db.insert(humanEmails).values(email);
+  await db.insert(emails).values(email);
   return email;
 }
 
 export async function deleteEmail(db: DB, id: string) {
-  const existing = await db.query.humanEmails.findFirst({
-    where: eq(humanEmails.id, id),
+  const existing = await db.query.emails.findFirst({
+    where: eq(emails.id, id),
   });
   if (existing == null) {
     throw notFound(ERROR_CODES.EMAIL_NOT_FOUND, "Email not found");
   }
 
-  await db.delete(humanEmails).where(eq(humanEmails.id, id));
+  await db.delete(emails).where(eq(emails.id, id));
 }

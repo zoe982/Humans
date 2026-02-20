@@ -12,6 +12,7 @@
 
   type Signup = {
     id: string;
+    display_id: string | null;
     first_name: string | null;
     middle_name: string | null;
     last_name: string | null;
@@ -96,7 +97,7 @@
 </script>
 
 <svelte:head>
-  <title>{displayName(signup)} - Route Signup - Humans CRM</title>
+  <title>{signup.display_id ? signup.display_id + ' — ' : ''}{displayName(signup)} - Route Signup - Humans CRM</title>
 </svelte:head>
 
 <div class="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8">
@@ -104,7 +105,7 @@
   <RecordManagementBar
     backHref="/leads/route-signups"
     backLabel="Route Signups"
-    title={displayName(signup)}
+    title="{signup.display_id ? signup.display_id + ' — ' : ''}{displayName(signup)}"
     status={signup.status ?? undefined}
     statusOptions={["open", "qualified", "closed_converted", "closed_rejected"]}
     {statusColorMap}

@@ -13,6 +13,8 @@ function now() {
   return new Date().toISOString();
 }
 
+let seedCounter = 0;
+
 async function seedColleague(
   db: ReturnType<typeof getTestDb>,
   id = "col-1",
@@ -25,9 +27,11 @@ async function seedColleague(
     role: string;
   }> = {},
 ) {
+  seedCounter++;
   const ts = now();
   await db.insert(schema.colleagues).values({
     id,
+    displayId: `COL-${String(seedCounter).padStart(6, "0")}`,
     email: overrides.email ?? `${id}@test.com`,
     firstName: overrides.firstName ?? "Test",
     middleNames: overrides.middleNames ?? null,

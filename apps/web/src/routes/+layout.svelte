@@ -21,7 +21,8 @@
       { href: "/humans", label: "Humans" },
       { href: "/accounts", label: "Accounts" },
       { href: "/activities", label: "Activities" },
-      { href: "/flights", label: "Flights" },
+      { href: "/emails", label: "Emails" },
+      { href: "/phone-numbers", label: "Phones" },
       { href: "/geo-interests", label: "Geo-Interests" },
     ];
     if (isManager) links.push({ href: "/reports", label: "Reports" });

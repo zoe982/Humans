@@ -1,19 +1,35 @@
-import { eq } from "drizzle-orm";
-import { humanPhoneNumbers, humans } from "@humans/db/schema";
+import { eq, and } from "drizzle-orm";
+import { phones, humans, accounts, phoneLabelsConfig } from "@humans/db/schema";
 import { createId } from "@humans/db";
 import { ERROR_CODES } from "@humans/shared";
 import { notFound } from "../lib/errors";
+import { nextDisplayId } from "../lib/display-id";
 import type { DB } from "./types";
 
 export async function listPhoneNumbers(db: DB) {
-  const allPhones = await db.select().from(humanPhoneNumbers);
+  const allPhones = await db.select().from(phones);
   const allHumans = await db.select().from(humans);
+  const allAccounts = await db.select().from(accounts);
+  const allLabels = await db.select().from(phoneLabelsConfig);
 
   const data = allPhones.map((p) => {
-    const human = allHumans.find((h) => h.id === p.humanId);
+    let ownerName: string | null = null;
+    let ownerDisplayId: string | null = null;
+    if (p.ownerType === "human") {
+      const human = allHumans.find((h) => h.id === p.ownerId);
+      ownerName = human ? `${human.firstName} ${human.lastName}` : null;
+      ownerDisplayId = human?.displayId ?? null;
+    } else {
+      const account = allAccounts.find((a) => a.id === p.ownerId);
+      ownerName = account?.name ?? null;
+      ownerDisplayId = account?.displayId ?? null;
+    }
+    const label = p.labelId ? allLabels.find((l) => l.id === p.labelId) : null;
     return {
       ...p,
-      humanName: human ? `${human.firstName} ${human.lastName}` : null,
+      ownerName,
+      ownerDisplayId,
+      labelName: label?.name ?? null,
     };
   });
 
@@ -23,8 +39,8 @@ export async function listPhoneNumbers(db: DB) {
 export async function listPhoneNumbersForHuman(db: DB, humanId: string) {
   const results = await db
     .select()
-    .from(humanPhoneNumbers)
-    .where(eq(humanPhoneNumbers.humanId, humanId));
+    .from(phones)
+    .where(and(eq(phones.ownerType, "human"), eq(phones.ownerId, humanId)));
   return results;
 }
 
@@ -39,10 +55,13 @@ export async function createPhoneNumber(
   },
 ) {
   const now = new Date().toISOString();
+  const displayId = await nextDisplayId(db, "FON");
 
   const phone = {
     id: createId(),
-    humanId: data.humanId,
+    displayId,
+    ownerType: "human" as const,
+    ownerId: data.humanId,
     phoneNumber: data.phoneNumber,
     labelId: data.labelId ?? null,
     hasWhatsapp: data.hasWhatsapp ?? false,
@@ -50,7 +69,7 @@ export async function createPhoneNumber(
     createdAt: now,
   };
 
-  await db.insert(humanPhoneNumbers).values(phone);
+  await db.insert(phones).values(phone);
   return phone;
 }
 
@@ -59,31 +78,31 @@ export async function updatePhoneNumber(
   id: string,
   data: Record<string, unknown>,
 ) {
-  const existing = await db.query.humanPhoneNumbers.findFirst({
-    where: eq(humanPhoneNumbers.id, id),
+  const existing = await db.query.phones.findFirst({
+    where: eq(phones.id, id),
   });
   if (existing == null) {
     throw notFound(ERROR_CODES.PHONE_NUMBER_NOT_FOUND, "Phone number not found");
   }
 
   await db
-    .update(humanPhoneNumbers)
+    .update(phones)
     .set(data)
-    .where(eq(humanPhoneNumbers.id, id));
+    .where(eq(phones.id, id));
 
-  const updated = await db.query.humanPhoneNumbers.findFirst({
-    where: eq(humanPhoneNumbers.id, id),
+  const updated = await db.query.phones.findFirst({
+    where: eq(phones.id, id),
   });
   return updated;
 }
 
 export async function deletePhoneNumber(db: DB, id: string) {
-  const existing = await db.query.humanPhoneNumbers.findFirst({
-    where: eq(humanPhoneNumbers.id, id),
+  const existing = await db.query.phones.findFirst({
+    where: eq(phones.id, id),
   });
   if (existing == null) {
     throw notFound(ERROR_CODES.PHONE_NUMBER_NOT_FOUND, "Phone number not found");
   }
 
-  await db.delete(humanPhoneNumbers).where(eq(humanPhoneNumbers.id, id));
+  await db.delete(phones).where(eq(phones.id, id));
 }

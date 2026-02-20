@@ -7,10 +7,16 @@ function now() {
   return new Date().toISOString();
 }
 
+let seedCounter = 0;
+function nextDisplayId(prefix: string) {
+  seedCounter++;
+  return `${prefix}-${String(seedCounter).padStart(6, "0")}`;
+}
+
 async function seedColleague(db: ReturnType<typeof getTestDb>, id = "col-1") {
   const ts = now();
   await db.insert(schema.colleagues).values({
-    id, email: `${id}@test.com`, firstName: "Test", lastName: "User",
+    id, displayId: nextDisplayId("COL"), email: `${id}@test.com`, firstName: "Test", lastName: "User",
     name: "Test User", role: "admin", isActive: true, createdAt: ts, updatedAt: ts,
   });
 }
@@ -18,7 +24,7 @@ async function seedColleague(db: ReturnType<typeof getTestDb>, id = "col-1") {
 async function seedHuman(db: ReturnType<typeof getTestDb>, id = "h-1", first = "John", last = "Doe") {
   const ts = now();
   await db.insert(schema.humans).values({
-    id, firstName: first, lastName: last, status: "open", createdAt: ts, updatedAt: ts,
+    id, displayId: nextDisplayId("HUM"), firstName: first, lastName: last, status: "open", createdAt: ts, updatedAt: ts,
   });
 }
 
@@ -54,8 +60,8 @@ describe("searchD1", () => {
     const db = getTestDb();
     await seedHuman(db, "h-1", "Alice", "Smith");
     const ts = now();
-    await db.insert(schema.humanEmails).values({
-      id: "e-1", humanId: "h-1", email: "alice@example.com", isPrimary: true, createdAt: ts,
+    await db.insert(schema.emails).values({
+      id: "e-1", displayId: nextDisplayId("EML"), ownerType: "human", ownerId: "h-1", email: "alice@example.com", isPrimary: true, createdAt: ts,
     });
 
     const result = await searchD1(db, "alice@example");
@@ -67,8 +73,8 @@ describe("searchD1", () => {
     const db = getTestDb();
     await seedHuman(db, "h-1", "Alice", "Smith");
     const ts = now();
-    await db.insert(schema.humanPhoneNumbers).values({
-      id: "p-1", humanId: "h-1", phoneNumber: "+15551234567", hasWhatsapp: false, isPrimary: true, createdAt: ts,
+    await db.insert(schema.phones).values({
+      id: "p-1", displayId: nextDisplayId("FON"), ownerType: "human", ownerId: "h-1", phoneNumber: "+15551234567", hasWhatsapp: false, isPrimary: true, createdAt: ts,
     });
 
     const result = await searchD1(db, "5551234");
@@ -80,7 +86,7 @@ describe("searchD1", () => {
     await seedColleague(db);
     const ts = now();
     await db.insert(schema.activities).values({
-      id: "act-1", type: "email", subject: "Meeting about Paris trip",
+      id: "act-1", displayId: nextDisplayId("ACT"), type: "email", subject: "Meeting about Paris trip",
       activityDate: ts, createdByColleagueId: "col-1", createdAt: ts, updatedAt: ts,
     });
 
@@ -94,10 +100,10 @@ describe("searchD1", () => {
     await seedHuman(db, "h-1");
     const ts = now();
     await db.insert(schema.geoInterests).values({
-      id: "gi-1", city: "Paris", country: "France", createdAt: ts,
+      id: "gi-1", displayId: nextDisplayId("GEO"), city: "Paris", country: "France", createdAt: ts,
     });
     await db.insert(schema.geoInterestExpressions).values({
-      id: "expr-1", humanId: "h-1", geoInterestId: "gi-1", createdAt: ts,
+      id: "expr-1", displayId: nextDisplayId("GEX"), humanId: "h-1", geoInterestId: "gi-1", createdAt: ts,
     });
 
     const result = await searchD1(db, "Paris");
@@ -112,7 +118,7 @@ describe("searchD1", () => {
     const db = getTestDb();
     const ts = now();
     await db.insert(schema.accounts).values({
-      id: "acc-1", name: "Acme Corporation", status: "open", createdAt: ts, updatedAt: ts,
+      id: "acc-1", displayId: nextDisplayId("ACC"), name: "Acme Corporation", status: "open", createdAt: ts, updatedAt: ts,
     });
     await db.insert(schema.accountTypesConfig).values({
       id: "atc-1", name: "Airline", createdAt: ts,
@@ -132,10 +138,10 @@ describe("searchD1", () => {
     const db = getTestDb();
     const ts = now();
     await db.insert(schema.accounts).values({
-      id: "acc-1", name: "Acme Corp", status: "open", createdAt: ts, updatedAt: ts,
+      id: "acc-1", displayId: nextDisplayId("ACC"), name: "Acme Corp", status: "open", createdAt: ts, updatedAt: ts,
     });
-    await db.insert(schema.accountEmails).values({
-      id: "ae-1", accountId: "acc-1", email: "info@acme.com", isPrimary: true, createdAt: ts,
+    await db.insert(schema.emails).values({
+      id: "ae-1", displayId: nextDisplayId("EML"), ownerType: "account", ownerId: "acc-1", email: "info@acme.com", isPrimary: true, createdAt: ts,
     });
 
     const result = await searchD1(db, "acme.com");
@@ -146,8 +152,8 @@ describe("searchD1", () => {
     const db = getTestDb();
     await seedHuman(db, "h-1", "Alice", "Smith");
     const ts = now();
-    await db.insert(schema.humanEmails).values({
-      id: "e-1", humanId: "h-1", email: "alice@smith.com", isPrimary: true, createdAt: ts,
+    await db.insert(schema.emails).values({
+      id: "e-1", displayId: nextDisplayId("EML"), ownerType: "human", ownerId: "h-1", email: "alice@smith.com", isPrimary: true, createdAt: ts,
     });
 
     // "Alice" matches firstName and "alice" matches email

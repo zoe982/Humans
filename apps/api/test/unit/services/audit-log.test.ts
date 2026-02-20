@@ -8,10 +8,17 @@ function now() {
   return new Date().toISOString();
 }
 
+let seedCounter = 0;
+function nextDisplayId(prefix: string) {
+  seedCounter++;
+  return `${prefix}-${String(seedCounter).padStart(6, "0")}`;
+}
+
 async function seedColleague(db: ReturnType<typeof getTestDb>, id = "col-1") {
   const ts = now();
   await db.insert(schema.colleagues).values({
     id,
+    displayId: nextDisplayId("COL"),
     email: `${id}@test.com`,
     firstName: "Test",
     lastName: "User",
@@ -28,6 +35,7 @@ async function seedHuman(db: ReturnType<typeof getTestDb>, id = "h-1", first = "
   const ts = now();
   await db.insert(schema.humans).values({
     id,
+    displayId: nextDisplayId("HUM"),
     firstName: first,
     lastName: last,
     status: "open",
@@ -41,6 +49,7 @@ async function seedAccount(db: ReturnType<typeof getTestDb>, id = "acc-1", name 
   const ts = now();
   await db.insert(schema.accounts).values({
     id,
+    displayId: nextDisplayId("ACC"),
     name,
     status: "open",
     createdAt: ts,

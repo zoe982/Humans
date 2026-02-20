@@ -1,10 +1,25 @@
-import { createId } from "@humans/db";
+import { createId, formatDisplayId, type DisplayIdPrefix } from "@humans/db";
 import type { Role } from "@humans/shared";
 
 const now = () => new Date().toISOString();
 
+// Test display ID counter — call resetTestDisplayIdCounters() between tests
+const testCounters: Record<string, number> = {};
+
+export function nextTestDisplayId(prefix: DisplayIdPrefix): string {
+  testCounters[prefix] = (testCounters[prefix] ?? 0) + 1;
+  return formatDisplayId(prefix, testCounters[prefix]);
+}
+
+export function resetTestDisplayIdCounters() {
+  for (const key of Object.keys(testCounters)) {
+    delete testCounters[key];
+  }
+}
+
 export function buildColleague(overrides: Partial<{
   id: string;
+  displayId: string;
   email: string;
   firstName: string;
   middleNames: string | null;
@@ -20,6 +35,7 @@ export function buildColleague(overrides: Partial<{
   const ts = now();
   return {
     id: createId(),
+    displayId: nextTestDisplayId("COL"),
     email: `colleague-${createId()}@test.com`,
     firstName: "Test",
     middleNames: null,
@@ -38,41 +54,9 @@ export function buildColleague(overrides: Partial<{
 /** @deprecated Use buildColleague instead */
 export const buildUser = buildColleague;
 
-export function buildClient(overrides: Partial<{
-  id: string;
-  firstName: string;
-  lastName: string;
-  email: string;
-  phone: string | null;
-  address: Record<string, string> | null;
-  status: "active" | "inactive" | "prospect";
-  notes: string | null;
-  leadSourceId: string | null;
-  assignedToColleagueId: string | null;
-  createdAt: string;
-  updatedAt: string;
-}> = {}) {
-  const ts = now();
-  return {
-    id: createId(),
-    firstName: "Jane",
-    lastName: "Doe",
-    email: `client-${createId()}@test.com`,
-    phone: null,
-    address: null,
-    status: "prospect" as const,
-    notes: null,
-    leadSourceId: null,
-    assignedToColleagueId: null,
-    createdAt: ts,
-    updatedAt: ts,
-    ...overrides,
-  };
-}
-
 export function buildPet(overrides: Partial<{
   id: string;
-  clientId: string | null;
+  displayId: string;
   humanId: string | null;
   name: string;
   breed: string | null;
@@ -88,7 +72,7 @@ export function buildPet(overrides: Partial<{
   const ts = now();
   return {
     id: createId(),
-    clientId: null,
+    displayId: nextTestDisplayId("PET"),
     humanId: createId(),
     name: "Buddy",
     breed: "Golden Retriever",
@@ -106,6 +90,7 @@ export function buildPet(overrides: Partial<{
 
 export function buildHuman(overrides: Partial<{
   id: string;
+  displayId: string;
   firstName: string;
   middleName: string | null;
   lastName: string;
@@ -116,6 +101,7 @@ export function buildHuman(overrides: Partial<{
   const ts = now();
   return {
     id: createId(),
+    displayId: nextTestDisplayId("HUM"),
     firstName: "Test",
     middleName: null,
     lastName: "Human",
@@ -128,6 +114,7 @@ export function buildHuman(overrides: Partial<{
 
 export function buildAccount(overrides: Partial<{
   id: string;
+  displayId: string;
   name: string;
   status: "open" | "active" | "closed";
   createdAt: string;
@@ -136,6 +123,7 @@ export function buildAccount(overrides: Partial<{
   const ts = now();
   return {
     id: createId(),
+    displayId: nextTestDisplayId("ACC"),
     name: `Account ${createId().slice(0, 6)}`,
     status: "open" as const,
     createdAt: ts,
@@ -146,6 +134,7 @@ export function buildAccount(overrides: Partial<{
 
 export function buildActivity(overrides: Partial<{
   id: string;
+  displayId: string;
   type: string;
   subject: string;
   body: string | null;
@@ -163,6 +152,7 @@ export function buildActivity(overrides: Partial<{
   const ts = now();
   return {
     id: createId(),
+    displayId: nextTestDisplayId("ACT"),
     type: "email",
     subject: "Test activity",
     body: null,
@@ -182,12 +172,14 @@ export function buildActivity(overrides: Partial<{
 
 export function buildGeoInterest(overrides: Partial<{
   id: string;
+  displayId: string;
   city: string;
   country: string;
   createdAt: string;
 }> = {}) {
   return {
     id: createId(),
+    displayId: nextTestDisplayId("GEO"),
     city: "London",
     country: "United Kingdom",
     createdAt: now(),
@@ -195,9 +187,32 @@ export function buildGeoInterest(overrides: Partial<{
   };
 }
 
+export function buildGeoInterestExpression(overrides: Partial<{
+  id: string;
+  displayId: string;
+  humanId: string;
+  geoInterestId: string;
+  activityId: string | null;
+  notes: string | null;
+  createdAt: string;
+}> = {}) {
+  return {
+    id: createId(),
+    displayId: nextTestDisplayId("GEX"),
+    humanId: createId(),
+    geoInterestId: createId(),
+    activityId: null,
+    notes: null,
+    createdAt: now(),
+    ...overrides,
+  };
+}
+
 export function buildEmail(overrides: Partial<{
   id: string;
-  humanId: string;
+  displayId: string;
+  ownerType: "human" | "account";
+  ownerId: string;
   email: string;
   labelId: string | null;
   isPrimary: boolean;
@@ -205,7 +220,9 @@ export function buildEmail(overrides: Partial<{
 }> = {}) {
   return {
     id: createId(),
-    humanId: createId(),
+    displayId: nextTestDisplayId("EML"),
+    ownerType: "human" as const,
+    ownerId: createId(),
     email: `email-${createId()}@test.com`,
     labelId: null,
     isPrimary: false,
@@ -216,7 +233,9 @@ export function buildEmail(overrides: Partial<{
 
 export function buildPhoneNumber(overrides: Partial<{
   id: string;
-  humanId: string;
+  displayId: string;
+  ownerType: "human" | "account";
+  ownerId: string;
   phoneNumber: string;
   labelId: string | null;
   hasWhatsapp: boolean;
@@ -225,7 +244,9 @@ export function buildPhoneNumber(overrides: Partial<{
 }> = {}) {
   return {
     id: createId(),
-    humanId: createId(),
+    displayId: nextTestDisplayId("FON"),
+    ownerType: "human" as const,
+    ownerId: createId(),
     phoneNumber: `+1${Math.floor(Math.random() * 9000000000 + 1000000000).toString()}`,
     labelId: null,
     hasWhatsapp: false,
@@ -235,34 +256,47 @@ export function buildPhoneNumber(overrides: Partial<{
   };
 }
 
-export function buildFlight(overrides: Partial<{
+export function buildLeadSource(overrides: Partial<{
   id: string;
-  flightNumber: string;
-  departureAirport: string;
-  arrivalAirport: string;
-  departureDate: string;
-  arrivalDate: string;
-  airline: string;
-  cabinClass: string | null;
-  maxPets: number;
-  status: string;
+  displayId: string;
+  name: string;
+  category: string;
+  isActive: boolean;
   createdAt: string;
   updatedAt: string;
 }> = {}) {
   const ts = now();
   return {
     id: createId(),
-    flightNumber: "PAV-001",
-    departureAirport: "LAX",
-    arrivalAirport: "JFK",
-    departureDate: "2026-03-15T08:00:00.000Z",
-    arrivalDate: "2026-03-15T16:00:00.000Z",
-    airline: "Pet Air Valet",
-    cabinClass: "cabin",
-    maxPets: 4,
-    status: "scheduled",
+    displayId: nextTestDisplayId("LES"),
+    name: "Test Source",
+    category: "organic",
+    isActive: true,
     createdAt: ts,
     updatedAt: ts,
+    ...overrides,
+  };
+}
+
+export function buildLeadEvent(overrides: Partial<{
+  id: string;
+  displayId: string;
+  humanId: string;
+  eventType: string;
+  notes: string | null;
+  metadata: Record<string, unknown> | null;
+  createdByColleagueId: string | null;
+  createdAt: string;
+}> = {}) {
+  return {
+    id: createId(),
+    displayId: nextTestDisplayId("LED"),
+    humanId: createId(),
+    eventType: "inquiry",
+    notes: null,
+    metadata: null,
+    createdByColleagueId: null,
+    createdAt: now(),
     ...overrides,
   };
 }

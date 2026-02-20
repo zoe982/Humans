@@ -1,13 +1,16 @@
 export {
   buildColleague,
   buildUser,
-  buildClient,
   buildPet,
-  buildFlight,
   buildHuman,
   buildAccount,
   buildActivity,
   buildGeoInterest,
+  buildGeoInterestExpression,
   buildEmail,
   buildPhoneNumber,
+  buildLeadSource,
+  buildLeadEvent,
+  nextTestDisplayId,
+  resetTestDisplayIdCounters,
 } from "./factories";

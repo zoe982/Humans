@@ -11,6 +11,7 @@
   type AccountType = { id: string; name: string };
   type Account = {
     id: string;
+    displayId: string;
     name: string;
     status: string;
     types: AccountType[];
@@ -42,6 +43,7 @@
   <div class="sm:hidden space-y-3">
     {#each accounts as account (account.id)}
       <a href="/accounts/{account.id}" class="glass-card p-4 block hover:ring-1 hover:ring-accent/40 transition">
+        <span class="font-mono text-xs text-text-muted">{account.displayId}</span>
         <div class="flex items-center justify-between mb-2">
           <span class="font-medium text-accent">{account.name}</span>
           <StatusBadge status={account.status ?? "open"} colorMap={statusColors} />
@@ -67,6 +69,7 @@
     <table class="min-w-full">
       <thead class="glass-thead">
         <tr>
+          <th scope="col">ID</th>
           <th scope="col">Name</th>
           <th scope="col">Status</th>
           <th scope="col">Types</th>
@@ -79,6 +82,9 @@
       <tbody>
         {#each accounts as account (account.id)}
           <tr class="glass-row-hover">
+            <td class="font-mono text-sm">
+              <a href="/accounts/{account.id}" class="text-accent hover:text-cyan-300">{account.displayId}</a>
+            </td>
             <td class="font-medium">
               <a href="/accounts/{account.id}" class="text-accent hover:text-cyan-300">{account.name}</a>
             </td>
@@ -103,7 +109,7 @@
           </tr>
         {:else}
           <tr>
-            <td colspan={data.userRole === "admin" ? 5 : 4} class="px-6 py-8 text-center text-sm text-text-muted">No accounts found.</td>
+            <td colspan={data.userRole === "admin" ? 6 : 5} class="px-6 py-8 text-center text-sm text-text-muted">No accounts found.</td>
           </tr>
         {/each}
       </tbody>

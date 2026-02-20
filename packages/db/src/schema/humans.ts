@@ -5,6 +5,7 @@ export type HumanStatus = (typeof humanStatuses)[number];
 
 export const humans = sqliteTable("humans", {
   id: text("id").primaryKey(),
+  displayId: text("display_id").notNull().unique(),
   firstName: text("first_name").notNull(),
   middleName: text("middle_name"),
   lastName: text("last_name").notNull(),

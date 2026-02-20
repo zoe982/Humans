@@ -167,9 +167,10 @@ describe("POST /api/accounts/:id/emails", () => {
       body: JSON.stringify({ email: "info@acme.com" }),
     });
     expect(res.status).toBe(201);
-    const body = (await res.json()) as { data: { email: string; accountId: string } };
+    const body = (await res.json()) as { data: { email: string; ownerId: string; ownerType: string } };
     expect(body.data.email).toBe("info@acme.com");
-    expect(body.data.accountId).toBe(account.id);
+    expect(body.data.ownerId).toBe(account.id);
+    expect(body.data.ownerType).toBe("account");
   });
 });
 
@@ -186,9 +187,10 @@ describe("POST /api/accounts/:id/phone-numbers", () => {
       body: JSON.stringify({ phoneNumber: "+15551234567" }),
     });
     expect(res.status).toBe(201);
-    const body = (await res.json()) as { data: { phoneNumber: string; accountId: string } };
+    const body = (await res.json()) as { data: { phoneNumber: string; ownerId: string; ownerType: string } };
     expect(body.data.phoneNumber).toBe("+15551234567");
-    expect(body.data.accountId).toBe(account.id);
+    expect(body.data.ownerId).toBe(account.id);
+    expect(body.data.ownerType).toBe("account");
   });
 });
 

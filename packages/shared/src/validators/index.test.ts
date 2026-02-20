@@ -10,23 +10,7 @@ describe("validators/index re-exports", () => {
     expect(validators.updatePetSchema).toBeDefined();
   });
 
-  it("exports createFlightSchema", () => {
-    expect(validators.createFlightSchema).toBeDefined();
-  });
-
-  it("exports updateFlightSchema", () => {
-    expect(validators.updateFlightSchema).toBeDefined();
-  });
-
-  it("exports createBookingSchema", () => {
-    expect(validators.createBookingSchema).toBeDefined();
-  });
-
-  it("exports updateBookingSchema", () => {
-    expect(validators.updateBookingSchema).toBeDefined();
-  });
-
-  it("exports createLeadSourceSchema", () => {
+it("exports createLeadSourceSchema", () => {
     expect(validators.createLeadSourceSchema).toBeDefined();
   });
 

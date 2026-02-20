@@ -12,6 +12,7 @@
 
   type Activity = {
     id: string;
+    displayId: string;
     type: string;
     subject: string;
     notes: string | null;
@@ -148,6 +149,7 @@
   <div class="sm:hidden space-y-3">
     {#each sortedActivities as activity (activity.id)}
       <a href="/activities/{activity.id}" class="glass-card p-4 block hover:ring-1 hover:ring-accent/40 transition">
+        <span class="font-mono text-xs text-text-muted">{activity.displayId}</span>
         <div class="flex items-center justify-between mb-2">
           <span class="glass-badge text-xs {activityTypeColors[activity.type] ?? 'bg-glass text-text-secondary'}">
             {activityTypeLabels[activity.type] ?? activity.type}
@@ -176,6 +178,7 @@
     <table class="min-w-full">
       <thead class="glass-thead">
         <tr>
+          <th scope="col">ID</th>
           <th scope="col" aria-sort={ariaSort("type")}><button type="button" class="cursor-pointer select-none" onclick={() => toggleSort("type")}>Type<span aria-hidden="true">{sortArrow("type")}</span></button></th>
           <th scope="col" aria-sort={ariaSort("subject")}><button type="button" class="cursor-pointer select-none" onclick={() => toggleSort("subject")}>Subject<span aria-hidden="true">{sortArrow("subject")}</span></button></th>
           <th scope="col">Notes</th>
@@ -187,6 +190,9 @@
       <tbody>
         {#each sortedActivities as activity (activity.id)}
           <tr class="glass-row-hover">
+            <td class="font-mono text-sm">
+              <a href="/activities/{activity.id}" class="text-accent hover:text-cyan-300">{activity.displayId}</a>
+            </td>
             <td>
               <span class="glass-badge {activityTypeColors[activity.type] ?? 'bg-glass text-text-secondary'}">
                 {activityTypeLabels[activity.type] ?? activity.type}
@@ -211,7 +217,7 @@
           </tr>
         {:else}
           <tr>
-            <td colspan="6" class="px-6 py-8 text-center text-sm text-text-muted">No activities found.</td>
+            <td colspan="7" class="px-6 py-8 text-center text-sm text-text-muted">No activities found.</td>
           </tr>
         {/each}
       </tbody>

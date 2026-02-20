@@ -17,10 +17,17 @@ function now() {
   return new Date().toISOString();
 }
 
+let seedCounter = 0;
+function nextDisplayId(prefix: string) {
+  seedCounter++;
+  return `${prefix}-${String(seedCounter).padStart(6, "0")}`;
+}
+
 async function seedColleague(db: ReturnType<typeof getTestDb>, id = "col-1") {
   const ts = now();
   await db.insert(schema.colleagues).values({
     id,
+    displayId: nextDisplayId("COL"),
     email: `${id}@test.com`,
     firstName: "Test",
     lastName: "User",
@@ -37,6 +44,7 @@ async function seedHuman(db: ReturnType<typeof getTestDb>, id = "h-1", first = "
   const ts = now();
   await db.insert(schema.humans).values({
     id,
+    displayId: nextDisplayId("HUM"),
     firstName: first,
     lastName: last,
     status: "open",
@@ -61,20 +69,20 @@ describe("listGeoInterests", () => {
     const db = getTestDb();
     const ts = now();
 
-    await db.insert(schema.geoInterests).values({ id: "gi-1", city: "Paris", country: "France", createdAt: ts });
-    await db.insert(schema.geoInterests).values({ id: "gi-2", city: "London", country: "UK", createdAt: ts });
+    await db.insert(schema.geoInterests).values({ id: "gi-1", displayId: nextDisplayId("GEO"), city: "Paris", country: "France", createdAt: ts });
+    await db.insert(schema.geoInterests).values({ id: "gi-2", displayId: nextDisplayId("GEO"), city: "London", country: "UK", createdAt: ts });
 
     await seedHuman(db, "h-1", "Alice", "Smith");
     await seedHuman(db, "h-2", "Bob", "Jones");
 
     await db.insert(schema.geoInterestExpressions).values({
-      id: "expr-1", humanId: "h-1", geoInterestId: "gi-1", createdAt: ts,
+      id: "expr-1", displayId: nextDisplayId("GIE"), humanId: "h-1", geoInterestId: "gi-1", createdAt: ts,
     });
     await db.insert(schema.geoInterestExpressions).values({
-      id: "expr-2", humanId: "h-2", geoInterestId: "gi-1", createdAt: ts,
+      id: "expr-2", displayId: nextDisplayId("GIE"), humanId: "h-2", geoInterestId: "gi-1", createdAt: ts,
     });
     await db.insert(schema.geoInterestExpressions).values({
-      id: "expr-3", humanId: "h-1", geoInterestId: "gi-1", createdAt: ts,
+      id: "expr-3", displayId: nextDisplayId("GIE"), humanId: "h-1", geoInterestId: "gi-1", createdAt: ts,
     });
 
     const result = await listGeoInterests(db);
@@ -105,9 +113,9 @@ describe("searchGeoInterests", () => {
     const db = getTestDb();
     const ts = now();
 
-    await db.insert(schema.geoInterests).values({ id: "gi-1", city: "Paris", country: "France", createdAt: ts });
-    await db.insert(schema.geoInterests).values({ id: "gi-2", city: "London", country: "UK", createdAt: ts });
-    await db.insert(schema.geoInterests).values({ id: "gi-3", city: "Lyon", country: "France", createdAt: ts });
+    await db.insert(schema.geoInterests).values({ id: "gi-1", displayId: nextDisplayId("GEO"), city: "Paris", country: "France", createdAt: ts });
+    await db.insert(schema.geoInterests).values({ id: "gi-2", displayId: nextDisplayId("GEO"), city: "London", country: "UK", createdAt: ts });
+    await db.insert(schema.geoInterests).values({ id: "gi-3", displayId: nextDisplayId("GEO"), city: "Lyon", country: "France", createdAt: ts });
 
     const byCity = await searchGeoInterests(db, "Paris");
     expect(byCity).toHaveLength(1);
@@ -132,17 +140,17 @@ describe("getGeoInterestDetail", () => {
     const db = getTestDb();
     const ts = now();
 
-    await db.insert(schema.geoInterests).values({ id: "gi-1", city: "Paris", country: "France", createdAt: ts });
+    await db.insert(schema.geoInterests).values({ id: "gi-1", displayId: nextDisplayId("GEO"), city: "Paris", country: "France", createdAt: ts });
     await seedHuman(db, "h-1", "Jane", "Doe");
     await seedColleague(db);
 
     await db.insert(schema.activities).values({
-      id: "act-1", type: "email", subject: "Paris trip", activityDate: ts,
+      id: "act-1", displayId: nextDisplayId("ACT"), type: "email", subject: "Paris trip", activityDate: ts,
       createdByColleagueId: "col-1", createdAt: ts, updatedAt: ts,
     });
 
     await db.insert(schema.geoInterestExpressions).values({
-      id: "expr-1", humanId: "h-1", geoInterestId: "gi-1", activityId: "act-1", notes: "Loves Paris", createdAt: ts,
+      id: "expr-1", displayId: nextDisplayId("GIE"), humanId: "h-1", geoInterestId: "gi-1", activityId: "act-1", notes: "Loves Paris", createdAt: ts,
     });
 
     const result = await getGeoInterestDetail(db, "gi-1");
@@ -176,7 +184,7 @@ describe("createGeoInterest", () => {
     const db = getTestDb();
     const ts = now();
 
-    await db.insert(schema.geoInterests).values({ id: "gi-1", city: "Berlin", country: "Germany", createdAt: ts });
+    await db.insert(schema.geoInterests).values({ id: "gi-1", displayId: nextDisplayId("GEO"), city: "Berlin", country: "Germany", createdAt: ts });
 
     const result = await createGeoInterest(db, { city: "Berlin", country: "Germany" });
     expect(result.created).toBe(false);
@@ -201,11 +209,11 @@ describe("deleteGeoInterest", () => {
     const db = getTestDb();
     const ts = now();
 
-    await db.insert(schema.geoInterests).values({ id: "gi-1", city: "Paris", country: "France", createdAt: ts });
+    await db.insert(schema.geoInterests).values({ id: "gi-1", displayId: nextDisplayId("GEO"), city: "Paris", country: "France", createdAt: ts });
     await seedHuman(db, "h-1");
 
     await db.insert(schema.geoInterestExpressions).values({
-      id: "expr-1", humanId: "h-1", geoInterestId: "gi-1", createdAt: ts,
+      id: "expr-1", displayId: nextDisplayId("GIE"), humanId: "h-1", geoInterestId: "gi-1", createdAt: ts,
     });
 
     await deleteGeoInterest(db, "gi-1");
@@ -224,14 +232,14 @@ describe("listExpressions", () => {
     const db = getTestDb();
     const ts = now();
 
-    await db.insert(schema.geoInterests).values({ id: "gi-1", city: "Paris", country: "France", createdAt: ts });
+    await db.insert(schema.geoInterests).values({ id: "gi-1", displayId: nextDisplayId("GEO"), city: "Paris", country: "France", createdAt: ts });
     await seedHuman(db, "h-1", "Alice", "Smith");
 
     await db.insert(schema.geoInterestExpressions).values({
-      id: "expr-1", humanId: "h-1", geoInterestId: "gi-1", createdAt: ts,
+      id: "expr-1", displayId: nextDisplayId("GIE"), humanId: "h-1", geoInterestId: "gi-1", createdAt: ts,
     });
     await db.insert(schema.geoInterestExpressions).values({
-      id: "expr-2", humanId: "h-1", geoInterestId: "gi-1", createdAt: ts,
+      id: "expr-2", displayId: nextDisplayId("GIE"), humanId: "h-1", geoInterestId: "gi-1", createdAt: ts,
     });
 
     const result = await listExpressions(db, {});
@@ -242,15 +250,15 @@ describe("listExpressions", () => {
     const db = getTestDb();
     const ts = now();
 
-    await db.insert(schema.geoInterests).values({ id: "gi-1", city: "Paris", country: "France", createdAt: ts });
+    await db.insert(schema.geoInterests).values({ id: "gi-1", displayId: nextDisplayId("GEO"), city: "Paris", country: "France", createdAt: ts });
     await seedHuman(db, "h-1", "Alice", "Smith");
     await seedHuman(db, "h-2", "Bob", "Jones");
 
     await db.insert(schema.geoInterestExpressions).values({
-      id: "expr-1", humanId: "h-1", geoInterestId: "gi-1", createdAt: ts,
+      id: "expr-1", displayId: nextDisplayId("GIE"), humanId: "h-1", geoInterestId: "gi-1", createdAt: ts,
     });
     await db.insert(schema.geoInterestExpressions).values({
-      id: "expr-2", humanId: "h-2", geoInterestId: "gi-1", createdAt: ts,
+      id: "expr-2", displayId: nextDisplayId("GIE"), humanId: "h-2", geoInterestId: "gi-1", createdAt: ts,
     });
 
     const result = await listExpressions(db, { humanId: "h-1" });
@@ -262,15 +270,15 @@ describe("listExpressions", () => {
     const db = getTestDb();
     const ts = now();
 
-    await db.insert(schema.geoInterests).values({ id: "gi-1", city: "Paris", country: "France", createdAt: ts });
-    await db.insert(schema.geoInterests).values({ id: "gi-2", city: "London", country: "UK", createdAt: ts });
+    await db.insert(schema.geoInterests).values({ id: "gi-1", displayId: nextDisplayId("GEO"), city: "Paris", country: "France", createdAt: ts });
+    await db.insert(schema.geoInterests).values({ id: "gi-2", displayId: nextDisplayId("GEO"), city: "London", country: "UK", createdAt: ts });
     await seedHuman(db, "h-1");
 
     await db.insert(schema.geoInterestExpressions).values({
-      id: "expr-1", humanId: "h-1", geoInterestId: "gi-1", createdAt: ts,
+      id: "expr-1", displayId: nextDisplayId("GIE"), humanId: "h-1", geoInterestId: "gi-1", createdAt: ts,
     });
     await db.insert(schema.geoInterestExpressions).values({
-      id: "expr-2", humanId: "h-1", geoInterestId: "gi-2", createdAt: ts,
+      id: "expr-2", displayId: nextDisplayId("GIE"), humanId: "h-1", geoInterestId: "gi-2", createdAt: ts,
     });
 
     const result = await listExpressions(db, { geoInterestId: "gi-2" });
@@ -282,17 +290,17 @@ describe("listExpressions", () => {
     const db = getTestDb();
     const ts = now();
 
-    await db.insert(schema.geoInterests).values({ id: "gi-1", city: "Tokyo", country: "Japan", createdAt: ts });
+    await db.insert(schema.geoInterests).values({ id: "gi-1", displayId: nextDisplayId("GEO"), city: "Tokyo", country: "Japan", createdAt: ts });
     await seedHuman(db, "h-1", "Jane", "Doe");
     await seedColleague(db);
 
     await db.insert(schema.activities).values({
-      id: "act-1", type: "email", subject: "Tokyo inquiry", activityDate: ts,
+      id: "act-1", displayId: nextDisplayId("ACT"), type: "email", subject: "Tokyo inquiry", activityDate: ts,
       createdByColleagueId: "col-1", createdAt: ts, updatedAt: ts,
     });
 
     await db.insert(schema.geoInterestExpressions).values({
-      id: "expr-1", humanId: "h-1", geoInterestId: "gi-1", activityId: "act-1", createdAt: ts,
+      id: "expr-1", displayId: nextDisplayId("GIE"), humanId: "h-1", geoInterestId: "gi-1", activityId: "act-1", createdAt: ts,
     });
 
     const result = await listExpressions(db, {});
@@ -313,7 +321,7 @@ describe("createExpression", () => {
     const db = getTestDb();
     const ts = now();
 
-    await db.insert(schema.geoInterests).values({ id: "gi-1", city: "Paris", country: "France", createdAt: ts });
+    await db.insert(schema.geoInterests).values({ id: "gi-1", displayId: nextDisplayId("GEO"), city: "Paris", country: "France", createdAt: ts });
     await seedHuman(db, "h-1");
 
     const result = await createExpression(db, { humanId: "h-1", geoInterestId: "gi-1" });
@@ -342,7 +350,7 @@ describe("createExpression", () => {
     const db = getTestDb();
     const ts = now();
 
-    await db.insert(schema.geoInterests).values({ id: "gi-1", city: "Berlin", country: "Germany", createdAt: ts });
+    await db.insert(schema.geoInterests).values({ id: "gi-1", displayId: nextDisplayId("GEO"), city: "Berlin", country: "Germany", createdAt: ts });
     await seedHuman(db, "h-1");
 
     const result = await createExpression(db, { humanId: "h-1", city: "Berlin", country: "Germany" });
@@ -356,7 +364,7 @@ describe("createExpression", () => {
     const db = getTestDb();
     const ts = now();
 
-    await db.insert(schema.geoInterests).values({ id: "gi-1", city: "Paris", country: "France", createdAt: ts });
+    await db.insert(schema.geoInterests).values({ id: "gi-1", displayId: nextDisplayId("GEO"), city: "Paris", country: "France", createdAt: ts });
 
     await expect(
       createExpression(db, { humanId: "nonexistent", geoInterestId: "gi-1" }),
@@ -367,7 +375,7 @@ describe("createExpression", () => {
     const db = getTestDb();
     const ts = now();
 
-    await db.insert(schema.geoInterests).values({ id: "gi-1", city: "Paris", country: "France", createdAt: ts });
+    await db.insert(schema.geoInterests).values({ id: "gi-1", displayId: nextDisplayId("GEO"), city: "Paris", country: "France", createdAt: ts });
     await seedHuman(db, "h-1");
 
     await expect(
@@ -379,12 +387,12 @@ describe("createExpression", () => {
     const db = getTestDb();
     const ts = now();
 
-    await db.insert(schema.geoInterests).values({ id: "gi-1", city: "Paris", country: "France", createdAt: ts });
+    await db.insert(schema.geoInterests).values({ id: "gi-1", displayId: nextDisplayId("GEO"), city: "Paris", country: "France", createdAt: ts });
     await seedHuman(db, "h-1");
     await seedColleague(db);
 
     await db.insert(schema.activities).values({
-      id: "act-1", type: "email", subject: "Test", activityDate: ts,
+      id: "act-1", displayId: nextDisplayId("ACT"), type: "email", subject: "Test", activityDate: ts,
       createdByColleagueId: "col-1", createdAt: ts, updatedAt: ts,
     });
 
@@ -410,11 +418,11 @@ describe("updateExpression", () => {
     const db = getTestDb();
     const ts = now();
 
-    await db.insert(schema.geoInterests).values({ id: "gi-1", city: "Paris", country: "France", createdAt: ts });
+    await db.insert(schema.geoInterests).values({ id: "gi-1", displayId: nextDisplayId("GEO"), city: "Paris", country: "France", createdAt: ts });
     await seedHuman(db, "h-1");
 
     await db.insert(schema.geoInterestExpressions).values({
-      id: "expr-1", humanId: "h-1", geoInterestId: "gi-1", notes: "old notes", createdAt: ts,
+      id: "expr-1", displayId: nextDisplayId("GIE"), humanId: "h-1", geoInterestId: "gi-1", notes: "old notes", createdAt: ts,
     });
 
     const result = await updateExpression(db, "expr-1", { notes: "new notes" });
@@ -436,11 +444,11 @@ describe("deleteExpression", () => {
     const db = getTestDb();
     const ts = now();
 
-    await db.insert(schema.geoInterests).values({ id: "gi-1", city: "Paris", country: "France", createdAt: ts });
+    await db.insert(schema.geoInterests).values({ id: "gi-1", displayId: nextDisplayId("GEO"), city: "Paris", country: "France", createdAt: ts });
     await seedHuman(db, "h-1");
 
     await db.insert(schema.geoInterestExpressions).values({
-      id: "expr-1", humanId: "h-1", geoInterestId: "gi-1", createdAt: ts,
+      id: "expr-1", displayId: nextDisplayId("GIE"), humanId: "h-1", geoInterestId: "gi-1", createdAt: ts,
     });
 
     await deleteExpression(db, "expr-1");

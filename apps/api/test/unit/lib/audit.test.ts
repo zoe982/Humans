@@ -42,6 +42,7 @@ describe("logAuditEntry", () => {
     // Create a colleague first (FK constraint)
     await db.insert(schema.colleagues).values({
       id: "col-1",
+      displayId: "COL-000001",
       email: "test@example.com",
       firstName: "Test",
       lastName: "User",

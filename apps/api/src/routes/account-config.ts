@@ -3,10 +3,8 @@ import { eq } from "drizzle-orm";
 import {
   accountTypesConfig,
   accountHumanLabelsConfig,
-  accountEmailLabelsConfig,
-  accountPhoneLabelsConfig,
-  humanEmailLabelsConfig,
-  humanPhoneLabelsConfig,
+  emailLabelsConfig,
+  phoneLabelsConfig,
 } from "@humans/db/schema";
 import { createId } from "@humans/db";
 import { createConfigItemSchema, updateConfigItemSchema } from "@humans/shared";
@@ -19,10 +17,8 @@ import type { AppContext } from "../types";
 const configTableMap = {
   "account-types": accountTypesConfig,
   "account-human-labels": accountHumanLabelsConfig,
-  "account-email-labels": accountEmailLabelsConfig,
-  "account-phone-labels": accountPhoneLabelsConfig,
-  "human-email-labels": humanEmailLabelsConfig,
-  "human-phone-labels": humanPhoneLabelsConfig,
+  "email-labels": emailLabelsConfig,
+  "phone-labels": phoneLabelsConfig,
 } as const;
 
 type ConfigType = keyof typeof configTableMap;

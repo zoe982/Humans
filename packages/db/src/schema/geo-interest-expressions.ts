@@ -7,6 +7,7 @@ export const geoInterestExpressions = sqliteTable(
   "geo_interest_expressions",
   {
     id: text("id").primaryKey(),
+    displayId: text("display_id").notNull().unique(),
     humanId: text("human_id")
       .notNull()
       .references(() => humans.id),

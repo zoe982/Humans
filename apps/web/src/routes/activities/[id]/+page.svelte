@@ -117,14 +117,14 @@
 </script>
 
 <svelte:head>
-  <title>{activity.subject || activityTypeLabels[activity.type] || "Activity"} - Humans CRM</title>
+  <title>{activity.displayId} — {activity.subject || activityTypeLabels[activity.type] || "Activity"} - Humans CRM</title>
 </svelte:head>
 
 <div class="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8">
   <RecordManagementBar
     backHref="/activities"
     backLabel="Activities"
-    title={activity.subject || activityTypeLabels[activity.type] || "Activity"}
+    title="{activity.displayId} — {activity.subject || activityTypeLabels[activity.type] || 'Activity'}"
   >
     {#snippet actions()}
       <button type="button" class="btn-danger text-sm py-1.5 px-3" onclick={() => { showDeleteConfirm = true; }}>Delete</button>

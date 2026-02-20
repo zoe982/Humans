@@ -1,14 +1,12 @@
-import { like, or } from "drizzle-orm";
+import { like, or, eq } from "drizzle-orm";
 import {
   humans,
-  humanEmails,
-  humanPhoneNumbers,
+  emails,
+  phones,
   activities,
   geoInterests,
   geoInterestExpressions,
   accounts,
-  accountEmails,
-  accountPhoneNumbers,
   accountTypes,
   accountTypesConfig,
 } from "@humans/db/schema";
@@ -24,11 +22,11 @@ export async function searchD1(db: DB, query: string) {
         .select()
         .from(humans)
         .where(or(like(humans.firstName, pattern), like(humans.lastName, pattern))),
-      db.select().from(humanEmails).where(like(humanEmails.email, pattern)),
+      db.select().from(emails).where(like(emails.email, pattern)),
       db
         .select()
-        .from(humanPhoneNumbers)
-        .where(like(humanPhoneNumbers.phoneNumber, pattern)),
+        .from(phones)
+        .where(like(phones.phoneNumber, pattern)),
       db
         .select()
         .from(activities)
@@ -38,8 +36,8 @@ export async function searchD1(db: DB, query: string) {
         .from(geoInterests)
         .where(or(like(geoInterests.city, pattern), like(geoInterests.country, pattern))),
       db.select().from(accounts).where(like(accounts.name, pattern)),
-      db.select().from(accountEmails).where(like(accountEmails.email, pattern)),
-      db.select().from(accountPhoneNumbers).where(like(accountPhoneNumbers.phoneNumber, pattern)),
+      db.select().from(emails).where(like(emails.email, pattern)),
+      db.select().from(phones).where(like(phones.phoneNumber, pattern)),
     ]);
 
   // Fetch expressions for matched geo-interests to find linked humans
@@ -50,8 +48,8 @@ export async function searchD1(db: DB, query: string) {
   // Merge human results: collect unique human IDs from name, email, phone, geo-interest matches
   const humanIds = new Set<string>();
   humanResults.forEach((h) => humanIds.add(h.id));
-  emailResults.forEach((e) => humanIds.add(e.humanId));
-  phoneResults.forEach((p) => humanIds.add(p.humanId));
+  emailResults.filter((e) => e.ownerType === "human").forEach((e) => humanIds.add(e.ownerId));
+  phoneResults.filter((p) => p.ownerType === "human").forEach((p) => humanIds.add(p.ownerId));
 
   const matchedGeoInterestIds = new Set(geoInterestResults.map((gi) => gi.id));
   allExpressions
@@ -60,12 +58,12 @@ export async function searchD1(db: DB, query: string) {
 
   // Fetch full data for matched humans
   const allHumans = await db.select().from(humans);
-  const allEmails = await db.select().from(humanEmails);
+  const allEmails = await db.select().from(emails);
   const matchedHumans = allHumans
     .filter((h) => humanIds.has(h.id))
     .map((h) => ({
       ...h,
-      emails: allEmails.filter((e) => e.humanId === h.id),
+      emails: allEmails.filter((e) => e.ownerType === "human" && e.ownerId === h.id),
     }));
 
   // Enrich geo-interest results with expression counts
@@ -81,8 +79,8 @@ export async function searchD1(db: DB, query: string) {
   // Merge account results: collect unique account IDs from name, email, phone matches
   const accountIds = new Set<string>();
   accountResults.forEach((a) => accountIds.add(a.id));
-  accountEmailResults.forEach((e) => accountIds.add(e.accountId));
-  accountPhoneResults.forEach((p) => accountIds.add(p.accountId));
+  accountEmailResults.filter((e) => e.ownerType === "account").forEach((e) => accountIds.add(e.ownerId));
+  accountPhoneResults.filter((p) => p.ownerType === "account").forEach((p) => accountIds.add(p.ownerId));
 
   const allAccounts = accountIds.size > 0 ? await db.select().from(accounts) : [];
   const allAccountTypes = accountIds.size > 0 ? await db.select().from(accountTypes) : [];

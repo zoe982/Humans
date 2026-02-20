@@ -6,7 +6,7 @@ export const createLeadSourceSchema = z.object({
 });
 
 export const createLeadEventSchema = z.object({
-  clientId: z.string().min(1),
+  humanId: z.string().min(1),
   eventType: z.enum([
     "inquiry",
     "quote_requested",

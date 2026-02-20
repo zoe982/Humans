@@ -8,6 +8,7 @@ import {
 import { createId } from "@humans/db";
 import { ERROR_CODES } from "@humans/shared";
 import { notFound } from "../lib/errors";
+import { nextDisplayId } from "../lib/display-id";
 import type { DB } from "./types";
 
 // ---------------------------------------------------------------------------
@@ -85,8 +86,11 @@ export async function createGeoInterest(
     return { data: existing, created: false };
   }
 
+  const displayId = await nextDisplayId(db, "GEO");
+
   const gi = {
     id: createId(),
+    displayId,
     city: data.city,
     country: data.country,
     createdAt: new Date().toISOString(),
@@ -179,9 +183,11 @@ export async function createExpression(
     if (existing) {
       geoInterestId = existing.id;
     } else {
+      const geoDisplayId = await nextDisplayId(db, "GEO");
       geoInterestId = createId();
       await db.insert(geoInterests).values({
         id: geoInterestId,
+        displayId: geoDisplayId,
         city: data.city,
         country: data.country,
         createdAt: now,
@@ -199,8 +205,11 @@ export async function createExpression(
     }
   }
 
+  const displayId = await nextDisplayId(db, "GEX");
+
   const expression = {
     id: createId(),
+    displayId,
     humanId: data.humanId,
     geoInterestId: geoInterestId!,
     activityId: data.activityId ?? null,

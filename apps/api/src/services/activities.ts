@@ -3,6 +3,7 @@ import { activities, humans, accounts, geoInterestExpressions, geoInterests } fr
 import { createId } from "@humans/db";
 import { ERROR_CODES } from "@humans/shared";
 import { notFound } from "../lib/errors";
+import { nextDisplayId } from "../lib/display-id";
 import type { DB } from "./types";
 
 interface ActivityFilters {
@@ -118,9 +119,11 @@ export async function createActivity(
   colleagueId: string,
 ) {
   const now = new Date().toISOString();
+  const displayId = await nextDisplayId(db, "ACT");
 
   const activity = {
     id: createId(),
+    displayId,
     type: data.type ?? "email",
     subject: data.subject ?? "",
     body: data.notes ?? null,

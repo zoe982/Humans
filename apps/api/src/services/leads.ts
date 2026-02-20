@@ -1,6 +1,7 @@
 import { eq } from "drizzle-orm";
 import { leadSources, leadEvents } from "@humans/db/schema";
 import { createId } from "@humans/db";
+import { nextDisplayId } from "../lib/display-id";
 import type { DB } from "./types";
 
 export async function listLeadSources(db: DB) {
@@ -16,9 +17,11 @@ export async function createLeadSource(
   },
 ) {
   const now = new Date().toISOString();
+  const displayId = await nextDisplayId(db, "LES");
 
   const newSource = {
     id: createId(),
+    displayId,
     ...data,
     isActive: true,
     createdAt: now,
@@ -29,12 +32,12 @@ export async function createLeadSource(
   return newSource;
 }
 
-export async function listLeadEvents(db: DB, clientId?: string) {
-  if (clientId != null && clientId !== "") {
+export async function listLeadEvents(db: DB, humanId?: string) {
+  if (humanId != null && humanId !== "") {
     const events = await db
       .select()
       .from(leadEvents)
-      .where(eq(leadEvents.clientId, clientId));
+      .where(eq(leadEvents.humanId, humanId));
     return events;
   }
 
@@ -51,8 +54,11 @@ export async function createLeadEvent(
   },
   colleagueId?: string | null,
 ) {
+  const displayId = await nextDisplayId(db, "LED");
+
   const newEvent = {
     id: createId(),
+    displayId,
     ...data,
     notes: data.notes ?? null,
     metadata: data.metadata ?? null,

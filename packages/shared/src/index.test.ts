@@ -5,8 +5,6 @@ describe("shared/index re-exports", () => {
   it("re-exports validators", () => {
     expect(shared.createHumanSchema).toBeDefined();
     expect(shared.createPetSchema).toBeDefined();
-    expect(shared.createFlightSchema).toBeDefined();
-    expect(shared.createBookingSchema).toBeDefined();
     expect(shared.createActivitySchema).toBeDefined();
     expect(shared.createAccountSchema).toBeDefined();
     expect(shared.createEmailSchema).toBeDefined();

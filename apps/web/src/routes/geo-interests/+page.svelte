@@ -12,6 +12,7 @@
 
   type GeoInterest = {
     id: string;
+    displayId: string;
     city: string;
     country: string;
     humanCount: number;
@@ -102,6 +103,7 @@
   <div class="sm:hidden space-y-3">
     {#each geoInterests as gi (gi.id)}
       <a href="/geo-interests/{gi.id}" class="glass-card p-4 block hover:ring-1 hover:ring-accent/40 transition">
+        <span class="font-mono text-xs text-text-muted">{gi.displayId}</span>
         <div class="flex items-center justify-between mb-1">
           <span class="font-medium text-accent">{gi.city}</span>
           <span class="text-sm text-text-secondary">{gi.country}</span>
@@ -126,6 +128,7 @@
     <table class="min-w-full">
       <thead class="glass-thead">
         <tr>
+          <th scope="col">ID</th>
           <th scope="col">City</th>
           <th scope="col">Country</th>
           <th scope="col">Interested Humans</th>
@@ -139,6 +142,9 @@
       <tbody>
         {#each geoInterests as gi (gi.id)}
           <tr class="glass-row-hover">
+            <td class="font-mono text-sm">
+              <a href="/geo-interests/{gi.id}" class="text-accent hover:text-cyan-300">{gi.displayId}</a>
+            </td>
             <td class="font-medium">
               <a href="/geo-interests/{gi.id}" class="text-accent hover:text-cyan-300">{gi.city}</a>
             </td>
@@ -154,7 +160,7 @@
           </tr>
         {:else}
           <tr>
-            <td colspan={data.userRole === "admin" ? 6 : 5} class="px-6 py-8 text-center text-sm text-text-muted">No geo-interests found.</td>
+            <td colspan={data.userRole === "admin" ? 7 : 6} class="px-6 py-8 text-center text-sm text-text-muted">No geo-interests found.</td>
           </tr>
         {/each}
       </tbody>

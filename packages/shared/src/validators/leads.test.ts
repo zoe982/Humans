@@ -29,13 +29,13 @@ describe("createLeadSourceSchema", () => {
 
 describe("createLeadEventSchema", () => {
   const validInput = {
-    clientId: "c-1",
+    humanId: "h-1",
     eventType: "inquiry" as const,
   };
 
   it("accepts valid input", () => {
     const result = createLeadEventSchema.parse(validInput);
-    expect(result.clientId).toBe("c-1");
+    expect(result.humanId).toBe("h-1");
     expect(result.eventType).toBe("inquiry");
   });
 
@@ -55,8 +55,8 @@ describe("createLeadEventSchema", () => {
     expect(result.metadata).toStrictEqual({ source: "web" });
   });
 
-  it("rejects empty clientId", () => {
-    expect(() => createLeadEventSchema.parse({ ...validInput, clientId: "" })).toThrowError();
+  it("rejects empty humanId", () => {
+    expect(() => createLeadEventSchema.parse({ ...validInput, humanId: "" })).toThrowError();
   });
 
   it("rejects invalid eventType", () => {

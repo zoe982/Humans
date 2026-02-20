@@ -22,10 +22,17 @@ function now() {
   return new Date().toISOString();
 }
 
+let seedCounter = 0;
+function nextDisplayId(prefix: string) {
+  seedCounter++;
+  return `${prefix}-${String(seedCounter).padStart(6, "0")}`;
+}
+
 async function seedColleague(db: ReturnType<typeof getTestDb>, id = "col-1") {
   const ts = now();
   await db.insert(schema.colleagues).values({
     id,
+    displayId: nextDisplayId("COL"),
     email: `${id}@test.com`,
     firstName: "Test",
     lastName: "User",
@@ -42,6 +49,7 @@ async function seedAccount(db: ReturnType<typeof getTestDb>, id = "acc-1", name 
   const ts = now();
   await db.insert(schema.accounts).values({
     id,
+    displayId: nextDisplayId("ACC"),
     name,
     status: "open",
     createdAt: ts,
@@ -54,6 +62,7 @@ async function seedHuman(db: ReturnType<typeof getTestDb>, id = "h-1", first = "
   const ts = now();
   await db.insert(schema.humans).values({
     id,
+    displayId: nextDisplayId("HUM"),
     firstName: first,
     lastName: last,
     status: "open",
@@ -127,38 +136,38 @@ describe("getAccountDetail", () => {
     });
 
     // Human emails and phones (for linked human detail)
-    await db.insert(schema.humanEmails).values({
-      id: "he-1", humanId: "h-1", email: "jane@test.com", isPrimary: true, createdAt: ts,
+    await db.insert(schema.emails).values({
+      id: "he-1", displayId: nextDisplayId("EML"), ownerType: "human", ownerId: "h-1", email: "jane@test.com", isPrimary: true, createdAt: ts,
     });
-    await db.insert(schema.humanPhoneNumbers).values({
-      id: "hp-1", humanId: "h-1", phoneNumber: "+1234567890", hasWhatsapp: false, isPrimary: true, createdAt: ts,
+    await db.insert(schema.phones).values({
+      id: "hp-1", displayId: nextDisplayId("FON"), ownerType: "human", ownerId: "h-1", phoneNumber: "+1234567890", hasWhatsapp: false, isPrimary: true, createdAt: ts,
     });
 
     // Account emails
-    await db.insert(schema.accountEmailLabelsConfig).values({
+    await db.insert(schema.emailLabelsConfig).values({
       id: "elbl-1", name: "Work", createdAt: ts,
     });
-    await db.insert(schema.accountEmails).values({
-      id: "ae-1", accountId: "acc-1", email: "info@acme.com", labelId: "elbl-1", isPrimary: true, createdAt: ts,
+    await db.insert(schema.emails).values({
+      id: "ae-1", displayId: nextDisplayId("EML"), ownerType: "account", ownerId: "acc-1", email: "info@acme.com", labelId: "elbl-1", isPrimary: true, createdAt: ts,
     });
 
     // Account phones
-    await db.insert(schema.accountPhoneLabelsConfig).values({
+    await db.insert(schema.phoneLabelsConfig).values({
       id: "plbl-1", name: "Office", createdAt: ts,
     });
-    await db.insert(schema.accountPhoneNumbers).values({
-      id: "ap-1", accountId: "acc-1", phoneNumber: "+9876543210", labelId: "plbl-1", hasWhatsapp: false, isPrimary: true, createdAt: ts,
+    await db.insert(schema.phones).values({
+      id: "ap-1", displayId: nextDisplayId("FON"), ownerType: "account", ownerId: "acc-1", phoneNumber: "+9876543210", labelId: "plbl-1", hasWhatsapp: false, isPrimary: true, createdAt: ts,
     });
 
     // Direct activity on account
     await db.insert(schema.activities).values({
-      id: "act-1", type: "email", subject: "Account Meeting", activityDate: ts,
+      id: "act-1", displayId: nextDisplayId("ACT"), type: "email", subject: "Account Meeting", activityDate: ts,
       accountId: "acc-1", createdByColleagueId: "col-1", createdAt: ts, updatedAt: ts,
     });
 
     // Activity on linked human
     await db.insert(schema.activities).values({
-      id: "act-2", type: "call", subject: "Follow-up", activityDate: ts,
+      id: "act-2", displayId: nextDisplayId("ACT"), type: "call", subject: "Follow-up", activityDate: ts,
       humanId: "h-1", createdByColleagueId: "col-1", createdAt: ts, updatedAt: ts,
     });
 
@@ -346,11 +355,11 @@ describe("deleteAccount", () => {
     await db.insert(schema.accountHumans).values({
       id: "ah-1", accountId: "acc-1", humanId: "h-1", createdAt: ts,
     });
-    await db.insert(schema.accountEmails).values({
-      id: "ae-1", accountId: "acc-1", email: "info@acme.com", isPrimary: true, createdAt: ts,
+    await db.insert(schema.emails).values({
+      id: "ae-1", displayId: nextDisplayId("EML"), ownerType: "account", ownerId: "acc-1", email: "info@acme.com", isPrimary: true, createdAt: ts,
     });
-    await db.insert(schema.accountPhoneNumbers).values({
-      id: "ap-1", accountId: "acc-1", phoneNumber: "+1234567890", hasWhatsapp: false, isPrimary: true, createdAt: ts,
+    await db.insert(schema.phones).values({
+      id: "ap-1", displayId: nextDisplayId("FON"), ownerType: "account", ownerId: "acc-1", phoneNumber: "+1234567890", hasWhatsapp: false, isPrimary: true, createdAt: ts,
     });
 
     await deleteAccount(db, "acc-1");
@@ -358,8 +367,8 @@ describe("deleteAccount", () => {
     expect(await db.select().from(schema.accounts)).toHaveLength(0);
     expect(await db.select().from(schema.accountTypes)).toHaveLength(0);
     expect(await db.select().from(schema.accountHumans)).toHaveLength(0);
-    expect(await db.select().from(schema.accountEmails)).toHaveLength(0);
-    expect(await db.select().from(schema.accountPhoneNumbers)).toHaveLength(0);
+    expect(await db.select().from(schema.emails)).toHaveLength(0);
+    expect(await db.select().from(schema.phones)).toHaveLength(0);
   });
 });
 
@@ -375,10 +384,11 @@ describe("addAccountEmail", () => {
 
     expect(result.id).toBeDefined();
     expect(result.email).toBe("hello@acme.com");
-    expect(result.accountId).toBe("acc-1");
+    expect(result.ownerId).toBe("acc-1");
+    expect(result.ownerType).toBe("account");
     expect(result.isPrimary).toBe(true);
 
-    const rows = await db.select().from(schema.accountEmails);
+    const rows = await db.select().from(schema.emails);
     expect(rows).toHaveLength(1);
   });
 
@@ -398,12 +408,12 @@ describe("deleteAccountEmail", () => {
     const ts = now();
     await seedAccount(db, "acc-1");
 
-    await db.insert(schema.accountEmails).values({
-      id: "ae-1", accountId: "acc-1", email: "del@acme.com", isPrimary: false, createdAt: ts,
+    await db.insert(schema.emails).values({
+      id: "ae-1", displayId: nextDisplayId("EML"), ownerType: "account", ownerId: "acc-1", email: "del@acme.com", isPrimary: false, createdAt: ts,
     });
 
     await deleteAccountEmail(db, "ae-1");
-    expect(await db.select().from(schema.accountEmails)).toHaveLength(0);
+    expect(await db.select().from(schema.emails)).toHaveLength(0);
   });
 });
 
@@ -420,11 +430,12 @@ describe("addAccountPhone", () => {
 
     expect(result.id).toBeDefined();
     expect(result.phoneNumber).toBe("+1234567890");
-    expect(result.accountId).toBe("acc-1");
+    expect(result.ownerId).toBe("acc-1");
+    expect(result.ownerType).toBe("account");
     expect(result.hasWhatsapp).toBe(true);
     expect(result.isPrimary).toBe(true);
 
-    const rows = await db.select().from(schema.accountPhoneNumbers);
+    const rows = await db.select().from(schema.phones);
     expect(rows).toHaveLength(1);
   });
 
@@ -445,12 +456,12 @@ describe("deleteAccountPhone", () => {
     const ts = now();
     await seedAccount(db, "acc-1");
 
-    await db.insert(schema.accountPhoneNumbers).values({
-      id: "ap-1", accountId: "acc-1", phoneNumber: "+1234567890", hasWhatsapp: false, isPrimary: false, createdAt: ts,
+    await db.insert(schema.phones).values({
+      id: "ap-1", displayId: nextDisplayId("FON"), ownerType: "account", ownerId: "acc-1", phoneNumber: "+1234567890", hasWhatsapp: false, isPrimary: false, createdAt: ts,
     });
 
     await deleteAccountPhone(db, "ap-1");
-    expect(await db.select().from(schema.accountPhoneNumbers)).toHaveLength(0);
+    expect(await db.select().from(schema.phones)).toHaveLength(0);
   });
 });
 

@@ -6,20 +6,6 @@ export {
 } from "./pets";
 
 export {
-  createFlightSchema,
-  updateFlightSchema,
-  type CreateFlightInput,
-  type UpdateFlightInput,
-} from "./flights";
-
-export {
-  createBookingSchema,
-  updateBookingSchema,
-  type CreateBookingInput,
-  type UpdateBookingInput,
-} from "./bookings";
-
-export {
   createLeadSourceSchema,
   createLeadEventSchema,
   type CreateLeadSourceInput,

@@ -3,6 +3,7 @@ import { colleagues, auditLog } from "@humans/db/schema";
 import { createId } from "@humans/db";
 import { ERROR_CODES } from "@humans/shared";
 import { notFound, conflict } from "../lib/errors";
+import { nextDisplayId } from "../lib/display-id";
 import type { DB } from "./types";
 
 export async function listColleagues(db: DB) {
@@ -41,9 +42,11 @@ export async function createColleague(
   }
 
   const displayName = [data.firstName, data.middleNames, data.lastName].filter(Boolean).join(" ");
+  const displayId = await nextDisplayId(db, "COL");
 
   const newColleague = {
     id: createId(),
+    displayId,
     email: data.email,
     firstName: data.firstName,
     middleNames: data.middleNames ?? null,

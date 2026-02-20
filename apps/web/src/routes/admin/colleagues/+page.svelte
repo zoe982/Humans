@@ -9,6 +9,7 @@
 
   type Colleague = {
     id: string;
+    displayId: string;
     email: string;
     firstName: string;
     middleNames: string | null;
@@ -116,6 +117,7 @@
     <table class="min-w-full">
       <thead class="glass-thead">
         <tr>
+          <th scope="col">ID</th>
           <th scope="col">Colleague</th>
           <th scope="col">Role</th>
           <th scope="col">Status</th>
@@ -126,6 +128,7 @@
       <tbody>
         {#each colleagues as colleague (colleague.id)}
           <tr class="glass-row-hover">
+            <td class="font-mono text-sm text-text-muted">{colleague.displayId}</td>
             <td>
               <div>
                 <p class="font-medium">{colleague.name}</p>
@@ -175,7 +178,7 @@
           </tr>
         {:else}
           <tr>
-            <td colspan="5" class="px-6 py-8 text-center text-sm text-text-muted">No colleagues found.</td>
+            <td colspan="6" class="px-6 py-8 text-center text-sm text-text-muted">No colleagues found.</td>
           </tr>
         {/each}
       </tbody>

@@ -12,10 +12,14 @@ function now() {
   return new Date().toISOString();
 }
 
+let seedCounter = 0;
+
 async function seedColleague(db: ReturnType<typeof getTestDb>, id = "col-1") {
+  seedCounter++;
   const ts = now();
   await db.insert(schema.colleagues).values({
     id,
+    displayId: `COL-${String(seedCounter).padStart(6, "0")}`,
     email: `${id}@test.com`,
     firstName: "Test",
     lastName: "User",
@@ -28,14 +32,15 @@ async function seedColleague(db: ReturnType<typeof getTestDb>, id = "col-1") {
   return id;
 }
 
-async function seedClient(db: ReturnType<typeof getTestDb>, id = "cl-1") {
+async function seedHuman(db: ReturnType<typeof getTestDb>, id = "h-1") {
+  seedCounter++;
   const ts = now();
-  await db.insert(schema.clients).values({
+  await db.insert(schema.humans).values({
     id,
-    firstName: "Client",
+    displayId: `HUM-${String(seedCounter).padStart(6, "0")}`,
+    firstName: "Human",
     lastName: "One",
-    email: "client@test.com",
-    status: "active",
+    status: "open",
     createdAt: ts,
     updatedAt: ts,
   });
@@ -47,9 +52,11 @@ async function seedLeadSource(
   id = "ls-1",
   name = "Website",
 ) {
+  seedCounter++;
   const ts = now();
   await db.insert(schema.leadSources).values({
     id,
+    displayId: `LES-${String(seedCounter).padStart(6, "0")}`,
     name,
     category: "online",
     isActive: true,
@@ -62,12 +69,14 @@ async function seedLeadSource(
 async function seedLeadEvent(
   db: ReturnType<typeof getTestDb>,
   id = "le-1",
-  clientId = "cl-1",
+  humanId = "h-1",
 ) {
+  seedCounter++;
   const ts = now();
   await db.insert(schema.leadEvents).values({
     id,
-    clientId,
+    displayId: `LED-${String(seedCounter).padStart(6, "0")}`,
+    humanId,
     eventType: "inquiry",
     notes: "Initial inquiry",
     createdAt: ts,
@@ -112,32 +121,32 @@ describe("createLeadSource", () => {
 });
 
 describe("listLeadEvents", () => {
-  it("returns all lead events when no clientId filter", async () => {
+  it("returns all lead events when no humanId filter", async () => {
     const db = getTestDb();
-    await seedClient(db, "cl-1");
-    await seedClient(db, "cl-2");
-    await seedLeadEvent(db, "le-1", "cl-1");
-    await seedLeadEvent(db, "le-2", "cl-2");
+    await seedHuman(db, "h-1");
+    await seedHuman(db, "h-2");
+    await seedLeadEvent(db, "le-1", "h-1");
+    await seedLeadEvent(db, "le-2", "h-2");
 
     const result = await listLeadEvents(db);
     expect(result).toHaveLength(2);
   });
 
-  it("filters lead events by clientId", async () => {
+  it("filters lead events by humanId", async () => {
     const db = getTestDb();
-    await seedClient(db, "cl-1");
-    await seedClient(db, "cl-2");
-    await seedLeadEvent(db, "le-1", "cl-1");
-    await seedLeadEvent(db, "le-2", "cl-2");
+    await seedHuman(db, "h-1");
+    await seedHuman(db, "h-2");
+    await seedLeadEvent(db, "le-1", "h-1");
+    await seedLeadEvent(db, "le-2", "h-2");
 
-    const result = await listLeadEvents(db, "cl-1");
+    const result = await listLeadEvents(db, "h-1");
     expect(result).toHaveLength(1);
-    expect(result[0]!.clientId).toBe("cl-1");
+    expect(result[0]!.humanId).toBe("h-1");
   });
 
-  it("returns empty list for unknown clientId", async () => {
+  it("returns empty list for unknown humanId", async () => {
     const db = getTestDb();
-    const result = await listLeadEvents(db, "cl-nonexistent");
+    const result = await listLeadEvents(db, "h-nonexistent");
     expect(result).toHaveLength(0);
   });
 });
@@ -145,16 +154,16 @@ describe("listLeadEvents", () => {
 describe("createLeadEvent", () => {
   it("creates a lead event without colleagueId", async () => {
     const db = getTestDb();
-    await seedClient(db, "cl-1");
+    await seedHuman(db, "h-1");
 
     const result = await createLeadEvent(db, {
-      clientId: "cl-1",
+      humanId: "h-1",
       eventType: "inquiry",
       notes: "Asked about pricing",
     });
 
     expect(result.id).toBeDefined();
-    expect(result.clientId).toBe("cl-1");
+    expect(result.humanId).toBe("h-1");
     expect(result.notes).toBe("Asked about pricing");
     expect(result.createdByColleagueId).toBeNull();
 
@@ -165,12 +174,12 @@ describe("createLeadEvent", () => {
   it("creates a lead event with colleagueId", async () => {
     const db = getTestDb();
     await seedColleague(db, "col-1");
-    await seedClient(db, "cl-1");
+    await seedHuman(db, "h-1");
 
     const result = await createLeadEvent(
       db,
       {
-        clientId: "cl-1",
+        humanId: "h-1",
         eventType: "follow_up",
         notes: "Followed up via phone",
       },
@@ -182,10 +191,10 @@ describe("createLeadEvent", () => {
 
   it("defaults notes and metadata to null when not provided", async () => {
     const db = getTestDb();
-    await seedClient(db, "cl-1");
+    await seedHuman(db, "h-1");
 
     const result = await createLeadEvent(db, {
-      clientId: "cl-1",
+      humanId: "h-1",
       eventType: "inquiry",
     });
 

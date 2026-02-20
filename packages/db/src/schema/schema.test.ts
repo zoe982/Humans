@@ -2,18 +2,17 @@ import { describe, it, expect } from "vitest";
 import { getTableName } from "drizzle-orm";
 import { getTableConfig } from "drizzle-orm/sqlite-core";
 import { colleagues, roles } from "./colleagues";
-import { clients, clientStatuses } from "./clients";
 import { pets } from "./pets";
-import { flights, flightStatuses } from "./flights";
-import { flightBookings, bookingStatuses } from "./flight-bookings";
 import { leadSources, leadSourceCategories } from "./lead-sources";
 import { leadEvents, leadEventTypes } from "./lead-events";
 import { auditLog } from "./audit-log";
 import { humans, humanStatuses } from "./humans";
-import { humanEmails } from "./human-emails";
+import { emails } from "./emails";
+import { emailLabelsConfig } from "./email-labels-config";
 import { humanTypes, humanTypeValues } from "./human-types";
 import { humanRouteSignups } from "./human-route-signups";
-import { humanPhoneNumbers } from "./human-phone-numbers";
+import { phones } from "./phones";
+import { phoneLabelsConfig } from "./phone-labels-config";
 import { activities, activityTypeValues } from "./activities";
 import { geoInterests } from "./geo-interests";
 import { geoInterestExpressions } from "./geo-interest-expressions";
@@ -22,12 +21,7 @@ import { accountTypesConfig } from "./account-types-config";
 import { accountTypes } from "./account-types";
 import { accountHumanLabelsConfig } from "./account-human-labels-config";
 import { accountHumans } from "./account-humans";
-import { accountEmailLabelsConfig } from "./account-email-labels-config";
-import { accountEmails } from "./account-emails";
-import { accountPhoneLabelsConfig } from "./account-phone-labels-config";
-import { accountPhoneNumbers } from "./account-phone-numbers";
-import { humanEmailLabelsConfig } from "./human-email-labels-config";
-import { humanPhoneLabelsConfig } from "./human-phone-labels-config";
+import { displayIdCounters } from "./display-id-counters";
 import { errorLog } from "./error-log";
 
 describe("schema tables", () => {
@@ -35,20 +29,8 @@ describe("schema tables", () => {
     expect(getTableName(colleagues)).toBe("colleagues");
   });
 
-  it("clients table has correct name", () => {
-    expect(getTableName(clients)).toBe("clients");
-  });
-
   it("pets table has correct name", () => {
     expect(getTableName(pets)).toBe("pets");
-  });
-
-  it("flights table has correct name", () => {
-    expect(getTableName(flights)).toBe("flights");
-  });
-
-  it("flightBookings table has correct name", () => {
-    expect(getTableName(flightBookings)).toBe("flight_bookings");
   });
 
   it("leadSources table has correct name", () => {
@@ -67,8 +49,12 @@ describe("schema tables", () => {
     expect(getTableName(humans)).toBe("humans");
   });
 
-  it("humanEmails table has correct name", () => {
-    expect(getTableName(humanEmails)).toBe("human_emails");
+  it("emails table has correct name", () => {
+    expect(getTableName(emails)).toBe("emails");
+  });
+
+  it("emailLabelsConfig table has correct name", () => {
+    expect(getTableName(emailLabelsConfig)).toBe("email_labels_config");
   });
 
   it("humanTypes table has correct name", () => {
@@ -79,8 +65,12 @@ describe("schema tables", () => {
     expect(getTableName(humanRouteSignups)).toBe("human_route_signups");
   });
 
-  it("humanPhoneNumbers table has correct name", () => {
-    expect(getTableName(humanPhoneNumbers)).toBe("human_phone_numbers");
+  it("phones table has correct name", () => {
+    expect(getTableName(phones)).toBe("phones");
+  });
+
+  it("phoneLabelsConfig table has correct name", () => {
+    expect(getTableName(phoneLabelsConfig)).toBe("phone_labels_config");
   });
 
   it("activities table has correct name", () => {
@@ -115,28 +105,8 @@ describe("schema tables", () => {
     expect(getTableName(accountHumans)).toBe("account_humans");
   });
 
-  it("accountEmailLabelsConfig table has correct name", () => {
-    expect(getTableName(accountEmailLabelsConfig)).toBe("account_email_labels_config");
-  });
-
-  it("accountEmails table has correct name", () => {
-    expect(getTableName(accountEmails)).toBe("account_emails");
-  });
-
-  it("accountPhoneLabelsConfig table has correct name", () => {
-    expect(getTableName(accountPhoneLabelsConfig)).toBe("account_phone_labels_config");
-  });
-
-  it("accountPhoneNumbers table has correct name", () => {
-    expect(getTableName(accountPhoneNumbers)).toBe("account_phone_numbers");
-  });
-
-  it("humanEmailLabelsConfig table has correct name", () => {
-    expect(getTableName(humanEmailLabelsConfig)).toBe("human_email_labels_config");
-  });
-
-  it("humanPhoneLabelsConfig table has correct name", () => {
-    expect(getTableName(humanPhoneLabelsConfig)).toBe("human_phone_labels_config");
+  it("displayIdCounters table has correct name", () => {
+    expect(getTableName(displayIdCounters)).toBe("display_id_counters");
   });
 
   it("errorLog table has correct name", () => {
@@ -157,30 +127,6 @@ describe("schema tables", () => {
 describe("enum constants", () => {
   it("roles contains expected values", () => {
     expect(roles).toStrictEqual(["admin", "manager", "agent", "viewer"]);
-  });
-
-  it("clientStatuses contains expected values", () => {
-    expect(clientStatuses).toStrictEqual(["active", "inactive", "prospect"]);
-  });
-
-  it("flightStatuses contains expected values", () => {
-    expect(flightStatuses).toStrictEqual([
-      "scheduled",
-      "confirmed",
-      "in_transit",
-      "completed",
-      "cancelled",
-    ]);
-  });
-
-  it("bookingStatuses contains expected values", () => {
-    expect(bookingStatuses).toStrictEqual([
-      "pending",
-      "confirmed",
-      "checked_in",
-      "completed",
-      "cancelled",
-    ]);
   });
 
   it("leadSourceCategories contains expected values", () => {
@@ -231,26 +177,22 @@ describe("schema index re-exports", () => {
   it("re-exports all tables and constants", async () => {
     const schemaIndex = await import("./index");
     expect(schemaIndex.colleagues).toBeDefined();
-    expect(schemaIndex.clients).toBeDefined();
     expect(schemaIndex.pets).toBeDefined();
-    expect(schemaIndex.flights).toBeDefined();
-    expect(schemaIndex.flightBookings).toBeDefined();
     expect(schemaIndex.leadSources).toBeDefined();
     expect(schemaIndex.leadEvents).toBeDefined();
     expect(schemaIndex.auditLog).toBeDefined();
     expect(schemaIndex.roles).toBeDefined();
-    expect(schemaIndex.clientStatuses).toBeDefined();
-    expect(schemaIndex.flightStatuses).toBeDefined();
-    expect(schemaIndex.bookingStatuses).toBeDefined();
     expect(schemaIndex.leadSourceCategories).toBeDefined();
     expect(schemaIndex.leadEventTypes).toBeDefined();
     expect(schemaIndex.humans).toBeDefined();
     expect(schemaIndex.humanStatuses).toBeDefined();
-    expect(schemaIndex.humanEmails).toBeDefined();
+    expect(schemaIndex.emails).toBeDefined();
+    expect(schemaIndex.emailLabelsConfig).toBeDefined();
     expect(schemaIndex.humanTypes).toBeDefined();
     expect(schemaIndex.humanTypeValues).toBeDefined();
     expect(schemaIndex.humanRouteSignups).toBeDefined();
-    expect(schemaIndex.humanPhoneNumbers).toBeDefined();
+    expect(schemaIndex.phones).toBeDefined();
+    expect(schemaIndex.phoneLabelsConfig).toBeDefined();
     expect(schemaIndex.activities).toBeDefined();
     expect(schemaIndex.activityTypeValues).toBeDefined();
     expect(schemaIndex.geoInterests).toBeDefined();
@@ -261,12 +203,7 @@ describe("schema index re-exports", () => {
     expect(schemaIndex.accountTypes).toBeDefined();
     expect(schemaIndex.accountHumanLabelsConfig).toBeDefined();
     expect(schemaIndex.accountHumans).toBeDefined();
-    expect(schemaIndex.accountEmailLabelsConfig).toBeDefined();
-    expect(schemaIndex.accountEmails).toBeDefined();
-    expect(schemaIndex.accountPhoneLabelsConfig).toBeDefined();
-    expect(schemaIndex.accountPhoneNumbers).toBeDefined();
-    expect(schemaIndex.humanEmailLabelsConfig).toBeDefined();
-    expect(schemaIndex.humanPhoneLabelsConfig).toBeDefined();
+    expect(schemaIndex.displayIdCounters).toBeDefined();
     expect(schemaIndex.errorLog).toBeDefined();
   });
 });

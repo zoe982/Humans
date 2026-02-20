@@ -11,10 +11,14 @@ function now() {
   return new Date().toISOString();
 }
 
+let seedCounter = 0;
+
 async function seedHuman(db: ReturnType<typeof getTestDb>, id = "h-1", first = "John", last = "Doe") {
+  seedCounter++;
   const ts = now();
   await db.insert(schema.humans).values({
     id,
+    displayId: `HUM-${String(seedCounter).padStart(6, "0")}`,
     firstName: first,
     lastName: last,
     status: "open",
@@ -27,13 +31,16 @@ async function seedHuman(db: ReturnType<typeof getTestDb>, id = "h-1", first = "
 async function seedEmail(
   db: ReturnType<typeof getTestDb>,
   id = "em-1",
-  humanId = "h-1",
+  ownerId = "h-1",
   email = "test@example.com",
 ) {
+  seedCounter++;
   const ts = now();
-  await db.insert(schema.humanEmails).values({
+  await db.insert(schema.emails).values({
     id,
-    humanId,
+    displayId: `EML-${String(seedCounter).padStart(6, "0")}`,
+    ownerType: "human",
+    ownerId,
     email,
     isPrimary: true,
     createdAt: ts,
@@ -56,7 +63,7 @@ describe("listEmails", () => {
     const result = await listEmails(db);
     expect(result).toHaveLength(1);
     expect(result[0]!.email).toBe("alice@test.com");
-    expect(result[0]!.humanName).toBe("Alice Smith");
+    expect(result[0]!.ownerName).toBe("Alice Smith");
   });
 
   it("returns multiple emails across different humans", async () => {
@@ -69,10 +76,10 @@ describe("listEmails", () => {
     const result = await listEmails(db);
     expect(result).toHaveLength(2);
 
-    const alice = result.find((e) => e.humanId === "h-1");
-    const bob = result.find((e) => e.humanId === "h-2");
-    expect(alice!.humanName).toBe("Alice Smith");
-    expect(bob!.humanName).toBe("Bob Jones");
+    const alice = result.find((e) => e.ownerId === "h-1");
+    const bob = result.find((e) => e.ownerId === "h-2");
+    expect(alice!.ownerName).toBe("Alice Smith");
+    expect(bob!.ownerName).toBe("Bob Jones");
   });
 });
 
@@ -87,12 +94,13 @@ describe("createEmail", () => {
     });
 
     expect(result.id).toBeDefined();
-    expect(result.humanId).toBe("h-1");
+    expect(result.ownerId).toBe("h-1");
+    expect(result.ownerType).toBe("human");
     expect(result.email).toBe("new@test.com");
     expect(result.isPrimary).toBe(false);
     expect(result.labelId).toBeNull();
 
-    const rows = await db.select().from(schema.humanEmails);
+    const rows = await db.select().from(schema.emails);
     expect(rows).toHaveLength(1);
   });
 
@@ -125,7 +133,7 @@ describe("deleteEmail", () => {
 
     await deleteEmail(db, "em-1");
 
-    const rows = await db.select().from(schema.humanEmails);
+    const rows = await db.select().from(schema.emails);
     expect(rows).toHaveLength(0);
   });
 });

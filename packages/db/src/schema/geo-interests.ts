@@ -4,6 +4,7 @@ export const geoInterests = sqliteTable(
   "geo_interests",
   {
     id: text("id").primaryKey(),
+    displayId: text("display_id").notNull().unique(),
     city: text("city").notNull(),
     country: text("country").notNull(),
     createdAt: text("created_at").notNull(),

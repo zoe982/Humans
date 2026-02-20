@@ -29,8 +29,8 @@ leadRoutes.post("/api/leads/sources", requirePermission("manageLeadSources"), as
 
 // Lead Events
 leadRoutes.get("/api/leads/events", requirePermission("viewRecords"), async (c) => {
-  const clientId = c.req.query("clientId");
-  const data = await listLeadEvents(c.get("db"), clientId);
+  const humanId = c.req.query("humanId");
+  const data = await listLeadEvents(c.get("db"), humanId);
   return c.json({ data });
 });
 

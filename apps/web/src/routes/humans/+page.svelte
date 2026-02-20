@@ -20,6 +20,7 @@
 
   type Human = {
     id: string;
+    displayId: string;
     firstName: string;
     middleName: string | null;
     lastName: string;
@@ -59,6 +60,7 @@
   <div class="sm:hidden space-y-3">
     {#each humans as human (human.id)}
       <a href="/humans/{human.id}" class="glass-card p-4 block hover:ring-1 hover:ring-accent/40 transition">
+        <span class="font-mono text-xs text-text-muted">{human.displayId}</span>
         <div class="flex items-center justify-between mb-2">
           <span class="font-medium text-accent">{formatDisplayName(human)}</span>
           <StatusBadge status={human.status ?? "open"} colorMap={statusColors} />
@@ -87,6 +89,7 @@
     <table class="min-w-full">
       <thead class="glass-thead">
         <tr>
+          <th scope="col">ID</th>
           <th scope="col">Name</th>
           <th scope="col">Primary Email</th>
           <th scope="col">Status</th>
@@ -100,6 +103,9 @@
       <tbody>
         {#each humans as human (human.id)}
           <tr class="glass-row-hover">
+            <td class="font-mono text-sm">
+              <a href="/humans/{human.id}" class="text-accent hover:text-cyan-300">{human.displayId}</a>
+            </td>
             <td class="font-medium">
               <a href="/humans/{human.id}" class="text-accent hover:text-cyan-300">{formatDisplayName(human)}</a>
             </td>
@@ -125,7 +131,7 @@
           </tr>
         {:else}
           <tr>
-            <td colspan={data.userRole === "admin" ? 6 : 5} class="px-6 py-8 text-center text-sm text-text-muted">No humans found.</td>
+            <td colspan={data.userRole === "admin" ? 7 : 6} class="px-6 py-8 text-center text-sm text-text-muted">No humans found.</td>
           </tr>
         {/each}
       </tbody>

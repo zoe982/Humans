@@ -200,7 +200,7 @@
 </script>
 
 <svelte:head>
-  <title>{account.name} - Humans CRM</title>
+  <title>{account.displayId} — {account.name} - Humans CRM</title>
 </svelte:head>
 
 <div class="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8">
@@ -208,7 +208,7 @@
   <RecordManagementBar
     backHref="/accounts"
     backLabel="Accounts"
-    title={account.name}
+    title="{account.displayId} — {account.name}"
     status={account.status}
     statusOptions={["open", "active", "closed"]}
     {statusColorMap}

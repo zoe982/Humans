@@ -5,19 +5,18 @@ import {
   accountTypesConfig,
   accountHumans,
   accountHumanLabelsConfig,
-  accountEmails,
-  accountEmailLabelsConfig,
-  accountPhoneNumbers,
-  accountPhoneLabelsConfig,
+  emails,
+  emailLabelsConfig,
+  phones,
+  phoneLabelsConfig,
   activities,
   humans,
-  humanEmails,
-  humanPhoneNumbers,
 } from "@humans/db/schema";
 import { createId } from "@humans/db";
 import { ERROR_CODES } from "@humans/shared";
 import { computeDiff, logAuditEntry } from "../lib/audit";
 import { notFound } from "../lib/errors";
+import { nextDisplayId } from "../lib/display-id";
 import type { DB } from "./types";
 
 export async function listAccounts(db: DB) {
@@ -51,35 +50,35 @@ export async function getAccountDetail(db: DB, id: string) {
     typeConfigs,
     linkedHumans,
     humanLabelConfigs,
-    emails,
-    emailLabelConfigs,
-    phoneNumbers,
-    phoneLabelConfigs,
+    accountEmails,
+    emailLabelConfs,
+    accountPhones,
+    phoneLabelConfs,
     directActivities,
   ] = await Promise.all([
     db.select().from(accountTypes).where(eq(accountTypes.accountId, id)),
     db.select().from(accountTypesConfig),
     db.select().from(accountHumans).where(eq(accountHumans.accountId, id)),
     db.select().from(accountHumanLabelsConfig),
-    db.select().from(accountEmails).where(eq(accountEmails.accountId, id)),
-    db.select().from(accountEmailLabelsConfig),
-    db.select().from(accountPhoneNumbers).where(eq(accountPhoneNumbers.accountId, id)),
-    db.select().from(accountPhoneLabelsConfig),
+    db.select().from(emails).where(eq(emails.ownerId, id)),
+    db.select().from(emailLabelsConfig),
+    db.select().from(phones).where(eq(phones.ownerId, id)),
+    db.select().from(phoneLabelsConfig),
     db.select().from(activities).where(eq(activities.accountId, id)),
   ]);
 
   // Resolve linked humans with their details
   const humanIds = linkedHumans.map((lh) => lh.humanId);
   let allHumans: (typeof humans.$inferSelect)[] = [];
-  let allHumanEmails: (typeof humanEmails.$inferSelect)[] = [];
-  let allHumanPhones: (typeof humanPhoneNumbers.$inferSelect)[] = [];
+  let allHumanEmails: (typeof emails.$inferSelect)[] = [];
+  let allHumanPhones: (typeof phones.$inferSelect)[] = [];
   let humanActivities: (typeof activities.$inferSelect)[] = [];
 
   if (humanIds.length > 0) {
     [allHumans, allHumanEmails, allHumanPhones] = await Promise.all([
       db.select().from(humans),
-      db.select().from(humanEmails),
-      db.select().from(humanPhoneNumbers),
+      db.select().from(emails),
+      db.select().from(phones),
     ]);
 
     // Get activities for linked humans
@@ -102,20 +101,24 @@ export async function getAccountDetail(db: DB, id: string) {
       humanName: human ? `${human.firstName} ${human.lastName}` : "Unknown",
       humanStatus: human?.status ?? null,
       labelName: label?.name ?? null,
-      emails: allHumanEmails.filter((e) => e.humanId === lh.humanId),
-      phoneNumbers: allHumanPhones.filter((p) => p.humanId === lh.humanId),
+      emails: allHumanEmails.filter((e) => e.ownerType === "human" && e.ownerId === lh.humanId),
+      phoneNumbers: allHumanPhones.filter((p) => p.ownerType === "human" && p.ownerId === lh.humanId),
     };
   });
 
-  const emailsWithLabels = emails.map((e) => {
-    const label = e.labelId ? emailLabelConfigs.find((l) => l.id === e.labelId) : null;
-    return { ...e, labelName: label?.name ?? null };
-  });
+  const emailsWithLabels = accountEmails
+    .filter((e) => e.ownerType === "account")
+    .map((e) => {
+      const label = e.labelId ? emailLabelConfs.find((l) => l.id === e.labelId) : null;
+      return { ...e, labelName: label?.name ?? null };
+    });
 
-  const phonesWithLabels = phoneNumbers.map((p) => {
-    const label = p.labelId ? phoneLabelConfigs.find((l) => l.id === p.labelId) : null;
-    return { ...p, labelName: label?.name ?? null };
-  });
+  const phonesWithLabels = accountPhones
+    .filter((p) => p.ownerType === "account")
+    .map((p) => {
+      const label = p.labelId ? phoneLabelConfs.find((l) => l.id === p.labelId) : null;
+      return { ...p, labelName: label?.name ?? null };
+    });
 
   // Annotate human activities with human name
   const humanActivitiesWithNames = humanActivities.map((a) => {
@@ -143,9 +146,11 @@ export async function createAccount(
 ) {
   const now = new Date().toISOString();
   const accountId = createId();
+  const displayId = await nextDisplayId(db, "ACC");
 
   await db.insert(accounts).values({
     id: accountId,
+    displayId,
     name: data.name,
     status: data.status ?? "open",
     createdAt: now,
@@ -163,7 +168,7 @@ export async function createAccount(
     }
   }
 
-  return { id: accountId };
+  return { id: accountId, displayId };
 }
 
 export async function updateAccount(
@@ -280,8 +285,8 @@ export async function deleteAccount(db: DB, id: string) {
 
   await db.delete(accountTypes).where(eq(accountTypes.accountId, id));
   await db.delete(accountHumans).where(eq(accountHumans.accountId, id));
-  await db.delete(accountEmails).where(eq(accountEmails.accountId, id));
-  await db.delete(accountPhoneNumbers).where(eq(accountPhoneNumbers.accountId, id));
+  await db.delete(emails).where(eq(emails.ownerId, id));
+  await db.delete(phones).where(eq(phones.ownerId, id));
   await db.delete(accounts).where(eq(accounts.id, id));
 }
 
@@ -291,22 +296,25 @@ export async function addAccountEmail(
   data: { email: string; labelId?: string | null; isPrimary?: boolean },
 ) {
   const now = new Date().toISOString();
+  const displayId = await nextDisplayId(db, "EML");
 
   const emailRecord = {
     id: createId(),
-    accountId,
+    displayId,
+    ownerType: "account" as const,
+    ownerId: accountId,
     email: data.email,
     labelId: data.labelId ?? null,
     isPrimary: data.isPrimary ?? false,
     createdAt: now,
   };
 
-  await db.insert(accountEmails).values(emailRecord);
+  await db.insert(emails).values(emailRecord);
   return emailRecord;
 }
 
 export async function deleteAccountEmail(db: DB, emailId: string) {
-  await db.delete(accountEmails).where(eq(accountEmails.id, emailId));
+  await db.delete(emails).where(eq(emails.id, emailId));
 }
 
 export async function addAccountPhone(
@@ -315,10 +323,13 @@ export async function addAccountPhone(
   data: { phoneNumber: string; labelId?: string | null; hasWhatsapp?: boolean; isPrimary?: boolean },
 ) {
   const now = new Date().toISOString();
+  const displayId = await nextDisplayId(db, "FON");
 
   const phoneRecord = {
     id: createId(),
-    accountId,
+    displayId,
+    ownerType: "account" as const,
+    ownerId: accountId,
     phoneNumber: data.phoneNumber,
     labelId: data.labelId ?? null,
     hasWhatsapp: data.hasWhatsapp ?? false,
@@ -326,12 +337,12 @@ export async function addAccountPhone(
     createdAt: now,
   };
 
-  await db.insert(accountPhoneNumbers).values(phoneRecord);
+  await db.insert(phones).values(phoneRecord);
   return phoneRecord;
 }
 
 export async function deleteAccountPhone(db: DB, phoneId: string) {
-  await db.delete(accountPhoneNumbers).where(eq(accountPhoneNumbers.id, phoneId));
+  await db.delete(phones).where(eq(phones.id, phoneId));
 }
 
 export async function linkAccountHuman(
