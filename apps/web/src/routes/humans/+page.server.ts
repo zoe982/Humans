@@ -22,18 +22,24 @@ export const load = async ({ locals, cookies, url }: RequestEvent) => {
   const sessionToken = cookies.get("humans_session");
   const page = Number(url.searchParams.get("page")) || 1;
   const limit = Number(url.searchParams.get("limit")) || 25;
+  const q = url.searchParams.get("q") ?? "";
 
-  const res = await fetch(`${PUBLIC_API_URL}/api/humans?page=${page}&limit=${limit}`, {
+  const params = new URLSearchParams();
+  params.set("page", String(page));
+  params.set("limit", String(limit));
+  if (q) params.set("q", q);
+
+  const res = await fetch(`${PUBLIC_API_URL}/api/humans?${params.toString()}`, {
     headers: { Cookie: `humans_session=${sessionToken ?? ""}` },
   });
 
   if (!res.ok) {
     console.error("[humans] Failed to load humans:", res.status);
-    return { humans: [], page, limit, total: 0, userRole: locals.user?.role ?? "viewer" };
+    return { humans: [], page, limit, total: 0, q, userRole: locals.user?.role ?? "viewer" };
   }
   const raw: unknown = await res.json();
   const meta = isPaginatedData(raw) ? raw.meta : { page, limit, total: 0 };
-  return { humans: isListData(raw) ? raw.data : [], page: meta.page, limit: meta.limit, total: meta.total, userRole: locals.user?.role ?? "viewer" };
+  return { humans: isListData(raw) ? raw.data : [], page: meta.page, limit: meta.limit, total: meta.total, q, userRole: locals.user?.role ?? "viewer" };
 };
 
 export const actions = {

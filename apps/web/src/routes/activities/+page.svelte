@@ -6,6 +6,7 @@
   import Pagination from "$lib/components/Pagination.svelte";
   import { activityTypeColors } from "$lib/constants/colors";
   import { activityTypeLabels, ACTIVITY_TYPE_OPTIONS } from "$lib/constants/labels";
+  import { Search } from "lucide-svelte";
   import SearchableSelect from "$lib/components/SearchableSelect.svelte";
 
   let { data, form }: { data: PageData; form: ActionData } = $props();
@@ -30,6 +31,7 @@
 
   const paginationBaseUrl = $derived.by(() => {
     const params = new URLSearchParams();
+    if (data.q) params.set("q", data.q);
     if (data.type) params.set("type", data.type);
     if (data.dateFrom) params.set("dateFrom", data.dateFrom);
     if (data.dateTo) params.set("dateTo", data.dateTo);
@@ -123,6 +125,13 @@
 
   <!-- Filters -->
   <form method="GET" class="mt-4 flex flex-wrap items-end gap-4 glass-card p-4 mb-6">
+    <div class="flex-1 min-w-[200px]">
+      <label for="searchFilter" class="block text-sm font-medium text-text-secondary mb-1">Search</label>
+      <div class="relative">
+        <Search size={14} class="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
+        <input id="searchFilter" name="q" type="text" value={data.q ?? ""} placeholder="Search subject or notes..." class="glass-input w-full pl-8 pr-3 py-2 text-sm" />
+      </div>
+    </div>
     <div>
       <label for="typeFilter" class="block text-sm font-medium text-text-secondary mb-1">Type</label>
       <SearchableSelect

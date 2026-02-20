@@ -18,6 +18,7 @@ export const load = async ({ locals, cookies, url }: RequestEvent) => {
   const type = url.searchParams.get("type") ?? "";
   const dateFrom = url.searchParams.get("dateFrom") ?? "";
   const dateTo = url.searchParams.get("dateTo") ?? "";
+  const q = url.searchParams.get("q") ?? "";
   const page = Number(url.searchParams.get("page")) || 1;
   const limit = Number(url.searchParams.get("limit")) || 25;
 
@@ -25,6 +26,7 @@ export const load = async ({ locals, cookies, url }: RequestEvent) => {
   if (type) params.set("type", type);
   if (dateFrom) params.set("dateFrom", dateFrom);
   if (dateTo) params.set("dateTo", dateTo);
+  if (q) params.set("q", q);
   params.set("page", String(page));
   params.set("limit", String(limit));
 
@@ -33,7 +35,7 @@ export const load = async ({ locals, cookies, url }: RequestEvent) => {
     headers: { Cookie: `humans_session=${sessionToken ?? ""}` },
   });
 
-  if (!res.ok) return { activities: [], type, dateFrom, dateTo, page, limit, total: 0, userRole: locals.user?.role ?? "viewer" };
+  if (!res.ok) return { activities: [], type, dateFrom, dateTo, q, page, limit, total: 0, userRole: locals.user?.role ?? "viewer" };
   const raw: unknown = await res.json();
   const meta = isPaginatedData(raw) ? raw.meta : { page, limit, total: 0 };
   return {
@@ -41,6 +43,7 @@ export const load = async ({ locals, cookies, url }: RequestEvent) => {
     type,
     dateFrom,
     dateTo,
+    q,
     page: meta.page,
     limit: meta.limit,
     total: meta.total,

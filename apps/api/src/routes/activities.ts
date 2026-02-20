@@ -28,6 +28,7 @@ activityRoutes.get("/api/activities", requirePermission("viewRecords"), async (c
     type: c.req.query("type"),
     dateFrom: c.req.query("dateFrom"),
     dateTo: c.req.query("dateTo"),
+    q: c.req.query("q"),
     page,
     limit,
   });

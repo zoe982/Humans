@@ -4,6 +4,7 @@
   import AlertBanner from "$lib/components/AlertBanner.svelte";
   import ConfirmDialog from "$lib/components/ConfirmDialog.svelte";
   import SearchableSelect from "$lib/components/SearchableSelect.svelte";
+  import { Search } from "lucide-svelte";
   import { COUNTRIES } from "@humans/shared";
 
   let { data, form }: { data: PageData; form: ActionData } = $props();
@@ -21,6 +22,18 @@
   };
 
   const geoInterests = $derived(data.geoInterests as GeoInterest[]);
+
+  let search = $state("");
+
+  const filtered = $derived.by(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return geoInterests;
+    return geoInterests.filter((gi) =>
+      gi.city.toLowerCase().includes(q) ||
+      gi.country.toLowerCase().includes(q) ||
+      gi.displayId.toLowerCase().includes(q)
+    );
+  });
 
   let showCreateForm = $state(false);
   let city = $state("");
@@ -99,9 +112,17 @@
     </form>
   {/if}
 
+  <!-- Search -->
+  <div class="mb-6">
+    <div class="relative max-w-md">
+      <Search size={16} class="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
+      <input type="text" bind:value={search} placeholder="Search by city, country, or ID..." class="glass-input w-full pl-9 pr-3 py-2 text-sm" />
+    </div>
+  </div>
+
   <!-- Mobile card view -->
   <div class="sm:hidden space-y-3">
-    {#each geoInterests as gi (gi.id)}
+    {#each filtered as gi (gi.id)}
       <a href="/geo-interests/{gi.id}" class="glass-card p-4 block hover:ring-1 hover:ring-accent/40 transition">
         <span class="font-mono text-xs text-text-muted">{gi.displayId}</span>
         <div class="flex items-center justify-between mb-1">
@@ -140,7 +161,7 @@
         </tr>
       </thead>
       <tbody>
-        {#each geoInterests as gi (gi.id)}
+        {#each filtered as gi (gi.id)}
           <tr class="glass-row-hover">
             <td class="font-mono text-sm">
               <a href="/geo-interests/{gi.id}" class="text-accent hover:text-cyan-300">{gi.displayId}</a>

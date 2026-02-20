@@ -5,6 +5,7 @@
   import AlertBanner from "$lib/components/AlertBanner.svelte";
   import ConfirmDialog from "$lib/components/ConfirmDialog.svelte";
   import Pagination from "$lib/components/Pagination.svelte";
+  import { Search } from "lucide-svelte";
   import { statusColors, humanTypeColors } from "$lib/constants/colors";
   import { humanTypeLabels } from "$lib/constants/labels";
   import { displayName as formatDisplayName } from "$lib/utils/format";
@@ -37,6 +38,13 @@
     return primary?.email ?? h.emails[0]?.email ?? "\u2014";
   }
 
+  const paginationBaseUrl = $derived.by(() => {
+    const params = new URLSearchParams();
+    if (data.q) params.set("q", data.q);
+    const qs = params.toString();
+    return `/humans${qs ? `?${qs}` : ""}`;
+  });
+
   let pendingDeleteId = $state<string | null>(null);
   let deleteFormEl = $state<HTMLFormElement>();
 </script>
@@ -55,6 +63,18 @@
   {#if form?.error}
     <AlertBanner type="error" message={form.error} />
   {/if}
+
+  <!-- Search -->
+  <form method="GET" class="mt-4 mb-6 flex items-center gap-3">
+    <div class="relative flex-1">
+      <Search size={16} class="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
+      <input type="text" name="q" value={data.q ?? ""} placeholder="Search by name or ID..." class="glass-input w-full pl-9 pr-3 py-2 text-sm" />
+    </div>
+    <button type="submit" class="btn-primary text-sm">Search</button>
+    {#if data.q}
+      <a href="/humans" class="btn-ghost text-sm">Clear</a>
+    {/if}
+  </form>
 
   <!-- Mobile card view -->
   <div class="sm:hidden space-y-3">
@@ -138,7 +158,7 @@
     </table>
   </div>
 
-  <Pagination page={data.page} limit={data.limit} total={data.total} baseUrl="/humans" />
+  <Pagination page={data.page} limit={data.limit} total={data.total} baseUrl={paginationBaseUrl} />
 </div>
 
 <!-- Hidden delete form -->

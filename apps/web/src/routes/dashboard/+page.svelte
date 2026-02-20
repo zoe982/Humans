@@ -27,6 +27,19 @@
   <PageHeader title="Dashboard" />
   <p class="mt-2 text-text-secondary">Welcome back, {data.user?.name ?? "User"}.</p>
 
+  <!-- Search bar -->
+  <form method="GET" action="/search" class="mt-6">
+    <div class="relative">
+      <Search size={20} class="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
+      <input
+        type="text"
+        name="q"
+        placeholder="Search humans, accounts, activities..."
+        class="glass-input w-full pl-12 pr-4 py-3 text-base"
+      />
+    </div>
+  </form>
+
   <!-- Stats -->
   <div class="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
     <a href="/humans" class="glass-card p-6 transition hover:ring-1 hover:ring-accent/40">
@@ -69,7 +82,7 @@
       <a href="/activities/new" class="btn-ghost inline-flex items-center gap-2 text-sm">
         <ClipboardList size={16} /> Log Activity
       </a>
-      <a href="/humans" class="btn-ghost inline-flex items-center gap-2 text-sm">
+      <a href="/search" class="btn-ghost inline-flex items-center gap-2 text-sm">
         <Search size={16} /> Search Records
       </a>
     </div>

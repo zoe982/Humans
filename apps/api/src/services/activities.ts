@@ -1,4 +1,4 @@
-import { eq, and, gte, lte, sql, desc } from "drizzle-orm";
+import { eq, and, gte, lte, sql, desc, like, or } from "drizzle-orm";
 import { activities, humans, accounts, geoInterestExpressions, geoInterests } from "@humans/db/schema";
 import { createId } from "@humans/db";
 import { ERROR_CODES } from "@humans/shared";
@@ -14,6 +14,7 @@ interface ActivityFilters {
   type?: string;
   dateFrom?: string;
   dateTo?: string;
+  q?: string;
   page: number;
   limit: number;
 }
@@ -30,6 +31,10 @@ export async function listActivities(db: DB, filters: ActivityFilters) {
   if (filters.type) conditions.push(eq(activities.type, filters.type as typeof activities.type.enumValues[number]));
   if (filters.dateFrom) conditions.push(gte(activities.activityDate, filters.dateFrom));
   if (filters.dateTo) conditions.push(lte(activities.activityDate, filters.dateTo));
+  if (filters.q) {
+    const pattern = `%${filters.q}%`;
+    conditions.push(or(like(activities.subject, pattern), like(activities.notes, pattern))!);
+  }
 
   const where = conditions.length > 0 ? and(...conditions) : undefined;
 

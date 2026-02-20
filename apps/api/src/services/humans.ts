@@ -1,4 +1,4 @@
-import { eq, sql, inArray, desc } from "drizzle-orm";
+import { eq, sql, inArray, desc, like, or } from "drizzle-orm";
 import {
   humans,
   emails,
@@ -25,15 +25,24 @@ import { notFound } from "../lib/errors";
 import { nextDisplayId } from "../lib/display-id";
 import type { DB } from "./types";
 
-export async function listHumans(db: DB, page: number, limit: number) {
+export async function listHumans(db: DB, page: number, limit: number, search?: string) {
   const offset = (page - 1) * limit;
 
-  const countResult = await db.select({ total: sql<number>`count(*)` }).from(humans);
+  const searchFilter = search
+    ? or(
+        like(humans.firstName, `%${search}%`),
+        like(humans.lastName, `%${search}%`),
+        like(humans.displayId, `%${search}%`),
+      )
+    : undefined;
+
+  const countResult = await db.select({ total: sql<number>`count(*)` }).from(humans).where(searchFilter);
   const total = countResult[0]?.total ?? 0;
 
   const pagedHumans = await db
     .select()
     .from(humans)
+    .where(searchFilter)
     .orderBy(desc(humans.createdAt))
     .limit(limit)
     .offset(offset);

@@ -4,6 +4,7 @@
   import AlertBanner from "$lib/components/AlertBanner.svelte";
   import ConfirmDialog from "$lib/components/ConfirmDialog.svelte";
   import SearchableSelect from "$lib/components/SearchableSelect.svelte";
+  import { Search } from "lucide-svelte";
   import { COUNTRIES } from "@humans/shared";
 
   let { data, form }: { data: PageData; form: ActionData } = $props();
@@ -43,6 +44,34 @@
 
   const routeInterests = $derived(data.routeInterests as RouteInterest[]);
   const expressions = $derived(data.expressions as Expression[]);
+
+  let search = $state("");
+
+  const filteredRoutes = $derived.by(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return routeInterests;
+    return routeInterests.filter((ri) =>
+      ri.originCity.toLowerCase().includes(q) ||
+      ri.originCountry.toLowerCase().includes(q) ||
+      ri.destinationCity.toLowerCase().includes(q) ||
+      ri.destinationCountry.toLowerCase().includes(q) ||
+      ri.displayId.toLowerCase().includes(q)
+    );
+  });
+
+  const filteredExpressions = $derived.by(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return expressions;
+    return expressions.filter((expr) =>
+      (expr.humanName?.toLowerCase().includes(q)) ||
+      (expr.originCity?.toLowerCase().includes(q)) ||
+      (expr.originCountry?.toLowerCase().includes(q)) ||
+      (expr.destinationCity?.toLowerCase().includes(q)) ||
+      (expr.destinationCountry?.toLowerCase().includes(q)) ||
+      (expr.notes?.toLowerCase().includes(q)) ||
+      expr.displayId.toLowerCase().includes(q)
+    );
+  });
 
   let view: "routes" | "expressions" = $state("routes");
   let showCreateForm = $state(false);
@@ -117,6 +146,14 @@
     <AlertBanner type="success" message="Route interest created." />
   {/if}
 
+  <!-- Search -->
+  <div class="mt-4 mb-6">
+    <div class="relative max-w-md">
+      <Search size={16} class="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
+      <input type="text" bind:value={search} placeholder="Search routes, cities, countries..." class="glass-input w-full pl-9 pr-3 py-2 text-sm" />
+    </div>
+  </div>
+
   {#if view === "routes"}
     <!-- Create form -->
     <div class="mb-6 flex justify-end">
@@ -183,7 +220,7 @@
 
     <!-- Mobile card view -->
     <div class="sm:hidden space-y-3">
-      {#each routeInterests as ri (ri.id)}
+      {#each filteredRoutes as ri (ri.id)}
         <a href="/route-interests/{ri.id}" class="glass-card p-4 block hover:ring-1 hover:ring-accent/40 transition">
           <span class="font-mono text-xs text-text-muted">{ri.displayId}</span>
           <div class="flex items-center gap-2 mb-1">
@@ -226,7 +263,7 @@
           </tr>
         </thead>
         <tbody>
-          {#each routeInterests as ri (ri.id)}
+          {#each filteredRoutes as ri (ri.id)}
             <tr class="glass-row-hover">
               <td class="font-mono text-sm">
                 <a href="/route-interests/{ri.id}" class="text-accent hover:text-cyan-300">{ri.displayId}</a>
@@ -260,7 +297,7 @@
     <!-- Expressions view -->
     <!-- Mobile card view -->
     <div class="sm:hidden space-y-3">
-      {#each expressions as expr (expr.id)}
+      {#each filteredExpressions as expr (expr.id)}
         <a href="/route-interests/expressions/{expr.id}" class="glass-card p-4 block hover:ring-1 hover:ring-accent/40 transition">
           <div class="flex items-center justify-between mb-1">
             <span class="font-mono text-xs text-text-muted">{expr.displayId}</span>
@@ -302,7 +339,7 @@
           </tr>
         </thead>
         <tbody>
-          {#each expressions as expr (expr.id)}
+          {#each filteredExpressions as expr (expr.id)}
             <tr class="glass-row-hover">
               <td class="font-mono text-sm">
                 <a href="/route-interests/expressions/{expr.id}" class="text-accent hover:text-cyan-300">{expr.displayId}</a>

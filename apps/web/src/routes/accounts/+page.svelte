@@ -4,6 +4,7 @@
   import StatusBadge from "$lib/components/StatusBadge.svelte";
   import AlertBanner from "$lib/components/AlertBanner.svelte";
   import ConfirmDialog from "$lib/components/ConfirmDialog.svelte";
+  import { Search } from "lucide-svelte";
   import { statusColors } from "$lib/constants/colors";
 
   let { data, form }: { data: PageData; form: ActionData } = $props();
@@ -19,6 +20,19 @@
   };
 
   const accounts = $derived(data.accounts as Account[]);
+
+  let search = $state("");
+
+  const filtered = $derived.by(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return accounts;
+    return accounts.filter((a) =>
+      a.name.toLowerCase().includes(q) ||
+      a.displayId.toLowerCase().includes(q) ||
+      a.status.toLowerCase().includes(q) ||
+      a.types.some((t) => t.name.toLowerCase().includes(q))
+    );
+  });
 
   let pendingDeleteId = $state<string | null>(null);
   let deleteFormEl = $state<HTMLFormElement>();
@@ -39,9 +53,17 @@
     <AlertBanner type="error" message={form.error} />
   {/if}
 
+  <!-- Search -->
+  <div class="mt-4 mb-6">
+    <div class="relative max-w-md">
+      <Search size={16} class="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
+      <input type="text" bind:value={search} placeholder="Search accounts..." class="glass-input w-full pl-9 pr-3 py-2 text-sm" />
+    </div>
+  </div>
+
   <!-- Mobile card view -->
   <div class="sm:hidden space-y-3">
-    {#each accounts as account (account.id)}
+    {#each filtered as account (account.id)}
       <a href="/accounts/{account.id}" class="glass-card p-4 block hover:ring-1 hover:ring-accent/40 transition">
         <span class="font-mono text-xs text-text-muted">{account.displayId}</span>
         <div class="flex items-center justify-between mb-2">
@@ -80,7 +102,7 @@
         </tr>
       </thead>
       <tbody>
-        {#each accounts as account (account.id)}
+        {#each filtered as account (account.id)}
           <tr class="glass-row-hover">
             <td class="font-mono text-sm">
               <a href="/accounts/{account.id}" class="text-accent hover:text-cyan-300">{account.displayId}</a>

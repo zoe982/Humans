@@ -28,7 +28,8 @@ humanRoutes.get("/api/humans", requirePermission("viewRecords"), async (c) => {
   const db = c.get("db");
   const page = Math.max(1, Number(c.req.query("page")) || 1);
   const limit = Math.min(100, Math.max(1, Number(c.req.query("limit")) || 25));
-  const result = await listHumans(db, page, limit);
+  const q = c.req.query("q") || undefined;
+  const result = await listHumans(db, page, limit, q);
   return c.json(result);
 });
 
