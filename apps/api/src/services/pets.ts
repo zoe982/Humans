@@ -132,6 +132,17 @@ export async function createPet(
   return newPet;
 }
 
+export async function deletePet(db: DB, id: string) {
+  const existing = await db.query.pets.findFirst({
+    where: eq(pets.id, id),
+  });
+  if (existing == null) {
+    throw notFound(ERROR_CODES.PET_NOT_FOUND, "Pet not found");
+  }
+
+  await db.delete(pets).where(eq(pets.id, id));
+}
+
 export async function updatePet(
   db: DB,
   id: string,

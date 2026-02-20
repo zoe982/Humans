@@ -26,11 +26,6 @@
       { href: "/route-interests", label: "Routes" },
     ];
     if (isManager) links.push({ href: "/reports", label: "Reports" });
-    links.push(
-      { href: "/emails", label: "Emails" },
-      { href: "/phone-numbers", label: "Phones" },
-      { href: "/social-ids", label: "Social IDs" },
-    );
     if (isAdmin) links.push({ href: "/admin", label: "Admin" });
     return links;
   });

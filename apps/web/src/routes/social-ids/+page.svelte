@@ -40,7 +40,11 @@
 </svelte:head>
 
 <div class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-  <PageHeader title="Social Media IDs" breadcrumbs={[{ label: "Dashboard", href: "/dashboard" }, { label: "Social Media IDs" }]} />
+  <PageHeader title="Social Media IDs" breadcrumbs={[{ label: "Dashboard", href: "/dashboard" }, { label: "Reports", href: "/reports" }, { label: "Social Media IDs" }]}>
+    {#snippet action()}
+      <a href="/social-ids/new" class="btn-primary">Add Social ID</a>
+    {/snippet}
+  </PageHeader>
 
   <div class="mb-4">
     <input

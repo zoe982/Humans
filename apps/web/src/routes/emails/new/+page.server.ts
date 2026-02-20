@@ -1,0 +1,82 @@
+import { redirect, fail } from "@sveltejs/kit";
+import type { RequestEvent, ActionFailure } from "@sveltejs/kit";
+import { PUBLIC_API_URL } from "$env/static/public";
+import { extractApiErrorInfo } from "$lib/api";
+
+function isListData(value: unknown): value is { data: unknown[] } {
+  return typeof value === "object" && value !== null && "data" in value && Array.isArray((value as { data: unknown }).data);
+}
+
+function isDataWithId(value: unknown): value is { data: { id: string } } {
+  return typeof value === "object" && value !== null && "data" in value;
+}
+
+function failFromApi(resBody: unknown, status: number, fallback: string): ActionFailure<{ error: string; code?: string; requestId?: string }> {
+  const info = extractApiErrorInfo(resBody, fallback);
+  return fail(status, { error: info.message, code: info.code, requestId: info.requestId });
+}
+
+async function fetchConfig(sessionToken: string, configType: string) {
+  const res = await fetch(`${PUBLIC_API_URL}/api/admin/account-config/${configType}`, {
+    headers: { Cookie: `humans_session=${sessionToken}` },
+  });
+  if (!res.ok) return [];
+  const raw: unknown = await res.json();
+  return isListData(raw) ? raw.data : [];
+}
+
+export const load = async ({ locals, cookies }: RequestEvent) => {
+  if (locals.user == null) redirect(302, "/login");
+
+  const sessionToken = cookies.get("humans_session") ?? "";
+
+  const [humansRes, emailLabelConfigs] = await Promise.all([
+    fetch(`${PUBLIC_API_URL}/api/humans`, {
+      headers: { Cookie: `humans_session=${sessionToken}` },
+    }),
+    fetchConfig(sessionToken, "human-email-labels"),
+  ]);
+
+  let allHumans: unknown[] = [];
+  if (humansRes.ok) {
+    const raw: unknown = await humansRes.json();
+    allHumans = isListData(raw) ? raw.data : [];
+  }
+
+  return { allHumans, emailLabelConfigs };
+};
+
+export const actions = {
+  create: async ({ request, cookies }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
+    const form = await request.formData();
+    const sessionToken = cookies.get("humans_session");
+
+    const payload = {
+      humanId: form.get("humanId"),
+      email: form.get("email"),
+      labelId: form.get("labelId") || undefined,
+      isPrimary: form.get("isPrimary") === "on",
+    };
+
+    const res = await fetch(`${PUBLIC_API_URL}/api/emails`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Cookie: `humans_session=${sessionToken ?? ""}`,
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!res.ok) {
+      const resBody: unknown = await res.json();
+      return failFromApi(resBody, res.status, "Failed to create email");
+    }
+
+    const created: unknown = await res.json();
+    if (!isDataWithId(created)) {
+      return fail(500, { error: "Unexpected response" });
+    }
+
+    redirect(302, `/emails/${created.data.id}`);
+  },
+};

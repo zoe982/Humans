@@ -9,6 +9,7 @@ import {
   getPet,
   createPet,
   updatePet,
+  deletePet,
 } from "../services/pets";
 import type { AppContext } from "../types";
 
@@ -51,6 +52,11 @@ petRoutes.patch("/api/pets/:id", requirePermission("createEditRecords"), async (
   const data = updatePetSchema.parse(body);
   const result = await updatePet(c.get("db"), c.req.param("id"), data);
   return c.json({ data: result });
+});
+
+petRoutes.delete("/api/pets/:id", requirePermission("deletePets"), async (c) => {
+  await deletePet(c.get("db"), c.req.param("id"));
+  return c.json({ success: true });
 });
 
 export { petRoutes };

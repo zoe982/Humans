@@ -43,7 +43,11 @@
 </svelte:head>
 
 <div class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-  <PageHeader title="Phone Numbers" breadcrumbs={[{ label: "Dashboard", href: "/dashboard" }, { label: "Phone Numbers" }]} />
+  <PageHeader title="Phone Numbers" breadcrumbs={[{ label: "Dashboard", href: "/dashboard" }, { label: "Reports", href: "/reports" }, { label: "Phone Numbers" }]}>
+    {#snippet action()}
+      <a href="/phone-numbers/new" class="btn-primary">Add Phone</a>
+    {/snippet}
+  </PageHeader>
 
   <div class="mb-4">
     <input

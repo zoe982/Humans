@@ -48,7 +48,11 @@
 </svelte:head>
 
 <div class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-  <PageHeader title="Emails" breadcrumbs={[{ label: "Dashboard", href: "/dashboard" }, { label: "Emails" }]} />
+  <PageHeader title="Emails" breadcrumbs={[{ label: "Dashboard", href: "/dashboard" }, { label: "Reports", href: "/reports" }, { label: "Emails" }]}>
+    {#snippet action()}
+      <a href="/emails/new" class="btn-primary">Add Email</a>
+    {/snippet}
+  </PageHeader>
 
   <div class="mb-4">
     <input
