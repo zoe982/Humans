@@ -2,35 +2,11 @@
   import type { PageData, ActionData } from "./$types";
   import PageHeader from "$lib/components/PageHeader.svelte";
   import AlertBanner from "$lib/components/AlertBanner.svelte";
-  import SearchableSelect from "$lib/components/SearchableSelect.svelte";
   import TypeTogglePills from "$lib/components/TypeTogglePills.svelte";
 
   let { data, form }: { data: PageData; form: ActionData } = $props();
 
-  type ConfigItem = { id: string; name: string; createdAt: string };
-
   const prefill = $derived(data.prefill);
-  const emailLabelConfigs = $derived(data.emailLabelConfigs as ConfigItem[]);
-  const emailLabelOptions = $derived(emailLabelConfigs.map((l) => ({ value: l.id, label: l.name })));
-
-  let emailRows = $state(
-    prefill.email ? [{ email: prefill.email, labelId: "", isPrimary: true }] : [] as { email: string; labelId: string; isPrimary: boolean }[],
-  );
-
-  function addEmail() {
-    emailRows = [...emailRows, { email: "", labelId: "", isPrimary: emailRows.length === 0 }];
-  }
-
-  function removeEmail(index: number) {
-    emailRows = emailRows.filter((_, i) => i !== index);
-    if (!emailRows.some((e) => e.isPrimary) && emailRows.length > 0) {
-      emailRows[0].isPrimary = true;
-    }
-  }
-
-  function setPrimary(index: number) {
-    emailRows = emailRows.map((e, i) => ({ ...e, isPrimary: i === index }));
-  }
 </script>
 
 <svelte:head>
@@ -76,43 +52,6 @@
           value={prefill.lastName}
           class="glass-input block w-full px-3 py-2 text-sm"
         />
-      </div>
-    </div>
-
-    <!-- Emails -->
-    <div>
-      <div class="flex items-center justify-between">
-        <label class="block text-sm font-medium text-text-secondary">Emails</label>
-        <button type="button" onclick={addEmail} class="text-sm text-accent hover:text-cyan-300">+ Add email</button>
-      </div>
-      <div class="mt-2 space-y-2">
-        {#each emailRows as row, i}
-          <div class="flex items-center gap-2">
-            <input
-              type="email" name="emails[{i}].email"
-              bind:value={row.email}
-              placeholder="email@example.com"
-              class="glass-input flex-1 px-3 py-2 text-sm"
-            />
-            <SearchableSelect
-              options={emailLabelOptions}
-              name="emails[{i}].labelId"
-              value={row.labelId}
-              emptyOption="None"
-              placeholder="Label..."
-              onSelect={(v) => { row.labelId = v; }}
-            />
-            <label class="flex items-center gap-1 text-xs text-text-muted">
-              <input
-                type="radio" name="primaryEmail" value={String(i)}
-                checked={row.isPrimary}
-                onchange={() => setPrimary(i)}
-              />
-              Primary
-            </label>
-            <button type="button" onclick={() => removeEmail(i)} class="text-red-400 hover:text-red-300 text-sm">Remove</button>
-          </div>
-        {/each}
       </div>
     </div>
 

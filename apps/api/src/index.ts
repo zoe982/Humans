@@ -24,6 +24,7 @@ import { accountConfigRoutes } from "./routes/account-config";
 import { auditLogRoutes } from "./routes/audit-log";
 import { errorLogRoutes } from "./routes/error-log";
 import { frontRoutes } from "./routes/front";
+import { socialIdRoutes } from "./routes/social-ids";
 import type { AppContext } from "./types";
 
 const app = new Hono<AppContext>();
@@ -63,5 +64,6 @@ app.route("/", accountConfigRoutes);
 app.route("/", auditLogRoutes);
 app.route("/", errorLogRoutes);
 app.route("/", frontRoutes);
+app.route("/", socialIdRoutes);
 
 export default app;

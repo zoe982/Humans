@@ -95,6 +95,13 @@ export {
 } from "./emails";
 
 export {
+  createSocialIdSchema,
+  updateSocialIdSchema,
+  type CreateSocialIdInput,
+  type UpdateSocialIdInput,
+} from "./social-ids";
+
+export {
   createAccountSchema,
   updateAccountSchema,
   updateAccountStatusSchema,

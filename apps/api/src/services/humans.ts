@@ -15,6 +15,8 @@ import {
   accountHumanLabelsConfig,
   emailLabelsConfig,
   phoneLabelsConfig,
+  socialIds,
+  socialIdPlatformsConfig,
 } from "@humans/db/schema";
 import { createId } from "@humans/db";
 import { ERROR_CODES } from "@humans/shared";
@@ -62,7 +64,7 @@ export async function getHumanDetail(db: DB, humanId: string) {
     throw notFound(ERROR_CODES.HUMAN_NOT_FOUND, "Human not found");
   }
 
-  const [humanEmails, types, linkedSignups, humanPhones, humanPets, geoExpressions, routeExpressions, linkedAccountRows, emailLabelConfigs, phoneLabelConfigs] = await Promise.all([
+  const [humanEmails, types, linkedSignups, humanPhones, humanPets, geoExpressions, routeExpressions, linkedAccountRows, emailLabelConfigs, phoneLabelConfigs, humanSocialIds, allPlatforms] = await Promise.all([
     db.select().from(emails).where(eq(emails.ownerId, human.id)),
     db.select().from(humanTypes).where(eq(humanTypes.humanId, human.id)),
     db.select().from(humanRouteSignups).where(eq(humanRouteSignups.humanId, human.id)),
@@ -73,6 +75,8 @@ export async function getHumanDetail(db: DB, humanId: string) {
     db.select().from(accountHumans).where(eq(accountHumans.humanId, human.id)),
     db.select().from(emailLabelsConfig),
     db.select().from(phoneLabelsConfig),
+    db.select().from(socialIds).where(eq(socialIds.humanId, human.id)),
+    db.select().from(socialIdPlatformsConfig),
   ]);
 
   const allGeoInterests = geoExpressions.length > 0
@@ -134,6 +138,11 @@ export async function getHumanDetail(db: DB, humanId: string) {
       return { ...p, labelName: label?.name ?? null };
     });
 
+  const socialIdsWithPlatforms = humanSocialIds.map((s) => {
+    const platform = s.platformId ? allPlatforms.find((p) => p.id === s.platformId) : null;
+    return { ...s, platformName: platform?.name ?? null };
+  });
+
   return {
     ...human,
     emails: emailsWithLabels,
@@ -144,6 +153,7 @@ export async function getHumanDetail(db: DB, humanId: string) {
     geoInterestExpressions: geoInterestExpressionsWithDetails,
     routeInterestExpressions: routeInterestExpressionsWithDetails,
     linkedAccounts,
+    socialIds: socialIdsWithPlatforms,
   };
 }
 
@@ -327,6 +337,7 @@ export async function deleteHuman(db: DB, id: string) {
   await db.delete(geoInterestExpressions).where(eq(geoInterestExpressions.humanId, id));
   await db.delete(routeInterestExpressions).where(eq(routeInterestExpressions.humanId, id));
   await db.delete(accountHumans).where(eq(accountHumans.humanId, id));
+  await db.update(socialIds).set({ humanId: null }).where(eq(socialIds.humanId, id));
   await db.delete(humans).where(eq(humans.id, id));
 }
 

@@ -46,3 +46,5 @@ export {
   errorLogResolutionStatuses,
   type ErrorLogResolutionStatus,
 } from "./error-log";
+export { socialIdPlatformsConfig } from "./social-id-platforms-config";
+export { socialIds } from "./social-ids";

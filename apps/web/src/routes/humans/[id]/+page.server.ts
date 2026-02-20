@@ -42,12 +42,13 @@ export const load = async ({ locals, cookies, params }: RequestEvent) => {
   if (human == null) redirect(302, "/humans");
 
   // Fetch activities and label configs in parallel
-  const [activitiesRes, emailLabelConfigs, phoneLabelConfigs] = await Promise.all([
+  const [activitiesRes, emailLabelConfigs, phoneLabelConfigs, socialIdPlatformConfigs] = await Promise.all([
     fetch(`${PUBLIC_API_URL}/api/activities?humanId=${id}`, {
       headers: { Cookie: `humans_session=${sessionToken ?? ""}` },
     }),
     fetchConfig(sessionToken ?? "", "human-email-labels"),
     fetchConfig(sessionToken ?? "", "human-phone-labels"),
+    fetchConfig(sessionToken ?? "", "social-id-platforms"),
   ]);
 
   let activities: unknown[] = [];
@@ -56,7 +57,7 @@ export const load = async ({ locals, cookies, params }: RequestEvent) => {
     activities = isListData(activitiesRaw) ? activitiesRaw.data : [];
   }
 
-  return { human, activities, apiUrl: PUBLIC_API_URL, emailLabelConfigs, phoneLabelConfigs };
+  return { human, activities, apiUrl: PUBLIC_API_URL, emailLabelConfigs, phoneLabelConfigs, socialIdPlatformConfigs };
 };
 
 export const actions = {
@@ -360,6 +361,53 @@ export const actions = {
     if (!res.ok) {
       const resBody: unknown = await res.json();
       return failFromApi(resBody, res.status, "Failed to delete route interest expression");
+    }
+
+    return { success: true };
+  },
+
+  addSocialId: async ({ request, cookies, params }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
+    const form = await request.formData();
+    const sessionToken = cookies.get("humans_session");
+
+    const payload = {
+      handle: form.get("handle"),
+      platformId: form.get("platformId") || undefined,
+      humanId: params.id,
+    };
+
+    const res = await fetch(`${PUBLIC_API_URL}/api/social-ids`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Cookie: `humans_session=${sessionToken ?? ""}`,
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!res.ok) {
+      const resBody: unknown = await res.json();
+      return failFromApi(resBody, res.status, "Failed to add social ID");
+    }
+
+    return { success: true };
+  },
+
+  deleteSocialId: async ({ request, cookies }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
+    const form = await request.formData();
+    const sessionToken = cookies.get("humans_session");
+    const socialIdId = form.get("id");
+
+    const res = await fetch(`${PUBLIC_API_URL}/api/social-ids/${socialIdId}`, {
+      method: "DELETE",
+      headers: {
+        Cookie: `humans_session=${sessionToken ?? ""}`,
+      },
+    });
+
+    if (!res.ok) {
+      const resBody: unknown = await res.json();
+      return failFromApi(resBody, res.status, "Failed to delete social ID");
     }
 
     return { success: true };

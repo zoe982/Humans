@@ -11,6 +11,8 @@ import {
   phoneLabelsConfig,
   activities,
   humans,
+  socialIds,
+  socialIdPlatformsConfig,
 } from "@humans/db/schema";
 import { createId } from "@humans/db";
 import { ERROR_CODES } from "@humans/shared";
@@ -55,6 +57,8 @@ export async function getAccountDetail(db: DB, id: string) {
     accountPhones,
     phoneLabelConfs,
     directActivities,
+    accountSocialIds,
+    allPlatforms,
   ] = await Promise.all([
     db.select().from(accountTypes).where(eq(accountTypes.accountId, id)),
     db.select().from(accountTypesConfig),
@@ -65,6 +69,8 @@ export async function getAccountDetail(db: DB, id: string) {
     db.select().from(phones).where(eq(phones.ownerId, id)),
     db.select().from(phoneLabelsConfig),
     db.select().from(activities).where(eq(activities.accountId, id)),
+    db.select().from(socialIds).where(eq(socialIds.accountId, id)),
+    db.select().from(socialIdPlatformsConfig),
   ]);
 
   // Resolve linked humans with their details
@@ -129,6 +135,11 @@ export async function getAccountDetail(db: DB, id: string) {
     };
   });
 
+  const socialIdsWithPlatforms = accountSocialIds.map((s) => {
+    const platform = s.platformId ? allPlatforms.find((p) => p.id === s.platformId) : null;
+    return { ...s, platformName: platform?.name ?? null };
+  });
+
   return {
     ...account,
     types: typesWithNames,
@@ -137,6 +148,7 @@ export async function getAccountDetail(db: DB, id: string) {
     phoneNumbers: phonesWithLabels,
     activities: directActivities,
     humanActivities: humanActivitiesWithNames,
+    socialIds: socialIdsWithPlatforms,
   };
 }
 
@@ -287,6 +299,7 @@ export async function deleteAccount(db: DB, id: string) {
   await db.delete(accountHumans).where(eq(accountHumans.accountId, id));
   await db.delete(emails).where(eq(emails.ownerId, id));
   await db.delete(phones).where(eq(phones.ownerId, id));
+  await db.update(socialIds).set({ accountId: null }).where(eq(socialIds.accountId, id));
   await db.delete(accounts).where(eq(accounts.id, id));
 }
 

@@ -33,7 +33,7 @@ export const load = async ({ locals, cookies, params }: RequestEvent) => {
   if (account == null) redirect(302, "/accounts");
 
   // Fetch config lists for dropdowns + humans list for linking
-  const [typesRes, humanLabelsRes, emailLabelsRes, phoneLabelsRes, humansRes] = await Promise.all([
+  const [typesRes, humanLabelsRes, emailLabelsRes, phoneLabelsRes, humansRes, socialIdPlatformsRes] = await Promise.all([
     fetch(`${PUBLIC_API_URL}/api/admin/account-config/account-types`, {
       headers: { Cookie: `humans_session=${sessionToken}` },
     }),
@@ -49,6 +49,9 @@ export const load = async ({ locals, cookies, params }: RequestEvent) => {
     fetch(`${PUBLIC_API_URL}/api/humans`, {
       headers: { Cookie: `humans_session=${sessionToken}` },
     }),
+    fetch(`${PUBLIC_API_URL}/api/admin/account-config/social-id-platforms`, {
+      headers: { Cookie: `humans_session=${sessionToken}` },
+    }),
   ]);
 
   const parseList = async (res: Response) => {
@@ -57,12 +60,13 @@ export const load = async ({ locals, cookies, params }: RequestEvent) => {
     return isListData(raw) ? raw.data : [];
   };
 
-  const [typeConfigs, humanLabelConfigs, emailLabelConfigs, phoneLabelConfigs, allHumans] = await Promise.all([
+  const [typeConfigs, humanLabelConfigs, emailLabelConfigs, phoneLabelConfigs, allHumans, socialIdPlatformConfigs] = await Promise.all([
     parseList(typesRes),
     parseList(humanLabelsRes),
     parseList(emailLabelsRes),
     parseList(phoneLabelsRes),
     parseList(humansRes),
+    parseList(socialIdPlatformsRes),
   ]);
 
   return {
@@ -72,6 +76,7 @@ export const load = async ({ locals, cookies, params }: RequestEvent) => {
     emailLabelConfigs,
     phoneLabelConfigs,
     allHumans,
+    socialIdPlatformConfigs,
   };
 };
 
@@ -284,6 +289,51 @@ export const actions = {
     if (!linkRes.ok) {
       const resBody: unknown = await linkRes.json().catch(() => ({}));
       return failFromApi(resBody, linkRes.status, "Failed to link human to account");
+    }
+
+    return { success: true };
+  },
+
+  addSocialId: async ({ request, cookies, params }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
+    const form = await request.formData();
+    const sessionToken = cookies.get("humans_session") ?? "";
+
+    const payload = {
+      handle: form.get("handle"),
+      platformId: form.get("platformId") || undefined,
+      accountId: params.id,
+    };
+
+    const res = await fetch(`${PUBLIC_API_URL}/api/social-ids`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Cookie: `humans_session=${sessionToken}`,
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!res.ok) {
+      const resBody: unknown = await res.json().catch(() => ({}));
+      return failFromApi(resBody, res.status, "Failed to add social ID");
+    }
+
+    return { success: true };
+  },
+
+  deleteSocialId: async ({ request, cookies }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
+    const form = await request.formData();
+    const sessionToken = cookies.get("humans_session") ?? "";
+    const socialIdId = form.get("id");
+
+    const res = await fetch(`${PUBLIC_API_URL}/api/social-ids/${socialIdId}`, {
+      method: "DELETE",
+      headers: { Cookie: `humans_session=${sessionToken}` },
+    });
+
+    if (!res.ok) {
+      const resBody: unknown = await res.json().catch(() => ({}));
+      return failFromApi(resBody, res.status, "Failed to delete social ID");
     }
 
     return { success: true };

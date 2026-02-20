@@ -12,24 +12,8 @@ function isDataWithId(value: unknown): value is { data: { id: string } } {
   return typeof value === "object" && value !== null && "data" in value;
 }
 
-function isListData(value: unknown): value is { data: unknown[] } {
-  return typeof value === "object" && value !== null && "data" in value && Array.isArray((value as { data: unknown }).data);
-}
-
-export const load = async ({ locals, url, cookies }: RequestEvent) => {
+export const load = async ({ locals, url }: RequestEvent) => {
   if (locals.user == null) redirect(302, "/login");
-
-  const sessionToken = cookies.get("humans_session") ?? "";
-
-  // Fetch human email label configs
-  let emailLabelConfigs: unknown[] = [];
-  const res = await fetch(`${PUBLIC_API_URL}/api/admin/account-config/human-email-labels`, {
-    headers: { Cookie: `humans_session=${sessionToken}` },
-  });
-  if (res.ok) {
-    const raw: unknown = await res.json();
-    emailLabelConfigs = isListData(raw) ? raw.data : [];
-  }
 
   return {
     prefill: {
@@ -37,9 +21,7 @@ export const load = async ({ locals, url, cookies }: RequestEvent) => {
       firstName: url.searchParams.get("firstName") ?? "",
       middleName: url.searchParams.get("middleName") ?? "",
       lastName: url.searchParams.get("lastName") ?? "",
-      email: url.searchParams.get("email") ?? "",
     },
-    emailLabelConfigs,
   };
 };
 
@@ -48,19 +30,6 @@ export const actions = {
     const form = await request.formData();
     const sessionToken = cookies.get("humans_session");
 
-    // Collect emails from dynamic form fields
-    const emails: { email: string; labelId?: string; isPrimary: boolean }[] = [];
-    let i = 0;
-    while (form.has(`emails[${i}].email`)) {
-      const email = form.get(`emails[${i}].email`) as string;
-      const labelId = (form.get(`emails[${i}].labelId`) as string) || undefined;
-      const isPrimary = form.get("primaryEmail") === String(i);
-      if (email) {
-        emails.push({ email, labelId, isPrimary });
-      }
-      i++;
-    }
-
     // Collect types
     const types = form.getAll("types") as string[];
 
@@ -68,7 +37,7 @@ export const actions = {
       firstName: form.get("firstName"),
       middleName: form.get("middleName") || undefined,
       lastName: form.get("lastName"),
-      emails,
+      emails: [],
       types: types.length > 0 ? types : [],
     };
 

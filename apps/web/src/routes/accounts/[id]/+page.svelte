@@ -24,6 +24,7 @@
   type AccountType = { id: string; name: string };
   type AccountEmail = { id: string; email: string; labelId: string | null; labelName: string | null; isPrimary: boolean };
   type AccountPhone = { id: string; phoneNumber: string; labelId: string | null; labelName: string | null; hasWhatsapp: boolean; isPrimary: boolean };
+  type SocialIdItem = { id: string; displayId: string; handle: string; platformId: string | null; platformName: string | null };
   type HumanEmail = { id: string; email: string; label: string; isPrimary: boolean };
   type HumanPhone = { id: string; phoneNumber: string; label: string; hasWhatsapp: boolean; isPrimary: boolean };
   type LinkedHuman = {
@@ -58,6 +59,7 @@
     linkedHumans: LinkedHuman[];
     activities: Activity[];
     humanActivities: HumanActivity[];
+    socialIds: SocialIdItem[];
     createdAt: string;
     updatedAt: string;
   };
@@ -77,11 +79,13 @@
   const emailLabelConfigs = $derived(data.emailLabelConfigs as ConfigItem[]);
   const phoneLabelConfigs = $derived(data.phoneLabelConfigs as ConfigItem[]);
   const allHumans = $derived(data.allHumans as HumanListItem[]);
+  const socialIdPlatformConfigs = $derived(data.socialIdPlatformConfigs as ConfigItem[]);
 
   const humanOptions = $derived(allHumans.map((h) => ({ value: h.id, label: `${h.firstName} ${h.lastName}` })));
   const emailLabelOptions = $derived(emailLabelConfigs.map((l) => ({ value: l.id, label: l.name })));
   const phoneLabelOptions = $derived(phoneLabelConfigs.map((l) => ({ value: l.id, label: l.name })));
   const humanLabelOptions = $derived(humanLabelConfigs.map((l) => ({ value: l.id, label: l.name })));
+  const socialIdPlatformOptions = $derived(socialIdPlatformConfigs.map((p) => ({ value: p.id, label: p.name })));
 
   // Auto-save state
   let accountName = $state("");
@@ -412,6 +416,52 @@
             </label>
           </div>
           <button type="submit" class="btn-primary text-sm">Add Phone Number</button>
+        </form>
+      {/snippet}
+    </LinkedRecordBox>
+  </div>
+
+  <!-- Social Media IDs Section -->
+  <div class="mt-6">
+    <LinkedRecordBox
+      title="Social Media IDs"
+      items={account.socialIds}
+      emptyMessage="No social media IDs yet."
+      addLabel="Social ID"
+      deleteFormAction="?/deleteSocialId"
+    >
+      {#snippet itemRow(item)}
+        {@const sid = item as unknown as SocialIdItem}
+        <div class="flex items-center gap-3">
+          <a href="/social-ids/{sid.id}" class="text-sm font-medium text-accent hover:text-cyan-300">{sid.handle}</a>
+          {#if sid.platformName}
+            <span class="glass-badge inline-flex rounded-full px-2 py-0.5 text-xs font-medium bg-glass text-text-secondary">{sid.platformName}</span>
+          {/if}
+        </div>
+      {/snippet}
+      {#snippet addForm()}
+        <form method="POST" action="?/addSocialId" class="space-y-3">
+          <div class="grid gap-3 sm:grid-cols-2">
+            <div>
+              <label for="socialHandle" class="block text-sm font-medium text-text-secondary">Handle</label>
+              <input
+                id="socialHandle" name="handle" type="text" required
+                class="glass-input mt-1 block w-full"
+                placeholder="@username"
+              />
+            </div>
+            <div>
+              <label for="socialPlatform" class="block text-sm font-medium text-text-secondary">Platform</label>
+              <SearchableSelect
+                options={socialIdPlatformOptions}
+                name="platformId"
+                id="socialPlatform"
+                emptyOption="None"
+                placeholder="Select platform..."
+              />
+            </div>
+          </div>
+          <button type="submit" class="btn-primary text-sm">Add Social ID</button>
         </form>
       {/snippet}
     </LinkedRecordBox>
