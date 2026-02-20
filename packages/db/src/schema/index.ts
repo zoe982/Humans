@@ -10,6 +10,8 @@ export { auditLog } from "./audit-log";
 export { humans, humanStatuses, type HumanStatus } from "./humans";
 export { emails, emailOwnerTypes, type EmailOwnerType } from "./emails";
 export { emailLabelsConfig } from "./email-labels-config";
+export { accountEmailLabelsConfig } from "./account-email-labels-config";
+export { humanEmailLabelsConfig } from "./human-email-labels-config";
 export {
   humanTypes,
   humanTypeValues,
@@ -23,6 +25,8 @@ export {
 } from "./activities";
 export { phones, phoneOwnerTypes, type PhoneOwnerType } from "./phones";
 export { phoneLabelsConfig } from "./phone-labels-config";
+export { accountPhoneLabelsConfig } from "./account-phone-labels-config";
+export { humanPhoneLabelsConfig } from "./human-phone-labels-config";
 export { geoInterests } from "./geo-interests";
 export { geoInterestExpressions } from "./geo-interest-expressions";
 export { accounts, accountStatuses, type AccountStatus } from "./accounts";

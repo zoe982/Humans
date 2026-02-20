@@ -30,8 +30,8 @@
           <Building2 size={24} />
         </div>
         <div>
-          <h2 class="text-lg font-semibold text-text-primary">Account Configuration</h2>
-          <p class="mt-1 text-sm text-text-secondary">Manage account types, role labels, email labels, and phone labels.</p>
+          <h2 class="text-lg font-semibold text-text-primary">Label Configuration</h2>
+          <p class="mt-1 text-sm text-text-secondary">Manage account types, role labels, and email/phone labels for accounts and humans.</p>
         </div>
       </div>
     </a>

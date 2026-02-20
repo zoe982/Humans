@@ -22,7 +22,7 @@
 <div class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
   <PageHeader
     title="Labels & Configuration"
-    breadcrumbs={[{ label: "Admin", href: "/admin" }, { label: "Account Config" }]}
+    breadcrumbs={[{ label: "Admin", href: "/admin" }, { label: "Label Configuration" }]}
   />
 
   {#if form?.error}

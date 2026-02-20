@@ -5,6 +5,10 @@ import {
   accountHumanLabelsConfig,
   emailLabelsConfig,
   phoneLabelsConfig,
+  accountEmailLabelsConfig,
+  accountPhoneLabelsConfig,
+  humanEmailLabelsConfig,
+  humanPhoneLabelsConfig,
 } from "@humans/db/schema";
 import { createId } from "@humans/db";
 import { createConfigItemSchema, updateConfigItemSchema } from "@humans/shared";
@@ -19,6 +23,10 @@ const configTableMap = {
   "account-human-labels": accountHumanLabelsConfig,
   "email-labels": emailLabelsConfig,
   "phone-labels": phoneLabelsConfig,
+  "account-email-labels": accountEmailLabelsConfig,
+  "account-phone-labels": accountPhoneLabelsConfig,
+  "human-email-labels": humanEmailLabelsConfig,
+  "human-phone-labels": humanPhoneLabelsConfig,
 } as const;
 
 type ConfigType = keyof typeof configTableMap;
