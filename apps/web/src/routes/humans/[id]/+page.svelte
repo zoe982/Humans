@@ -26,14 +26,15 @@
     return s.length > len ? s.slice(0, len) + "..." : s;
   }
 
-  type HumanEmail = { id: string; email: string; labelId: string | null; labelName: string | null; isPrimary: boolean };
+  type HumanEmail = { id: string; displayId: string; email: string; labelId: string | null; labelName: string | null; isPrimary: boolean };
   type LinkedSignup = { id: string; routeSignupId: string; linkedAt: string };
-  type PhoneNumber = { id: string; phoneNumber: string; labelId: string | null; labelName: string | null; hasWhatsapp: boolean; isPrimary: boolean };
+  type PhoneNumber = { id: string; displayId: string; phoneNumber: string; labelId: string | null; labelName: string | null; hasWhatsapp: boolean; isPrimary: boolean };
   type SocialIdItem = { id: string; displayId: string; handle: string; platformId: string | null; platformName: string | null };
   type ConfigItem = { id: string; name: string; createdAt: string };
-  type Pet = { id: string; name: string; type: string; breed: string | null; weight: number | null };
+  type Pet = { id: string; displayId: string; name: string; type: string; breed: string | null; weight: number | null };
   type GeoInterestExpression = {
     id: string;
+    displayId: string;
     humanId: string;
     geoInterestId: string;
     activityId: string | null;
@@ -44,6 +45,7 @@
   };
   type RouteInterestExpression = {
     id: string;
+    displayId: string;
     humanId: string;
     routeInterestId: string;
     activityId: string | null;
@@ -236,7 +238,7 @@
   <title>{human.displayId} — {human.firstName} {human.lastName} - Humans CRM</title>
 </svelte:head>
 
-<div class="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8">
+<div class="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
   <!-- Record Management Bar -->
   <RecordManagementBar
     backHref="/humans"
@@ -321,6 +323,7 @@
       {#snippet itemRow(item)}
         {@const email = item as unknown as HumanEmail}
         <div class="flex items-center gap-3">
+          <span class="font-mono text-xs text-text-muted">{email.displayId}</span>
           <a href="/emails/{email.id}" class="text-sm font-medium text-accent hover:text-cyan-300">{email.email}</a>
           <div class="w-36">
             <SearchableSelect
@@ -393,6 +396,7 @@
       {#snippet itemRow(item)}
         {@const phone = item as unknown as PhoneNumber}
         <div class="flex items-center gap-3">
+          <span class="font-mono text-xs text-text-muted">{phone.displayId}</span>
           <a href="/phone-numbers/{phone.id}" class="text-sm font-medium text-accent hover:text-cyan-300">{phone.phoneNumber}</a>
           <div class="w-36">
             <SearchableSelect
@@ -469,6 +473,7 @@
       {#snippet itemRow(item)}
         {@const sid = item as unknown as SocialIdItem}
         <div class="flex items-center gap-3">
+          <span class="font-mono text-xs text-text-muted">{sid.displayId}</span>
           <a href="/social-ids/{sid.id}" class="text-sm font-medium text-accent hover:text-cyan-300">{sid.handle}</a>
           {#if sid.platformName}
             <span class="glass-badge inline-flex rounded-full px-2 py-0.5 text-xs font-medium bg-glass text-text-secondary">{sid.platformName}</span>
@@ -516,6 +521,7 @@
       {#snippet itemRow(item)}
         {@const pet = item as unknown as Pet}
         <div class="flex items-center gap-3">
+          <span class="font-mono text-xs text-text-muted">{pet.displayId}</span>
           <a href="/pets/{pet.id}" class="text-sm font-medium text-accent hover:text-cyan-300">{pet.name}</a>
           <span class="glass-badge inline-flex rounded-full px-2 py-0.5 text-xs font-medium {pet.type === 'cat' ? 'bg-[rgba(168,85,247,0.15)] text-purple-300' : 'bg-[rgba(59,130,246,0.15)] text-blue-300'}">
             {pet.type === "cat" ? "Cat" : "Dog"}
@@ -599,6 +605,7 @@
         {@const expr = item as unknown as GeoInterestExpression}
         <div>
           <div class="flex items-center gap-3">
+            <span class="font-mono text-xs text-text-muted">{expr.displayId}</span>
             <a href="/geo-interests/{expr.geoInterestId}" class="text-sm font-medium text-accent hover:text-cyan-300">
               {expr.city ?? "\u2014"}, {expr.country ?? "\u2014"}
             </a>
@@ -635,6 +642,7 @@
         {@const expr = item as unknown as RouteInterestExpression}
         <div>
           <div class="flex items-center gap-3 flex-wrap">
+            <span class="font-mono text-xs text-text-muted">{expr.displayId}</span>
             <a href="/route-interests/{expr.routeInterestId}" class="text-sm font-medium text-accent hover:text-cyan-300">
               {expr.originCity ?? "\u2014"}, {expr.originCountry ?? "\u2014"} &rarr; {expr.destinationCity ?? "\u2014"}, {expr.destinationCountry ?? "\u2014"}
             </a>

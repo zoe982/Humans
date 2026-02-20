@@ -132,7 +132,7 @@
   <title>{phone.displayId} — {phone.phoneNumber} - Humans CRM</title>
 </svelte:head>
 
-<div class="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8">
+<div class="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
   <RecordManagementBar
     backHref="/phone-numbers"
     backLabel="Phone Numbers"

@@ -112,7 +112,7 @@
   <title>{booking.crm_display_id ? booking.crm_display_id + ' — ' : ''}{displayName(booking)} - Booking Request - Humans CRM</title>
 </svelte:head>
 
-<div class="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8">
+<div class="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
   <RecordManagementBar
     backHref="/leads/website-booking-requests"
     backLabel="Booking Requests"

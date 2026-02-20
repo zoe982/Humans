@@ -13,7 +13,7 @@
   <title>New Human - Humans CRM</title>
 </svelte:head>
 
-<div class="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8">
+<div class="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
   <PageHeader
     title={prefill.fromSignup ? "Convert Signup to Human" : "New Human"}
     breadcrumbs={[{ label: "Humans", href: "/humans" }, { label: "New" }]}
