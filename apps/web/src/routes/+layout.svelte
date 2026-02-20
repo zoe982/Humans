@@ -5,6 +5,7 @@
   import { Search } from "lucide-svelte";
   import MobileNav from "$lib/components/MobileNav.svelte";
   import CommandPalette from "$lib/components/CommandPalette.svelte";
+  import { Toaster } from "svelte-sonner";
 
   let commandPaletteOpen = $state(false);
 
@@ -46,7 +47,7 @@
   Skip to main content
 </a>
 
-<CommandPalette open={commandPaletteOpen} onClose={() => { commandPaletteOpen = false; }} />
+<CommandPalette bind:open={commandPaletteOpen} />
 
 <div class="min-h-screen">
   {#if data.user}
@@ -102,4 +103,16 @@
   <main id="main-content">
     {@render children()}
   </main>
+
+  <Toaster
+    position="bottom-right"
+    toastOptions={{
+      unstyled: true,
+      classes: {
+        toast: "glass-card-strong p-4 shadow-xl max-w-sm flex items-center gap-3",
+        title: "text-sm text-text-primary",
+        actionButton: "text-sm font-medium text-accent hover:text-cyan-300 whitespace-nowrap",
+      },
+    }}
+  />
 </div>

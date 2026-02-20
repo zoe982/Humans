@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { Root as Alert } from "$lib/components/ui/alert/index.js";
+
   type Props = {
     type?: "success" | "error";
     message: string;
@@ -12,11 +14,10 @@
 </script>
 
 {#if message}
-  <div
-    role={type === 'error' ? 'alert' : 'status'}
-    class="glass-card p-4 mb-4 {type === 'error'
-      ? 'border-red-500/30 bg-red-500/10 text-red-300'
-      : 'border-green-500/30 bg-green-500/10 text-green-300'}"
+  <Alert
+    variant={type === "error" ? "destructive" : "default"}
+    role={type === "success" ? "status" : "alert"}
+    class="mb-4 {type === 'success' ? 'border-green-500/30 bg-green-500/10 text-green-300' : ''}"
   >
     {message}
     {#if type === "error" && (code || truncatedRef)}
@@ -26,5 +27,5 @@
         {#if truncatedRef}Ref: {truncatedRef}{/if}
       </p>
     {/if}
-  </div>
+  </Alert>
 {/if}

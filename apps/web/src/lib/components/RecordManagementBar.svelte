@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { Snippet } from "svelte";
   import StatusBadge from "./StatusBadge.svelte";
+  import { Button } from "$lib/components/ui/button/index.js";
   import { ArrowLeft } from "lucide-svelte";
 
   type Props = {
@@ -70,9 +71,7 @@
                 <option value={opt}>{opt}</option>
               {/each}
             </select>
-            <button type="submit" class="btn-ghost text-sm py-1.5">
-              Update
-            </button>
+            <Button variant="ghost" size="sm" type="submit">Update</Button>
           </form>
         {/if}
       {/if}

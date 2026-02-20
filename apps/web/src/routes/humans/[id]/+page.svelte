@@ -8,7 +8,7 @@
   import GeoInterestPicker from "$lib/components/GeoInterestPicker.svelte";
   import PhoneInput from "$lib/components/PhoneInput.svelte";
   import SaveIndicator from "$lib/components/SaveIndicator.svelte";
-  import Toast from "$lib/components/Toast.svelte";
+  import { toast } from "svelte-sonner";
   import TypeTogglePills from "$lib/components/TypeTogglePills.svelte";
   import { createAutoSaver, type SaveStatus } from "$lib/autosave";
   import { api } from "$lib/api";
@@ -93,7 +93,6 @@
   let lastName = $state("");
   let types = $state<string[]>([]);
   let saveStatus = $state<SaveStatus>("idle");
-  let toastMessage = $state<string | null>(null);
   let lastAuditEntryId = $state<string | null>(null);
   let initialized = $state(false);
 
@@ -120,13 +119,15 @@
     onSaved: (result) => {
       if (result.auditEntryId) {
         lastAuditEntryId = result.auditEntryId;
-        toastMessage = "Changes saved";
+        toast("Changes saved", {
+          action: { label: "Undo", onClick: () => handleUndo() },
+        });
         // Reset history so it reloads on next open
         historyLoaded = false;
       }
     },
     onError: (err) => {
-      toastMessage = `Save failed: ${err}`;
+      toast(`Save failed: ${err}`);
     },
   });
 
@@ -160,7 +161,7 @@
         body: JSON.stringify({ status: newStatus }),
       });
       saveStatus = "saved";
-      toastMessage = "Status updated";
+      toast("Status updated");
       historyLoaded = false;
       await invalidateAll();
     } catch {
@@ -176,7 +177,7 @@
       historyLoaded = false;
       await invalidateAll();
     } catch {
-      toastMessage = "Undo failed";
+      toast("Undo failed");
     }
   }
 
@@ -671,11 +672,3 @@
 
 </div>
 
-<!-- Toast -->
-{#if toastMessage}
-  <Toast
-    message={toastMessage}
-    onUndo={lastAuditEntryId ? handleUndo : undefined}
-    onDismiss={() => { toastMessage = null; }}
-  />
-{/if}

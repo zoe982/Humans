@@ -1,4 +1,6 @@
 <script lang="ts">
+  import * as Command from "$lib/components/ui/command/index.js";
+
   type Option = { value: string; label: string };
 
   type Props = {
@@ -138,25 +140,31 @@
     class="glass-input mt-1 block w-full"
   />
   {#if open && displayList.length > 0}
-    <ul id={listboxId} role="listbox" class="glass-popover absolute z-50 mt-1 max-h-48 w-full overflow-auto">
-      {#each displayList as option, i}
-        <li
-          id="{listboxId}-option-{i}"
-          role="option"
-          aria-selected={i === highlightIndex}
-        >
-          <button
-            type="button"
-            class="w-full px-3 py-2 text-left text-sm transition-colors {i === highlightIndex ? 'bg-glass-hover text-text-primary' : 'text-text-secondary hover:bg-glass-hover hover:text-text-primary'}"
-            onmousedown={(e: MouseEvent) => { e.preventDefault(); select(option); }}
-            onmouseenter={() => { highlightIndex = i; }}
-            tabindex="-1"
+    <Command.Root shouldFilter={false} class="absolute z-50 mt-1 w-full">
+      <Command.List
+        id={listboxId}
+        class="glass-popover max-h-48 overflow-auto"
+        aria-label=""
+      >
+        {#each displayList as option, i}
+          <Command.Item
+            id="{listboxId}-option-{i}"
+            value={option.value !== "" ? option.value : "__empty__"}
+            onSelect={() => {}}
           >
-            {option.label}
-          </button>
-        </li>
-      {/each}
-    </ul>
+            <button
+              type="button"
+              class="w-full px-3 py-2 text-left text-sm transition-colors {i === highlightIndex ? 'bg-glass-hover text-text-primary' : 'text-text-secondary hover:bg-glass-hover hover:text-text-primary'}"
+              onmousedown={(e: MouseEvent) => { e.preventDefault(); select(option); }}
+              onmouseenter={() => { highlightIndex = i; }}
+              tabindex="-1"
+            >
+              {option.label}
+            </button>
+          </Command.Item>
+        {/each}
+      </Command.List>
+    </Command.Root>
   {/if}
   {#if open && query.trim() !== "" && displayList.length === 0}
     <div class="glass-popover absolute z-50 mt-1 w-full px-3 py-2 text-sm text-text-muted" role="status">

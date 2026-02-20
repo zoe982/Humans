@@ -6,7 +6,7 @@
   import AlertBanner from "$lib/components/AlertBanner.svelte";
   import PhoneInput from "$lib/components/PhoneInput.svelte";
   import SaveIndicator from "$lib/components/SaveIndicator.svelte";
-  import Toast from "$lib/components/Toast.svelte";
+  import { toast } from "svelte-sonner";
   import TabBar from "$lib/components/TabBar.svelte";
   import { ChevronRight, ChevronDown } from "lucide-svelte";
   import { slide } from "svelte/transition";
@@ -87,7 +87,6 @@
   let accountName = $state("");
   let typeIds = $state<string[]>([]);
   let saveStatus = $state<SaveStatus>("idle");
-  let toastMessage = $state<string | null>(null);
   let lastAuditEntryId = $state<string | null>(null);
   let initialized = $state(false);
 
@@ -120,12 +119,14 @@
     onSaved: (result) => {
       if (result.auditEntryId) {
         lastAuditEntryId = result.auditEntryId;
-        toastMessage = "Changes saved";
+        toast("Changes saved", {
+          action: { label: "Undo", onClick: () => handleUndo() },
+        });
         historyLoaded = false;
       }
     },
     onError: (err) => {
-      toastMessage = `Save failed: ${err}`;
+      toast(`Save failed: ${err}`);
     },
   });
 
@@ -158,7 +159,7 @@
         body: JSON.stringify({ status: newStatus }),
       });
       saveStatus = "saved";
-      toastMessage = "Status updated";
+      toast("Status updated");
       historyLoaded = false;
       await invalidateAll();
     } catch {
@@ -174,7 +175,7 @@
       historyLoaded = false;
       await invalidateAll();
     } catch {
-      toastMessage = "Undo failed";
+      toast("Undo failed");
     }
   }
 
@@ -668,11 +669,3 @@
   </div><!-- /panel-history -->
 </div>
 
-<!-- Toast -->
-{#if toastMessage}
-  <Toast
-    message={toastMessage}
-    onUndo={lastAuditEntryId ? handleUndo : undefined}
-    onDismiss={() => { toastMessage = null; }}
-  />
-{/if}

@@ -2,6 +2,8 @@
   import type { Snippet } from "svelte";
   import { slide } from "svelte/transition";
   import { Plus } from "lucide-svelte";
+  import * as Card from "$lib/components/ui/card/index.js";
+  import { Button } from "$lib/components/ui/button/index.js";
 
   type Props = {
     title: string;
@@ -28,18 +30,19 @@
   let formOpen = $state(showAddForm);
 </script>
 
-<div class="glass-card p-5">
+<Card.Root class="p-5">
   <div class="flex items-center justify-between mb-4">
     <h2 class="text-lg font-semibold text-text-primary">{title}</h2>
     {#if addForm}
-      <button
+      <Button
+        variant="ghost"
+        size="sm"
         type="button"
-        class="btn-ghost text-sm py-1 px-3"
         aria-expanded={formOpen}
         onclick={() => (formOpen = !formOpen)}
       >
         {#if formOpen}Cancel{:else}<Plus size={14} class="inline -mt-0.5" /> {addLabel}{/if}
-      </button>
+      </Button>
     {/if}
   </div>
 
@@ -61,13 +64,13 @@
           {#if deleteFormAction}
             <form method="POST" action={deleteFormAction}>
               <input type="hidden" name="id" value={item.id} />
-              <button type="submit" class="text-red-400 hover:text-red-300 text-sm ml-3">
+              <Button variant="link" size="sm" type="submit" class="text-red-400 hover:text-red-300 ml-3">
                 Remove
-              </button>
+              </Button>
             </form>
           {/if}
         </div>
       {/each}
     </div>
   {/if}
-</div>
+</Card.Root>

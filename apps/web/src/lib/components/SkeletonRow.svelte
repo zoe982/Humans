@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { Skeleton } from "$lib/components/ui/skeleton/index.js";
+
   type Props = {
     columns?: number;
   };
@@ -9,7 +11,7 @@
 <tr>
   {#each Array(columns) as _, i}
     <td>
-      <div class="skeleton h-4 {i === 0 ? 'w-32' : 'w-20'}"></div>
+      <Skeleton class="h-4 {i === 0 ? 'w-32' : 'w-20'}" />
     </td>
   {/each}
 </tr>

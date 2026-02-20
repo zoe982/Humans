@@ -1,5 +1,6 @@
 <script lang="ts">
   import { ChevronLeft, ChevronRight } from "lucide-svelte";
+  import { buttonVariants } from "$lib/components/ui/button/index.js";
 
   type Props = {
     page: number;
@@ -31,20 +32,20 @@
     </p>
     <div class="flex items-center gap-2">
       {#if hasPrev}
-        <a href={pageUrl(page - 1)} class="btn-ghost text-sm py-1.5 px-3 inline-flex items-center gap-1">
+        <a href={pageUrl(page - 1)} class="{buttonVariants({ variant: 'ghost', size: 'sm' })} inline-flex items-center gap-1">
           <ChevronLeft size={14} /> Prev
         </a>
       {:else}
-        <span class="btn-ghost text-sm py-1.5 px-3 inline-flex items-center gap-1 opacity-40 cursor-not-allowed">
+        <span class="{buttonVariants({ variant: 'ghost', size: 'sm' })} inline-flex items-center gap-1 opacity-40 cursor-not-allowed">
           <ChevronLeft size={14} /> Prev
         </span>
       {/if}
       {#if hasNext}
-        <a href={pageUrl(page + 1)} class="btn-ghost text-sm py-1.5 px-3 inline-flex items-center gap-1">
+        <a href={pageUrl(page + 1)} class="{buttonVariants({ variant: 'ghost', size: 'sm' })} inline-flex items-center gap-1">
           Next <ChevronRight size={14} />
         </a>
       {:else}
-        <span class="btn-ghost text-sm py-1.5 px-3 inline-flex items-center gap-1 opacity-40 cursor-not-allowed">
+        <span class="{buttonVariants({ variant: 'ghost', size: 'sm' })} inline-flex items-center gap-1 opacity-40 cursor-not-allowed">
           Next <ChevronRight size={14} />
         </span>
       {/if}

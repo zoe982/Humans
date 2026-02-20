@@ -6,7 +6,7 @@
   import AlertBanner from "$lib/components/AlertBanner.svelte";
   import GeoInterestPicker from "$lib/components/GeoInterestPicker.svelte";
   import SaveIndicator from "$lib/components/SaveIndicator.svelte";
-  import Toast from "$lib/components/Toast.svelte";
+  import { toast } from "svelte-sonner";
   import { createAutoSaver, type SaveStatus } from "$lib/autosave";
   import { onDestroy } from "svelte";
   import { activityTypeLabels, ACTIVITY_TYPE_OPTIONS } from "$lib/constants/labels";
@@ -62,7 +62,6 @@
   let humanId = $state("");
   let accountId = $state("");
   let saveStatus = $state<SaveStatus>("idle");
-  let toastMessage = $state<string | null>(null);
   let initialized = $state(false);
 
   // Initialize state from data
@@ -83,10 +82,10 @@
     endpoint: `/api/activities/${activity.id}`,
     onStatusChange: (s) => { saveStatus = s; },
     onSaved: () => {
-      toastMessage = "Changes saved";
+      toast("Changes saved");
     },
     onError: (err) => {
-      toastMessage = `Save failed: ${err}`;
+      toast(`Save failed: ${err}`);
     },
   });
 
@@ -267,13 +266,6 @@
     </div>
   </div>
 </div>
-
-{#if toastMessage}
-  <Toast
-    message={toastMessage}
-    onDismiss={() => { toastMessage = null; }}
-  />
-{/if}
 
 <form method="POST" action="?/delete" bind:this={deleteFormEl} class="hidden"></form>
 

@@ -21,8 +21,8 @@ describe("AlertBanner", () => {
 
   it("applies error styles when type is error", () => {
     const { container } = render(AlertBanner, { props: { message: "Error!", type: "error" } });
-    const banner = container.querySelector("div.glass-card");
-    expect(banner?.className).toContain("bg-red-500/10");
+    const banner = container.querySelector("[role='alert']");
+    expect(banner?.className).toContain("bg-danger");
   });
 
   it("shows code for error type", () => {

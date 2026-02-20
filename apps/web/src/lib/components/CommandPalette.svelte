@@ -1,13 +1,13 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
+  import { Command as CommandPrimitive, Dialog as DialogPrimitive } from "bits-ui";
   import { Search, Users, Building2, ClipboardList, Globe2, FileText, X } from "lucide-svelte";
 
   type Props = {
     open: boolean;
-    onClose: () => void;
   };
 
-  let { open, onClose }: Props = $props();
+  let { open = $bindable(false) }: Props = $props();
 
   type SearchResult = {
     id: string;
@@ -19,16 +19,14 @@
 
   let query = $state("");
   let results = $state<SearchResult[]>([]);
-  let highlightIndex = $state(0);
   let loading = $state(false);
-  let inputEl = $state<HTMLInputElement>();
   let debounceTimer: ReturnType<typeof setTimeout> | null = null;
 
   function close() {
+    open = false;
     query = "";
     results = [];
-    highlightIndex = 0;
-    onClose();
+    loading = false;
   }
 
   function navigate(href: string) {
@@ -51,32 +49,15 @@
       }
       const data = await res.json();
       results = data.results ?? [];
-      highlightIndex = 0;
     } finally {
       loading = false;
     }
   }
 
-  function handleInput() {
+  function handleInput(e: Event) {
+    query = (e.currentTarget as HTMLInputElement).value;
     if (debounceTimer) clearTimeout(debounceTimer);
     debounceTimer = setTimeout(() => search(query), 200);
-  }
-
-  function handleKeydown(e: KeyboardEvent) {
-    if (e.key === "Escape") {
-      close();
-      return;
-    }
-    if (e.key === "ArrowDown") {
-      e.preventDefault();
-      highlightIndex = Math.min(highlightIndex + 1, results.length - 1);
-    } else if (e.key === "ArrowUp") {
-      e.preventDefault();
-      highlightIndex = Math.max(highlightIndex - 1, 0);
-    } else if (e.key === "Enter" && results.length > 0) {
-      e.preventDefault();
-      navigate(results[highlightIndex].href);
-    }
   }
 
   const categoryIcons: Record<string, typeof Users> = {
@@ -87,86 +68,88 @@
     "Route Signups": FileText,
   };
 
-  $effect(() => {
-    if (open) {
-      requestAnimationFrame(() => inputEl?.focus());
+  function handleOpenChange(next: boolean) {
+    if (!next) {
+      close();
     }
-  });
+  }
 </script>
 
-{#if open}
-  <!-- Backdrop -->
-  <div
-    class="fixed inset-0 z-60 bg-black/60 backdrop-blur-sm"
-    onclick={close}
-    onkeydown={(e) => { if (e.key === "Escape") close(); }}
-    role="presentation"
-  ></div>
-
-  <!-- Palette -->
-  <div class="fixed inset-x-0 top-[15%] z-60 mx-auto max-w-lg px-4" role="dialog" aria-modal="true" aria-label="Command palette">
-    <div class="glass-card-strong overflow-hidden shadow-2xl">
-      <!-- Search input -->
-      <div class="flex items-center gap-3 border-b border-glass-border px-4 py-3">
-        <Search size={18} class="text-text-muted shrink-0" />
-        <input
-          type="text"
-          bind:this={inputEl}
-          bind:value={query}
-          oninput={handleInput}
-          onkeydown={handleKeydown}
-          placeholder="Search humans, accounts, activities..."
-          class="flex-1 bg-transparent text-text-primary text-sm placeholder:text-text-muted outline-none"
-          role="combobox"
-          aria-expanded={results.length > 0}
-          aria-controls="command-palette-results"
-          aria-activedescendant={results.length > 0 ? `cmd-result-${highlightIndex}` : undefined}
-        />
-        {#if query}
-          <button type="button" onclick={() => { query = ""; results = []; }} aria-label="Clear" class="text-text-muted hover:text-text-secondary">
-            <X size={14} />
-          </button>
-        {/if}
-        <kbd class="hidden sm:inline-flex text-xs text-text-muted border border-glass-border rounded px-1.5 py-0.5">esc</kbd>
-      </div>
-
-      <!-- Results -->
-      <div id="command-palette-results" role="listbox" class="max-h-80 overflow-y-auto">
-        {#if loading && results.length === 0}
-          <div class="px-4 py-6 text-center text-sm text-text-muted">Searching...</div>
-        {:else if query.trim().length >= 2 && !loading && results.length === 0}
-          <div class="px-4 py-6 text-center text-sm text-text-muted">No results found.</div>
-        {:else}
-          {#each results as result, i (result.id)}
-            {@const Icon = categoryIcons[result.category] ?? Search}
+<DialogPrimitive.Root bind:open onOpenChange={handleOpenChange}>
+  <DialogPrimitive.Portal>
+    <DialogPrimitive.Overlay class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm" />
+    <DialogPrimitive.Content
+      class="fixed left-1/2 top-[15%] z-50 w-full max-w-lg -translate-x-1/2 glass-card-strong overflow-hidden p-0 shadow-2xl"
+      aria-label="Command palette"
+    >
+      <CommandPrimitive.Root shouldFilter={false} class="flex h-full w-full flex-col overflow-hidden">
+        <!-- Search input -->
+        <div class="flex items-center gap-3 border-b border-glass-border px-4 py-3">
+          <Search size={18} class="text-text-muted shrink-0" />
+          <input
+            type="text"
+            value={query}
+            oninput={handleInput}
+            placeholder="Search humans, accounts, activities..."
+            class="flex-1 bg-transparent text-text-primary text-sm placeholder:text-text-muted outline-none"
+            aria-label="Search"
+            data-testid="command-palette-input"
+          />
+          {#if query}
             <button
-              id="cmd-result-{i}"
               type="button"
-              role="option"
-              aria-selected={i === highlightIndex}
-              class="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors {i === highlightIndex ? 'bg-glass-hover' : 'hover:bg-glass-hover'}"
-              onclick={() => navigate(result.href)}
-              onmouseenter={() => { highlightIndex = i; }}
+              onclick={() => { query = ""; results = []; }}
+              aria-label="Clear search"
+              class="text-text-muted hover:text-text-secondary"
             >
-              <Icon size={16} class="text-text-muted shrink-0" />
-              <div class="flex-1 min-w-0">
-                <p class="text-sm text-text-primary truncate">{result.label}</p>
-                {#if result.sublabel}
-                  <p class="text-xs text-text-muted truncate">{result.sublabel}</p>
-                {/if}
-              </div>
-              <span class="text-xs text-text-muted shrink-0">{result.category}</span>
+              <X size={14} />
             </button>
-          {/each}
-        {/if}
-      </div>
-
-      <!-- Footer -->
-      {#if results.length === 0 && query.trim().length < 2}
-        <div class="border-t border-glass-border px-4 py-3">
-          <p class="text-xs text-text-muted">Type at least 2 characters to search. Navigate with <kbd class="border border-glass-border rounded px-1">↑</kbd> <kbd class="border border-glass-border rounded px-1">↓</kbd> and <kbd class="border border-glass-border rounded px-1">Enter</kbd></p>
+          {/if}
+          <kbd class="hidden sm:inline-flex text-xs text-text-muted border border-glass-border rounded px-1.5 py-0.5">esc</kbd>
         </div>
-      {/if}
-    </div>
-  </div>
-{/if}
+
+        <!-- Results -->
+        <CommandPrimitive.List class="max-h-80 overflow-y-auto">
+          {#if loading && results.length === 0}
+            <div class="px-4 py-6 text-center text-sm text-text-muted" data-testid="loading-state">Searching...</div>
+          {:else if results.length === 0 && query.trim().length >= 2 && !loading}
+            <CommandPrimitive.Empty class="px-4 py-6 text-center text-sm text-text-muted">
+              No results found.
+            </CommandPrimitive.Empty>
+          {:else}
+            {#each results as result (result.id)}
+              {@const Icon = categoryIcons[result.category] ?? Search}
+              <CommandPrimitive.Item
+                value={result.id}
+                onSelect={() => navigate(result.href)}
+                class="flex w-full items-center gap-3 px-4 py-3 cursor-pointer transition-colors hover:bg-glass-hover data-[highlighted]:bg-glass-hover"
+              >
+                <Icon size={16} class="text-text-muted shrink-0" />
+                <div class="flex-1 min-w-0">
+                  <p class="text-sm text-text-primary truncate">{result.label}</p>
+                  {#if result.sublabel}
+                    <p class="text-xs text-text-muted truncate">{result.sublabel}</p>
+                  {/if}
+                </div>
+                <span class="text-xs text-text-muted shrink-0">{result.category}</span>
+              </CommandPrimitive.Item>
+            {/each}
+          {/if}
+        </CommandPrimitive.List>
+
+        <!-- Footer hint -->
+        {#if results.length === 0 && query.trim().length < 2 && !loading}
+          <div class="border-t border-glass-border px-4 py-3">
+            <p class="text-xs text-text-muted">
+              Type at least 2 characters to search. Navigate with
+              <kbd class="border border-glass-border rounded px-1">↑</kbd>
+              <kbd class="border border-glass-border rounded px-1">↓</kbd>
+              and
+              <kbd class="border border-glass-border rounded px-1">Enter</kbd>
+            </p>
+          </div>
+        {/if}
+      </CommandPrimitive.Root>
+    </DialogPrimitive.Content>
+  </DialogPrimitive.Portal>
+</DialogPrimitive.Root>

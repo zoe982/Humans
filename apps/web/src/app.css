@@ -1,4 +1,54 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+
+/* ── shadcn-svelte semantic variables ── */
+:root {
+  --background: #0f2440;
+  --foreground: #f1f5f9;
+  --card: rgba(255, 255, 255, 0.10);
+  --card-foreground: #f1f5f9;
+  --popover: rgba(20, 55, 90, 0.95);
+  --popover-foreground: #f1f5f9;
+  --primary: #06b6d4;
+  --primary-foreground: #ffffff;
+  --secondary: rgba(255, 255, 255, 0.04);
+  --secondary-foreground: #f1f5f9;
+  --muted: rgba(255, 255, 255, 0.08);
+  --muted-foreground: #93a5b8;
+  --accent: rgba(255, 255, 255, 0.08);
+  --accent-foreground: #f1f5f9;
+  --destructive: rgba(239, 68, 68, 0.15);
+  --destructive-foreground: #fca5a5;
+  --border: rgba(255, 255, 255, 0.20);
+  --input: rgba(255, 255, 255, 0.10);
+  --ring: #06b6d4;
+  --radius: 0.625rem;
+}
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+}
 
 @theme {
   /* Surface colors — lighter steel-blue */

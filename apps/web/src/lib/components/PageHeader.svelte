@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { Snippet } from "svelte";
+  import * as Breadcrumb from "$lib/components/ui/breadcrumb/index.js";
 
   type Props = {
     title: string;
@@ -12,22 +13,22 @@
 
 <div class="mb-6">
   {#if breadcrumbs.length > 0}
-    <nav aria-label="Breadcrumb" class="mb-2">
-      <ol class="flex items-center gap-2 text-sm text-text-muted">
+    <Breadcrumb.Root aria-label="Breadcrumb" class="mb-2">
+      <Breadcrumb.List class="flex items-center gap-2 text-sm text-text-muted">
         {#each breadcrumbs as crumb, i}
           {#if i > 0}
-            <li aria-hidden="true">/</li>
+            <Breadcrumb.Separator />
           {/if}
-          <li>
+          <Breadcrumb.Item>
             {#if crumb.href}
-              <a href={crumb.href} class="hover:text-accent">{crumb.label}</a>
+              <Breadcrumb.Link href={crumb.href}>{crumb.label}</Breadcrumb.Link>
             {:else}
-              <span class="text-text-secondary" aria-current="page">{crumb.label}</span>
+              <Breadcrumb.Page>{crumb.label}</Breadcrumb.Page>
             {/if}
-          </li>
+          </Breadcrumb.Item>
         {/each}
-      </ol>
-    </nav>
+      </Breadcrumb.List>
+    </Breadcrumb.Root>
   {/if}
   <div class="flex items-center justify-between">
     <h1 class="text-2xl font-bold text-text-primary">{title}</h1>

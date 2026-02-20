@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { Badge } from "$lib/components/ui/badge/index.js";
+
   type Props = {
     status: string;
     colorMap: Record<string, string>;
@@ -9,4 +11,4 @@
   let classes = $derived(colorMap[status] ?? "bg-glass text-text-secondary");
 </script>
 
-<span class="glass-badge {classes}">{status}</span>
+<Badge class={classes}>{status}</Badge>
