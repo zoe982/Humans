@@ -2,7 +2,9 @@
   import type { PageData, ActionData } from "./$types";
   import PageHeader from "$lib/components/PageHeader.svelte";
   import AlertBanner from "$lib/components/AlertBanner.svelte";
+  import SearchableSelect from "$lib/components/SearchableSelect.svelte";
   import GeoInterestPicker from "$lib/components/GeoInterestPicker.svelte";
+  import { ACTIVITY_TYPE_OPTIONS } from "$lib/constants/labels";
 
   let { data, form }: { data: PageData; form: ActionData } = $props();
 
@@ -23,6 +25,9 @@
   function displayName(h: Human): string {
     return [h.firstName, h.middleName, h.lastName].filter(Boolean).join(" ");
   }
+
+  const humanOptions = $derived(humans.map((h) => ({ value: h.id, label: displayName(h) })));
+  const accountOptions = $derived(accountsList.map((a) => ({ value: a.id, label: a.name })));
 </script>
 
 <svelte:head>
@@ -42,12 +47,15 @@
   <form method="POST" action="?/create" class="space-y-6 glass-card p-6">
     <div>
       <label for="type" class="block text-sm font-medium text-text-secondary mb-1">Type</label>
-      <select id="type" name="type" required bind:value={selectedType} class="glass-input block w-full px-3 py-2 text-sm">
-        <option value="email">Email</option>
-        <option value="whatsapp_message">WhatsApp</option>
-        <option value="online_meeting">Meeting</option>
-        <option value="phone_call">Phone Call</option>
-      </select>
+      <SearchableSelect
+        options={ACTIVITY_TYPE_OPTIONS}
+        name="type"
+        id="type"
+        value={selectedType}
+        required={true}
+        placeholder="Select type..."
+        onSelect={(v) => { selectedType = v; }}
+      />
     </div>
 
     {#if selectedType === "email"}
@@ -80,23 +88,25 @@
 
     <div>
       <label for="humanId" class="block text-sm font-medium text-text-secondary mb-1">Linked Human</label>
-      <select id="humanId" name="humanId" class="glass-input block w-full px-3 py-2 text-sm">
-        <option value="">— Select a human —</option>
-        {#each humans as human (human.id)}
-          <option value={human.id}>{displayName(human)}</option>
-        {/each}
-      </select>
+      <SearchableSelect
+        options={humanOptions}
+        name="humanId"
+        id="humanId"
+        emptyOption="— Select a human —"
+        placeholder="Search humans..."
+      />
       <p class="mt-1 text-xs text-text-muted">A linked human is required.</p>
     </div>
 
     <div>
       <label for="accountId" class="block text-sm font-medium text-text-secondary mb-1">Linked Account</label>
-      <select id="accountId" name="accountId" class="glass-input block w-full px-3 py-2 text-sm">
-        <option value="">— None —</option>
-        {#each accountsList as account (account.id)}
-          <option value={account.id}>{account.name}</option>
-        {/each}
-      </select>
+      <SearchableSelect
+        options={accountOptions}
+        name="accountId"
+        id="accountId"
+        emptyOption="— None —"
+        placeholder="Search accounts..."
+      />
     </div>
 
     <div>
