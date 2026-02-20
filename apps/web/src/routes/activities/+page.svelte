@@ -2,6 +2,10 @@
   import type { PageData, ActionData } from "./$types";
   import PageHeader from "$lib/components/PageHeader.svelte";
   import AlertBanner from "$lib/components/AlertBanner.svelte";
+  import ConfirmDialog from "$lib/components/ConfirmDialog.svelte";
+  import Pagination from "$lib/components/Pagination.svelte";
+  import { activityTypeColors } from "$lib/constants/colors";
+  import { activityTypeLabels } from "$lib/constants/labels";
 
   let { data, form }: { data: PageData; form: ActionData } = $props();
 
@@ -22,19 +26,14 @@
 
   const activities = $derived(data.activities as Activity[]);
 
-  const activityTypeLabels: Record<string, string> = {
-    email: "Email",
-    whatsapp_message: "WhatsApp",
-    online_meeting: "Meeting",
-    phone_call: "Phone Call",
-  };
-
-  const activityTypeColors: Record<string, string> = {
-    email: "bg-[rgba(59,130,246,0.15)] text-blue-300",
-    whatsapp_message: "bg-[rgba(34,197,94,0.15)] text-green-300",
-    online_meeting: "bg-[rgba(168,85,247,0.15)] text-purple-300",
-    phone_call: "bg-[rgba(249,115,22,0.15)] text-orange-300",
-  };
+  const paginationBaseUrl = $derived.by(() => {
+    const params = new URLSearchParams();
+    if (data.type) params.set("type", data.type);
+    if (data.dateFrom) params.set("dateFrom", data.dateFrom);
+    if (data.dateTo) params.set("dateTo", data.dateTo);
+    const qs = params.toString();
+    return `/activities${qs ? `?${qs}` : ""}`;
+  });
 
   function truncate(s: string | null, len: number): string {
     if (!s) return "—";
@@ -62,9 +61,14 @@
     }
   }
 
+  function ariaSort(column: SortColumn): "ascending" | "descending" | "none" {
+    if (sortColumn !== column) return "none";
+    return sortDirection === "asc" ? "ascending" : "descending";
+  }
+
   function sortArrow(column: SortColumn): string {
     if (sortColumn !== column) return "";
-    return sortDirection === "asc" ? " ▲" : " ▼";
+    return sortDirection === "asc" ? " \u25B2" : " \u25BC";
   }
 
   const sortedActivities = $derived.by(() => {
@@ -96,11 +100,8 @@
     });
   });
 
-  function handleDelete(e: Event) {
-    if (!confirm("Are you sure you want to delete this activity?")) {
-      e.preventDefault();
-    }
-  }
+  let pendingDeleteId = $state<string | null>(null);
+  let deleteFormEl = $state<HTMLFormElement>();
 </script>
 
 <svelte:head>
@@ -141,16 +142,44 @@
     <button type="submit" class="btn-primary">Filter</button>
   </form>
 
-  <div class="glass-card overflow-hidden">
+  <!-- Mobile card view -->
+  <div class="sm:hidden space-y-3">
+    {#each sortedActivities as activity (activity.id)}
+      <a href="/activities/{activity.id}" class="glass-card p-4 block hover:ring-1 hover:ring-accent/40 transition">
+        <div class="flex items-center justify-between mb-2">
+          <span class="glass-badge text-xs {activityTypeColors[activity.type] ?? 'bg-glass text-text-secondary'}">
+            {activityTypeLabels[activity.type] ?? activity.type}
+          </span>
+          <span class="text-xs text-text-muted">{new Date(activity.activityDate).toLocaleDateString()}</span>
+        </div>
+        <p class="font-medium text-text-primary">{activity.subject}</p>
+        {#if linkedEntity(activity)}
+          {@const entity = linkedEntity(activity)!}
+          <p class="text-sm text-accent mt-1">{entity.label}</p>
+        {/if}
+        {#if activity.notes || activity.body}
+          <p class="text-sm text-text-muted mt-1 line-clamp-2">{truncate(activity.notes ?? activity.body, 100)}</p>
+        {/if}
+        <div class="mt-2 flex justify-end">
+          <button type="button" class="text-red-400 hover:text-red-300 text-xs" onclick={(e) => { e.preventDefault(); pendingDeleteId = activity.id; }}>Delete</button>
+        </div>
+      </a>
+    {:else}
+      <div class="glass-card p-6 text-center text-sm text-text-muted">No activities found.</div>
+    {/each}
+  </div>
+
+  <!-- Desktop table view -->
+  <div class="glass-card overflow-hidden hidden sm:block">
     <table class="min-w-full">
       <thead class="glass-thead">
         <tr>
-          <th class="cursor-pointer select-none" onclick={() => toggleSort("type")}>Type{sortArrow("type")}</th>
-          <th class="cursor-pointer select-none" onclick={() => toggleSort("subject")}>Subject{sortArrow("subject")}</th>
-          <th class="hidden sm:table-cell">Notes</th>
-          <th class="cursor-pointer select-none" onclick={() => toggleSort("linkedTo")}>Linked To{sortArrow("linkedTo")}</th>
-          <th class="cursor-pointer select-none" onclick={() => toggleSort("date")}>Date{sortArrow("date")}</th>
-          <th>Actions</th>
+          <th scope="col" aria-sort={ariaSort("type")}><button type="button" class="cursor-pointer select-none" onclick={() => toggleSort("type")}>Type<span aria-hidden="true">{sortArrow("type")}</span></button></th>
+          <th scope="col" aria-sort={ariaSort("subject")}><button type="button" class="cursor-pointer select-none" onclick={() => toggleSort("subject")}>Subject<span aria-hidden="true">{sortArrow("subject")}</span></button></th>
+          <th scope="col">Notes</th>
+          <th scope="col" aria-sort={ariaSort("linkedTo")}><button type="button" class="cursor-pointer select-none" onclick={() => toggleSort("linkedTo")}>Linked To<span aria-hidden="true">{sortArrow("linkedTo")}</span></button></th>
+          <th scope="col" aria-sort={ariaSort("date")}><button type="button" class="cursor-pointer select-none" onclick={() => toggleSort("date")}>Date<span aria-hidden="true">{sortArrow("date")}</span></button></th>
+          <th scope="col">Actions</th>
         </tr>
       </thead>
       <tbody>
@@ -164,7 +193,7 @@
             <td class="font-medium">
               <a href="/activities/{activity.id}" class="text-accent hover:text-cyan-300">{activity.subject}</a>
             </td>
-            <td class="hidden sm:table-cell text-text-muted max-w-xs truncate">{truncate(activity.notes ?? activity.body, 80)}</td>
+            <td class="text-text-muted max-w-xs truncate">{truncate(activity.notes ?? activity.body, 80)}</td>
             <td>
               {#if linkedEntity(activity)}
                 {@const entity = linkedEntity(activity)!}
@@ -175,10 +204,7 @@
             </td>
             <td class="text-text-muted">{new Date(activity.activityDate).toLocaleDateString()}</td>
             <td>
-              <form method="POST" action="?/delete" onsubmit={handleDelete}>
-                <input type="hidden" name="id" value={activity.id} />
-                <button type="submit" class="text-red-400 hover:text-red-300 text-sm">Delete</button>
-              </form>
+              <button type="button" class="text-red-400 hover:text-red-300 text-sm" onclick={() => { pendingDeleteId = activity.id; }}>Delete</button>
             </td>
           </tr>
         {:else}
@@ -189,4 +215,17 @@
       </tbody>
     </table>
   </div>
+
+  <Pagination page={data.page} limit={data.limit} total={data.total} baseUrl={paginationBaseUrl} />
 </div>
+
+<form method="POST" action="?/delete" bind:this={deleteFormEl} class="hidden">
+  <input type="hidden" name="id" value={pendingDeleteId ?? ""} />
+</form>
+
+<ConfirmDialog
+  open={pendingDeleteId !== null}
+  message="Are you sure you want to delete this activity?"
+  onConfirm={() => { deleteFormEl?.requestSubmit(); pendingDeleteId = null; }}
+  onCancel={() => { pendingDeleteId = null; }}
+/>

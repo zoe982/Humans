@@ -21,9 +21,9 @@ describe("activities +page.server", () => {
       }
     });
 
-    it("returns activities from API", async () => {
+    it("returns activities from API with pagination", async () => {
       const mockFetch = createMockFetch({
-        "/api/activities": { body: { data: [{ id: "a1", type: "call" }] } },
+        "/api/activities": { body: { data: [{ id: "a1", type: "call" }], meta: { page: 1, limit: 25, total: 1 } } },
       });
       vi.stubGlobal("fetch", mockFetch);
 
@@ -35,6 +35,9 @@ describe("activities +page.server", () => {
       expect(result.type).toBe("");
       expect(result.dateFrom).toBe("");
       expect(result.dateTo).toBe("");
+      expect(result.page).toBe(1);
+      expect(result.limit).toBe(25);
+      expect(result.total).toBe(1);
     });
 
     it("passes filter params to API", async () => {

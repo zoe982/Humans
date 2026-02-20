@@ -2,6 +2,7 @@
   import type { PageData, ActionData } from "./$types";
   import RecordManagementBar from "$lib/components/RecordManagementBar.svelte";
   import AlertBanner from "$lib/components/AlertBanner.svelte";
+  import ConfirmDialog from "$lib/components/ConfirmDialog.svelte";
 
   let { data, form }: { data: PageData; form: ActionData } = $props();
 
@@ -78,6 +79,9 @@
     showAddForm = false;
   }
 
+  let showDeleteConfirm = $state(false);
+  let deleteFormEl = $state<HTMLFormElement>();
+
   const formResult = $derived(form as FormResult);
 
   $effect(() => {
@@ -107,11 +111,9 @@
 
   <!-- Delete geo-interest -->
   <div class="mb-6 flex justify-end">
-    <form method="POST" action="?/delete">
-      <button type="submit" class="btn-danger text-sm" onclick={(e) => { if (!confirm('Delete this geo-interest and all its expressions?')) e.preventDefault(); }}>
-        Delete Geo-Interest
-      </button>
-    </form>
+    <button type="button" class="btn-danger text-sm" onclick={() => { showDeleteConfirm = true; }}>
+      Delete Geo-Interest
+    </button>
   </div>
 
   <!-- Expressions -->
@@ -219,3 +221,12 @@
     {/if}
   </div>
 </div>
+
+<form method="POST" action="?/delete" bind:this={deleteFormEl} class="hidden"></form>
+
+<ConfirmDialog
+  open={showDeleteConfirm}
+  message="Delete this geo-interest and all its expressions?"
+  onConfirm={() => { deleteFormEl?.requestSubmit(); showDeleteConfirm = false; }}
+  onCancel={() => { showDeleteConfirm = false; }}
+/>

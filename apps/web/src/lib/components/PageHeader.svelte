@@ -12,17 +12,21 @@
 
 <div class="mb-6">
   {#if breadcrumbs.length > 0}
-    <nav class="flex items-center gap-2 text-sm text-text-muted mb-2">
-      {#each breadcrumbs as crumb, i}
-        {#if i > 0}
-          <span>/</span>
-        {/if}
-        {#if crumb.href}
-          <a href={crumb.href} class="hover:text-accent">{crumb.label}</a>
-        {:else}
-          <span class="text-text-secondary">{crumb.label}</span>
-        {/if}
-      {/each}
+    <nav aria-label="Breadcrumb" class="mb-2">
+      <ol class="flex items-center gap-2 text-sm text-text-muted">
+        {#each breadcrumbs as crumb, i}
+          {#if i > 0}
+            <li aria-hidden="true">/</li>
+          {/if}
+          <li>
+            {#if crumb.href}
+              <a href={crumb.href} class="hover:text-accent">{crumb.label}</a>
+            {:else}
+              <span class="text-text-secondary" aria-current="page">{crumb.label}</span>
+            {/if}
+          </li>
+        {/each}
+      </ol>
     </nav>
   {/if}
   <div class="flex items-center justify-between">

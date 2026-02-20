@@ -11,19 +11,25 @@ const routeSignupRoutes = new Hono<AppContext>();
 routeSignupRoutes.use("/*", authMiddleware);
 routeSignupRoutes.use("/*", supabaseMiddleware);
 
-// List all route signups
+// List all route signups (paginated)
 routeSignupRoutes.get("/api/route-signups", requirePermission("viewRouteSignups"), async (c) => {
   const supabase = c.get("supabase");
-  const { data, error } = await supabase
+  const page = Math.max(1, Number(c.req.query("page")) || 1);
+  const limit = Math.min(100, Math.max(1, Number(c.req.query("limit")) || 25));
+  const from = (page - 1) * limit;
+  const to = from + limit - 1;
+
+  const { data, error, count } = await supabase
     .from("announcement_signups")
-    .select("*")
-    .order("inserted_at", { ascending: false });
+    .select("*", { count: "exact" })
+    .order("inserted_at", { ascending: false })
+    .range(from, to);
 
   if (error) {
     throw internal(ERROR_CODES.SUPABASE_ERROR, error.message);
   }
 
-  return c.json({ data });
+  return c.json({ data, meta: { page, limit, total: count ?? 0 } });
 });
 
 // Get single route signup

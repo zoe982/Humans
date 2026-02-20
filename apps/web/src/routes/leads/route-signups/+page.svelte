@@ -3,6 +3,9 @@
   import PageHeader from "$lib/components/PageHeader.svelte";
   import StatusBadge from "$lib/components/StatusBadge.svelte";
   import AlertBanner from "$lib/components/AlertBanner.svelte";
+  import ConfirmDialog from "$lib/components/ConfirmDialog.svelte";
+  import Pagination from "$lib/components/Pagination.svelte";
+  import { signupStatusLabels } from "$lib/constants/labels";
 
   let { data, form }: { data: PageData; form: ActionData } = $props();
 
@@ -23,13 +26,6 @@
 
   const signups = $derived(data.signups as Signup[]);
 
-  const statusLabels: Record<string, string> = {
-    open: "Open",
-    qualified: "Qualified",
-    closed_converted: "Converted",
-    closed_rejected: "Rejected",
-  };
-
   function displayName(s: Signup): string {
     const parts = [s.first_name, s.middle_name, s.last_name].filter(Boolean);
     return parts.length > 0 ? parts.join(" ") : "—";
@@ -40,11 +36,8 @@
     return d.toLocaleDateString() + " " + d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
   }
 
-  function handleDelete(e: Event) {
-    if (!confirm("Are you sure you want to delete this route signup? This cannot be undone.")) {
-      e.preventDefault();
-    }
-  }
+  let pendingDeleteId = $state<string | null>(null);
+  let deleteFormEl = $state<HTMLFormElement>();
 </script>
 
 <svelte:head>
@@ -61,18 +54,52 @@
     <AlertBanner type="error" message={form.error} />
   {/if}
 
-  <div class="glass-card overflow-hidden">
+  <!-- Mobile card view -->
+  <div class="sm:hidden space-y-3">
+    {#each signups as signup (signup.id)}
+      <a href="/leads/route-signups/{signup.id}" class="glass-card p-4 block hover:ring-1 hover:ring-accent/40 transition">
+        <div class="flex items-center justify-between mb-2">
+          <span class="font-medium text-accent">{displayName(signup)}</span>
+          <StatusBadge status={signupStatusLabels[signup.status ?? ""] ?? signup.status ?? "—"} colorMap={{
+            "Open": "bg-[rgba(59,130,246,0.15)] text-blue-300",
+            "Qualified": "bg-[rgba(234,179,8,0.15)] text-yellow-300",
+            "Converted": "bg-[rgba(34,197,94,0.15)] text-green-300",
+            "Rejected": "bg-[rgba(239,68,68,0.15)] text-red-300",
+          }} />
+        </div>
+        {#if signup.email}
+          <p class="text-sm text-text-secondary truncate">{signup.email}</p>
+        {/if}
+        <div class="mt-1 flex gap-3 text-sm text-text-muted">
+          {#if signup.origin}<span>{signup.origin}</span>{/if}
+          {#if signup.origin && signup.destination}<span>→</span>{/if}
+          {#if signup.destination}<span>{signup.destination}</span>{/if}
+        </div>
+        <div class="mt-2 flex items-center justify-between">
+          <span class="text-xs text-text-muted">{formatDatetime(signup.inserted_at)}</span>
+          {#if data.userRole === "admin"}
+            <button type="button" class="text-red-400 hover:text-red-300 text-xs" onclick={(e) => { e.preventDefault(); pendingDeleteId = signup.id; }}>Delete</button>
+          {/if}
+        </div>
+      </a>
+    {:else}
+      <div class="glass-card p-6 text-center text-sm text-text-muted">No route signups found.</div>
+    {/each}
+  </div>
+
+  <!-- Desktop table view -->
+  <div class="glass-card overflow-hidden hidden sm:block">
     <table class="min-w-full">
       <thead class="glass-thead">
         <tr>
-          <th>Name</th>
-          <th>Email</th>
-          <th>Origin</th>
-          <th>Destination</th>
-          <th>Status</th>
-          <th class="hidden sm:table-cell">Date</th>
+          <th scope="col">Name</th>
+          <th scope="col">Email</th>
+          <th scope="col">Origin</th>
+          <th scope="col">Destination</th>
+          <th scope="col">Status</th>
+          <th scope="col">Date</th>
           {#if data.userRole === "admin"}
-            <th>Actions</th>
+            <th scope="col">Actions</th>
           {/if}
         </tr>
       </thead>
@@ -86,20 +113,17 @@
             <td class="text-text-secondary">{signup.origin ?? "—"}</td>
             <td class="text-text-secondary">{signup.destination ?? "—"}</td>
             <td>
-              <StatusBadge status={statusLabels[signup.status ?? ""] ?? signup.status ?? "—"} colorMap={{
+              <StatusBadge status={signupStatusLabels[signup.status ?? ""] ?? signup.status ?? "—"} colorMap={{
                 "Open": "bg-[rgba(59,130,246,0.15)] text-blue-300",
                 "Qualified": "bg-[rgba(234,179,8,0.15)] text-yellow-300",
                 "Converted": "bg-[rgba(34,197,94,0.15)] text-green-300",
                 "Rejected": "bg-[rgba(239,68,68,0.15)] text-red-300",
               }} />
             </td>
-            <td class="hidden sm:table-cell text-text-muted">{formatDatetime(signup.inserted_at)}</td>
+            <td class="text-text-muted">{formatDatetime(signup.inserted_at)}</td>
             {#if data.userRole === "admin"}
               <td>
-                <form method="POST" action="?/delete" onsubmit={handleDelete}>
-                  <input type="hidden" name="id" value={signup.id} />
-                  <button type="submit" class="text-red-400 hover:text-red-300 text-sm">Delete</button>
-                </form>
+                <button type="button" class="text-red-400 hover:text-red-300 text-sm" onclick={() => { pendingDeleteId = signup.id; }}>Delete</button>
               </td>
             {/if}
           </tr>
@@ -111,4 +135,17 @@
       </tbody>
     </table>
   </div>
+
+  <Pagination page={data.page} limit={data.limit} total={data.total} baseUrl="/leads/route-signups" />
 </div>
+
+<form method="POST" action="?/delete" bind:this={deleteFormEl} class="hidden">
+  <input type="hidden" name="id" value={pendingDeleteId ?? ""} />
+</form>
+
+<ConfirmDialog
+  open={pendingDeleteId !== null}
+  message="Are you sure you want to delete this route signup? This cannot be undone."
+  onConfirm={() => { deleteFormEl?.requestSubmit(); pendingDeleteId = null; }}
+  onCancel={() => { pendingDeleteId = null; }}
+/>

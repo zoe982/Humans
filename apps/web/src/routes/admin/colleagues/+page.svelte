@@ -112,11 +112,11 @@
     <table class="min-w-full">
       <thead class="glass-thead">
         <tr>
-          <th>Colleague</th>
-          <th>Role</th>
-          <th>Status</th>
-          <th>Google</th>
-          <th>Actions</th>
+          <th scope="col">Colleague</th>
+          <th scope="col">Role</th>
+          <th scope="col">Status</th>
+          <th scope="col">Google</th>
+          <th scope="col">Actions</th>
         </tr>
       </thead>
       <tbody>

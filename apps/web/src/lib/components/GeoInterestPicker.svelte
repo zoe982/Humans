@@ -1,6 +1,7 @@
 <script lang="ts">
   import SearchableSelect from "./SearchableSelect.svelte";
   import { COUNTRIES } from "@humans/shared";
+  import { X } from "lucide-svelte";
 
   type Props = {
     apiUrl: string;
@@ -145,9 +146,10 @@
           <button
             type="button"
             class="ml-1 text-accent hover:text-cyan-300"
+            aria-label="Clear selection"
             onclick={clearSelection}
           >
-            &times;
+            <X size={14} aria-hidden="true" />
           </button>
         </span>
       </div>

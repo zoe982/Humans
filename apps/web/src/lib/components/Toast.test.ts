@@ -5,6 +5,12 @@ import Toast from "./Toast.svelte";
 describe("Toast", () => {
   beforeEach(() => {
     vi.useFakeTimers();
+    // Polyfill Element.animate for happy-dom (Svelte transitions use Web Animations API)
+    if (!Element.prototype.animate) {
+      Element.prototype.animate = function () {
+        return { finished: Promise.resolve(), cancel: () => {}, onfinish: null } as unknown as Animation;
+      };
+    }
   });
 
   afterEach(() => {

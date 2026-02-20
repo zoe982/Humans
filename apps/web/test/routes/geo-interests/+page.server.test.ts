@@ -93,4 +93,48 @@ describe("geo-interests +page.server", () => {
       expect((result as any).data.code).toBe("DUPLICATE");
     });
   });
+
+  describe("actions.delete", () => {
+    it("deletes a geo-interest and returns success", async () => {
+      const mockFetch = createMockFetch({
+        "/api/geo-interests/g1": { status: 200, body: { success: true } },
+      });
+      vi.stubGlobal("fetch", mockFetch);
+
+      const event = mockEvent({ formData: { id: "g1" } });
+      const result = await actions.delete(event as any);
+
+      expect(result).toEqual({ success: true });
+    });
+
+    it("returns failure when API returns error", async () => {
+      const mockFetch = createMockFetch({
+        "/api/geo-interests/g1": { status: 404, body: { error: "Geo-interest not found", code: "NOT_FOUND", requestId: "req-1" } },
+      });
+      vi.stubGlobal("fetch", mockFetch);
+
+      const event = mockEvent({ formData: { id: "g1" } });
+      const result = await actions.delete(event as any);
+
+      expect(isActionFailure(result)).toBe(true);
+      expect((result as any).status).toBe(404);
+      expect((result as any).data.error).toBe("Geo-interest not found");
+      expect((result as any).data.code).toBe("NOT_FOUND");
+      expect((result as any).data.requestId).toBe("req-1");
+    });
+
+    it("uses fallback message when API returns no error field", async () => {
+      const mockFetch = createMockFetch({
+        "/api/geo-interests/g2": { status: 500, body: {} },
+      });
+      vi.stubGlobal("fetch", mockFetch);
+
+      const event = mockEvent({ formData: { id: "g2" } });
+      const result = await actions.delete(event as any);
+
+      expect(isActionFailure(result)).toBe(true);
+      expect((result as any).status).toBe(500);
+      expect((result as any).data.error).toBe("Failed to delete geo-interest");
+    });
+  });
 });

@@ -1,6 +1,8 @@
 <script lang="ts">
   import type { PageData } from "./$types";
   import PageHeader from "$lib/components/PageHeader.svelte";
+  import { signupStatusColors } from "$lib/constants/colors";
+  import { activityTypeLabels } from "$lib/constants/labels";
 
   let { data }: { data: PageData } = $props();
 
@@ -52,20 +54,6 @@
   const geoInterests = $derived(data.geoInterests as GeoInterestResult[]);
   const accounts = $derived(data.accounts as AccountResult[]);
   const hasResults = $derived(humans.length > 0 || routeSignups.length > 0 || activities.length > 0 || geoInterests.length > 0 || accounts.length > 0);
-
-  const statusColors: Record<string, string> = {
-    open: "bg-[rgba(59,130,246,0.15)] text-blue-300",
-    qualified: "bg-[rgba(234,179,8,0.15)] text-yellow-300",
-    closed_converted: "bg-[rgba(34,197,94,0.15)] text-green-300",
-    closed_rejected: "bg-[rgba(239,68,68,0.15)] text-red-300",
-  };
-
-  const activityTypeLabels: Record<string, string> = {
-    email: "Email",
-    whatsapp_message: "WhatsApp",
-    online_meeting: "Meeting",
-    phone_call: "Phone Call",
-  };
 </script>
 
 <svelte:head>
@@ -142,7 +130,7 @@
                 <p class="text-sm font-medium text-accent">
                   {[signup.first_name, signup.last_name].filter(Boolean).join(" ") || signup.email || "—"}
                 </p>
-                <span class="glass-badge {statusColors[signup.status ?? ''] ?? 'bg-glass text-text-secondary'}">{signup.status ?? "—"}</span>
+                <span class="glass-badge {signupStatusColors[signup.status ?? ''] ?? 'bg-glass text-text-secondary'}">{signup.status ?? "—"}</span>
               </div>
               <p class="text-xs text-text-muted">
                 {[signup.origin, signup.destination].filter(Boolean).join(" → ")}

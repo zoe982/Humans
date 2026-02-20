@@ -2,6 +2,10 @@
   import type { PageData, ActionData } from "./$types";
   import RecordManagementBar from "$lib/components/RecordManagementBar.svelte";
   import AlertBanner from "$lib/components/AlertBanner.svelte";
+  import { invalidateAll } from "$app/navigation";
+  import { api } from "$lib/api";
+  import { signupStatusColors as statusColorMap } from "$lib/constants/colors";
+  import { activityTypeLabels } from "$lib/constants/labels";
 
   let { data, form }: { data: PageData; form: ActionData } = $props();
 
@@ -40,20 +44,6 @@
   let searchResults = $state<{ id: string; firstName: string; lastName: string; emails: { email: string }[] }[]>([]);
   let searching = $state(false);
 
-  const statusColorMap: Record<string, string> = {
-    open: "bg-[rgba(59,130,246,0.15)] text-blue-300",
-    qualified: "bg-[rgba(234,179,8,0.15)] text-yellow-300",
-    closed_converted: "bg-[rgba(34,197,94,0.15)] text-green-300",
-    closed_rejected: "bg-[rgba(239,68,68,0.15)] text-red-300",
-  };
-
-  const activityTypeLabels: Record<string, string> = {
-    email: "Email",
-    whatsapp_message: "WhatsApp",
-    online_meeting: "Meeting",
-    phone_call: "Phone Call",
-  };
-
   function displayName(s: Signup): string {
     const parts = [s.first_name, s.middle_name, s.last_name].filter(Boolean);
     return parts.length > 0 ? parts.join(" ") : "—";
@@ -72,6 +62,18 @@
     if (signup.last_name) params.set("lastName", signup.last_name);
     if (signup.email) params.set("email", signup.email);
     return `/humans/new?${params.toString()}`;
+  }
+
+  async function handleStatusChange(newStatus: string) {
+    try {
+      await api(`/api/route-signups/${signup.id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ status: newStatus }),
+      });
+      await invalidateAll();
+    } catch {
+      // Status update failed - page will reload with current status
+    }
   }
 
   async function searchHumans() {
@@ -105,7 +107,7 @@
     status={signup.status ?? undefined}
     statusOptions={["open", "qualified", "closed_converted", "closed_rejected"]}
     {statusColorMap}
-    statusFormAction="?/updateStatus"
+    onStatusChange={handleStatusChange}
   >
     {#snippet actions()}
       {#if signup.status !== "closed_converted"}

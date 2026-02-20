@@ -1,12 +1,13 @@
 import { Hono } from "hono";
-import { eq } from "drizzle-orm";
-import { flights } from "@humans/db/schema";
-import { createId } from "@humans/db";
 import { createFlightSchema, updateFlightSchema } from "@humans/shared";
-import { ERROR_CODES } from "@humans/shared";
 import { authMiddleware } from "../middleware/auth";
 import { requirePermission } from "../middleware/rbac";
-import { notFound } from "../lib/errors";
+import {
+  listFlights,
+  getFlight,
+  createFlight,
+  updateFlight,
+} from "../services/flights";
 import type { AppContext } from "../types";
 
 const flightRoutes = new Hono<AppContext>();
@@ -14,62 +15,27 @@ const flightRoutes = new Hono<AppContext>();
 flightRoutes.use("/*", authMiddleware);
 
 flightRoutes.get("/api/flights", requirePermission("viewRecords"), async (c) => {
-  const db = c.get("db");
-  const allFlights = await db.select().from(flights);
-  return c.json({ data: allFlights });
+  const data = await listFlights(c.get("db"));
+  return c.json({ data });
 });
 
 flightRoutes.get("/api/flights/:id", requirePermission("viewRecords"), async (c) => {
-  const db = c.get("db");
-  const flight = await db.query.flights.findFirst({
-    where: eq(flights.id, c.req.param("id")),
-  });
-  if (flight == null) {
-    throw notFound(ERROR_CODES.FLIGHT_NOT_FOUND, "Flight not found");
-  }
-  return c.json({ data: flight });
+  const data = await getFlight(c.get("db"), c.req.param("id"));
+  return c.json({ data });
 });
 
 flightRoutes.post("/api/flights", requirePermission("createEditRecords"), async (c) => {
   const body: unknown = await c.req.json();
   const data = createFlightSchema.parse(body);
-  const db = c.get("db");
-  const now = new Date().toISOString();
-
-  const newFlight = {
-    id: createId(),
-    ...data,
-    cabinClass: data.cabinClass ?? null,
-    status: data.status ?? ("scheduled" as const),
-    createdAt: now,
-    updatedAt: now,
-  };
-
-  await db.insert(flights).values(newFlight);
-  return c.json({ data: newFlight }, 201);
+  const result = await createFlight(c.get("db"), data);
+  return c.json({ data: result }, 201);
 });
 
 flightRoutes.patch("/api/flights/:id", requirePermission("createEditRecords"), async (c) => {
   const body: unknown = await c.req.json();
   const data = updateFlightSchema.parse(body);
-  const db = c.get("db");
-
-  const existing = await db.query.flights.findFirst({
-    where: eq(flights.id, c.req.param("id")),
-  });
-  if (existing == null) {
-    throw notFound(ERROR_CODES.FLIGHT_NOT_FOUND, "Flight not found");
-  }
-
-  await db
-    .update(flights)
-    .set({ ...data, updatedAt: new Date().toISOString() })
-    .where(eq(flights.id, c.req.param("id")));
-
-  const updated = await db.query.flights.findFirst({
-    where: eq(flights.id, c.req.param("id")),
-  });
-  return c.json({ data: updated });
+  const result = await updateFlight(c.get("db"), c.req.param("id"), data);
+  return c.json({ data: result });
 });
 
 export { flightRoutes };

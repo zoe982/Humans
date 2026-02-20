@@ -1,5 +1,6 @@
 <script lang="ts">
   import { COUNTRY_PHONE_CODES, type CountryPhoneCode } from "@humans/shared";
+  import { ChevronDown } from "lucide-svelte";
 
   type Props = {
     name: string;
@@ -15,6 +16,7 @@
   let digits = $state("");
   let showDropdown = $state(false);
   let codeSearch = $state("");
+  let highlightIndex = $state(-1);
 
   // Parse initial value like "+1 5551234567"
   if (value) {
@@ -50,6 +52,26 @@
     selectedCode = code;
     showDropdown = false;
     codeSearch = "";
+    highlightIndex = -1;
+  }
+
+  function handleDropdownKeydown(e: KeyboardEvent) {
+    if (!showDropdown) return;
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      highlightIndex = Math.min(highlightIndex + 1, filteredCodes.length - 1);
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      highlightIndex = Math.max(highlightIndex - 1, 0);
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      if (highlightIndex >= 0 && highlightIndex < filteredCodes.length) {
+        selectCode(filteredCodes[highlightIndex]);
+      }
+    } else if (e.key === "Escape") {
+      showDropdown = false;
+      highlightIndex = -1;
+    }
   }
 </script>
 
@@ -58,13 +80,16 @@
   <div class="flex gap-1">
     <button
       type="button"
+      aria-label="Select country code"
+      aria-expanded={showDropdown}
+      aria-haspopup="listbox"
       class="glass-input mt-1 flex items-center gap-1 px-2 py-1.5 text-sm whitespace-nowrap shrink-0"
-      onclick={() => { showDropdown = !showDropdown; }}
-      onblur={() => { setTimeout(() => { showDropdown = false; codeSearch = ""; }, 200); }}
+      onclick={() => { showDropdown = !showDropdown; highlightIndex = -1; }}
+      onblur={() => { setTimeout(() => { showDropdown = false; codeSearch = ""; highlightIndex = -1; }, 200); }}
     >
       <span>{selectedCode.flag}</span>
       <span class="text-text-secondary">{selectedCode.dialCode}</span>
-      <span class="text-text-muted text-xs">&#9662;</span>
+      <ChevronDown size={14} class="text-text-muted" />
     </button>
     <input
       type="tel"
@@ -82,16 +107,23 @@
           bind:value={codeSearch}
           placeholder="Search country or code..."
           autocomplete="off"
+          aria-label="Search countries"
           class="glass-input block w-full text-sm"
           onfocus={(e) => { e.stopPropagation(); }}
+          oninput={() => { highlightIndex = -1; }}
+          onkeydown={handleDropdownKeydown}
         />
       </div>
-      <div class="max-h-48 overflow-y-auto">
-        {#each filteredCodes as code (code.iso2)}
+      <div role="listbox" aria-label="Country codes" class="max-h-48 overflow-y-auto">
+        {#each filteredCodes as code, i (code.iso2)}
           <button
             type="button"
-            class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition-colors {code.iso2 === selectedCode.iso2 ? 'bg-glass-hover text-text-primary' : 'text-text-secondary hover:bg-glass-hover hover:text-text-primary'}"
+            role="option"
+            aria-selected={code.iso2 === selectedCode.iso2}
+            class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition-colors {i === highlightIndex || code.iso2 === selectedCode.iso2 ? 'bg-glass-hover text-text-primary' : 'text-text-secondary hover:bg-glass-hover hover:text-text-primary'}"
             onmousedown={(e) => { e.preventDefault(); selectCode(code); }}
+            onmouseenter={() => { highlightIndex = i; }}
+            tabindex="-1"
           >
             <span>{code.flag}</span>
             <span class="flex-1 truncate">{code.name}</span>
@@ -99,7 +131,7 @@
           </button>
         {/each}
         {#if filteredCodes.length === 0}
-          <div class="px-3 py-2 text-sm text-text-muted">No matches</div>
+          <div class="px-3 py-2 text-sm text-text-muted" role="status">No matches</div>
         {/if}
       </div>
     </div>

@@ -3,6 +3,8 @@
   import PageHeader from "$lib/components/PageHeader.svelte";
   import StatusBadge from "$lib/components/StatusBadge.svelte";
   import AlertBanner from "$lib/components/AlertBanner.svelte";
+  import ConfirmDialog from "$lib/components/ConfirmDialog.svelte";
+  import { statusColors } from "$lib/constants/colors";
 
   let { data, form }: { data: PageData; form: ActionData } = $props();
 
@@ -17,17 +19,8 @@
 
   const accounts = $derived(data.accounts as Account[]);
 
-  const statusColors: Record<string, string> = {
-    open: "bg-[rgba(59,130,246,0.15)] text-blue-300",
-    active: "bg-[rgba(34,197,94,0.15)] text-green-300",
-    closed: "bg-[rgba(239,68,68,0.15)] text-red-300",
-  };
-
-  function handleDelete(e: Event) {
-    if (!confirm("Are you sure you want to delete this account? This cannot be undone.")) {
-      e.preventDefault();
-    }
-  }
+  let pendingDeleteId = $state<string | null>(null);
+  let deleteFormEl = $state<HTMLFormElement>();
 </script>
 
 <svelte:head>
@@ -45,16 +38,41 @@
     <AlertBanner type="error" message={form.error} />
   {/if}
 
-  <div class="glass-card overflow-hidden">
+  <!-- Mobile card view -->
+  <div class="sm:hidden space-y-3">
+    {#each accounts as account (account.id)}
+      <a href="/accounts/{account.id}" class="glass-card p-4 block hover:ring-1 hover:ring-accent/40 transition">
+        <div class="flex items-center justify-between mb-2">
+          <span class="font-medium text-accent">{account.name}</span>
+          <StatusBadge status={account.status ?? "open"} colorMap={statusColors} />
+        </div>
+        <div class="flex gap-1 flex-wrap">
+          {#each account.types as t}
+            <span class="glass-badge text-xs bg-[rgba(168,85,247,0.15)] text-purple-300">{t.name}</span>
+          {/each}
+        </div>
+        {#if data.userRole === "admin"}
+          <div class="mt-2 flex justify-end">
+            <button type="button" class="text-red-400 hover:text-red-300 text-xs" onclick={(e) => { e.preventDefault(); pendingDeleteId = account.id; }}>Delete</button>
+          </div>
+        {/if}
+      </a>
+    {:else}
+      <div class="glass-card p-6 text-center text-sm text-text-muted">No accounts found.</div>
+    {/each}
+  </div>
+
+  <!-- Desktop table view -->
+  <div class="glass-card overflow-hidden hidden sm:block">
     <table class="min-w-full">
       <thead class="glass-thead">
         <tr>
-          <th>Name</th>
-          <th>Status</th>
-          <th>Types</th>
-          <th class="hidden sm:table-cell">Created</th>
+          <th scope="col">Name</th>
+          <th scope="col">Status</th>
+          <th scope="col">Types</th>
+          <th scope="col">Created</th>
           {#if data.userRole === "admin"}
-            <th>Actions</th>
+            <th scope="col">Actions</th>
           {/if}
         </tr>
       </thead>
@@ -76,13 +94,10 @@
                 {/each}
               </div>
             </td>
-            <td class="hidden sm:table-cell text-text-muted">{new Date(account.createdAt).toLocaleDateString()}</td>
+            <td class="text-text-muted">{new Date(account.createdAt).toLocaleDateString()}</td>
             {#if data.userRole === "admin"}
               <td>
-                <form method="POST" action="?/delete" onsubmit={handleDelete}>
-                  <input type="hidden" name="id" value={account.id} />
-                  <button type="submit" class="text-red-400 hover:text-red-300 text-sm">Delete</button>
-                </form>
+                <button type="button" class="text-red-400 hover:text-red-300 text-sm" onclick={() => { pendingDeleteId = account.id; }}>Delete</button>
               </td>
             {/if}
           </tr>
@@ -95,3 +110,14 @@
     </table>
   </div>
 </div>
+
+<form method="POST" action="?/delete" bind:this={deleteFormEl} class="hidden">
+  <input type="hidden" name="id" value={pendingDeleteId ?? ""} />
+</form>
+
+<ConfirmDialog
+  open={pendingDeleteId !== null}
+  message="Are you sure you want to delete this account? This cannot be undone."
+  onConfirm={() => { deleteFormEl?.requestSubmit(); pendingDeleteId = null; }}
+  onCancel={() => { pendingDeleteId = null; }}
+/>

@@ -46,11 +46,12 @@
 </script>
 
 <div>
-  <div class="flex flex-wrap gap-2">
+  <div role="group" aria-label="Types" class="flex flex-wrap gap-2">
     {#each typeConfigs as tc (tc.value)}
       {@const active = current.includes(tc.value)}
       <button
         type="button"
+        aria-pressed={active}
         onclick={() => toggle(tc.value)}
         class="inline-flex items-center rounded-full px-3 py-1 text-sm font-medium border transition-colors
           {active ? tc.activeClass : 'border-glass-border text-text-muted hover:text-text-secondary hover:border-text-muted'}"

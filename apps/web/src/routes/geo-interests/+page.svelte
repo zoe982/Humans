@@ -2,6 +2,7 @@
   import type { PageData, ActionData } from "./$types";
   import PageHeader from "$lib/components/PageHeader.svelte";
   import AlertBanner from "$lib/components/AlertBanner.svelte";
+  import ConfirmDialog from "$lib/components/ConfirmDialog.svelte";
   import SearchableSelect from "$lib/components/SearchableSelect.svelte";
   import { COUNTRIES } from "@humans/shared";
 
@@ -39,11 +40,8 @@
     }
   });
 
-  function handleDelete(e: Event) {
-    if (!confirm("Are you sure you want to delete this geo-interest? This cannot be undone.")) {
-      e.preventDefault();
-    }
-  }
+  let pendingDeleteId = $state<string | null>(null);
+  let deleteFormEl = $state<HTMLFormElement>();
 </script>
 
 <svelte:head>
@@ -100,17 +98,41 @@
     </form>
   {/if}
 
-  <div class="glass-card overflow-hidden">
+  <!-- Mobile card view -->
+  <div class="sm:hidden space-y-3">
+    {#each geoInterests as gi (gi.id)}
+      <a href="/geo-interests/{gi.id}" class="glass-card p-4 block hover:ring-1 hover:ring-accent/40 transition">
+        <div class="flex items-center justify-between mb-1">
+          <span class="font-medium text-accent">{gi.city}</span>
+          <span class="text-sm text-text-secondary">{gi.country}</span>
+        </div>
+        <div class="flex gap-4 text-sm text-text-muted">
+          <span>{gi.humanCount} humans</span>
+          <span>{gi.expressionCount} expressions</span>
+        </div>
+        {#if data.userRole === "admin"}
+          <div class="mt-2 flex justify-end">
+            <button type="button" class="text-red-400 hover:text-red-300 text-xs" onclick={(e) => { e.preventDefault(); pendingDeleteId = gi.id; }}>Delete</button>
+          </div>
+        {/if}
+      </a>
+    {:else}
+      <div class="glass-card p-6 text-center text-sm text-text-muted">No geo-interests found.</div>
+    {/each}
+  </div>
+
+  <!-- Desktop table view -->
+  <div class="glass-card overflow-hidden hidden sm:block">
     <table class="min-w-full">
       <thead class="glass-thead">
         <tr>
-          <th>City</th>
-          <th>Country</th>
-          <th>Interested Humans</th>
-          <th>Expressions</th>
-          <th>Created</th>
+          <th scope="col">City</th>
+          <th scope="col">Country</th>
+          <th scope="col">Interested Humans</th>
+          <th scope="col">Expressions</th>
+          <th scope="col">Created</th>
           {#if data.userRole === "admin"}
-            <th>Actions</th>
+            <th scope="col">Actions</th>
           {/if}
         </tr>
       </thead>
@@ -126,10 +148,7 @@
             <td class="text-text-muted text-sm">{new Date(gi.createdAt).toLocaleDateString()}</td>
             {#if data.userRole === "admin"}
               <td>
-                <form method="POST" action="?/delete" onsubmit={handleDelete}>
-                  <input type="hidden" name="id" value={gi.id} />
-                  <button type="submit" class="text-red-400 hover:text-red-300 text-sm">Delete</button>
-                </form>
+                <button type="button" class="text-red-400 hover:text-red-300 text-sm" onclick={() => { pendingDeleteId = gi.id; }}>Delete</button>
               </td>
             {/if}
           </tr>
@@ -142,3 +161,14 @@
     </table>
   </div>
 </div>
+
+<form method="POST" action="?/delete" bind:this={deleteFormEl} class="hidden">
+  <input type="hidden" name="id" value={pendingDeleteId ?? ""} />
+</form>
+
+<ConfirmDialog
+  open={pendingDeleteId !== null}
+  message="Are you sure you want to delete this geo-interest? This cannot be undone."
+  onConfirm={() => { deleteFormEl?.requestSubmit(); pendingDeleteId = null; }}
+  onCancel={() => { pendingDeleteId = null; }}
+/>

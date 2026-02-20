@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { PageData } from "./$types";
   import PageHeader from "$lib/components/PageHeader.svelte";
+  import { ChevronLeft, ChevronRight } from "lucide-svelte";
 
   let { data }: { data: PageData } = $props();
 
@@ -69,13 +70,13 @@
       <table class="min-w-full text-sm">
         <thead class="glass-thead">
           <tr>
-            <th>Time</th>
-            <th>Status</th>
-            <th>Code</th>
-            <th>Message</th>
-            <th>Path</th>
-            <th>User</th>
-            <th>Request ID</th>
+            <th scope="col">Time</th>
+            <th scope="col">Status</th>
+            <th scope="col">Code</th>
+            <th scope="col">Message</th>
+            <th scope="col">Path</th>
+            <th scope="col">User</th>
+            <th scope="col">Request ID</th>
           </tr>
         </thead>
         <tbody>
@@ -112,12 +113,16 @@
 
   <div class="mt-4 flex justify-between">
     {#if data.offset > 0}
-      <a href="?offset={data.offset - data.limit}{codeFilter ? `&code=${codeFilter}` : ''}{dateFrom ? `&dateFrom=${dateFrom}` : ''}{dateTo ? `&dateTo=${dateTo}` : ''}" class="text-sm text-accent hover:text-cyan-300">&larr; Previous</a>
+      <a href="?offset={data.offset - data.limit}{codeFilter ? `&code=${codeFilter}` : ''}{dateFrom ? `&dateFrom=${dateFrom}` : ''}{dateTo ? `&dateTo=${dateTo}` : ''}" class="btn-ghost text-sm py-1.5 px-3 inline-flex items-center gap-1">
+        <ChevronLeft size={14} /> Previous
+      </a>
     {:else}
       <span></span>
     {/if}
     {#if errors.length === data.limit}
-      <a href="?offset={data.offset + data.limit}{codeFilter ? `&code=${codeFilter}` : ''}{dateFrom ? `&dateFrom=${dateFrom}` : ''}{dateTo ? `&dateTo=${dateTo}` : ''}" class="text-sm text-accent hover:text-cyan-300">Next &rarr;</a>
+      <a href="?offset={data.offset + data.limit}{codeFilter ? `&code=${codeFilter}` : ''}{dateFrom ? `&dateFrom=${dateFrom}` : ''}{dateTo ? `&dateTo=${dateTo}` : ''}" class="btn-ghost text-sm py-1.5 px-3 inline-flex items-center gap-1">
+        Next <ChevronRight size={14} />
+      </a>
     {/if}
   </div>
 </div>

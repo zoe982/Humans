@@ -2,6 +2,12 @@ import { redirect } from "@sveltejs/kit";
 import type { RequestEvent } from "@sveltejs/kit";
 import { PUBLIC_API_URL } from "$env/static/public";
 
+type PaginatedMeta = { meta: { page: number; limit: number; total: number } };
+
+function hasMeta(value: unknown): value is PaginatedMeta {
+  return typeof value === "object" && value !== null && "meta" in value && typeof (value as { meta: unknown }).meta === "object";
+}
+
 function isListData(value: unknown): value is { data: unknown[] } {
   return typeof value === "object" && value !== null && "data" in value && Array.isArray((value as { data: unknown }).data);
 }
@@ -12,10 +18,11 @@ export const load = async ({ locals, cookies }: RequestEvent) => {
   const sessionToken = cookies.get("humans_session");
   const headers = { Cookie: `humans_session=${sessionToken ?? ""}` };
 
-  const [humansRes, activitiesRes, geoInterestsRes] = await Promise.all([
-    fetch(`${PUBLIC_API_URL}/api/humans`, { headers }),
-    fetch(`${PUBLIC_API_URL}/api/activities`, { headers }),
+  const [humansRes, activitiesRes, geoInterestsRes, petsCountRes] = await Promise.all([
+    fetch(`${PUBLIC_API_URL}/api/humans?page=1&limit=1`, { headers }),
+    fetch(`${PUBLIC_API_URL}/api/activities?page=1&limit=1`, { headers }),
     fetch(`${PUBLIC_API_URL}/api/geo-interests`, { headers }),
+    fetch(`${PUBLIC_API_URL}/api/pets/count`, { headers }),
   ]);
 
   if (!humansRes.ok) console.error("[dashboard] Failed to load humans:", humansRes.status);
@@ -25,31 +32,26 @@ export const load = async ({ locals, cookies }: RequestEvent) => {
   const humansRaw: unknown = humansRes.ok ? await humansRes.json() : null;
   const activitiesRaw: unknown = activitiesRes.ok ? await activitiesRes.json() : null;
   const geoInterestsRaw: unknown = geoInterestsRes.ok ? await geoInterestsRes.json() : null;
+  const petsCountRaw: unknown = petsCountRes.ok ? await petsCountRes.json() : null;
 
-  const humansList = isListData(humansRaw) ? humansRaw.data as { id: string }[] : [];
-  const activitiesList = isListData(activitiesRaw) ? activitiesRaw.data : [];
+  const humansTotal = hasMeta(humansRaw) ? humansRaw.meta.total : 0;
+  const activitiesTotal = hasMeta(activitiesRaw) ? activitiesRaw.meta.total : 0;
   const geoInterestsList = isListData(geoInterestsRaw) ? geoInterestsRaw.data : [];
+  const petsTotal = (petsCountRaw as { data?: { total?: number } } | null)?.data?.total ?? 0;
 
-  // Count pets by fetching per-human (pets are nested under humans)
-  // For now, count from the humans list endpoint which doesn't include pets,
-  // so we fetch each human's pets. For efficiency with few humans, this is fine.
-  let totalPets = 0;
-  const petFetches = humansList.map(async (h) => {
-    const res = await fetch(`${PUBLIC_API_URL}/api/humans/${h.id}/pets`, { headers });
-    if (!res.ok) return 0;
-    const raw: unknown = await res.json();
-    return isListData(raw) ? raw.data.length : 0;
-  });
-  const petCounts = await Promise.all(petFetches);
-  totalPets = petCounts.reduce((sum, c) => sum + c, 0);
+  // Fetch recent activities for feed
+  const recentRes = await fetch(`${PUBLIC_API_URL}/api/activities?page=1&limit=10`, { headers });
+  const recentRaw: unknown = recentRes.ok ? await recentRes.json() : null;
+  const recentActivities = isListData(recentRaw) ? recentRaw.data : [];
 
   return {
     user: locals.user,
     counts: {
-      humans: humansList.length,
-      pets: totalPets,
-      activities: activitiesList.length,
+      humans: humansTotal,
+      pets: petsTotal,
+      activities: activitiesTotal,
       geoInterests: geoInterestsList.length,
     },
+    recentActivities,
   };
 };

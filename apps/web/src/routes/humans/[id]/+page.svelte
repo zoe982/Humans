@@ -10,10 +10,16 @@
   import SaveIndicator from "$lib/components/SaveIndicator.svelte";
   import Toast from "$lib/components/Toast.svelte";
   import TypeTogglePills from "$lib/components/TypeTogglePills.svelte";
+  import TabBar from "$lib/components/TabBar.svelte";
+  import { ChevronRight, ChevronDown } from "lucide-svelte";
   import { createAutoSaver, type SaveStatus } from "$lib/autosave";
   import { api } from "$lib/api";
+  import { statusColors as statusColorMap, humanTypeColors as typeColors, activityTypeColors, labelBadgeColor } from "$lib/constants/colors";
+  import { humanTypeLabels as typeLabels, activityTypeLabels } from "$lib/constants/labels";
+  import { formatRelativeTime, summarizeChanges } from "$lib/utils/format";
   import { PET_BREEDS } from "@humans/shared/constants";
   import { onDestroy } from "svelte";
+  import { slide } from "svelte/transition";
 
   let { data, form }: { data: PageData; form: ActionData } = $props();
 
@@ -96,9 +102,17 @@
   let historyEntries = $state<AuditEntry[]>([]);
   let historyLoaded = $state(false);
 
+  let activeTab = $state("overview");
   let showActivityForm = $state(false);
   let showGeoInterestInActivity = $state(false);
   let breedDropdownOpen = $state(false);
+
+  const humanTabs = [
+    { id: "overview", label: "Overview" },
+    { id: "relationships", label: "Relationships" },
+    { id: "activity", label: "Activity" },
+    { id: "history", label: "History" },
+  ];
 
   // Initialize state from data — runs on each data update (e.g. after invalidateAll)
   $effect(() => {
@@ -193,65 +207,6 @@
     if (historyOpen) loadHistory();
   }
 
-  function formatRelativeTime(dateStr: string): string {
-    const date = new Date(dateStr);
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffMins = Math.floor(diffMs / 60000);
-    if (diffMins < 1) return "just now";
-    if (diffMins < 60) return `${diffMins}m ago`;
-    const diffHours = Math.floor(diffMins / 60);
-    if (diffHours < 24) return `${diffHours}h ago`;
-    const diffDays = Math.floor(diffHours / 24);
-    return `${diffDays}d ago`;
-  }
-
-  function summarizeChanges(changes: Record<string, { old: unknown; new: unknown }> | null): string {
-    if (!changes) return "No details";
-    return Object.entries(changes)
-      .map(([field, diff]) => {
-        const oldVal = Array.isArray(diff.old) ? diff.old.join(", ") : String(diff.old ?? "empty");
-        const newVal = Array.isArray(diff.new) ? diff.new.join(", ") : String(diff.new ?? "empty");
-        return `${field}: "${oldVal}" \u2192 "${newVal}"`;
-      })
-      .join("; ");
-  }
-
-  const typeColors: Record<string, string> = {
-    client: "bg-[rgba(59,130,246,0.15)] text-blue-300",
-    trainer: "bg-[rgba(34,197,94,0.15)] text-green-300",
-    travel_agent: "bg-[rgba(168,85,247,0.15)] text-purple-300",
-    flight_broker: "bg-[rgba(249,115,22,0.15)] text-orange-300",
-  };
-
-  const typeLabels: Record<string, string> = {
-    client: "Client",
-    trainer: "Trainer",
-    travel_agent: "Travel Agent",
-    flight_broker: "Flight Broker",
-  };
-
-  const labelBadgeColor = "bg-[rgba(168,85,247,0.15)] text-purple-300";
-
-  const statusColorMap: Record<string, string> = {
-    open: "bg-[rgba(59,130,246,0.15)] text-blue-300",
-    active: "bg-[rgba(34,197,94,0.15)] text-green-300",
-    closed: "bg-[rgba(239,68,68,0.15)] text-red-300",
-  };
-
-  const activityTypeLabels: Record<string, string> = {
-    email: "Email",
-    whatsapp_message: "WhatsApp",
-    online_meeting: "Meeting",
-    phone_call: "Phone Call",
-  };
-
-  const activityTypeColors: Record<string, string> = {
-    email: "bg-[rgba(59,130,246,0.15)] text-blue-300",
-    whatsapp_message: "bg-[rgba(34,197,94,0.15)] text-green-300",
-    online_meeting: "bg-[rgba(168,85,247,0.15)] text-purple-300",
-    phone_call: "bg-[rgba(249,115,22,0.15)] text-orange-300",
-  };
 
 </script>
 
@@ -285,6 +240,11 @@
   {#if form?.error}
     <AlertBanner type="error" message={form.error} />
   {/if}
+
+  <TabBar tabs={humanTabs} {activeTab} onTabChange={(id) => { activeTab = id; }} />
+
+  <!-- Overview Tab -->
+  <div id="panel-overview" role="tabpanel" aria-labelledby="tab-overview" class={activeTab !== "overview" ? "hidden" : ""}>
 
   <!-- Details (auto-save, no form submission) -->
   <div class="glass-card p-6 space-y-6">
@@ -452,6 +412,11 @@
     </LinkedRecordBox>
   </div>
 
+  </div><!-- /panel-overview -->
+
+  <!-- Relationships Tab -->
+  <div id="panel-relationships" role="tabpanel" aria-labelledby="tab-relationships" class={activeTab !== "relationships" ? "hidden" : ""}>
+
   <!-- Pets Section -->
   <div class="mt-6 {breedDropdownOpen ? 'relative z-10' : ''}">
     <LinkedRecordBox
@@ -590,6 +555,11 @@
     </div>
   {/if}
 
+  </div><!-- /panel-relationships -->
+
+  <!-- Activity Tab -->
+  <div id="panel-activity" role="tabpanel" aria-labelledby="tab-activity" class={activeTab !== "activity" ? "hidden" : ""}>
+
   <!-- Activities -->
   <div class="mt-6 glass-card p-5">
     <div class="flex items-center justify-between mb-4">
@@ -703,19 +673,27 @@
     {/if}
   </div>
 
+  </div><!-- /panel-activity -->
+
+  <!-- History Tab -->
+  <div id="panel-history" role="tabpanel" aria-labelledby="tab-history" class={activeTab !== "history" ? "hidden" : ""}>
+
   <!-- Change History -->
   <div class="mt-6 glass-card p-5">
     <button
       type="button"
+      aria-expanded={historyOpen}
       onclick={toggleHistory}
       class="flex items-center gap-2 w-full text-left"
     >
       <span class="text-lg font-semibold text-text-primary">Change History</span>
-      <span class="text-text-muted text-sm">{historyOpen ? "\u25BC" : "\u25B6"}</span>
+      <span class="text-text-muted" aria-hidden="true">
+        {#if historyOpen}<ChevronDown size={16} />{:else}<ChevronRight size={16} />{/if}
+      </span>
     </button>
 
     {#if historyOpen}
-      <div class="mt-4 space-y-2">
+      <div transition:slide={{ duration: 200 }} class="mt-4 space-y-2">
         {#if historyEntries.length === 0}
           <p class="text-text-muted text-sm">No changes recorded yet.</p>
         {:else}
@@ -737,6 +715,8 @@
       </div>
     {/if}
   </div>
+
+  </div><!-- /panel-history -->
 </div>
 
 <!-- Toast -->

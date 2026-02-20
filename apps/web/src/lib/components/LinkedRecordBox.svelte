@@ -1,5 +1,7 @@
 <script lang="ts">
   import type { Snippet } from "svelte";
+  import { slide } from "svelte/transition";
+  import { Plus } from "lucide-svelte";
 
   type Props = {
     title: string;
@@ -33,15 +35,16 @@
       <button
         type="button"
         class="btn-ghost text-sm py-1 px-3"
+        aria-expanded={formOpen}
         onclick={() => (formOpen = !formOpen)}
       >
-        {formOpen ? "Cancel" : `+ ${addLabel}`}
+        {#if formOpen}Cancel{:else}<Plus size={14} class="inline -mt-0.5" /> {addLabel}{/if}
       </button>
     {/if}
   </div>
 
   {#if formOpen && addForm}
-    <div class="mb-4 p-4 rounded-xl bg-glass border border-glass-border">
+    <div transition:slide={{ duration: 200 }} class="mb-4 p-4 rounded-xl bg-glass border border-glass-border">
       {@render addForm()}
     </div>
   {/if}

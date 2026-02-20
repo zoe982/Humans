@@ -16,10 +16,16 @@
   let open = $state(false);
   let highlightIndex = $state(-1);
 
+  const listboxId = $derived(`${id ?? name}-listbox`);
+
   const filtered = $derived(
     query.trim() === ""
       ? [...options]
       : options.filter((o) => o.toLowerCase().includes(query.toLowerCase()))
+  );
+
+  const activeDescendantId = $derived(
+    highlightIndex >= 0 ? `${listboxId}-option-${highlightIndex}` : undefined
   );
 
   function select(option: string) {
@@ -69,6 +75,11 @@
   <input
     type="text"
     {id}
+    role="combobox"
+    aria-expanded={open && filtered.length > 0}
+    aria-controls={listboxId}
+    aria-activedescendant={activeDescendantId}
+    aria-autocomplete="list"
     bind:value={query}
     oninput={handleInput}
     onfocus={() => { open = true; }}
@@ -79,14 +90,19 @@
     class="glass-input mt-1 block w-full"
   />
   {#if open && filtered.length > 0}
-    <ul class="glass-popover absolute z-50 mt-1 max-h-48 w-full overflow-auto">
+    <ul id={listboxId} role="listbox" class="glass-popover absolute z-50 mt-1 max-h-48 w-full overflow-auto">
       {#each filtered as option, i}
-        <li>
+        <li
+          id="{listboxId}-option-{i}"
+          role="option"
+          aria-selected={i === highlightIndex}
+        >
           <button
             type="button"
             class="w-full px-3 py-2 text-left text-sm transition-colors {i === highlightIndex ? 'bg-glass-hover text-text-primary' : 'text-text-secondary hover:bg-glass-hover hover:text-text-primary'}"
             onmousedown={(e: MouseEvent) => { e.preventDefault(); select(option); }}
             onmouseenter={() => { highlightIndex = i; }}
+            tabindex="-1"
           >
             {option}
           </button>
@@ -95,7 +111,7 @@
     </ul>
   {/if}
   {#if open && query.trim() !== "" && filtered.length === 0}
-    <div class="glass-popover absolute z-50 mt-1 w-full px-3 py-2 text-sm text-text-muted">
+    <div class="glass-popover absolute z-50 mt-1 w-full px-3 py-2 text-sm text-text-muted" role="status">
       {emptyMessage}
     </div>
   {/if}

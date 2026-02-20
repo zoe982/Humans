@@ -24,10 +24,10 @@ describe("dashboard +page.server load", () => {
     // Order matters: more specific patterns must come first because
     // createMockFetch uses `includes()` and stops at the first match.
     const mockFetch = createMockFetch({
-      "/api/humans/h1/pets": { body: { data: [{ id: "p1" }] } },
-      "/api/humans/h2/pets": { body: { data: [{ id: "p2" }, { id: "p3" }] } },
-      "/api/humans": { body: { data: [{ id: "h1" }, { id: "h2" }] } },
-      "/api/activities": { body: { data: [{ id: "a1" }] } },
+      "/api/pets/count": { body: { data: { total: 3 } } },
+      "/api/humans?page=1&limit=1": { body: { data: [{ id: "h1" }], meta: { page: 1, limit: 1, total: 2 } } },
+      "/api/activities?page=1&limit=10": { body: { data: [{ id: "a1", type: "email", subject: "Test", activityDate: "2024-01-01" }], meta: { page: 1, limit: 10, total: 1 } } },
+      "/api/activities?page=1&limit=1": { body: { data: [{ id: "a1" }], meta: { page: 1, limit: 1, total: 1 } } },
       "/api/geo-interests": { body: { data: [{ id: "g1" }, { id: "g2" }, { id: "g3" }] } },
     });
     vi.stubGlobal("fetch", mockFetch);
@@ -40,10 +40,12 @@ describe("dashboard +page.server load", () => {
     expect(result.counts.geoInterests).toBe(3);
     expect(result.counts.pets).toBe(3);
     expect(result.user).toEqual(event.locals.user);
+    expect(result.recentActivities).toHaveLength(1);
   });
 
   it("returns zero counts when APIs fail", async () => {
     const mockFetch = createMockFetch({
+      "/api/pets/count": { status: 500, body: { error: "fail" } },
       "/api/humans": { status: 500, body: { error: "fail" } },
       "/api/activities": { status: 500, body: { error: "fail" } },
       "/api/geo-interests": { status: 500, body: { error: "fail" } },

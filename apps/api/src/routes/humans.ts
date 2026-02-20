@@ -1,362 +1,79 @@
 import { Hono } from "hono";
 import { eq } from "drizzle-orm";
-import {
-  humans,
-  humanEmails,
-  humanTypes,
-  humanRouteSignups,
-  humanPhoneNumbers,
-  activities,
-  pets,
-  geoInterestExpressions,
-  geoInterests,
-  accountHumans,
-  accounts,
-  accountHumanLabelsConfig,
-  humanEmailLabelsConfig,
-  humanPhoneLabelsConfig,
-} from "@humans/db/schema";
-import { createId } from "@humans/db";
-import {
-  createHumanSchema,
-  updateHumanSchema,
-  updateHumanStatusSchema,
-  linkRouteSignupSchema,
-} from "@humans/shared";
+import { activities, humanRouteSignups } from "@humans/db/schema";
+import { createHumanSchema, updateHumanSchema, updateHumanStatusSchema, linkRouteSignupSchema } from "@humans/shared";
 import { ERROR_CODES } from "@humans/shared";
 import { authMiddleware } from "../middleware/auth";
 import { requirePermission } from "../middleware/rbac";
 import { supabaseMiddleware } from "../middleware/supabase";
-import { computeDiff, logAuditEntry } from "../lib/audit";
 import { notFound, internal } from "../lib/errors";
+import { createId } from "@humans/db";
+import {
+  listHumans,
+  getHumanDetail,
+  createHuman,
+  updateHuman,
+  updateHumanStatus,
+  deleteHuman,
+  linkRouteSignup,
+  unlinkRouteSignup,
+} from "../services/humans";
 import type { AppContext } from "../types";
 
 const humanRoutes = new Hono<AppContext>();
 
 humanRoutes.use("/*", authMiddleware);
 
-// List all humans with emails and types
 humanRoutes.get("/api/humans", requirePermission("viewRecords"), async (c) => {
   const db = c.get("db");
-  const allHumans = await db.select().from(humans);
-  const allEmails = await db.select().from(humanEmails);
-  const allTypes = await db.select().from(humanTypes);
+  const page = Math.max(1, Number(c.req.query("page")) || 1);
+  const limit = Math.min(100, Math.max(1, Number(c.req.query("limit")) || 25));
+  const result = await listHumans(db, page, limit);
+  return c.json(result);
+});
 
-  const data = allHumans.map((h) => ({
-    ...h,
-    emails: allEmails.filter((e) => e.humanId === h.id),
-    types: allTypes.filter((t) => t.humanId === h.id).map((t) => t.type),
-  }));
-
+humanRoutes.get("/api/humans/:id", requirePermission("viewRecords"), async (c) => {
+  const data = await getHumanDetail(c.get("db"), c.req.param("id"));
   return c.json({ data });
 });
 
-// Get single human with emails, types, linked signups, phone numbers, pets
-humanRoutes.get("/api/humans/:id", requirePermission("viewRecords"), async (c) => {
-  const db = c.get("db");
-  const human = await db.query.humans.findFirst({
-    where: eq(humans.id, c.req.param("id")),
-  });
-  if (human == null) {
-    throw notFound(ERROR_CODES.HUMAN_NOT_FOUND, "Human not found");
-  }
-
-  const [emails, types, linkedSignups, phoneNumbers, humanPets, geoExpressions, linkedAccountRows, emailLabelConfigs, phoneLabelConfigs] = await Promise.all([
-    db.select().from(humanEmails).where(eq(humanEmails.humanId, human.id)),
-    db.select().from(humanTypes).where(eq(humanTypes.humanId, human.id)),
-    db.select().from(humanRouteSignups).where(eq(humanRouteSignups.humanId, human.id)),
-    db.select().from(humanPhoneNumbers).where(eq(humanPhoneNumbers.humanId, human.id)),
-    db.select().from(pets).where(eq(pets.humanId, human.id)),
-    db.select().from(geoInterestExpressions).where(eq(geoInterestExpressions.humanId, human.id)),
-    db.select().from(accountHumans).where(eq(accountHumans.humanId, human.id)),
-    db.select().from(humanEmailLabelsConfig),
-    db.select().from(humanPhoneLabelsConfig),
-  ]);
-
-  // Resolve geo-interest city/country for expressions
-  const allGeoInterests = geoExpressions.length > 0
-    ? await db.select().from(geoInterests)
-    : [];
-
-  const geoInterestExpressionsWithDetails = geoExpressions.map((expr) => {
-    const gi = allGeoInterests.find((g) => g.id === expr.geoInterestId);
-    return {
-      ...expr,
-      city: gi?.city ?? null,
-      country: gi?.country ?? null,
-    };
-  });
-
-  // Resolve linked accounts with names and labels
-  let linkedAccounts: { id: string; accountId: string; accountName: string; labelName: string | null }[] = [];
-  if (linkedAccountRows.length > 0) {
-    const [allAccounts, allLabels] = await Promise.all([
-      db.select().from(accounts),
-      db.select().from(accountHumanLabelsConfig),
-    ]);
-    linkedAccounts = linkedAccountRows.map((row) => {
-      const account = allAccounts.find((a) => a.id === row.accountId);
-      const label = row.labelId ? allLabels.find((l) => l.id === row.labelId) : null;
-      return {
-        id: row.id,
-        accountId: row.accountId,
-        accountName: account?.name ?? "Unknown",
-        labelName: label?.name ?? null,
-      };
-    });
-  }
-
-  // Resolve label names for emails and phones
-  const emailsWithLabels = emails.map((e) => {
-    const label = e.labelId ? emailLabelConfigs.find((l) => l.id === e.labelId) : null;
-    return { ...e, labelName: label?.name ?? null };
-  });
-  const phoneNumbersWithLabels = phoneNumbers.map((p) => {
-    const label = p.labelId ? phoneLabelConfigs.find((l) => l.id === p.labelId) : null;
-    return { ...p, labelName: label?.name ?? null };
-  });
-
-  return c.json({
-    data: {
-      ...human,
-      emails: emailsWithLabels,
-      types: types.map((t) => t.type),
-      linkedRouteSignups: linkedSignups,
-      phoneNumbers: phoneNumbersWithLabels,
-      pets: humanPets,
-      geoInterestExpressions: geoInterestExpressionsWithDetails,
-      linkedAccounts,
-    },
-  });
-});
-
-// Create human with emails and types
 humanRoutes.post("/api/humans", requirePermission("manageHumans"), async (c) => {
   const body: unknown = await c.req.json();
   const data = createHumanSchema.parse(body);
-  const db = c.get("db");
-  const now = new Date().toISOString();
-  const humanId = createId();
-
-  await db.insert(humans).values({
-    id: humanId,
-    firstName: data.firstName,
-    middleName: data.middleName ?? null,
-    lastName: data.lastName,
-    status: data.status ?? "open",
-    createdAt: now,
-    updatedAt: now,
-  });
-
-  for (const email of data.emails) {
-    await db.insert(humanEmails).values({
-      id: createId(),
-      humanId,
-      email: email.email,
-      labelId: email.labelId ?? null,
-      isPrimary: email.isPrimary ?? false,
-      createdAt: now,
-    });
-  }
-
-  for (const type of data.types) {
-    await db.insert(humanTypes).values({
-      id: createId(),
-      humanId,
-      type,
-      createdAt: now,
-    });
-  }
-
-  return c.json({ data: { id: humanId } }, 201);
+  const result = await createHuman(c.get("db"), data);
+  return c.json({ data: result }, 201);
 });
 
-// Update human, replace emails/types
 humanRoutes.patch("/api/humans/:id", requirePermission("manageHumans"), async (c) => {
   const body: unknown = await c.req.json();
   const data = updateHumanSchema.parse(body);
-  const db = c.get("db");
-  const id = c.req.param("id");
-  const now = new Date().toISOString();
-
-  const existing = await db.query.humans.findFirst({
-    where: eq(humans.id, id),
-  });
-  if (existing == null) {
-    throw notFound(ERROR_CODES.HUMAN_NOT_FOUND, "Human not found");
-  }
-
-  // Capture old values for audit
-  const existingTypes = await db.select().from(humanTypes).where(eq(humanTypes.humanId, id));
-  const oldValues: Record<string, unknown> = {
-    firstName: existing.firstName,
-    middleName: existing.middleName,
-    lastName: existing.lastName,
-  };
-  if (data.types !== undefined) {
-    oldValues["types"] = existingTypes.map((t) => t.type).sort();
-  }
-
-  // Update human fields
-  const updateFields: Record<string, unknown> = { updatedAt: now };
-  if (data.firstName !== undefined) updateFields["firstName"] = data.firstName;
-  if (data.middleName !== undefined) updateFields["middleName"] = data.middleName;
-  if (data.lastName !== undefined) updateFields["lastName"] = data.lastName;
-  if (data.status !== undefined) updateFields["status"] = data.status;
-
-  await db.update(humans).set(updateFields).where(eq(humans.id, id));
-
-  // Replace emails if provided
-  if (data.emails) {
-    await db.delete(humanEmails).where(eq(humanEmails.humanId, id));
-    for (const email of data.emails) {
-      await db.insert(humanEmails).values({
-        id: createId(),
-        humanId: id,
-        email: email.email,
-        labelId: email.labelId ?? null,
-        isPrimary: email.isPrimary ?? false,
-        createdAt: now,
-      });
-    }
-  }
-
-  // Replace types if provided
-  if (data.types) {
-    await db.delete(humanTypes).where(eq(humanTypes.humanId, id));
-    for (const type of data.types) {
-      await db.insert(humanTypes).values({
-        id: createId(),
-        humanId: id,
-        type,
-        createdAt: now,
-      });
-    }
-  }
-
-  // Audit log
-  const newValues: Record<string, unknown> = {};
-  if (data.firstName !== undefined) newValues["firstName"] = data.firstName;
-  if (data.middleName !== undefined) newValues["middleName"] = data.middleName;
-  if (data.lastName !== undefined) newValues["lastName"] = data.lastName;
-  if (data.types !== undefined) newValues["types"] = [...data.types].sort();
-
-  const diff = computeDiff(oldValues, newValues);
-  let auditEntryId: string | undefined;
-  if (diff) {
-    const session = c.get("session")!;
-    auditEntryId = await logAuditEntry({
-      db,
-      colleagueId: session.colleagueId,
-      action: "UPDATE",
-      entityType: "human",
-      entityId: id,
-      changes: diff,
-    });
-  }
-
-  const updated = await db.query.humans.findFirst({
-    where: eq(humans.id, id),
-  });
-  return c.json({ data: updated, auditEntryId });
+  const session = c.get("session")!;
+  const result = await updateHuman(c.get("db"), c.req.param("id"), data, session.colleagueId);
+  return c.json(result);
 });
 
-// Update human status
 humanRoutes.patch("/api/humans/:id/status", requirePermission("manageHumans"), async (c) => {
   const body: unknown = await c.req.json();
   const data = updateHumanStatusSchema.parse(body);
-  const db = c.get("db");
-  const id = c.req.param("id");
-
-  const existing = await db.query.humans.findFirst({
-    where: eq(humans.id, id),
-  });
-  if (existing == null) {
-    throw notFound(ERROR_CODES.HUMAN_NOT_FOUND, "Human not found");
-  }
-
-  const oldStatus = existing.status;
-  await db
-    .update(humans)
-    .set({ status: data.status, updatedAt: new Date().toISOString() })
-    .where(eq(humans.id, id));
-
-  // Audit log
-  let auditEntryId: string | undefined;
-  if (oldStatus !== data.status) {
-    const diff = computeDiff({ status: oldStatus }, { status: data.status });
-    if (diff) {
-      const session = c.get("session")!;
-      auditEntryId = await logAuditEntry({
-        db,
-        colleagueId: session.colleagueId,
-        action: "UPDATE",
-        entityType: "human",
-        entityId: id,
-        changes: diff,
-      });
-    }
-  }
-
-  return c.json({ data: { id, status: data.status }, auditEntryId });
+  const session = c.get("session")!;
+  const result = await updateHumanStatus(c.get("db"), c.req.param("id"), data.status, session.colleagueId);
+  return c.json({ data: { id: result.id, status: result.status }, auditEntryId: result.auditEntryId });
 });
 
-// Delete human + cascade related records
 humanRoutes.delete("/api/humans/:id", requirePermission("deleteHumans"), async (c) => {
-  const db = c.get("db");
-  const id = c.req.param("id");
-
-  const existing = await db.query.humans.findFirst({
-    where: eq(humans.id, id),
-  });
-  if (existing == null) {
-    throw notFound(ERROR_CODES.HUMAN_NOT_FOUND, "Human not found");
-  }
-
-  await db.delete(humanEmails).where(eq(humanEmails.humanId, id));
-  await db.delete(humanTypes).where(eq(humanTypes.humanId, id));
-  await db.delete(humanRouteSignups).where(eq(humanRouteSignups.humanId, id));
-  await db.delete(humanPhoneNumbers).where(eq(humanPhoneNumbers.humanId, id));
-  await db.delete(pets).where(eq(pets.humanId, id));
-  await db.delete(geoInterestExpressions).where(eq(geoInterestExpressions.humanId, id));
-  await db.delete(accountHumans).where(eq(accountHumans.humanId, id));
-  await db.delete(humans).where(eq(humans.id, id));
-
+  await deleteHuman(c.get("db"), c.req.param("id"));
   return c.json({ success: true });
 });
 
-// Link a route signup to a human
 humanRoutes.post("/api/humans/:id/route-signups", requirePermission("manageHumans"), async (c) => {
   const body: unknown = await c.req.json();
   const data = linkRouteSignupSchema.parse(body);
-  const db = c.get("db");
-  const id = c.req.param("id");
-
-  const existing = await db.query.humans.findFirst({
-    where: eq(humans.id, id),
-  });
-  if (existing == null) {
-    throw notFound(ERROR_CODES.HUMAN_NOT_FOUND, "Human not found");
-  }
-
-  const link = {
-    id: createId(),
-    humanId: id,
-    routeSignupId: data.routeSignupId,
-    linkedAt: new Date().toISOString(),
-  };
-  await db.insert(humanRouteSignups).values(link);
-
+  const link = await linkRouteSignup(c.get("db"), c.req.param("id"), data.routeSignupId);
   return c.json({ data: link }, 201);
 });
 
-// Unlink a route signup
 humanRoutes.delete("/api/humans/:id/route-signups/:linkId", requirePermission("manageHumans"), async (c) => {
-  const db = c.get("db");
-  const linkId = c.req.param("linkId");
-
-  await db.delete(humanRouteSignups).where(eq(humanRouteSignups.id, linkId));
-
+  await unlinkRouteSignup(c.get("db"), c.req.param("linkId"));
   return c.json({ success: true });
 });
 
@@ -372,23 +89,8 @@ humanRoutes.post(
     const supabase = c.get("supabase");
     const humanId = c.req.param("id");
 
-    const existing = await db.query.humans.findFirst({
-      where: eq(humans.id, humanId),
-    });
-    if (existing == null) {
-      throw notFound(ERROR_CODES.HUMAN_NOT_FOUND, "Human not found");
-    }
+    const link = await linkRouteSignup(db, humanId, data.routeSignupId);
 
-    // Create link in D1
-    const link = {
-      id: createId(),
-      humanId,
-      routeSignupId: data.routeSignupId,
-      linkedAt: new Date().toISOString(),
-    };
-    await db.insert(humanRouteSignups).values(link);
-
-    // Update Supabase status to closed_converted
     const { error: supaError } = await supabase
       .from("announcement_signups")
       .update({ status: "closed_converted" })
@@ -398,7 +100,6 @@ humanRoutes.post(
       throw internal(ERROR_CODES.SUPABASE_ERROR, `Supabase update failed: ${supaError.message}`);
     }
 
-    // Re-parent activities: set human_id on all activities matching this route_signup_id
     await db
       .update(activities)
       .set({ humanId, updatedAt: new Date().toISOString() })

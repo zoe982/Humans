@@ -9,6 +9,9 @@
   import Toast from "$lib/components/Toast.svelte";
   import { createAutoSaver, type SaveStatus } from "$lib/autosave";
   import { onDestroy } from "svelte";
+  import { activityTypeLabels } from "$lib/constants/labels";
+  import { displayName } from "$lib/utils/format";
+  import ConfirmDialog from "$lib/components/ConfirmDialog.svelte";
 
   let { data, form }: { data: PageData; form: ActionData } = $props();
 
@@ -106,22 +109,8 @@
     autoSaver.saveImmediate(buildPayload());
   }
 
-  function displayName(h: Human): string {
-    return [h.firstName, h.middleName, h.lastName].filter(Boolean).join(" ");
-  }
-
-  const activityTypeLabels: Record<string, string> = {
-    email: "Email",
-    whatsapp_message: "WhatsApp",
-    online_meeting: "Meeting",
-    phone_call: "Phone Call",
-  };
-
-  function handleDelete(e: Event) {
-    if (!confirm("Are you sure you want to delete this activity?")) {
-      e.preventDefault();
-    }
-  }
+  let showDeleteConfirm = $state(false);
+  let deleteFormEl = $state<HTMLFormElement>();
 </script>
 
 <svelte:head>
@@ -135,9 +124,7 @@
     title={activity.subject || activityTypeLabels[activity.type] || "Activity"}
   >
     {#snippet actions()}
-      <form method="POST" action="?/delete" onsubmit={handleDelete}>
-        <button type="submit" class="btn-danger text-sm py-1.5 px-3">Delete</button>
-      </form>
+      <button type="button" class="btn-danger text-sm py-1.5 px-3" onclick={() => { showDeleteConfirm = true; }}>Delete</button>
     {/snippet}
   </RecordManagementBar>
 
@@ -290,3 +277,12 @@
     onDismiss={() => { toastMessage = null; }}
   />
 {/if}
+
+<form method="POST" action="?/delete" bind:this={deleteFormEl} class="hidden"></form>
+
+<ConfirmDialog
+  open={showDeleteConfirm}
+  message="Are you sure you want to delete this activity?"
+  onConfirm={() => { deleteFormEl?.requestSubmit(); showDeleteConfirm = false; }}
+  onCancel={() => { showDeleteConfirm = false; }}
+/>

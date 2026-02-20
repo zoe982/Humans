@@ -1,4 +1,7 @@
 <script lang="ts">
+  import { X } from "lucide-svelte";
+  import { fly, fade } from "svelte/transition";
+
   type Props = {
     message: string;
     onUndo?: () => void;
@@ -24,7 +27,14 @@
   startTimer();
 </script>
 
-<div class="fixed bottom-6 right-6 z-50 glass-card-strong p-4 shadow-xl max-w-sm animate-slide-up">
+<div
+  role="status"
+  aria-live="polite"
+  aria-atomic="true"
+  class="fixed bottom-6 right-6 z-50 glass-card-strong p-4 shadow-xl max-w-sm"
+  in:fly={{ y: 20, duration: 250 }}
+  out:fade={{ duration: 200 }}
+>
   <div class="flex items-center gap-3">
     <p class="text-sm text-text-primary flex-1">{message}</p>
     {#if onUndo}
@@ -39,27 +49,10 @@
     <button
       type="button"
       onclick={onDismiss}
+      aria-label="Dismiss"
       class="text-text-muted hover:text-text-secondary text-sm"
     >
-      &times;
+      <X size={16} aria-hidden="true" />
     </button>
   </div>
 </div>
-
-<style>
-  @keyframes slide-up {
-    from {
-      opacity: 0;
-      transform: translateY(1rem) scale(0.97);
-      filter: blur(4px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0) scale(1);
-      filter: blur(0);
-    }
-  }
-  .animate-slide-up {
-    animation: slide-up 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-  }
-</style>

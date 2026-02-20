@@ -1,10 +1,13 @@
 import { Hono } from "hono";
-import { eq } from "drizzle-orm";
-import { leadSources, leadEvents } from "@humans/db/schema";
-import { createId } from "@humans/db";
 import { createLeadSourceSchema, createLeadEventSchema } from "@humans/shared";
 import { authMiddleware } from "../middleware/auth";
 import { requirePermission } from "../middleware/rbac";
+import {
+  listLeadSources,
+  createLeadSource,
+  listLeadEvents,
+  createLeadEvent,
+} from "../services/leads";
 import type { AppContext } from "../types";
 
 const leadRoutes = new Hono<AppContext>();
@@ -13,63 +16,30 @@ leadRoutes.use("/*", authMiddleware);
 
 // Lead Sources
 leadRoutes.get("/api/leads/sources", requirePermission("viewRecords"), async (c) => {
-  const db = c.get("db");
-  const sources = await db.select().from(leadSources);
-  return c.json({ data: sources });
+  const data = await listLeadSources(c.get("db"));
+  return c.json({ data });
 });
 
 leadRoutes.post("/api/leads/sources", requirePermission("manageLeadSources"), async (c) => {
   const body: unknown = await c.req.json();
   const data = createLeadSourceSchema.parse(body);
-  const db = c.get("db");
-  const now = new Date().toISOString();
-
-  const newSource = {
-    id: createId(),
-    ...data,
-    isActive: true,
-    createdAt: now,
-    updatedAt: now,
-  };
-
-  await db.insert(leadSources).values(newSource);
-  return c.json({ data: newSource }, 201);
+  const result = await createLeadSource(c.get("db"), data);
+  return c.json({ data: result }, 201);
 });
 
 // Lead Events
 leadRoutes.get("/api/leads/events", requirePermission("viewRecords"), async (c) => {
-  const db = c.get("db");
   const clientId = c.req.query("clientId");
-
-  if (clientId != null && clientId !== "") {
-    const events = await db
-      .select()
-      .from(leadEvents)
-      .where(eq(leadEvents.clientId, clientId));
-    return c.json({ data: events });
-  }
-
-  const events = await db.select().from(leadEvents);
-  return c.json({ data: events });
+  const data = await listLeadEvents(c.get("db"), clientId);
+  return c.json({ data });
 });
 
 leadRoutes.post("/api/leads/events", requirePermission("recordLeadEvents"), async (c) => {
   const body: unknown = await c.req.json();
   const data = createLeadEventSchema.parse(body);
-  const db = c.get("db");
   const session = c.get("session");
-
-  const newEvent = {
-    id: createId(),
-    ...data,
-    notes: data.notes ?? null,
-    metadata: data.metadata ?? null,
-    createdByColleagueId: session?.colleagueId ?? null,
-    createdAt: new Date().toISOString(),
-  };
-
-  await db.insert(leadEvents).values(newEvent);
-  return c.json({ data: newEvent }, 201);
+  const result = await createLeadEvent(c.get("db"), data, session?.colleagueId ?? null);
+  return c.json({ data: result }, 201);
 });
 
 export { leadRoutes };
