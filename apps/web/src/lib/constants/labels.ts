@@ -14,6 +14,22 @@ export const activityTypeLabels: Record<string, string> = {
   phone_call: "Phone Call",
 };
 
+/** Activity type options for SearchableSelect */
+export const ACTIVITY_TYPE_OPTIONS = [
+  { value: "email", label: "Email" },
+  { value: "whatsapp_message", label: "WhatsApp" },
+  { value: "online_meeting", label: "Meeting" },
+  { value: "phone_call", label: "Phone Call" },
+] as const;
+
+/** Role options for SearchableSelect */
+export const ROLE_OPTIONS = [
+  { value: "viewer", label: "Viewer" },
+  { value: "agent", label: "Agent" },
+  { value: "manager", label: "Manager" },
+  { value: "admin", label: "Admin" },
+] as const;
+
 /** Signup status display labels */
 export const signupStatusLabels: Record<string, string> = {
   open: "Open",
