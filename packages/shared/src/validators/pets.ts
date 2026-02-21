@@ -11,7 +11,7 @@ export const createPetSchema = z.object({
   breed: petBreedSchema.nullable().optional(),
   weight: z.number().positive().nullable().optional(),
 }).refine(
-  (data) => data.type !== "cat" || !data.breed,
+  (data) => data.type !== "cat" || data.breed == null,
   { message: "Cats should not have a breed", path: ["breed"] },
 );
 

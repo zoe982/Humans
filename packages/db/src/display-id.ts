@@ -62,13 +62,14 @@ const NUMBERS_PER_LETTER = 999;
 export function formatDisplayId(prefix: DisplayIdPrefix, counter: number): string {
   if (counter < 1 || counter > GREEK_ALPHABET.length * NUMBERS_PER_LETTER) {
     throw new Error(
-      `Counter ${counter} out of range (1-${GREEK_ALPHABET.length * NUMBERS_PER_LETTER})`,
+      `Counter ${String(counter)} out of range (1-${String(GREEK_ALPHABET.length * NUMBERS_PER_LETTER)})`,
     );
   }
 
   const letterIndex = Math.floor((counter - 1) / NUMBERS_PER_LETTER);
   const number = ((counter - 1) % NUMBERS_PER_LETTER) + 1;
-  const letter = GREEK_ALPHABET[letterIndex];
+  // eslint-disable-next-line security/detect-object-injection, @typescript-eslint/no-non-null-assertion -- constant tuple indexed by validated range
+  const letter = GREEK_ALPHABET[letterIndex]!;
   const paddedNumber = String(number).padStart(3, "0");
 
   return `${prefix}-${letter}-${paddedNumber}`;
@@ -89,6 +90,11 @@ export function parseDisplayId(displayId: string): {
   }
 
   const [prefix, letter, numberStr] = parts;
+  if (prefix === undefined || letter === undefined || numberStr === undefined) {
+    throw new Error(`Invalid display ID format: ${displayId}`);
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- validated by indexOf check below
   const letterIndex = GREEK_ALPHABET.indexOf(letter as GreekLetter);
   if (letterIndex === -1) {
     throw new Error(`Invalid Greek letter in display ID: ${letter}`);
@@ -100,7 +106,9 @@ export function parseDisplayId(displayId: string): {
   }
 
   return {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- validated by format check
     prefix: prefix as DisplayIdPrefix,
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- validated by indexOf check
     letter: letter as GreekLetter,
     number,
     counter: letterIndex * NUMBERS_PER_LETTER + number,
