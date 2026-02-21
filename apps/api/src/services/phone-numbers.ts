@@ -1,5 +1,5 @@
 import { eq, and } from "drizzle-orm";
-import { phones, humans, accounts, phoneLabelsConfig } from "@humans/db/schema";
+import { phones, humans, accounts, humanPhoneLabelsConfig, accountPhoneLabelsConfig } from "@humans/db/schema";
 import { createId } from "@humans/db";
 import { ERROR_CODES } from "@humans/shared";
 import { notFound } from "../lib/errors";
@@ -10,7 +10,8 @@ export async function listPhoneNumbers(db: DB) {
   const allPhones = await db.select().from(phones);
   const allHumans = await db.select().from(humans);
   const allAccounts = await db.select().from(accounts);
-  const allLabels = await db.select().from(phoneLabelsConfig);
+  const humanLabels = await db.select().from(humanPhoneLabelsConfig);
+  const accountLabels = await db.select().from(accountPhoneLabelsConfig);
 
   const data = allPhones.map((p) => {
     let ownerName: string | null = null;
@@ -24,7 +25,8 @@ export async function listPhoneNumbers(db: DB) {
       ownerName = account?.name ?? null;
       ownerDisplayId = account?.displayId ?? null;
     }
-    const label = p.labelId ? allLabels.find((l) => l.id === p.labelId) : null;
+    const labels = p.ownerType === "human" ? humanLabels : accountLabels;
+    const label = p.labelId ? labels.find((l) => l.id === p.labelId) : null;
     return {
       ...p,
       ownerName,
@@ -53,7 +55,8 @@ export async function getPhoneNumber(db: DB, id: string) {
 
   const allHumans = await db.select().from(humans);
   const allAccounts = await db.select().from(accounts);
-  const allLabels = await db.select().from(phoneLabelsConfig);
+  const humanLabels = await db.select().from(humanPhoneLabelsConfig);
+  const accountLabels = await db.select().from(accountPhoneLabelsConfig);
 
   let ownerName: string | null = null;
   let ownerDisplayId: string | null = null;
@@ -66,7 +69,8 @@ export async function getPhoneNumber(db: DB, id: string) {
     ownerName = account?.name ?? null;
     ownerDisplayId = account?.displayId ?? null;
   }
-  const label = phone.labelId ? allLabels.find((l) => l.id === phone.labelId) : null;
+  const labels = phone.ownerType === "human" ? humanLabels : accountLabels;
+  const label = phone.labelId ? labels.find((l) => l.id === phone.labelId) : null;
 
   return {
     ...phone,

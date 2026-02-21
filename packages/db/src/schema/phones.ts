@@ -1,5 +1,4 @@
 import { sqliteTable, text, integer, index } from "drizzle-orm/sqlite-core";
-import { phoneLabelsConfig } from "./phone-labels-config";
 
 export const phoneOwnerTypes = ["human", "account"] as const;
 export type PhoneOwnerType = (typeof phoneOwnerTypes)[number];
@@ -12,7 +11,7 @@ export const phones = sqliteTable(
     ownerType: text("owner_type", { enum: phoneOwnerTypes }).notNull(),
     ownerId: text("owner_id").notNull(),
     phoneNumber: text("phone_number").notNull(),
-    labelId: text("label_id").references(() => phoneLabelsConfig.id),
+    labelId: text("label_id"),
     hasWhatsapp: integer("has_whatsapp", { mode: "boolean" }).notNull().default(false),
     isPrimary: integer("is_primary", { mode: "boolean" }).notNull().default(false),
     createdAt: text("created_at").notNull(),

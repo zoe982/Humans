@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { isRedirect, isActionFailure } from "@sveltejs/kit";
-import { mockEvent, createMockFetch } from "../../../helpers";
+import { mockEvent, createMockFetch, mockConfigItem } from "../../../helpers";
 import { load, actions } from "../../../../src/routes/accounts/[id]/+page.server";
 
 const sampleAccount = {
@@ -23,10 +23,10 @@ describe("accounts/[id] load", () => {
   beforeEach(() => {
     mockFetch = createMockFetch({
       "/api/accounts/acc-1": { body: { data: sampleAccount } },
-      "/api/admin/account-config/account-types": { body: { data: [{ id: "t-1" }] } },
-      "/api/admin/account-config/account-human-labels": { body: { data: [{ id: "hl-1" }] } },
-      "/api/admin/account-config/account-email-labels": { body: { data: [{ id: "el-1" }] } },
-      "/api/admin/account-config/account-phone-labels": { body: { data: [{ id: "pl-1" }] } },
+      "/api/admin/account-config/account-types": { body: { data: [mockConfigItem({ id: "t-1", name: "Vendor" })] } },
+      "/api/admin/account-config/account-human-labels": { body: { data: [mockConfigItem({ id: "hl-1", name: "Owner" })] } },
+      "/api/admin/account-config/account-email-labels": { body: { data: [mockConfigItem({ id: "el-1", name: "Billing" })] } },
+      "/api/admin/account-config/account-phone-labels": { body: { data: [mockConfigItem({ id: "pl-1", name: "Office" })] } },
       "/api/humans": { body: { data: [{ id: "h-1", firstName: "Jane" }] } },
     });
     vi.stubGlobal("fetch", mockFetch);
@@ -50,10 +50,10 @@ describe("accounts/[id] load", () => {
     const event = makeEvent();
     const result = await load(event as any);
     expect(result.account).toEqual(sampleAccount);
-    expect(result.typeConfigs).toEqual([{ id: "t-1" }]);
-    expect(result.humanLabelConfigs).toEqual([{ id: "hl-1" }]);
-    expect(result.emailLabelConfigs).toEqual([{ id: "el-1" }]);
-    expect(result.phoneLabelConfigs).toEqual([{ id: "pl-1" }]);
+    expect(result.typeConfigs).toEqual([expect.objectContaining({ id: "t-1", name: "Vendor" })]);
+    expect(result.humanLabelConfigs).toEqual([expect.objectContaining({ id: "hl-1", name: "Owner" })]);
+    expect(result.emailLabelConfigs).toEqual([expect.objectContaining({ id: "el-1", name: "Billing" })]);
+    expect(result.phoneLabelConfigs).toEqual([expect.objectContaining({ id: "pl-1", name: "Office" })]);
     expect(result.allHumans).toEqual([{ id: "h-1", firstName: "Jane" }]);
   });
 

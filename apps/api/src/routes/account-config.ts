@@ -3,8 +3,6 @@ import { eq } from "drizzle-orm";
 import {
   accountTypesConfig,
   accountHumanLabelsConfig,
-  emailLabelsConfig,
-  phoneLabelsConfig,
   accountEmailLabelsConfig,
   accountPhoneLabelsConfig,
   humanEmailLabelsConfig,
@@ -22,8 +20,6 @@ import type { AppContext } from "../types";
 const configTableMap = {
   "account-types": accountTypesConfig,
   "account-human-labels": accountHumanLabelsConfig,
-  "email-labels": emailLabelsConfig,
-  "phone-labels": phoneLabelsConfig,
   "account-email-labels": accountEmailLabelsConfig,
   "account-phone-labels": accountPhoneLabelsConfig,
   "human-email-labels": humanEmailLabelsConfig,

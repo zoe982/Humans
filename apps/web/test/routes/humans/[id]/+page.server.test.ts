@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { isRedirect, isActionFailure } from "@sveltejs/kit";
-import { mockEvent, createMockFetch } from "../../../helpers";
+import { mockEvent, createMockFetch, mockConfigItem } from "../../../helpers";
 import { load, actions } from "../../../../src/routes/humans/[id]/+page.server";
 
 const sampleHuman = {
@@ -25,8 +25,8 @@ describe("humans/[id] load", () => {
     mockFetch = createMockFetch({
       "/api/humans/h-1": { body: { data: sampleHuman } },
       "/api/activities?humanId=h-1": { body: { data: [{ id: "a-1", type: "email" }] } },
-      "/api/admin/account-config/human-email-labels": { body: { data: [{ id: "lbl-1" }] } },
-      "/api/admin/account-config/human-phone-labels": { body: { data: [{ id: "plbl-1" }] } },
+      "/api/admin/account-config/human-email-labels": { body: { data: [mockConfigItem({ id: "lbl-1", name: "Work" })] } },
+      "/api/admin/account-config/human-phone-labels": { body: { data: [mockConfigItem({ id: "plbl-1", name: "Mobile" })] } },
     });
     vi.stubGlobal("fetch", mockFetch);
   });
@@ -50,8 +50,8 @@ describe("humans/[id] load", () => {
     const result = await load(event as any);
     expect(result.human).toEqual(sampleHuman);
     expect(result.activities).toEqual([{ id: "a-1", type: "email" }]);
-    expect(result.emailLabelConfigs).toEqual([{ id: "lbl-1" }]);
-    expect(result.phoneLabelConfigs).toEqual([{ id: "plbl-1" }]);
+    expect(result.emailLabelConfigs).toEqual([expect.objectContaining({ id: "lbl-1", name: "Work" })]);
+    expect(result.phoneLabelConfigs).toEqual([expect.objectContaining({ id: "plbl-1", name: "Mobile" })]);
   });
 
   it("redirects to /humans when human API returns error", async () => {

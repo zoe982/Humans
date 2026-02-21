@@ -104,7 +104,7 @@ const MIGRATION_STATEMENTS = [
     \`owner_type\` text NOT NULL,
     \`owner_id\` text NOT NULL,
     \`email\` text NOT NULL,
-    \`label_id\` text REFERENCES \`email_labels_config\`(\`id\`),
+    \`label_id\` text,
     \`is_primary\` integer DEFAULT false NOT NULL,
     \`created_at\` text NOT NULL
   )`,
@@ -128,7 +128,7 @@ const MIGRATION_STATEMENTS = [
     \`owner_type\` text NOT NULL,
     \`owner_id\` text NOT NULL,
     \`phone_number\` text NOT NULL,
-    \`label_id\` text REFERENCES \`phone_labels_config\`(\`id\`),
+    \`label_id\` text,
     \`has_whatsapp\` integer DEFAULT 0 NOT NULL,
     \`is_primary\` integer DEFAULT 0 NOT NULL,
     \`created_at\` text NOT NULL

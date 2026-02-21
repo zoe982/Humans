@@ -13,8 +13,8 @@ import {
   accountHumans,
   accounts,
   accountHumanLabelsConfig,
-  emailLabelsConfig,
-  phoneLabelsConfig,
+  humanEmailLabelsConfig,
+  humanPhoneLabelsConfig,
   socialIds,
   socialIdPlatformsConfig,
 } from "@humans/db/schema";
@@ -82,8 +82,8 @@ export async function getHumanDetail(db: DB, humanId: string) {
     db.select().from(geoInterestExpressions).where(eq(geoInterestExpressions.humanId, human.id)),
     db.select().from(routeInterestExpressions).where(eq(routeInterestExpressions.humanId, human.id)),
     db.select().from(accountHumans).where(eq(accountHumans.humanId, human.id)),
-    db.select().from(emailLabelsConfig),
-    db.select().from(phoneLabelsConfig),
+    db.select().from(humanEmailLabelsConfig),
+    db.select().from(humanPhoneLabelsConfig),
     db.select().from(socialIds).where(eq(socialIds.humanId, human.id)),
     db.select().from(socialIdPlatformsConfig),
   ]);

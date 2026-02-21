@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { isRedirect, Redirect } from "@sveltejs/kit";
-import { mockEvent, createMockFetch } from "../../../helpers";
+import { mockEvent, createMockFetch, mockConfigItem } from "../../../helpers";
 import { load } from "../../../../src/routes/emails/[id]/+page.server";
 
 const sampleEmail = { id: "e1", email: "jane@example.com", labelId: "lbl1" };
@@ -17,8 +17,8 @@ describe("emails/[id] +page.server load", () => {
   beforeEach(() => {
     mockFetch = createMockFetch({
       "/api/emails/e1": { body: { data: sampleEmail } },
-      "/api/admin/account-config/human-email-labels": { body: { data: [{ id: "lbl1", label: "Work" }] } },
-      "/api/admin/account-config/account-email-labels": { body: { data: [{ id: "albl1", label: "Billing" }] } },
+      "/api/admin/account-config/human-email-labels": { body: { data: [mockConfigItem({ id: "lbl1", name: "Work" })] } },
+      "/api/admin/account-config/account-email-labels": { body: { data: [mockConfigItem({ id: "albl1", name: "Billing" })] } },
       "/api/humans": { body: { data: [{ id: "h1", firstName: "Jane" }] } },
       "/api/accounts": { body: { data: [{ id: "acc1", name: "Acme" }] } },
     });
@@ -45,8 +45,8 @@ describe("emails/[id] +page.server load", () => {
     const event = makeEvent();
     const result = await load(event as any);
     expect(result.email).toEqual(sampleEmail);
-    expect(result.humanEmailLabelConfigs).toHaveLength(1);
-    expect(result.accountEmailLabelConfigs).toHaveLength(1);
+    expect(result.humanEmailLabelConfigs).toEqual([expect.objectContaining({ id: "lbl1", name: "Work" })]);
+    expect(result.accountEmailLabelConfigs).toEqual([expect.objectContaining({ id: "albl1", name: "Billing" })]);
     expect(result.allHumans).toHaveLength(1);
     expect(result.allAccounts).toHaveLength(1);
   });

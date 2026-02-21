@@ -63,6 +63,17 @@ export function mockEvent(options: {
 }
 
 /**
+ * Creates a mock config item with the correct shape (id, name, createdAt).
+ */
+export function mockConfigItem(overrides: { id?: string; name?: string } = {}) {
+  return {
+    id: overrides.id ?? "cfg-1",
+    name: overrides.name ?? "Default",
+    createdAt: "2025-01-01T00:00:00.000Z",
+  };
+}
+
+/**
  * Helper to create a mock fetch that returns different responses for different URL patterns.
  */
 export function createMockFetch(responses: Record<string, { status?: number; body?: unknown }>) {

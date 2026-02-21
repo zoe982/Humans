@@ -42,7 +42,7 @@ describe("pets/[id] +page.server load", () => {
     const event = makeEvent();
     const result = await load(event as any);
     expect(result.pet).toEqual(samplePet);
-    expect(result.allHumans).toHaveLength(1);
+    expect(result.allHumans).toEqual([expect.objectContaining({ id: "h1", firstName: "Jane" })]);
   });
 
   it("redirects to /pets when pet API returns 404", async () => {

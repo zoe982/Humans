@@ -1,5 +1,5 @@
 import { eq, and } from "drizzle-orm";
-import { emails, humans, accounts, emailLabelsConfig } from "@humans/db/schema";
+import { emails, humans, accounts, humanEmailLabelsConfig, accountEmailLabelsConfig } from "@humans/db/schema";
 import { createId } from "@humans/db";
 import { ERROR_CODES } from "@humans/shared";
 import { notFound } from "../lib/errors";
@@ -10,7 +10,8 @@ export async function listEmails(db: DB) {
   const allEmails = await db.select().from(emails);
   const allHumans = await db.select().from(humans);
   const allAccounts = await db.select().from(accounts);
-  const allLabels = await db.select().from(emailLabelsConfig);
+  const humanLabels = await db.select().from(humanEmailLabelsConfig);
+  const accountLabels = await db.select().from(accountEmailLabelsConfig);
 
   const data = allEmails.map((e) => {
     let ownerName: string | null = null;
@@ -24,7 +25,8 @@ export async function listEmails(db: DB) {
       ownerName = account?.name ?? null;
       ownerDisplayId = account?.displayId ?? null;
     }
-    const label = e.labelId ? allLabels.find((l) => l.id === e.labelId) : null;
+    const labels = e.ownerType === "human" ? humanLabels : accountLabels;
+    const label = e.labelId ? labels.find((l) => l.id === e.labelId) : null;
     return {
       ...e,
       ownerName,
@@ -45,7 +47,8 @@ export async function getEmail(db: DB, id: string) {
 
   const allHumans = await db.select().from(humans);
   const allAccounts = await db.select().from(accounts);
-  const allLabels = await db.select().from(emailLabelsConfig);
+  const humanLabels = await db.select().from(humanEmailLabelsConfig);
+  const accountLabels = await db.select().from(accountEmailLabelsConfig);
 
   let ownerName: string | null = null;
   let ownerDisplayId: string | null = null;
@@ -58,7 +61,8 @@ export async function getEmail(db: DB, id: string) {
     ownerName = account?.name ?? null;
     ownerDisplayId = account?.displayId ?? null;
   }
-  const label = email.labelId ? allLabels.find((l) => l.id === email.labelId) : null;
+  const labels = email.ownerType === "human" ? humanLabels : accountLabels;
+  const label = email.labelId ? labels.find((l) => l.id === email.labelId) : null;
 
   return {
     ...email,

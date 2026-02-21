@@ -9,6 +9,7 @@ export {
   buildGeoInterestExpression,
   buildEmail,
   buildPhoneNumber,
+  buildConfigItem,
   buildLeadSource,
   buildLeadEvent,
   nextTestDisplayId,

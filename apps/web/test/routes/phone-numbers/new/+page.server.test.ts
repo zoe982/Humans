@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { isRedirect, isActionFailure, Redirect } from "@sveltejs/kit";
-import { mockEvent, createMockFetch } from "../../../helpers";
+import { mockEvent, createMockFetch, mockConfigItem } from "../../../helpers";
 import { load, actions } from "../../../../src/routes/phone-numbers/new/+page.server";
 
 describe("phone-numbers/new load", () => {
@@ -10,7 +10,7 @@ describe("phone-numbers/new load", () => {
     mockFetch = createMockFetch({
       "/api/humans": { body: { data: [{ id: "h-1", firstName: "Jane" }] } },
       "/api/admin/account-config/human-phone-labels": {
-        body: { data: [{ id: "lbl-1", label: "Mobile" }] },
+        body: { data: [mockConfigItem({ id: "lbl-1", name: "Mobile" })] },
       },
     });
     vi.stubGlobal("fetch", mockFetch);
@@ -36,14 +36,14 @@ describe("phone-numbers/new load", () => {
     const event = mockEvent();
     const result = await load(event as any);
     expect(result.allHumans).toEqual([{ id: "h-1", firstName: "Jane" }]);
-    expect(result.phoneLabelConfigs).toEqual([{ id: "lbl-1", label: "Mobile" }]);
+    expect(result.phoneLabelConfigs).toEqual([mockConfigItem({ id: "lbl-1", name: "Mobile" })]);
   });
 
   it("returns empty allHumans when humans API fails", async () => {
     mockFetch = createMockFetch({
       "/api/humans": { status: 500, body: {} },
       "/api/admin/account-config/human-phone-labels": {
-        body: { data: [{ id: "lbl-1", label: "Mobile" }] },
+        body: { data: [mockConfigItem({ id: "lbl-1", name: "Mobile" })] },
       },
     });
     vi.stubGlobal("fetch", mockFetch);
@@ -51,7 +51,7 @@ describe("phone-numbers/new load", () => {
     const event = mockEvent();
     const result = await load(event as any);
     expect(result.allHumans).toEqual([]);
-    expect(result.phoneLabelConfigs).toEqual([{ id: "lbl-1", label: "Mobile" }]);
+    expect(result.phoneLabelConfigs).toEqual([mockConfigItem({ id: "lbl-1", name: "Mobile" })]);
   });
 
   it("returns empty phoneLabelConfigs when labels API fails", async () => {

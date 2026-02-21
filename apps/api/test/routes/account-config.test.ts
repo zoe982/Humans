@@ -8,8 +8,10 @@ import { createId } from "@humans/db";
 const CONFIG_TYPES = [
   "account-types",
   "account-human-labels",
-  "email-labels",
-  "phone-labels",
+  "account-email-labels",
+  "account-phone-labels",
+  "human-email-labels",
+  "human-phone-labels",
 ] as const;
 
 describe("GET /api/admin/account-config/:configType", () => {
@@ -125,9 +127,9 @@ describe("POST /api/admin/account-config/:configType", () => {
     expect(body.data.createdAt).toBeTruthy();
   });
 
-  it("creates config items for email-labels", async () => {
+  it("creates config items for human-email-labels", async () => {
     const { token } = await createUserAndSession("admin");
-    const res = await SELF.fetch("http://localhost/api/admin/account-config/email-labels", {
+    const res = await SELF.fetch("http://localhost/api/admin/account-config/human-email-labels", {
       method: "POST",
       headers: { "Content-Type": "application/json", Cookie: sessionCookie(token) },
       body: JSON.stringify({ name: "Work Email" }),
@@ -137,9 +139,9 @@ describe("POST /api/admin/account-config/:configType", () => {
     expect(body.data.name).toBe("Work Email");
   });
 
-  it("creates config items for phone-labels", async () => {
+  it("creates config items for human-phone-labels", async () => {
     const { token } = await createUserAndSession("admin");
-    const res = await SELF.fetch("http://localhost/api/admin/account-config/phone-labels", {
+    const res = await SELF.fetch("http://localhost/api/admin/account-config/human-phone-labels", {
       method: "POST",
       headers: { "Content-Type": "application/json", Cookie: sessionCookie(token) },
       body: JSON.stringify({ name: "Mobile" }),

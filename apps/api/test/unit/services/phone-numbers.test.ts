@@ -51,6 +51,7 @@ async function seedPhone(
   ownerId = "h-1",
   phoneNumber = "+1234567890",
   ownerType: "human" | "account" = "human",
+  labelId: string | null = null,
 ) {
   seedCounter++;
   const ts = now();
@@ -60,11 +61,20 @@ async function seedPhone(
     ownerType,
     ownerId,
     phoneNumber,
+    labelId,
     hasWhatsapp: false,
     isPrimary: true,
     createdAt: ts,
   });
   return id;
+}
+
+async function seedHumanPhoneLabel(db: ReturnType<typeof getTestDb>, id: string, name: string) {
+  await db.insert(schema.humanPhoneLabelsConfig).values({ id, name, createdAt: now() });
+}
+
+async function seedAccountPhoneLabel(db: ReturnType<typeof getTestDb>, id: string, name: string) {
+  await db.insert(schema.accountPhoneLabelsConfig).values({ id, name, createdAt: now() });
 }
 
 describe("listPhoneNumbers", () => {
@@ -111,6 +121,28 @@ describe("listPhoneNumbers", () => {
     expect(result[0]!.ownerName).toBe("Acme Corp");
     expect(result[0]!.ownerDisplayId).toMatch(/^ACC-/);
   });
+
+  it("resolves labelName for human-owned phone", async () => {
+    const db = getTestDb();
+    await seedHuman(db, "h-1", "Alice", "Smith");
+    await seedHumanPhoneLabel(db, "lbl-1", "Mobile");
+    await seedPhone(db, "ph-1", "h-1", "+1111111111", "human", "lbl-1");
+
+    const result = await listPhoneNumbers(db);
+    expect(result).toHaveLength(1);
+    expect(result[0]!.labelName).toBe("Mobile");
+  });
+
+  it("resolves labelName for account-owned phone", async () => {
+    const db = getTestDb();
+    await seedAccount(db, "acc-1", "Acme Corp");
+    await seedAccountPhoneLabel(db, "lbl-2", "Office");
+    await seedPhone(db, "ph-1", "acc-1", "+2222222222", "account", "lbl-2");
+
+    const result = await listPhoneNumbers(db);
+    expect(result).toHaveLength(1);
+    expect(result[0]!.labelName).toBe("Office");
+  });
 });
 
 describe("getPhoneNumber", () => {
@@ -140,6 +172,25 @@ describe("getPhoneNumber", () => {
     const result = await getPhoneNumber(db, "ph-1");
     expect(result.ownerName).toBe("Global Corp");
     expect(result.ownerDisplayId).toMatch(/^ACC-/);
+  });
+
+  it("resolves labelName for human-owned phone", async () => {
+    const db = getTestDb();
+    await seedHuman(db, "h-1", "Dan", "Brown");
+    await seedHumanPhoneLabel(db, "lbl-1", "Home");
+    await seedPhone(db, "ph-1", "h-1", "+4444444444", "human", "lbl-1");
+
+    const result = await getPhoneNumber(db, "ph-1");
+    expect(result.labelName).toBe("Home");
+  });
+
+  it("returns null labelName for orphaned labelId", async () => {
+    const db = getTestDb();
+    await seedHuman(db, "h-1", "Dan", "Brown");
+    await seedPhone(db, "ph-1", "h-1", "+4444444444", "human", "nonexistent-label");
+
+    const result = await getPhoneNumber(db, "ph-1");
+    expect(result.labelName).toBeNull();
   });
 });
 

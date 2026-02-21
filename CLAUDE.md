@@ -107,3 +107,22 @@ All test commands use absolute paths and pipe through `tail` to prevent context 
 - **Two-stage failure diagnosis**: start with `tail -n 40`, escalate to `tail -n 200` only if needed
 - **API integration tests are noisy** (1400+ lines) — always truncate
 - `--reporter=dot` does NOT reduce output in vitest 2.1.x — use `tail` instead
+
+## Testing Rules
+
+### Mock data must match real API shapes
+- All `createMockFetch` response bodies must use exact field names from the Drizzle schema.
+  Config items: `{ id, name, createdAt }` — never `{ id, label }`.
+- Use `mockConfigItem()` from `apps/web/test/helpers.ts` for all config item mocks.
+- Use `buildConfigItem()` from `@humans/test-utils` for API-side test data.
+
+### Assert data shape, not just length
+- Never use `toHaveLength()` as the **only** assertion on API response data.
+- Always follow with `toEqual()` or `toMatchObject()` verifying key field names.
+
+### Label/config resolution must have positive tests
+- Any service that resolves a config `labelId`/`labelName` must have a test that:
+  1. Seeds a config item in the correct table
+  2. Creates a record referencing that config item's ID
+  3. Asserts the resolved name appears in the service response
+- This applies to phone labels, email labels, social ID platforms, and any future config lookups.

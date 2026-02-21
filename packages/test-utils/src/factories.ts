@@ -280,6 +280,19 @@ export function buildLeadSource(overrides: Partial<{
   };
 }
 
+export function buildConfigItem(overrides: Partial<{
+  id: string;
+  name: string;
+  createdAt: string;
+}> = {}) {
+  return {
+    id: createId(),
+    name: "Default Label",
+    createdAt: now(),
+    ...overrides,
+  };
+}
+
 export function buildLeadEvent(overrides: Partial<{
   id: string;
   displayId: string;

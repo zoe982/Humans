@@ -44,9 +44,9 @@ describe("social-ids/[id] +page.server load", () => {
     const event = makeEvent();
     const result = await load(event as any);
     expect(result.socialId).toEqual(sampleSocialId);
-    expect(result.platformConfigs).toHaveLength(1);
-    expect(result.allHumans).toHaveLength(1);
-    expect(result.allAccounts).toHaveLength(1);
+    expect(result.platformConfigs).toEqual([expect.objectContaining({ id: "plat1", name: "Instagram" })]);
+    expect(result.allHumans).toEqual([expect.objectContaining({ id: "h1" })]);
+    expect(result.allAccounts).toEqual([expect.objectContaining({ id: "acc1" })]);
   });
 
   it("redirects to /social-ids when social ID API returns 404", async () => {

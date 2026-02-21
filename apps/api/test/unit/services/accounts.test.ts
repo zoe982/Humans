@@ -144,7 +144,7 @@ describe("getAccountDetail", () => {
     });
 
     // Account emails
-    await db.insert(schema.emailLabelsConfig).values({
+    await db.insert(schema.accountEmailLabelsConfig).values({
       id: "elbl-1", name: "Work", createdAt: ts,
     });
     await db.insert(schema.emails).values({
@@ -152,7 +152,7 @@ describe("getAccountDetail", () => {
     });
 
     // Account phones
-    await db.insert(schema.phoneLabelsConfig).values({
+    await db.insert(schema.accountPhoneLabelsConfig).values({
       id: "plbl-1", name: "Office", createdAt: ts,
     });
     await db.insert(schema.phones).values({

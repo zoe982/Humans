@@ -28,8 +28,8 @@ describe("route-interests +page.server load", () => {
     vi.stubGlobal("fetch", mockFetch);
     const event = mockEvent();
     const result = await load(event as any);
-    expect(result.routeInterests).toHaveLength(1);
-    expect(result.expressions).toHaveLength(1);
+    expect(result.routeInterests).toEqual([expect.objectContaining({ id: "ri1", originCity: "London" })]);
+    expect(result.expressions).toEqual([expect.objectContaining({ id: "rie1" })]);
   });
 
   it("returns empty arrays when both APIs fail", async () => {

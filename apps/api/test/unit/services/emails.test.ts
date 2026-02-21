@@ -50,6 +50,7 @@ async function seedEmail(
   ownerId = "h-1",
   email = "test@example.com",
   ownerType: "human" | "account" = "human",
+  labelId: string | null = null,
 ) {
   seedCounter++;
   const ts = now();
@@ -59,10 +60,19 @@ async function seedEmail(
     ownerType,
     ownerId,
     email,
+    labelId,
     isPrimary: true,
     createdAt: ts,
   });
   return id;
+}
+
+async function seedHumanEmailLabel(db: ReturnType<typeof getTestDb>, id: string, name: string) {
+  await db.insert(schema.humanEmailLabelsConfig).values({ id, name, createdAt: now() });
+}
+
+async function seedAccountEmailLabel(db: ReturnType<typeof getTestDb>, id: string, name: string) {
+  await db.insert(schema.accountEmailLabelsConfig).values({ id, name, createdAt: now() });
 }
 
 describe("listEmails", () => {
@@ -109,6 +119,28 @@ describe("listEmails", () => {
     expect(result[0]!.ownerName).toBe("Acme Corp");
     expect(result[0]!.ownerDisplayId).toMatch(/^ACC-/);
   });
+
+  it("resolves labelName for human-owned email", async () => {
+    const db = getTestDb();
+    await seedHuman(db, "h-1", "Alice", "Smith");
+    await seedHumanEmailLabel(db, "lbl-1", "Work");
+    await seedEmail(db, "em-1", "h-1", "alice@work.com", "human", "lbl-1");
+
+    const result = await listEmails(db);
+    expect(result).toHaveLength(1);
+    expect(result[0]!.labelName).toBe("Work");
+  });
+
+  it("resolves labelName for account-owned email", async () => {
+    const db = getTestDb();
+    await seedAccount(db, "acc-1", "Acme Corp");
+    await seedAccountEmailLabel(db, "lbl-2", "Billing");
+    await seedEmail(db, "em-1", "acc-1", "billing@acme.com", "account", "lbl-2");
+
+    const result = await listEmails(db);
+    expect(result).toHaveLength(1);
+    expect(result[0]!.labelName).toBe("Billing");
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -142,6 +174,25 @@ describe("getEmail", () => {
     const result = await getEmail(db, "em-1");
     expect(result.ownerName).toBe("Widget Corp");
     expect(result.ownerDisplayId).toMatch(/^ACC-/);
+  });
+
+  it("resolves labelName for human-owned email", async () => {
+    const db = getTestDb();
+    await seedHuman(db, "h-1", "Carol", "King");
+    await seedHumanEmailLabel(db, "lbl-1", "Personal");
+    await seedEmail(db, "em-1", "h-1", "carol@home.com", "human", "lbl-1");
+
+    const result = await getEmail(db, "em-1");
+    expect(result.labelName).toBe("Personal");
+  });
+
+  it("returns null labelName for orphaned labelId", async () => {
+    const db = getTestDb();
+    await seedHuman(db, "h-1", "Carol", "King");
+    await seedEmail(db, "em-1", "h-1", "carol@test.com", "human", "nonexistent-label");
+
+    const result = await getEmail(db, "em-1");
+    expect(result.labelName).toBeNull();
   });
 });
 

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { isRedirect, isActionFailure, Redirect } from "@sveltejs/kit";
-import { mockEvent, createMockFetch } from "../../../helpers";
+import { mockEvent, createMockFetch, mockConfigItem } from "../../../helpers";
 import { load, actions } from "../../../../src/routes/emails/new/+page.server";
 
 describe("emails/new load", () => {
@@ -10,7 +10,7 @@ describe("emails/new load", () => {
     mockFetch = createMockFetch({
       "/api/humans": { body: { data: [{ id: "h-1", firstName: "Jane" }] } },
       "/api/admin/account-config/human-email-labels": {
-        body: { data: [{ id: "lbl-1", label: "Work" }] },
+        body: { data: [mockConfigItem({ id: "lbl-1", name: "Work" })] },
       },
     });
     vi.stubGlobal("fetch", mockFetch);
@@ -36,14 +36,14 @@ describe("emails/new load", () => {
     const event = mockEvent();
     const result = await load(event as any);
     expect(result.allHumans).toEqual([{ id: "h-1", firstName: "Jane" }]);
-    expect(result.emailLabelConfigs).toEqual([{ id: "lbl-1", label: "Work" }]);
+    expect(result.emailLabelConfigs).toEqual([mockConfigItem({ id: "lbl-1", name: "Work" })]);
   });
 
   it("returns empty allHumans when humans API fails", async () => {
     mockFetch = createMockFetch({
       "/api/humans": { status: 500, body: {} },
       "/api/admin/account-config/human-email-labels": {
-        body: { data: [{ id: "lbl-1", label: "Work" }] },
+        body: { data: [mockConfigItem({ id: "lbl-1", name: "Work" })] },
       },
     });
     vi.stubGlobal("fetch", mockFetch);
@@ -51,7 +51,7 @@ describe("emails/new load", () => {
     const event = mockEvent();
     const result = await load(event as any);
     expect(result.allHumans).toEqual([]);
-    expect(result.emailLabelConfigs).toEqual([{ id: "lbl-1", label: "Work" }]);
+    expect(result.emailLabelConfigs).toEqual([mockConfigItem({ id: "lbl-1", name: "Work" })]);
   });
 
   it("returns empty emailLabelConfigs when labels API fails", async () => {
