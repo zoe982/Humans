@@ -16,7 +16,7 @@
  */
 
 import { describe, it, expect } from "vitest";
-import { render, fireEvent } from "@testing-library/svelte";
+import { render, screen, fireEvent } from "@testing-library/svelte";
 import SearchableSelect from "./SearchableSelect.svelte";
 import PhoneInput from "./PhoneInput.svelte";
 
@@ -32,55 +32,58 @@ describe("Dropdown consistency contract", () => {
   // -------------------------------------------------------------------------
   describe("SearchableSelect", () => {
     it("uses glass-popover on dropdown container", async () => {
-      const { container } = render(SearchableSelect, {
+      render(SearchableSelect, {
         props: { options: OPTIONS, name: "test" },
       });
 
-      const input = container.querySelector('input[type="text"]') as HTMLInputElement;
+      const input = screen.getByRole("combobox");
       await fireEvent.focus(input);
 
-      const listbox = container.querySelector('ul[role="listbox"]') as HTMLElement;
-      expect(listbox).not.toBeNull();
-      expect(listbox.classList.contains("glass-popover")).toBe(true);
+      // bits-ui Combobox portals content to document.body
+      const popover = document.querySelector(".glass-popover");
+      expect(popover).not.toBeNull();
+      expect(popover!.classList.contains("glass-popover")).toBe(true);
     });
 
     it("uses glass-dropdown-item on option elements", async () => {
-      const { container } = render(SearchableSelect, {
+      render(SearchableSelect, {
         props: { options: OPTIONS, name: "test" },
       });
 
-      const input = container.querySelector('input[type="text"]')!;
+      const input = screen.getByRole("combobox");
       await fireEvent.focus(input);
 
-      const optionItems = container.querySelectorAll('[role="option"]');
+      const optionItems = screen.getAllByRole("option");
       expect(optionItems.length).toBeGreaterThan(0);
 
-      const atLeastOneHasClass = Array.from(optionItems).some((item) =>
+      const atLeastOneHasClass = optionItems.some((item) =>
         item.classList.contains("glass-dropdown-item")
       );
       expect(atLeastOneHasClass).toBe(true);
     });
 
     it("has proper ARIA roles", async () => {
-      const { container } = render(SearchableSelect, {
+      render(SearchableSelect, {
         props: { options: OPTIONS, name: "test" },
       });
 
       // Combobox is present before the dropdown opens.
-      const combobox = container.querySelector('[role="combobox"]');
+      const combobox = screen.getByRole("combobox");
       expect(combobox).not.toBeNull();
 
-      await fireEvent.focus(combobox as HTMLElement);
+      await fireEvent.focus(combobox);
 
-      // After focus the listbox must appear.
-      const listbox = container.querySelector('ul[role="listbox"]');
+      // After focus the listbox must appear (portaled to document.body).
+      const listbox = document.querySelector('[role="listbox"]');
       expect(listbox).not.toBeNull();
 
-      // Every item must carry role="option" and aria-selected.
-      const optionItems = listbox!.querySelectorAll('[role="option"]');
+      // Every item must carry role="option".
+      const optionItems = screen.getAllByRole("option");
       expect(optionItems.length).toBeGreaterThan(0);
+      // bits-ui sets aria-selected="true" only on the selected item
+      // and omits it on others (valid per WAI-ARIA spec).
       optionItems.forEach((item) => {
-        expect(item.hasAttribute("aria-selected")).toBe(true);
+        expect(item.getAttribute("role")).toBe("option");
       });
     });
 

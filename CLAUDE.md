@@ -82,7 +82,7 @@ A PreToolUse hook (`.claude/hooks/enforce-model-selection.sh`) auto-corrects Tas
 
 ## Testing Commands
 
-All test commands use absolute paths and pipe through `tail` to prevent context window overflow in subagents.
+**ALWAYS run tests via Bash in the main context. NEVER delegate test runs to subagents.** Subagents lack the shell environment and their output wastes context transferring results back. All commands use absolute paths and pipe through `tail` to prevent context flooding.
 
 ### Package Paths
 | Package | Path |
@@ -93,17 +93,16 @@ All test commands use absolute paths and pipe through `tail` to prevent context 
 | Shared | `cd /Users/zoemarsico/Documents/Humans/packages/shared` |
 
 ### Standardized Commands
-| Scenario | Command suffix | Lines |
-|----------|---------------|-------|
-| TDD single file | `pnpm test run <file> 2>&1 \| tail -n 20` | ~20 |
-| Full suite pass/fail | `pnpm test run 2>&1 \| tail -n 40` | ~40 |
-| Suite with coverage | `pnpm test run --coverage 2>&1 \| tail -n 80` | ~80 |
-| Failure diagnosis | `pnpm test run 2>&1 \| tail -n 200` | ~200 |
+| Scenario | Command | Tail lines |
+|----------|---------|------------|
+| TDD single file | `cd <pkg> && pnpm test run <file> 2>&1 \| tail -n 20` | ~20 |
+| Full suite pass/fail | `cd <pkg> && pnpm test run 2>&1 \| tail -n 40` | ~40 |
+| Suite with coverage | `cd <pkg> && pnpm test run --coverage 2>&1 \| tail -n 80` | ~80 |
+| Failure diagnosis | `cd <pkg> && pnpm test run 2>&1 \| tail -n 200` | ~200 |
 
 ### Rules
-- **Subagents run single test files** during TDD — never the full suite
-- **Cook runs full suites** for validation gates and pre-deploy checks
-- **Always pipe through `tail`** for suite-level runs to avoid flooding context
+- **Tests run in Bash only** — never in subagents, never via Task tool
+- **Always pipe through `tail`** — every test command must end with `| tail -n <N>`
 - **Two-stage failure diagnosis**: start with `tail -n 40`, escalate to `tail -n 200` only if needed
 - **API integration tests are noisy** (1400+ lines) — always truncate
 - `--reporter=dot` does NOT reduce output in vitest 2.1.x — use `tail` instead
