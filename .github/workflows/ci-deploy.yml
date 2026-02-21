@@ -24,6 +24,8 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm turbo lint
       - run: pnpm turbo typecheck
+      - name: Check no native select elements
+        run: bash scripts/check-no-native-select.sh
 
   test:
     name: Unit & Integration Tests

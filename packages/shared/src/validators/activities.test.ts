@@ -9,8 +9,9 @@ describe("activityTypes", () => {
     expect(activityTypes).toContain("phone_call");
   });
 
-  it("has exactly 4 types", () => {
-    expect(activityTypes).toHaveLength(4);
+  it("has exactly 5 types", () => {
+    expect(activityTypes).toHaveLength(5);
+    expect(activityTypes).toContain("social_message");
   });
 });
 

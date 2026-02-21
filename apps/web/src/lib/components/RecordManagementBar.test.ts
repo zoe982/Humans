@@ -1,6 +1,10 @@
 import { describe, it, expect } from "vitest";
 import { render, screen } from "@testing-library/svelte";
+import { axe } from "vitest-axe";
+import { toHaveNoViolations } from "vitest-axe/matchers";
 import RecordManagementBar from "./RecordManagementBar.svelte";
+
+expect.extend({ toHaveNoViolations });
 
 describe("RecordManagementBar", () => {
   const baseProps = {
@@ -42,10 +46,8 @@ describe("RecordManagementBar", () => {
         statusFormAction: "?/updateStatus",
       },
     });
-    const select = container.querySelector("select");
-    expect(select).not.toBeNull();
-    const options = container.querySelectorAll("option");
-    expect(options.length).toBe(3);
+    const trigger = container.querySelector('[data-select-trigger]');
+    expect(trigger).not.toBeNull();
     expect(screen.getByText("Update")).toBeDefined();
   });
 
@@ -53,7 +55,47 @@ describe("RecordManagementBar", () => {
     const { container } = render(RecordManagementBar, {
       props: { ...baseProps, status: "active" },
     });
-    const select = container.querySelector("select");
-    expect(select).toBeNull();
+    const trigger = container.querySelector('[data-select-trigger]');
+    expect(trigger).toBeNull();
+  });
+
+  it("does not contain any native select elements", () => {
+    const { container } = render(RecordManagementBar, {
+      props: {
+        ...baseProps,
+        status: "active",
+        statusOptions: ["active", "inactive", "archived"],
+        statusFormAction: "?/updateStatus",
+      },
+    });
+    expect(container.querySelectorAll("select").length).toBe(0);
+  });
+
+  it("hidden input has name=status for form submission", () => {
+    const { container } = render(RecordManagementBar, {
+      props: {
+        ...baseProps,
+        status: "active",
+        statusOptions: ["active", "inactive", "archived"],
+        statusFormAction: "?/updateStatus",
+      },
+    });
+    const hiddenInput = container.querySelector('input[type="hidden"][name="status"]');
+    expect(hiddenInput).not.toBeNull();
+  });
+
+  // ── Accessibility (axe-core) ────────────────────────────────────
+
+  it("has no axe violations with status dropdown", async () => {
+    const { container } = render(RecordManagementBar, {
+      props: {
+        ...baseProps,
+        status: "active",
+        statusOptions: ["active", "inactive", "archived"],
+        statusFormAction: "?/updateStatus",
+      },
+    });
+    const results = await axe(container);
+    expect(results).toHaveNoViolations();
   });
 });

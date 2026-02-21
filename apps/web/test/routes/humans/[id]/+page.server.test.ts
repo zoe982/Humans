@@ -109,7 +109,7 @@ describe("humans/[id] addActivity action", () => {
     expect(isActionFailure(result)).toBe(true);
   });
 
-  it("creates geo-interest expression when geo fields present", async () => {
+  it("creates geo-interest expression when geoInterestsJson present", async () => {
     mockFetch = createMockFetch({
       "/api/activities": { body: { data: { id: "a-new" } } },
       "/api/geo-interest-expressions": { body: { data: {} } },
@@ -121,8 +121,7 @@ describe("humans/[id] addActivity action", () => {
         type: "meeting",
         subject: "Discuss trip",
         activityDate: "2025-01-15",
-        geoCity: "Rome",
-        geoCountry: "Italy",
+        geoInterestsJson: JSON.stringify([{ city: "Rome", country: "Italy" }]),
       },
     });
     const result = await actions.addActivity(event as any);
@@ -354,6 +353,19 @@ describe("humans/[id] addPet action", () => {
     expect(result).toEqual({ success: true });
   });
 
+  it("returns success for non-dog pet type (no breed sent)", async () => {
+    const mockFetch = createMockFetch({
+      "/api/pets": { body: { data: { id: "pet-2" } } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent({
+      formData: { name: "Whiskers", type: "cat", weight: "5" },
+    });
+    const result = await actions.addPet(event as any);
+    expect(result).toEqual({ success: true });
+  });
+
   it("returns failure on API error", async () => {
     const mockFetch = createMockFetch({
       "/api/pets": { status: 422, body: { error: "Name required" } },
@@ -363,5 +375,302 @@ describe("humans/[id] addPet action", () => {
     const event = makeEvent({ formData: { name: "" } });
     const result = await actions.addPet(event as any);
     expect(isActionFailure(result)).toBe(true);
+  });
+});
+
+describe("humans/[id] deletePet action", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("returns success on delete", async () => {
+    const mockFetch = createMockFetch({
+      "/api/pets/pet-1": { body: {} },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent({ formData: { id: "pet-1" } });
+    const result = await actions.deletePet(event as any);
+    expect(result).toEqual({ success: true });
+  });
+
+  it("returns failure on API error", async () => {
+    const mockFetch = createMockFetch({
+      "/api/pets/pet-1": { status: 500, body: { error: "Server error" } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent({ formData: { id: "pet-1" } });
+    const result = await actions.deletePet(event as any);
+    expect(isActionFailure(result)).toBe(true);
+  });
+});
+
+describe("humans/[id] deletePhoneNumber action error path", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("returns failure on API error", async () => {
+    const mockFetch = createMockFetch({
+      "/api/phone-numbers/ph-1": { status: 500, body: { error: "Server error" } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent({ formData: { phoneId: "ph-1" } });
+    const result = await actions.deletePhoneNumber(event as any);
+    expect(isActionFailure(result)).toBe(true);
+  });
+});
+
+describe("humans/[id] addRouteInterestExpression action", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("returns success with routeInterestId", async () => {
+    const mockFetch = createMockFetch({
+      "/api/route-interest-expressions": { body: { data: {} } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent({
+      formData: { routeInterestId: "ri-1", notes: "Frequent flyer", frequency: "recurring" },
+    });
+    const result = await actions.addRouteInterestExpression(event as any);
+    expect(result).toEqual({ success: true });
+  });
+
+  it("returns success with origin/destination when no routeInterestId", async () => {
+    const mockFetch = createMockFetch({
+      "/api/route-interest-expressions": { body: { data: {} } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent({
+      formData: {
+        originCity: "London",
+        originCountry: "UK",
+        destinationCity: "Paris",
+        destinationCountry: "France",
+        travelYear: "2025",
+        travelMonth: "6",
+        travelDay: "15",
+        frequency: "one_time",
+      },
+    });
+    const result = await actions.addRouteInterestExpression(event as any);
+    expect(result).toEqual({ success: true });
+  });
+
+  it("returns failure on API error", async () => {
+    const mockFetch = createMockFetch({
+      "/api/route-interest-expressions": { status: 400, body: { error: "Missing data" } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent({ formData: { routeInterestId: "ri-1" } });
+    const result = await actions.addRouteInterestExpression(event as any);
+    expect(isActionFailure(result)).toBe(true);
+  });
+});
+
+describe("humans/[id] deleteRouteInterestExpression action", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("returns success on delete", async () => {
+    const mockFetch = createMockFetch({
+      "/api/route-interest-expressions/expr-1": { body: {} },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent({ formData: { id: "expr-1" } });
+    const result = await actions.deleteRouteInterestExpression(event as any);
+    expect(result).toEqual({ success: true });
+  });
+
+  it("returns failure on API error", async () => {
+    const mockFetch = createMockFetch({
+      "/api/route-interest-expressions/expr-1": { status: 500, body: { error: "Server error" } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent({ formData: { id: "expr-1" } });
+    const result = await actions.deleteRouteInterestExpression(event as any);
+    expect(isActionFailure(result)).toBe(true);
+  });
+});
+
+describe("humans/[id] addSocialId action", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("returns success when social ID is added", async () => {
+    const mockFetch = createMockFetch({
+      "/api/social-ids": { body: { data: { id: "sid-1" } } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent({
+      formData: { handle: "@janedoe", platformId: "plat-1" },
+    });
+    const result = await actions.addSocialId(event as any);
+    expect(result).toEqual({ success: true });
+  });
+
+  it("returns failure on API error", async () => {
+    const mockFetch = createMockFetch({
+      "/api/social-ids": { status: 422, body: { error: "Handle required" } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent({ formData: { handle: "" } });
+    const result = await actions.addSocialId(event as any);
+    expect(isActionFailure(result)).toBe(true);
+  });
+});
+
+describe("humans/[id] deleteSocialId action", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("returns success on delete", async () => {
+    const mockFetch = createMockFetch({
+      "/api/social-ids/sid-1": { body: {} },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent({ formData: { id: "sid-1" } });
+    const result = await actions.deleteSocialId(event as any);
+    expect(result).toEqual({ success: true });
+  });
+
+  it("returns failure on API error", async () => {
+    const mockFetch = createMockFetch({
+      "/api/social-ids/sid-1": { status: 500, body: { error: "Server error" } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent({ formData: { id: "sid-1" } });
+    const result = await actions.deleteSocialId(event as any);
+    expect(isActionFailure(result)).toBe(true);
+  });
+});
+
+describe("humans/[id] addActivity with route interests", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("creates route-interest expression when routeInterestsJson present", async () => {
+    const mockFetch = createMockFetch({
+      "/api/activities": { body: { data: { id: "a-new" } } },
+      "/api/route-interest-expressions": { body: { data: {} } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent({
+      formData: {
+        type: "meeting",
+        subject: "Route discussion",
+        activityDate: "2025-01-15",
+        routeInterestsJson: JSON.stringify([{
+          originCity: "NYC",
+          originCountry: "USA",
+          destinationCity: "London",
+          destinationCountry: "UK",
+          frequency: "one_time",
+          travelYear: 2025,
+          travelMonth: 6,
+          travelDay: 10,
+        }]),
+      },
+    });
+    const result = await actions.addActivity(event as any);
+    expect(result).toEqual({ success: true });
+    const calls = mockFetch.mock.calls.map((c: unknown[]) => String(c[0]));
+    expect(calls.some((u: string) => u.includes("route-interest-expressions"))).toBe(true);
+  });
+
+  it("creates route-interest expression with routeInterestId from JSON", async () => {
+    const mockFetch = createMockFetch({
+      "/api/activities": { body: { data: { id: "a-new" } } },
+      "/api/route-interest-expressions": { body: { data: {} } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent({
+      formData: {
+        type: "meeting",
+        subject: "Route discussion",
+        activityDate: "2025-01-15",
+        routeInterestsJson: JSON.stringify([{ id: "ri-1", frequency: "recurring" }]),
+      },
+    });
+    const result = await actions.addActivity(event as any);
+    expect(result).toEqual({ success: true });
+    const calls = mockFetch.mock.calls.map((c: unknown[]) => String(c[0]));
+    expect(calls.some((u: string) => u.includes("route-interest-expressions"))).toBe(true);
+  });
+
+  it("creates geo-interest expression with existing geoInterestId from JSON", async () => {
+    const mockFetch = createMockFetch({
+      "/api/activities": { body: { data: { id: "a-new" } } },
+      "/api/geo-interest-expressions": { body: { data: {} } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent({
+      formData: {
+        type: "meeting",
+        subject: "Geo discussion",
+        activityDate: "2025-01-15",
+        geoInterestsJson: JSON.stringify([{ id: "gi-1", notes: "Existing interest" }]),
+      },
+    });
+    const result = await actions.addActivity(event as any);
+    expect(result).toEqual({ success: true });
+    const calls = mockFetch.mock.calls.map((c: unknown[]) => String(c[0]));
+    expect(calls.some((u: string) => u.includes("geo-interest-expressions"))).toBe(true);
+  });
+
+  it("ignores malformed geoInterestsJson gracefully", async () => {
+    const mockFetch = createMockFetch({
+      "/api/activities": { body: { data: { id: "a-new" } } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent({
+      formData: {
+        type: "email",
+        subject: "Test",
+        activityDate: "2025-01-15",
+        geoInterestsJson: "not-valid-json",
+      },
+    });
+    const result = await actions.addActivity(event as any);
+    expect(result).toEqual({ success: true });
+  });
+
+  it("ignores malformed routeInterestsJson gracefully", async () => {
+    const mockFetch = createMockFetch({
+      "/api/activities": { body: { data: { id: "a-new" } } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent({
+      formData: {
+        type: "email",
+        subject: "Test",
+        activityDate: "2025-01-15",
+        routeInterestsJson: "{broken",
+      },
+    });
+    const result = await actions.addActivity(event as any);
+    expect(result).toEqual({ success: true });
   });
 });

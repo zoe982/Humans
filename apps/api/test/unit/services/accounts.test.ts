@@ -195,6 +195,39 @@ describe("getAccountDetail", () => {
     expect(result.humanActivities).toHaveLength(1);
     expect(result.humanActivities[0]!.viaHumanName).toBe("Jane Smith");
   });
+
+  it("returns account with social IDs enriched with platform names", async () => {
+    const db = getTestDb();
+    const ts = now();
+
+    await seedColleague(db, "col-2");
+    await seedAccount(db, "acc-2", "Social Corp");
+
+    await db.insert(schema.socialIdPlatformsConfig).values({
+      id: "plat-1", name: "LinkedIn", createdAt: ts,
+    });
+    // Social ID with platform
+    await db.insert(schema.socialIds).values({
+      id: "soc-1", displayId: nextDisplayId("SOC"),
+      handle: "@socialcorp", platformId: "plat-1", accountId: "acc-2",
+      createdAt: ts,
+    });
+    // Social ID without platform
+    await db.insert(schema.socialIds).values({
+      id: "soc-2", displayId: nextDisplayId("SOC"),
+      handle: "@noplatform", platformId: null, accountId: "acc-2",
+      createdAt: ts,
+    });
+
+    const result = await getAccountDetail(db, "acc-2");
+    expect(result.socialIds).toHaveLength(2);
+
+    const withPlatform = result.socialIds.find((s: { id: string }) => s.id === "soc-1");
+    expect(withPlatform!.platformName).toBe("LinkedIn");
+
+    const withoutPlatform = result.socialIds.find((s: { id: string }) => s.id === "soc-2");
+    expect(withoutPlatform!.platformName).toBeNull();
+  });
 });
 
 describe("createAccount", () => {

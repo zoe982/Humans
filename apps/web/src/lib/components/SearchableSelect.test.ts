@@ -1,6 +1,10 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/svelte";
+import { axe } from "vitest-axe";
+import { toHaveNoViolations } from "vitest-axe/matchers";
 import SearchableSelect from "./SearchableSelect.svelte";
+
+expect.extend({ toHaveNoViolations });
 
 describe("SearchableSelect", () => {
   // ── String mode (backward compatibility) ──────────────────────────
@@ -147,8 +151,7 @@ describe("SearchableSelect", () => {
     await fireEvent.focus(input);
 
     const items = container.querySelectorAll('[role="option"]');
-    const firstButton = items[0]?.querySelector("button");
-    expect(firstButton?.textContent?.trim()).toBe("All");
+    expect(items[0]?.textContent?.trim()).toBe("All");
   });
 
   it("empty option always visible when filtering", async () => {
@@ -217,5 +220,144 @@ describe("SearchableSelect", () => {
     });
     const input = container.querySelector('input[type="text"]') as HTMLInputElement;
     expect(input.required).toBe(true);
+  });
+
+  // ── Visual polish behaviors ────────────────────────────────────────
+
+  describe("Visual polish behaviors", () => {
+    it("renders a Check icon next to the selected option when open", async () => {
+      const { container } = render(SearchableSelect, {
+        props: { options, name: "country", value: "Brazil" },
+      });
+      const input = container.querySelector('input[type="text"]')!;
+      await fireEvent.focus(input);
+
+      const brazilOption = screen.getByText("Brazil").closest("[role='option']")!;
+      expect(brazilOption.querySelector("svg")).not.toBeNull();
+    });
+
+    it("Check icon disappears from old option after selecting a new one", async () => {
+      const { container } = render(SearchableSelect, {
+        props: { options, name: "country", value: "Brazil" },
+      });
+      const input = container.querySelector('input[type="text"]')!;
+      await fireEvent.focus(input);
+
+      const canadaOption = screen.getByText("Canada");
+      await fireEvent.mouseDown(canadaOption);
+
+      await fireEvent.focus(input);
+
+      const canadaItem = screen.getByText("Canada").closest("[role='option']")!;
+      expect(canadaItem.querySelector("svg")).not.toBeNull();
+
+      const brazilItem = screen.getByText("Brazil").closest("[role='option']")!;
+      expect(brazilItem.querySelector("svg")).toBeNull();
+    });
+
+    it("chevron has no rotate-180 class when closed", () => {
+      const { container } = render(SearchableSelect, {
+        props: { options, name: "country" },
+      });
+      const chevron = container.querySelector("div.relative > div > svg");
+      expect(chevron).not.toBeNull();
+      expect(chevron!.className).not.toContain("rotate-180");
+    });
+
+    it("chevron has rotate-180 class when dropdown is open", async () => {
+      const { container } = render(SearchableSelect, {
+        props: { options, name: "country" },
+      });
+      const input = container.querySelector('input[type="text"]')!;
+      await fireEvent.focus(input);
+
+      const chevron = container.querySelector("div.relative > div > svg");
+      expect(chevron).not.toBeNull();
+      expect(chevron!.className).toContain("rotate-180");
+    });
+
+    it("renders a role=separator element after the empty option", async () => {
+      const { container } = render(SearchableSelect, {
+        props: { options: kvOptions, name: "type", emptyOption: "All" },
+      });
+      const input = container.querySelector('input[type="text"]')!;
+      await fireEvent.focus(input);
+
+      const separator = container.querySelector('[role="separator"]');
+      expect(separator).not.toBeNull();
+    });
+
+    it("does not render separator when emptyOption is not provided", async () => {
+      const { container } = render(SearchableSelect, {
+        props: { options: kvOptions, name: "type" },
+      });
+      const input = container.querySelector('input[type="text"]')!;
+      await fireEvent.focus(input);
+
+      const separator = container.querySelector('[role="separator"]');
+      expect(separator).toBeNull();
+    });
+
+    it("dropdown list has glass-dropdown-animate class", async () => {
+      const { container } = render(SearchableSelect, {
+        props: { options, name: "country" },
+      });
+      const input = container.querySelector('input[type="text"]')!;
+      await fireEvent.focus(input);
+
+      const listbox = container.querySelector('ul[role="listbox"]');
+      expect(listbox).not.toBeNull();
+      expect(listbox!.classList.contains("glass-dropdown-animate")).toBe(true);
+    });
+
+    it("dropdown items use glass-dropdown-item class", async () => {
+      const { container } = render(SearchableSelect, {
+        props: { options, name: "country" },
+      });
+      const input = container.querySelector('input[type="text"]')!;
+      await fireEvent.focus(input);
+
+      const optionItems = container.querySelectorAll('[role="option"]');
+      expect(optionItems.length).toBeGreaterThan(0);
+      const atLeastOne = Array.from(optionItems).some((item) =>
+        item.className.includes("glass-dropdown-item")
+      );
+      expect(atLeastOne).toBe(true);
+    });
+
+    it("empty message uses glass-dropdown-empty class", async () => {
+      const { container } = render(SearchableSelect, {
+        props: { options, name: "country" },
+      });
+      const input = container.querySelector('input[type="text"]')!;
+      await fireEvent.focus(input);
+      await fireEvent.input(input, { target: { value: "zzz" } });
+
+      const status = container.querySelector('[role="status"]');
+      expect(status).not.toBeNull();
+      expect(status!.querySelector(".glass-dropdown-empty")).not.toBeNull();
+    });
+  });
+
+  // ── Accessibility (axe-core) ────────────────────────────────────
+
+  describe("Accessibility", () => {
+    it("has no axe violations when closed", async () => {
+      const { container } = render(SearchableSelect, {
+        props: { options, name: "country" },
+      });
+      const results = await axe(container);
+      expect(results).toHaveNoViolations();
+    });
+
+    it("has no axe violations when open", async () => {
+      const { container } = render(SearchableSelect, {
+        props: { options, name: "country" },
+      });
+      const input = container.querySelector('input[type="text"]')!;
+      await fireEvent.focus(input);
+      const results = await axe(container);
+      expect(results).toHaveNoViolations();
+    });
   });
 });

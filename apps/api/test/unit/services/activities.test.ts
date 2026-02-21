@@ -140,6 +140,21 @@ describe("listActivities", () => {
     expect(page2.data).toHaveLength(1);
   });
 
+  it("filters by text search query on subject and notes", async () => {
+    const db = getTestDb();
+    await seedColleague(db);
+    await seedActivity(db, "act-1", { subject: "Tokyo flight inquiry", notes: null });
+    await seedActivity(db, "act-2", { subject: "Pet transport", notes: "Transporting a dog to Tokyo" });
+    await seedActivity(db, "act-3", { subject: "Unrelated subject", notes: null });
+
+    const result = await listActivities(db, { q: "Tokyo", page: 1, limit: 25 });
+    expect(result.data).toHaveLength(2);
+
+    const ids = result.data.map((a) => a.id);
+    expect(ids).toContain("act-1");
+    expect(ids).toContain("act-2");
+  });
+
   it("enriches with human name and account name", async () => {
     const db = getTestDb();
     await seedColleague(db);
@@ -193,6 +208,31 @@ describe("getActivityDetail", () => {
     expect(result.geoInterestExpressions).toHaveLength(1);
     expect(result.geoInterestExpressions[0]!.city).toBe("Paris");
     expect(result.geoInterestExpressions[0]!.country).toBe("France");
+  });
+
+  it("returns route-interest expressions with origin and destination data", async () => {
+    const db = getTestDb();
+    const ts = now();
+    await seedColleague(db);
+    await seedHuman(db, "h-1");
+    await seedActivity(db, "act-1", { humanId: "h-1" });
+
+    await db.insert(schema.routeInterests).values({
+      id: "ri-1", displayId: nextDisplayId("ROI"),
+      originCity: "London", originCountry: "UK",
+      destinationCity: "Paris", destinationCountry: "France",
+      createdAt: ts, updatedAt: ts,
+    });
+    await db.insert(schema.routeInterestExpressions).values({
+      id: "rex-1", displayId: nextDisplayId("REX"),
+      humanId: "h-1", routeInterestId: "ri-1", activityId: "act-1",
+      frequency: "one_time", createdAt: ts,
+    });
+
+    const result = await getActivityDetail(db, "act-1");
+    expect(result.routeInterestExpressions).toHaveLength(1);
+    expect(result.routeInterestExpressions[0]!.originCity).toBe("London");
+    expect(result.routeInterestExpressions[0]!.destinationCity).toBe("Paris");
   });
 });
 

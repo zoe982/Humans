@@ -75,8 +75,9 @@ describe("createHumanSchema", () => {
     expect(() => createHumanSchema.parse({ ...validInput, lastName: "" })).toThrowError();
   });
 
-  it("rejects empty emails array", () => {
-    expect(() => createHumanSchema.parse({ ...validInput, emails: [] })).toThrowError();
+  it("allows empty emails array (defaults to [])", () => {
+    const result = createHumanSchema.parse({ ...validInput, emails: [] });
+    expect(result.emails).toStrictEqual([]);
   });
 
   it("rejects empty types array", () => {

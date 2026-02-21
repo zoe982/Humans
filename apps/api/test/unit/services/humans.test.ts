@@ -156,6 +156,50 @@ describe("getHumanDetail", () => {
     expect(result.geoInterestExpressions[0]!.country).toBe("France");
   });
 
+  it("resolves route-interest expressions with origin and destination data", async () => {
+    const db = getTestDb();
+    const ts = now();
+    await seedHuman(db, "h-1");
+    await seedColleague(db);
+
+    await db.insert(schema.routeInterests).values({
+      id: "ri-1", displayId: nextDisplayId("ROI"),
+      originCity: "NYC", originCountry: "US",
+      destinationCity: "London", destinationCountry: "UK",
+      createdAt: ts, updatedAt: ts,
+    });
+    await db.insert(schema.routeInterestExpressions).values({
+      id: "rex-1", displayId: nextDisplayId("REX"),
+      humanId: "h-1", routeInterestId: "ri-1",
+      frequency: "one_time", createdAt: ts,
+    });
+
+    const result = await getHumanDetail(db, "h-1");
+    expect(result.routeInterestExpressions).toHaveLength(1);
+    expect(result.routeInterestExpressions[0]!.originCity).toBe("NYC");
+    expect(result.routeInterestExpressions[0]!.destinationCity).toBe("London");
+  });
+
+  it("includes social IDs with platform names", async () => {
+    const db = getTestDb();
+    const ts = now();
+    await seedHuman(db, "h-1");
+
+    await db.insert(schema.socialIdPlatformsConfig).values({
+      id: "plat-1", name: "Instagram", createdAt: ts,
+    });
+    await db.insert(schema.socialIds).values({
+      id: "soc-1", displayId: nextDisplayId("SOC"),
+      handle: "@humantest", platformId: "plat-1", humanId: "h-1",
+      createdAt: ts,
+    });
+
+    const result = await getHumanDetail(db, "h-1");
+    expect(result.socialIds).toHaveLength(1);
+    expect(result.socialIds[0]!.handle).toBe("@humantest");
+    expect(result.socialIds[0]!.platformName).toBe("Instagram");
+  });
+
   it("resolves linked accounts with labels", async () => {
     const db = getTestDb();
     const ts = now();
@@ -289,6 +333,20 @@ describe("updateHuman", () => {
     const types = await db.select().from(schema.humanTypes);
     expect(types).toHaveLength(1);
     expect(types[0]!.type).toBe("pet_shipper");
+  });
+
+  it("updates middleName and lastName", async () => {
+    const db = getTestDb();
+    await seedColleague(db);
+    await seedHuman(db, "h-1", "Maria", "Garcia");
+
+    const result = await updateHuman(db, "h-1", {
+      middleName: "Elena",
+      lastName: "Lopez",
+    }, "col-1");
+
+    expect(result.data?.lastName).toBe("Lopez");
+    expect(result.auditEntryId).toBeDefined();
   });
 
   it("skips audit when no changes detected", async () => {

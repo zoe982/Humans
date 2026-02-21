@@ -58,6 +58,14 @@ export default defineConfig({
         "src/routes/**/+layout.server.ts",
         // API route handlers (server-only endpoints, not page loaders)
         "src/routes/**/+server.ts",
+        // Third-party shadcn-svelte re-exports — no logic to test
+        "src/lib/components/ui/**",
+        // 1-line clsx wrapper — no meaningful logic
+        "src/lib/utils/cn.ts",
+        // Uses Svelte 5 $state runes — untestable in vitest without full runtime
+        "src/lib/changeHistory.ts",
+        // Pure data files — no executable logic
+        "src/lib/constants/**",
       ],
       reportOnFailure: true,
       thresholds: {

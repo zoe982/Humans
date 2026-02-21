@@ -200,3 +200,152 @@ describe("activities/[id] deleteGeoInterestExpression action", () => {
     expect(isActionFailure(result)).toBe(true);
   });
 });
+
+describe("activities/[id] addRouteInterestExpression action", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("returns failure when humanId is missing", async () => {
+    const mockFetch = createMockFetch({});
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent({
+      formData: { routeInterestId: "ri-1" },
+    });
+    const result = await actions.addRouteInterestExpression(event as any);
+    expect(isActionFailure(result)).toBe(true);
+    if (isActionFailure(result)) {
+      expect(result.data.error).toContain("human");
+    }
+  });
+
+  it("returns success with routeInterestId and humanId", async () => {
+    const mockFetch = createMockFetch({
+      "/api/route-interest-expressions": { body: { data: {} } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent({
+      formData: { routeInterestId: "ri-1", humanId: "h-1", frequency: "recurring", notes: "Weekly" },
+    });
+    const result = await actions.addRouteInterestExpression(event as any);
+    expect(result).toEqual({ success: true });
+  });
+
+  it("returns success with origin/destination when no routeInterestId", async () => {
+    const mockFetch = createMockFetch({
+      "/api/route-interest-expressions": { body: { data: {} } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent({
+      formData: {
+        humanId: "h-1",
+        originCity: "London",
+        originCountry: "UK",
+        destinationCity: "Paris",
+        destinationCountry: "France",
+        travelYear: "2025",
+        travelMonth: "8",
+        travelDay: "20",
+      },
+    });
+    const result = await actions.addRouteInterestExpression(event as any);
+    expect(result).toEqual({ success: true });
+  });
+
+  it("returns failure on API error", async () => {
+    const mockFetch = createMockFetch({
+      "/api/route-interest-expressions": { status: 400, body: { error: "Missing data" } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent({
+      formData: { routeInterestId: "ri-1", humanId: "h-1" },
+    });
+    const result = await actions.addRouteInterestExpression(event as any);
+    expect(isActionFailure(result)).toBe(true);
+  });
+});
+
+describe("activities/[id] deleteRouteInterestExpression action", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("returns success on delete", async () => {
+    const mockFetch = createMockFetch({
+      "/api/route-interest-expressions/expr-1": { body: {} },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent({ formData: { id: "expr-1" } });
+    const result = await actions.deleteRouteInterestExpression(event as any);
+    expect(result).toEqual({ success: true });
+  });
+
+  it("returns failure on API error", async () => {
+    const mockFetch = createMockFetch({
+      "/api/route-interest-expressions/expr-1": { status: 500, body: { error: "Server error" } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent({ formData: { id: "expr-1" } });
+    const result = await actions.deleteRouteInterestExpression(event as any);
+    expect(isActionFailure(result)).toBe(true);
+  });
+});
+
+describe("activities/[id] load routeSignups and websiteBookingRequests", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("returns routeSignups and websiteBookingRequests on success", async () => {
+    const mockFetch = createMockFetch({
+      "/api/activities/a-1": { body: { data: sampleActivity } },
+      "/api/humans": { body: { data: [] } },
+      "/api/accounts": { body: { data: [] } },
+      "/api/route-signups": { body: { data: [{ id: "rs-1" }] } },
+      "/api/website-booking-requests": { body: { data: [{ id: "wbr-1" }] } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent();
+    const result = await load(event as any);
+    expect(result.routeSignups).toEqual([{ id: "rs-1" }]);
+    expect(result.websiteBookingRequests).toEqual([{ id: "wbr-1" }]);
+  });
+
+  it("returns empty routeSignups and websiteBookingRequests when APIs fail", async () => {
+    const mockFetch = createMockFetch({
+      "/api/activities/a-1": { body: { data: sampleActivity } },
+      "/api/humans": { body: { data: [] } },
+      "/api/accounts": { body: { data: [] } },
+      "/api/route-signups": { status: 500, body: {} },
+      "/api/website-booking-requests": { status: 500, body: {} },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent();
+    const result = await load(event as any);
+    expect(result.routeSignups).toEqual([]);
+    expect(result.websiteBookingRequests).toEqual([]);
+  });
+
+  it("redirects to /activities when activity data is null", async () => {
+    const mockFetch = createMockFetch({
+      "/api/activities/a-1": { body: { notData: true } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent();
+    try {
+      await load(event as any);
+      expect.fail("should have redirected");
+    } catch (e) {
+      expect(isRedirect(e)).toBe(true);
+    }
+  });
+});

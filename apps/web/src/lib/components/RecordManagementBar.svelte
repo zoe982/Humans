@@ -2,6 +2,7 @@
   import type { Snippet } from "svelte";
   import StatusBadge from "./StatusBadge.svelte";
   import { Button } from "$lib/components/ui/button/index.js";
+  import * as Select from "$lib/components/ui/select/index.js";
   import { ArrowLeft } from "lucide-svelte";
 
   type Props = {
@@ -40,8 +41,8 @@
       : statusColorMap
   );
 
-  function handleStatusDropdownChange(e: Event) {
-    const value = (e.target as HTMLSelectElement).value;
+  function handleBitsStatusChange(value: string | undefined) {
+    if (!value) return;
     selectedStatus = value;
     onStatusChange?.(value);
   }
@@ -61,26 +62,29 @@
     <div class="flex items-center gap-3">
       {#if status && statusOptions.length > 0}
         {#if onStatusChange}
-          <select
-            class="glass-input px-3 py-1.5 text-sm"
-            value={selectedStatus}
-            onchange={handleStatusDropdownChange}
-          >
-            {#each statusOptions as opt}
-              <option value={opt}>{statusLabels?.[opt] ?? opt}</option>
-            {/each}
-          </select>
+          <Select.Root type="single" value={selectedStatus} onValueChange={handleBitsStatusChange}>
+            <Select.Trigger class="w-40 text-sm" aria-label="Status">
+              <Select.Value placeholder="Select status..." />
+            </Select.Trigger>
+            <Select.Content>
+              {#each statusOptions as opt}
+                <Select.Item value={opt}>{statusLabels?.[opt] ?? opt}</Select.Item>
+              {/each}
+            </Select.Content>
+          </Select.Root>
         {:else if statusFormAction}
           <form method="POST" action={statusFormAction} class="flex items-center gap-2">
-            <select
-              name="status"
-              class="glass-input px-3 py-1.5 text-sm"
-              bind:value={selectedStatus}
-            >
-              {#each statusOptions as opt}
-                <option value={opt}>{statusLabels?.[opt] ?? opt}</option>
-              {/each}
-            </select>
+            <input type="hidden" name="status" value={selectedStatus} />
+            <Select.Root type="single" value={selectedStatus} onValueChange={(v) => { if (v) selectedStatus = v; }}>
+              <Select.Trigger class="w-40 text-sm" aria-label="Status">
+                <Select.Value placeholder="Select status..." />
+              </Select.Trigger>
+              <Select.Content>
+                {#each statusOptions as opt}
+                  <Select.Item value={opt}>{statusLabels?.[opt] ?? opt}</Select.Item>
+                {/each}
+              </Select.Content>
+            </Select.Root>
             <Button variant="ghost" size="sm" type="submit">Update</Button>
           </form>
         {/if}

@@ -51,6 +51,7 @@ describe("GET /api/admin/error-log", () => {
     const now = new Date().toISOString();
     await db.insert(schema.errorLog).values({
       id: createId(),
+      displayId: `ERR-${createId().slice(0, 8)}`,
       requestId: createId(),
       code: "INTERNAL_ERROR",
       message: "Something went wrong",
@@ -64,6 +65,7 @@ describe("GET /api/admin/error-log", () => {
     });
     await db.insert(schema.errorLog).values({
       id: createId(),
+      displayId: `ERR-${createId().slice(0, 8)}`,
       requestId: createId(),
       code: "VALIDATION_FAILED",
       message: "Bad input",
@@ -91,6 +93,7 @@ describe("GET /api/admin/error-log", () => {
     for (let i = 0; i < 5; i++) {
       await db.insert(schema.errorLog).values({
         id: createId(),
+        displayId: `ERR-${createId().slice(0, 8)}`,
         requestId: createId(),
         code: "INTERNAL_ERROR",
         message: `Error ${i}`,
@@ -119,6 +122,7 @@ describe("GET /api/admin/error-log", () => {
     for (let i = 0; i < 5; i++) {
       await db.insert(schema.errorLog).values({
         id: createId(),
+        displayId: `ERR-${createId().slice(0, 8)}`,
         requestId: createId(),
         code: "INTERNAL_ERROR",
         message: `Error ${i}`,
@@ -146,6 +150,7 @@ describe("GET /api/admin/error-log", () => {
     const now = new Date().toISOString();
     await db.insert(schema.errorLog).values({
       id: createId(),
+      displayId: `ERR-${createId().slice(0, 8)}`,
       requestId: createId(),
       code: "INTERNAL_ERROR",
       message: "Internal",
@@ -159,6 +164,7 @@ describe("GET /api/admin/error-log", () => {
     });
     await db.insert(schema.errorLog).values({
       id: createId(),
+      displayId: `ERR-${createId().slice(0, 8)}`,
       requestId: createId(),
       code: "VALIDATION_FAILED",
       message: "Validation",
@@ -186,6 +192,7 @@ describe("GET /api/admin/error-log", () => {
     const now = new Date().toISOString();
     await db.insert(schema.errorLog).values({
       id: createId(),
+      displayId: `ERR-${createId().slice(0, 8)}`,
       requestId: createId(),
       code: "INTERNAL_ERROR",
       message: "Error on humans",
@@ -199,6 +206,7 @@ describe("GET /api/admin/error-log", () => {
     });
     await db.insert(schema.errorLog).values({
       id: createId(),
+      displayId: `ERR-${createId().slice(0, 8)}`,
       requestId: createId(),
       code: "INTERNAL_ERROR",
       message: "Error on flights",
@@ -256,6 +264,7 @@ describe("DELETE /api/admin/error-log/cleanup", () => {
 
     await db.insert(schema.errorLog).values({
       id: createId(),
+      displayId: `ERR-${createId().slice(0, 8)}`,
       requestId: createId(),
       code: "INTERNAL_ERROR",
       message: "Old error",
@@ -269,6 +278,7 @@ describe("DELETE /api/admin/error-log/cleanup", () => {
     });
     await db.insert(schema.errorLog).values({
       id: createId(),
+      displayId: `ERR-${createId().slice(0, 8)}`,
       requestId: createId(),
       code: "INTERNAL_ERROR",
       message: "Recent error",

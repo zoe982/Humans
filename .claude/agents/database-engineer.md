@@ -470,7 +470,7 @@ Before applying any migration to production:
 6. **Generate the migration** via `drizzle-kit generate`
 7. **Review the SQL** — verify it matches your intent
 8. **Test locally** — apply to local D1 or development database
-9. **Write schema tests** if the schema has computed defaults or constraints
+9. **Write schema tests** if the schema has computed defaults or constraints. Run with: `cd /Users/zoemarsico/Documents/Humans/packages/db && pnpm test run src/schema/schema.test.ts 2>&1 | tail -n 20`
 
 ### Optimizing a Slow Query
 1. **Measure first** — get the actual execution plan (`EXPLAIN QUERY PLAN` for SQLite, `EXPLAIN ANALYZE` for PostgreSQL)

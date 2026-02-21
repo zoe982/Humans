@@ -58,3 +58,31 @@ Check table status:
 ```bash
 npx wrangler d1 execute humans-db --remote --command "SELECT name FROM sqlite_master WHERE type='table';" --config apps/api/wrangler.toml
 ```
+
+## Testing Commands
+
+All test commands use absolute paths and pipe through `tail` to prevent context window overflow in subagents.
+
+### Package Paths
+| Package | Path |
+|---------|------|
+| API | `cd /Users/zoemarsico/Documents/Humans/apps/api` |
+| Web | `cd /Users/zoemarsico/Documents/Humans/apps/web` |
+| DB | `cd /Users/zoemarsico/Documents/Humans/packages/db` |
+| Shared | `cd /Users/zoemarsico/Documents/Humans/packages/shared` |
+
+### Standardized Commands
+| Scenario | Command suffix | Lines |
+|----------|---------------|-------|
+| TDD single file | `pnpm test run <file> 2>&1 \| tail -n 20` | ~20 |
+| Full suite pass/fail | `pnpm test run 2>&1 \| tail -n 40` | ~40 |
+| Suite with coverage | `pnpm test run --coverage 2>&1 \| tail -n 80` | ~80 |
+| Failure diagnosis | `pnpm test run 2>&1 \| tail -n 200` | ~200 |
+
+### Rules
+- **Subagents run single test files** during TDD — never the full suite
+- **Cook runs full suites** for validation gates and pre-deploy checks
+- **Always pipe through `tail`** for suite-level runs to avoid flooding context
+- **Two-stage failure diagnosis**: start with `tail -n 40`, escalate to `tail -n 200` only if needed
+- **API integration tests are noisy** (1400+ lines) — always truncate
+- `--reporter=dot` does NOT reduce output in vitest 2.1.x — use `tail` instead

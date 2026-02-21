@@ -1,6 +1,10 @@
 import { describe, it, expect } from "vitest";
-import { render, screen } from "@testing-library/svelte";
+import { render, screen, fireEvent } from "@testing-library/svelte";
+import { axe } from "vitest-axe";
+import { toHaveNoViolations } from "vitest-axe/matchers";
 import PhoneInput from "./PhoneInput.svelte";
+
+expect.extend({ toHaveNoViolations });
 
 describe("PhoneInput", () => {
   it("renders a hidden input with the given name", () => {
@@ -47,5 +51,23 @@ describe("PhoneInput", () => {
     const { container } = render(PhoneInput, { props: { name: "phone" } });
     const hidden = container.querySelector('input[type="hidden"]') as HTMLInputElement;
     expect(hidden.value).toBe("");
+  });
+
+  // ── Accessibility (axe-core) ────────────────────────────────────
+
+  describe("Accessibility", () => {
+    it("has no axe violations when closed", async () => {
+      const { container } = render(PhoneInput, { props: { name: "phone" } });
+      const results = await axe(container);
+      expect(results).toHaveNoViolations();
+    });
+
+    it("has no axe violations when dropdown is open", async () => {
+      const { container } = render(PhoneInput, { props: { name: "phone" } });
+      const trigger = container.querySelector('button[aria-label="Select country code"]')!;
+      await fireEvent.click(trigger);
+      const results = await axe(container);
+      expect(results).toHaveNoViolations();
+    });
   });
 });

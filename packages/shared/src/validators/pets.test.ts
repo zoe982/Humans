@@ -54,6 +54,24 @@ describe("createPetSchema", () => {
   it("rejects invalid breed", () => {
     expect(() => createPetSchema.parse({ ...validInput, breed: "Dragon" })).toThrowError();
   });
+
+  it("accepts cat with no breed (refine passes)", () => {
+    const result = createPetSchema.parse({ ...validInput, type: "cat", breed: null });
+    expect(result.type).toBe("cat");
+    expect(result.breed).toBeNull();
+  });
+
+  it("rejects cat with a breed (refine fails)", () => {
+    expect(() =>
+      createPetSchema.parse({ ...validInput, type: "cat", breed: "Poodle" }),
+    ).toThrowError();
+  });
+
+  it("accepts dog with a breed (refine passes — type is not cat)", () => {
+    const result = createPetSchema.parse({ ...validInput, type: "dog", breed: "Poodle" });
+    expect(result.type).toBe("dog");
+    expect(result.breed).toBe("Poodle");
+  });
 });
 
 describe("updatePetSchema", () => {

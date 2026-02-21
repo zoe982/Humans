@@ -5,6 +5,7 @@
   import SearchableSelect from "$lib/components/SearchableSelect.svelte";
   import { ROLE_OPTIONS } from "$lib/constants/labels";
   import { Button } from "$lib/components/ui/button";
+  import * as Select from "$lib/components/ui/select";
 
   let { data, form }: { data: PageData; form: ActionData } = $props();
 
@@ -151,14 +152,22 @@
             <td>
               <form method="POST" action="?/update" class="flex items-center gap-2">
                 <input type="hidden" name="id" value={colleague.id} />
-                <select
-                  name="role"
-                  class="glass-input px-2 py-1 text-xs"
-                >
-                  {#each ["viewer", "agent", "manager", "admin"] as r}
-                    <option value={r} selected={r === colleague.role}>{r}</option>
-                  {/each}
-                </select>
+                <input type="hidden" name="role" value={colleague.role} />
+                <Select.Root type="single" value={colleague.role} onValueChange={(v) => {
+                  if (!v) return;
+                  const form = document.querySelector(`input[name="id"][value="${colleague.id}"]`)?.closest("form");
+                  const hidden = form?.querySelector<HTMLInputElement>('input[name="role"]');
+                  if (hidden) hidden.value = v;
+                }}>
+                  <Select.Trigger class="w-28 text-xs">
+                    <Select.Value placeholder="Role" />
+                  </Select.Trigger>
+                  <Select.Content>
+                    {#each ["viewer", "agent", "manager", "admin"] as r}
+                      <Select.Item value={r}>{r}</Select.Item>
+                    {/each}
+                  </Select.Content>
+                </Select.Root>
                 <input type="hidden" name="isActive" value={String(!colleague.isActive)} />
                 <Button
                   type="submit"

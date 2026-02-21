@@ -141,11 +141,11 @@ describe("admin/error-log +page.server", () => {
     });
   });
 
-  describe("actions.cleanup", () => {
+  describe("actions.toggleResolution", () => {
     it("redirects to /login when user is null", async () => {
-      const event = mockEvent({ user: null });
+      const event = mockEvent({ user: null, formData: { id: "e1", resolutionStatus: "resolved" } });
       try {
-        await actions.cleanup(event as any);
+        await actions.toggleResolution(event as any);
         expect.fail("should have redirected");
       } catch (e) {
         expect(isRedirect(e)).toBe(true);
@@ -155,9 +155,12 @@ describe("admin/error-log +page.server", () => {
     });
 
     it("redirects to /dashboard when user is not admin", async () => {
-      const event = mockEvent({ user: { id: "u1", email: "a@b.com", role: "agent", name: "Agent" } });
+      const event = mockEvent({
+        user: { id: "u1", email: "a@b.com", role: "agent", name: "Agent" },
+        formData: { id: "e1", resolutionStatus: "resolved" },
+      });
       try {
-        await actions.cleanup(event as any);
+        await actions.toggleResolution(event as any);
         expect.fail("should have redirected");
       } catch (e) {
         expect(isRedirect(e)).toBe(true);
@@ -166,38 +169,42 @@ describe("admin/error-log +page.server", () => {
       }
     });
 
-    it("calls cleanup endpoint and returns success", async () => {
+    it("calls toggle-resolution endpoint and returns success", async () => {
       mockFetch = createMockFetch({
-        "/api/admin/error-log/cleanup": { body: { deleted: 5 } },
+        "/api/admin/error-log": { body: {} },
       });
       vi.stubGlobal("fetch", mockFetch);
 
-      const event = mockEvent({ user: { id: "u1", email: "admin@b.com", role: "admin", name: "Admin" } });
-      const result = await actions.cleanup(event as any);
+      const event = mockEvent({
+        user: { id: "u1", email: "admin@b.com", role: "admin", name: "Admin" },
+        formData: { id: "e1", resolutionStatus: "resolved" },
+      });
+      const result = await actions.toggleResolution(event as any);
 
       expect(result).toEqual({ success: true });
       expect(mockFetch).toHaveBeenCalledWith(
-        expect.stringContaining("/api/admin/error-log/cleanup"),
-        expect.objectContaining({ method: "DELETE" }),
+        expect.stringContaining("/api/admin/error-log/e1/resolution"),
+        expect.objectContaining({ method: "PATCH" }),
       );
     });
 
     it("passes session token in cookie header", async () => {
       mockFetch = createMockFetch({
-        "/api/admin/error-log/cleanup": { body: {} },
+        "/api/admin/error-log": { body: {} },
       });
       vi.stubGlobal("fetch", mockFetch);
 
       const event = mockEvent({
         user: { id: "u1", email: "admin@b.com", role: "admin", name: "Admin" },
         sessionToken: "sess-xyz",
+        formData: { id: "e1", resolutionStatus: "resolved" },
       });
-      await actions.cleanup(event as any);
+      await actions.toggleResolution(event as any);
 
       expect(mockFetch).toHaveBeenCalledWith(
         expect.any(String),
         expect.objectContaining({
-          headers: { Cookie: "humans_session=sess-xyz" },
+          headers: expect.objectContaining({ Cookie: "humans_session=sess-xyz" }),
         }),
       );
     });

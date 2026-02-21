@@ -1,13 +1,17 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi, afterEach } from "vitest";
 import { isRedirect, Redirect } from "@sveltejs/kit";
-import { mockEvent } from "../../helpers";
+import { mockEvent, createMockFetch } from "../../helpers";
 import { load } from "../../../src/routes/reports/+page.server";
 
 describe("reports +page.server load", () => {
-  it("redirects to /login when user is null", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("redirects to /login when user is null", async () => {
     const event = mockEvent({ user: null });
     try {
-      load(event as any);
+      await load(event as any);
       expect.fail("should have redirected");
     } catch (e) {
       expect(isRedirect(e)).toBe(true);
@@ -16,10 +20,10 @@ describe("reports +page.server load", () => {
     }
   });
 
-  it("redirects agent to /dashboard", () => {
+  it("redirects agent to /dashboard", async () => {
     const event = mockEvent({ user: { id: "u1", email: "a@b.com", role: "agent", name: "Agent" } });
     try {
-      load(event as any);
+      await load(event as any);
       expect.fail("should have redirected");
     } catch (e) {
       expect(isRedirect(e)).toBe(true);
@@ -28,15 +32,25 @@ describe("reports +page.server load", () => {
     }
   });
 
-  it("does not redirect manager", () => {
+  it("does not redirect manager", async () => {
+    const mockFetch = createMockFetch({
+      "/api/admin/colleagues": { body: { data: [] } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
     const event = mockEvent({ user: { id: "u1", email: "a@b.com", role: "manager", name: "Mgr" } });
-    const result = load(event as any);
-    expect(result).toBeUndefined();
+    const result = await load(event as any);
+    expect(result).toBeDefined();
+    expect(result.colleagues).toEqual([]);
   });
 
-  it("does not redirect admin", () => {
+  it("does not redirect admin", async () => {
+    const mockFetch = createMockFetch({
+      "/api/admin/colleagues": { body: { data: [{ id: "c1", name: "Admin User" }] } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
     const event = mockEvent({ user: { id: "u1", email: "a@b.com", role: "admin", name: "Admin" } });
-    const result = load(event as any);
-    expect(result).toBeUndefined();
+    const result = await load(event as any);
+    expect(result).toBeDefined();
+    expect(result.colleagues).toHaveLength(1);
   });
 });

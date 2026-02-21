@@ -7,6 +7,7 @@
   import RelatedListTable from "$lib/components/RelatedListTable.svelte";
   import { Trash2 } from "lucide-svelte";
   import { Button } from "$lib/components/ui/button";
+  import * as Select from "$lib/components/ui/select";
   import { formatRelativeTime, summarizeChanges } from "$lib/utils/format";
   import { createChangeHistoryLoader } from "$lib/changeHistory";
 
@@ -361,10 +362,19 @@
         </div>
         <div>
           <label for="frequency" class="block text-sm font-medium text-text-secondary mb-1">Frequency</label>
-          <select id="frequency" name="frequency" class="glass-input block w-full px-3 py-2 text-sm">
-            <option value="one_time">One-time</option>
-            <option value="repeat">Repeat</option>
-          </select>
+          <input type="hidden" name="frequency" value="one_time" id="frequency-hidden" />
+          <Select.Root type="single" value="one_time" onValueChange={(v) => {
+            const hidden = document.getElementById("frequency-hidden") as HTMLInputElement | null;
+            if (hidden && v) hidden.value = v;
+          }}>
+            <Select.Trigger class="w-full text-sm">
+              <Select.Value placeholder="Select frequency..." />
+            </Select.Trigger>
+            <Select.Content>
+              <Select.Item value="one_time">One-time</Select.Item>
+              <Select.Item value="repeat">Repeat</Select.Item>
+            </Select.Content>
+          </Select.Root>
         </div>
         <div>
           <label class="block text-sm font-medium text-text-secondary mb-1">Travel Date (optional)</label>

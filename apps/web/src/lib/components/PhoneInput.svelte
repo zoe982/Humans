@@ -1,6 +1,6 @@
 <script lang="ts">
   import { COUNTRY_PHONE_CODES, type CountryPhoneCode } from "@humans/shared";
-  import { ChevronDown } from "lucide-svelte";
+  import { ChevronDown, Check } from "lucide-svelte";
 
   type Props = {
     name: string;
@@ -94,7 +94,7 @@
     >
       <span>{selectedCode.flag}</span>
       <span class="text-text-secondary">{selectedCode.dialCode}</span>
-      <ChevronDown size={14} class="text-text-muted" />
+      <ChevronDown size={14} class="text-text-muted transition-transform duration-200 {showDropdown ? 'rotate-180' : ''}" />
     </button>
     <input
       type="tel"
@@ -105,7 +105,7 @@
     />
   </div>
   {#if showDropdown}
-    <div class="glass-popover absolute z-50 mt-1 w-72">
+    <div class="glass-popover glass-dropdown-animate absolute z-50 mt-1 w-72">
       <div class="p-2 border-b border-glass-border">
         <input
           type="text"
@@ -118,13 +118,13 @@
           onkeydown={handleDropdownKeydown}
         />
       </div>
-      <div role="listbox" aria-label="Country codes" class="max-h-48 overflow-y-auto">
+      <div role="listbox" aria-label="Country codes" class="max-h-48 overflow-y-auto py-1">
         {#each filteredCodes as code, i (code.iso2)}
           <button
             type="button"
             role="option"
             aria-selected={code.iso2 === selectedCode.iso2}
-            class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition-colors {i === highlightIndex || code.iso2 === selectedCode.iso2 ? 'bg-glass-hover text-text-primary' : 'text-text-secondary hover:bg-glass-hover hover:text-text-primary'}"
+            class="glass-dropdown-item flex w-full items-center gap-2 text-left {i === highlightIndex || code.iso2 === selectedCode.iso2 ? 'bg-glass-hover !text-text-primary' : ''}"
             onmousedown={(e) => { e.preventDefault(); selectCode(code); }}
             onmouseenter={() => { highlightIndex = i; }}
             tabindex="-1"
@@ -132,10 +132,13 @@
             <span>{code.flag}</span>
             <span class="flex-1 truncate">{code.name}</span>
             <span class="text-text-muted">{code.dialCode}</span>
+            {#if code.iso2 === selectedCode.iso2}
+              <Check class="h-4 w-4 shrink-0 text-accent" aria-hidden="true" />
+            {/if}
           </button>
         {/each}
         {#if filteredCodes.length === 0}
-          <div class="px-3 py-2 text-sm text-text-muted" role="status">No matches</div>
+          <div class="glass-dropdown-empty" role="status">No matches</div>
         {/if}
       </div>
     </div>

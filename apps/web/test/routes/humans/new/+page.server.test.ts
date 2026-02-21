@@ -4,17 +4,6 @@ import { mockEvent, createMockFetch } from "../../../helpers";
 import { load, actions } from "../../../../src/routes/humans/new/+page.server";
 
 describe("humans/new load", () => {
-  let mockFetch: ReturnType<typeof vi.fn>;
-
-  beforeEach(() => {
-    mockFetch = createMockFetch({
-      "/api/admin/account-config/human-email-labels": {
-        body: { data: [{ id: "lbl-1", label: "Work" }] },
-      },
-    });
-    vi.stubGlobal("fetch", mockFetch);
-  });
-
   afterEach(() => {
     vi.unstubAllGlobals();
   });
@@ -31,33 +20,26 @@ describe("humans/new load", () => {
 
   it("returns prefill data from URL params", async () => {
     const event = mockEvent({
-      url: "http://localhost/humans/new?firstName=Jane&lastName=Doe&email=jane@test.com&fromSignup=signup-1",
+      url: "http://localhost/humans/new?firstName=Jane&lastName=Doe&fromSignup=signup-1&middleName=M",
     });
     const result = await load(event as any);
     expect(result.prefill).toEqual({
       fromSignup: "signup-1",
       firstName: "Jane",
-      middleName: "",
+      middleName: "M",
       lastName: "Doe",
-      email: "jane@test.com",
     });
   });
 
-  it("returns email label configs from API", async () => {
+  it("returns empty prefill strings when no URL params", async () => {
     const event = mockEvent();
     const result = await load(event as any);
-    expect(result.emailLabelConfigs).toEqual([{ id: "lbl-1", label: "Work" }]);
-  });
-
-  it("returns empty emailLabelConfigs when API fails", async () => {
-    mockFetch = createMockFetch({
-      "/api/admin/account-config/human-email-labels": { status: 500, body: {} },
+    expect(result.prefill).toEqual({
+      fromSignup: "",
+      firstName: "",
+      middleName: "",
+      lastName: "",
     });
-    vi.stubGlobal("fetch", mockFetch);
-
-    const event = mockEvent();
-    const result = await load(event as any);
-    expect(result.emailLabelConfigs).toEqual([]);
   });
 });
 
@@ -80,8 +62,6 @@ describe("humans/new create action", () => {
       formData: {
         firstName: "Jane",
         lastName: "Doe",
-        "emails[0].email": "jane@test.com",
-        primaryEmail: "0",
       },
     });
     try {
@@ -102,8 +82,6 @@ describe("humans/new create action", () => {
       formData: {
         firstName: "",
         lastName: "",
-        "emails[0].email": "",
-        primaryEmail: "0",
       },
     });
     const result = await actions.create(event as any);
@@ -125,8 +103,6 @@ describe("humans/new create action", () => {
         firstName: "Jane",
         lastName: "Doe",
         fromSignup: "signup-1",
-        "emails[0].email": "jane@test.com",
-        primaryEmail: "0",
       },
     });
     try {
@@ -149,20 +125,17 @@ describe("humans/new create action", () => {
     const event = mockEvent({
       formData: { firstName: "Jane", lastName: "Doe" },
     });
-    // isDataWithId checks for "data" key existing, { weird: true } does not have "data"
+    // isDataWithId checks for "data" key existing — { weird: true } does not have "data"
     const result = await actions.create(event as any);
     expect(isActionFailure(result)).toBe(true);
   });
 
-  it("collects multiple emails from form", async () => {
+  it("includes types in the POST payload", async () => {
     const event = mockEvent({
       formData: {
         firstName: "Jane",
         lastName: "Doe",
-        "emails[0].email": "jane@work.com",
-        "emails[0].labelId": "lbl-1",
-        "emails[1].email": "jane@home.com",
-        primaryEmail: "1",
+        types: "client",
       },
     });
     try {
@@ -174,8 +147,32 @@ describe("humans/new create action", () => {
       (c: unknown[]) => typeof c[1] === "object" && (c[1] as RequestInit).method === "POST",
     );
     expect(postCall).toBeDefined();
-    const body = JSON.parse((postCall as unknown[])[1] as string ? ((postCall as unknown[])[1] as any).body : "{}");
-    expect(body.emails).toHaveLength(2);
-    expect(body.emails[1].isPrimary).toBe(true);
+    const body = JSON.parse((postCall as unknown[])[1] as string
+      ? ((postCall as unknown[])[1] as RequestInit).body as string
+      : "{}");
+    expect(body.firstName).toBe("Jane");
+    expect(body.lastName).toBe("Doe");
+  });
+
+  it("redirects to human when convert-from-signup fails", async () => {
+    mockFetch = createMockFetch({
+      "/api/humans": { body: { data: { id: "h-2" } } },
+      "/convert-from-signup": { status: 500, body: { error: "Server error" } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = mockEvent({
+      formData: {
+        firstName: "Jane",
+        lastName: "Doe",
+        fromSignup: "signup-bad",
+      },
+    });
+    try {
+      await actions.create(event as any);
+      expect.fail("should have redirected");
+    } catch (e) {
+      expect(isRedirect(e)).toBe(true);
+    }
   });
 });

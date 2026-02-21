@@ -169,4 +169,154 @@ describe("activities/new create action", () => {
     const calls = mockFetch.mock.calls.map((c: unknown[]) => String(c[0]));
     expect(calls.some((u: string) => u.includes("geo-interest-expressions"))).toBe(true);
   });
+
+  it("creates route-interest expression from routeInterestsJson without id", async () => {
+    const mockFetch = createMockFetch({
+      "/api/activities": { body: { data: { id: "a-new" } } },
+      "/api/route-interest-expressions": { body: { data: {} } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = mockEvent({
+      formData: {
+        type: "meeting",
+        subject: "Route discussion",
+        activityDate: "2025-01-15",
+        humanId: "h-1",
+        routeInterestsJson: JSON.stringify([{
+          originCity: "NYC",
+          originCountry: "USA",
+          destinationCity: "London",
+          destinationCountry: "UK",
+          frequency: "one_time",
+          travelYear: 2025,
+          travelMonth: 6,
+          travelDay: 10,
+        }]),
+      },
+    });
+    try {
+      await actions.create(event as any);
+    } catch {
+      // redirect expected
+    }
+    const calls = mockFetch.mock.calls.map((c: unknown[]) => String(c[0]));
+    expect(calls.some((u: string) => u.includes("route-interest-expressions"))).toBe(true);
+  });
+
+  it("creates route-interest expression with routeInterestId from JSON", async () => {
+    const mockFetch = createMockFetch({
+      "/api/activities": { body: { data: { id: "a-new" } } },
+      "/api/route-interest-expressions": { body: { data: {} } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = mockEvent({
+      formData: {
+        type: "meeting",
+        subject: "Route discussion",
+        activityDate: "2025-01-15",
+        humanId: "h-1",
+        routeInterestsJson: JSON.stringify([{ id: "ri-1", frequency: "recurring" }]),
+      },
+    });
+    try {
+      await actions.create(event as any);
+    } catch {
+      // redirect expected
+    }
+    const calls = mockFetch.mock.calls.map((c: unknown[]) => String(c[0]));
+    expect(calls.some((u: string) => u.includes("route-interest-expressions"))).toBe(true);
+  });
+
+  it("ignores malformed routeInterestsJson gracefully", async () => {
+    const mockFetch = createMockFetch({
+      "/api/activities": { body: { data: { id: "a-new" } } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = mockEvent({
+      formData: {
+        type: "email",
+        subject: "Test",
+        activityDate: "2025-01-15",
+        humanId: "h-1",
+        routeInterestsJson: "{bad json",
+      },
+    });
+    try {
+      await actions.create(event as any);
+    } catch {
+      // redirect expected
+    }
+    // No route-interest-expressions call should have been made
+    const calls = mockFetch.mock.calls.map((c: unknown[]) => String(c[0]));
+    expect(calls.some((u: string) => u.includes("route-interest-expressions"))).toBe(false);
+  });
+
+  it("redirects with accountId as linked entity", async () => {
+    const mockFetch = createMockFetch({
+      "/api/activities": { body: { data: { id: "a-new" } } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = mockEvent({
+      formData: {
+        type: "email",
+        subject: "Account activity",
+        activityDate: "2025-01-15",
+        accountId: "acc-1",
+      },
+    });
+    try {
+      await actions.create(event as any);
+      expect.fail("should have redirected");
+    } catch (e) {
+      expect(isRedirect(e)).toBe(true);
+    }
+  });
+
+  it("redirects with routeSignupId as linked entity", async () => {
+    const mockFetch = createMockFetch({
+      "/api/activities": { body: { data: { id: "a-new" } } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = mockEvent({
+      formData: {
+        type: "email",
+        subject: "Signup activity",
+        activityDate: "2025-01-15",
+        routeSignupId: "rs-1",
+      },
+    });
+    try {
+      await actions.create(event as any);
+      expect.fail("should have redirected");
+    } catch (e) {
+      expect(isRedirect(e)).toBe(true);
+    }
+  });
+
+  it("redirects with websiteBookingRequestId as linked entity", async () => {
+    const mockFetch = createMockFetch({
+      "/api/activities": { body: { data: { id: "a-new" } } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = mockEvent({
+      formData: {
+        type: "email",
+        subject: "Booking activity",
+        activityDate: "2025-01-15",
+        websiteBookingRequestId: "wbr-1",
+      },
+    });
+    try {
+      await actions.create(event as any);
+      expect.fail("should have redirected");
+    } catch (e) {
+      expect(isRedirect(e)).toBe(true);
+    }
+  });
 });

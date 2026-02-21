@@ -3,6 +3,7 @@ import { getTestDb } from "../setup";
 import {
   listPhoneNumbers,
   listPhoneNumbersForHuman,
+  getPhoneNumber,
   createPhoneNumber,
   updatePhoneNumber,
   deletePhoneNumber,
@@ -30,18 +31,33 @@ async function seedHuman(db: ReturnType<typeof getTestDb>, id = "h-1", first = "
   return id;
 }
 
+async function seedAccount(db: ReturnType<typeof getTestDb>, id = "acc-1", name = "Test Corp") {
+  seedCounter++;
+  const ts = now();
+  await db.insert(schema.accounts).values({
+    id,
+    displayId: `ACC-${String(seedCounter).padStart(6, "0")}`,
+    name,
+    status: "open",
+    createdAt: ts,
+    updatedAt: ts,
+  });
+  return id;
+}
+
 async function seedPhone(
   db: ReturnType<typeof getTestDb>,
   id = "ph-1",
   ownerId = "h-1",
   phoneNumber = "+1234567890",
+  ownerType: "human" | "account" = "human",
 ) {
   seedCounter++;
   const ts = now();
   await db.insert(schema.phones).values({
     id,
     displayId: `FON-${String(seedCounter).padStart(6, "0")}`,
-    ownerType: "human",
+    ownerType,
     ownerId,
     phoneNumber,
     hasWhatsapp: false,
@@ -83,6 +99,47 @@ describe("listPhoneNumbers", () => {
     const bob = result.find((p) => p.ownerId === "h-2");
     expect(alice!.ownerName).toBe("Alice Smith");
     expect(bob!.ownerName).toBe("Bob Jones");
+  });
+
+  it("returns phone numbers owned by an account with account name", async () => {
+    const db = getTestDb();
+    await seedAccount(db, "acc-1", "Acme Corp");
+    await seedPhone(db, "ph-1", "acc-1", "+3333333333", "account");
+
+    const result = await listPhoneNumbers(db);
+    expect(result).toHaveLength(1);
+    expect(result[0]!.ownerName).toBe("Acme Corp");
+    expect(result[0]!.ownerDisplayId).toMatch(/^ACC-/);
+  });
+});
+
+describe("getPhoneNumber", () => {
+  it("throws notFound for missing phone number", async () => {
+    const db = getTestDb();
+    await expect(getPhoneNumber(db, "nonexistent")).rejects.toThrowError("Phone number not found");
+  });
+
+  it("returns phone enriched with human data", async () => {
+    const db = getTestDb();
+    await seedHuman(db, "h-1", "Dan", "Brown");
+    await seedPhone(db, "ph-1", "h-1", "+4444444444");
+
+    const result = await getPhoneNumber(db, "ph-1");
+    expect(result.id).toBe("ph-1");
+    expect(result.phoneNumber).toBe("+4444444444");
+    expect(result.ownerName).toBe("Dan Brown");
+    expect(result.ownerDisplayId).toMatch(/^HUM-/);
+    expect(result.labelName).toBeNull();
+  });
+
+  it("returns phone enriched with account data", async () => {
+    const db = getTestDb();
+    await seedAccount(db, "acc-1", "Global Corp");
+    await seedPhone(db, "ph-1", "acc-1", "+5555555555", "account");
+
+    const result = await getPhoneNumber(db, "ph-1");
+    expect(result.ownerName).toBe("Global Corp");
+    expect(result.ownerDisplayId).toMatch(/^ACC-/);
   });
 });
 

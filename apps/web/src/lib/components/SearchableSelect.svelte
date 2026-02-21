@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { ChevronDown } from "lucide-svelte";
+  import { ChevronDown, Check } from "lucide-svelte";
 
   type Option = { value: string; label: string };
 
@@ -141,7 +141,7 @@
       class="glass-input mt-1 block w-full pr-8"
     />
     <ChevronDown
-      class="pointer-events-none absolute right-3 top-1/2 mt-0.5 h-4 w-4 -translate-y-1/2 text-text-muted"
+      class="pointer-events-none absolute right-3 top-1/2 mt-0.5 h-4 w-4 -translate-y-1/2 text-text-muted transition-transform duration-200 {open ? 'rotate-180' : ''}"
       aria-hidden="true"
     />
   </div>
@@ -149,31 +149,32 @@
     <ul
       id={listboxId}
       role="listbox"
-      class="glass-popover absolute z-50 mt-1 w-full max-h-48 overflow-auto py-1"
-      aria-label=""
+      class="glass-popover glass-dropdown-animate absolute z-50 mt-1 w-full max-h-48 overflow-auto py-1"
+      aria-label="{name} options"
     >
       {#each displayList as option, i}
+        {#if emptyOption && i === 1}
+          <li role="separator" class="glass-dropdown-separator"></li>
+        {/if}
         <li
           id="{listboxId}-option-{i}"
           role="option"
           aria-selected={option.value === selectedValue}
+          class="glass-dropdown-item flex items-center justify-between text-left {i === highlightIndex ? 'bg-glass-hover !text-text-primary' : ''}"
+          onmousedown={(e) => { e.preventDefault(); select(option); }}
+          onmouseenter={() => { highlightIndex = i; }}
         >
-          <button
-            type="button"
-            class="w-full px-3 py-2 text-left text-sm transition-colors {i === highlightIndex ? 'bg-glass-hover text-text-primary' : 'text-text-secondary hover:bg-glass-hover hover:text-text-primary'}"
-            onmousedown={(e) => { e.preventDefault(); select(option); }}
-            onmouseenter={() => { highlightIndex = i; }}
-            tabindex="-1"
-          >
-            {option.label}
-          </button>
+          <span>{option.label}</span>
+          {#if option.value === selectedValue}
+            <Check class="h-4 w-4 text-accent" aria-hidden="true" />
+          {/if}
         </li>
       {/each}
     </ul>
   {/if}
   {#if open && query.trim() !== "" && displayList.length === 0}
-    <div class="glass-popover absolute z-50 mt-1 w-full px-3 py-2 text-sm text-text-muted" role="status">
-      {emptyMessage}
+    <div class="glass-popover glass-dropdown-animate absolute z-50 mt-1 w-full" role="status">
+      <p class="glass-dropdown-empty">{emptyMessage}</p>
     </div>
   {/if}
 </div>

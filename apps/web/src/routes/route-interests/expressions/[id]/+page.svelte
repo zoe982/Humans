@@ -4,6 +4,7 @@
   import RecordManagementBar from "$lib/components/RecordManagementBar.svelte";
   import SearchableSelect from "$lib/components/SearchableSelect.svelte";
   import SaveIndicator from "$lib/components/SaveIndicator.svelte";
+  import * as Select from "$lib/components/ui/select";
   import ConfirmDialog from "$lib/components/ConfirmDialog.svelte";
   import { toast } from "svelte-sonner";
   import { createAutoSaver, type SaveStatus } from "$lib/autosave";
@@ -161,15 +162,15 @@
     <!-- Frequency -->
     <div>
       <label for="frequency" class="block text-sm font-medium text-text-secondary mb-1">Frequency</label>
-      <select
-        id="frequency"
-        bind:value={frequency}
-        onchange={triggerSaveImmediate}
-        class="glass-input block w-full sm:w-48"
-      >
-        <option value="one_time">One-time</option>
-        <option value="repeat">Repeat</option>
-      </select>
+      <Select.Root type="single" value={frequency} onValueChange={(v) => { if (v) { frequency = v; triggerSaveImmediate(); } }}>
+        <Select.Trigger class="w-full sm:w-48 text-sm">
+          <Select.Value placeholder="Select frequency..." />
+        </Select.Trigger>
+        <Select.Content>
+          <Select.Item value="one_time">One-time</Select.Item>
+          <Select.Item value="repeat">Repeat</Select.Item>
+        </Select.Content>
+      </Select.Root>
     </div>
 
     <!-- Travel Date -->

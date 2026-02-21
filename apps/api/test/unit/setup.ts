@@ -52,10 +52,12 @@ const MIGRATION_STATEMENTS = [
   )`,
   `CREATE TABLE IF NOT EXISTS \`error_log\` (
     \`id\` text PRIMARY KEY NOT NULL,
+    \`display_id\` text NOT NULL,
     \`request_id\` text NOT NULL,
     \`code\` text NOT NULL,
     \`message\` text NOT NULL,
     \`status\` integer NOT NULL,
+    \`resolution_status\` text NOT NULL DEFAULT 'open',
     \`method\` text,
     \`path\` text,
     \`user_id\` text,
@@ -150,13 +152,10 @@ const MIGRATION_STATEMENTS = [
     \`id\` text PRIMARY KEY NOT NULL,
     \`display_id\` text NOT NULL UNIQUE,
     \`human_id\` text,
+    \`type\` text NOT NULL DEFAULT 'dog',
     \`name\` text NOT NULL,
     \`breed\` text,
     \`weight\` real,
-    \`age\` integer,
-    \`special_needs\` text,
-    \`health_cert_r2_key\` text,
-    \`vaccination_r2_key\` text,
     \`is_active\` integer DEFAULT true NOT NULL,
     \`created_at\` text NOT NULL,
     \`updated_at\` text NOT NULL,
@@ -190,7 +189,29 @@ const MIGRATION_STATEMENTS = [
     \`created_at\` text NOT NULL
   )`,
 
-  // ── Depend on humans + colleagues + accounts ──────────────────────
+  // ── Depend on colleagues (front_sync_runs) ───────────────────────
+  `CREATE TABLE IF NOT EXISTS \`front_sync_runs\` (
+    \`id\` text PRIMARY KEY NOT NULL,
+    \`display_id\` text NOT NULL UNIQUE,
+    \`status\` text NOT NULL DEFAULT 'running',
+    \`started_at\` text NOT NULL,
+    \`completed_at\` text,
+    \`total_messages\` integer NOT NULL DEFAULT 0,
+    \`imported\` integer NOT NULL DEFAULT 0,
+    \`skipped\` integer NOT NULL DEFAULT 0,
+    \`unmatched\` integer NOT NULL DEFAULT 0,
+    \`error_count\` integer NOT NULL DEFAULT 0,
+    \`error_messages\` text,
+    \`linked_to_humans\` integer NOT NULL DEFAULT 0,
+    \`linked_to_accounts\` integer NOT NULL DEFAULT 0,
+    \`linked_to_route_signups\` integer NOT NULL DEFAULT 0,
+    \`linked_to_bookings\` integer NOT NULL DEFAULT 0,
+    \`linked_to_colleagues\` integer NOT NULL DEFAULT 0,
+    \`initiated_by_colleague_id\` text REFERENCES \`colleagues\`(\`id\`),
+    \`created_at\` text NOT NULL
+  )`,
+
+  // ── Depend on humans + colleagues + accounts + front_sync_runs ──
   `CREATE TABLE IF NOT EXISTS \`activities\` (
     \`id\` text PRIMARY KEY NOT NULL,
     \`display_id\` text NOT NULL UNIQUE,
@@ -202,13 +223,15 @@ const MIGRATION_STATEMENTS = [
     \`human_id\` text,
     \`account_id\` text REFERENCES \`accounts\`(\`id\`),
     \`route_signup_id\` text,
+    \`website_booking_request_id\` text,
     \`gmail_id\` text,
     \`front_id\` text,
-    \`created_by_user_id\` text NOT NULL,
+    \`front_conversation_id\` text,
+    \`sync_run_id\` text REFERENCES \`front_sync_runs\`(\`id\`),
+    \`colleague_id\` text REFERENCES \`colleagues\`(\`id\`),
     \`created_at\` text NOT NULL,
     \`updated_at\` text NOT NULL,
-    FOREIGN KEY (\`human_id\`) REFERENCES \`humans\`(\`id\`) ON UPDATE no action ON DELETE no action,
-    FOREIGN KEY (\`created_by_user_id\`) REFERENCES \`colleagues\`(\`id\`) ON UPDATE no action ON DELETE no action
+    FOREIGN KEY (\`human_id\`) REFERENCES \`humans\`(\`id\`) ON UPDATE no action ON DELETE no action
   )`,
 
   // ── Depend on activities + geo_interests ──────────────────────────
@@ -219,6 +242,69 @@ const MIGRATION_STATEMENTS = [
     \`geo_interest_id\` text NOT NULL REFERENCES \`geo_interests\`(\`id\`),
     \`activity_id\` text REFERENCES \`activities\`(\`id\`),
     \`notes\` text,
+    \`created_at\` text NOT NULL
+  )`,
+
+  // ── Route interests ──────────────────────────────────────────────
+  `CREATE TABLE IF NOT EXISTS \`route_interests\` (
+    \`id\` text PRIMARY KEY NOT NULL,
+    \`display_id\` text NOT NULL UNIQUE,
+    \`origin_city\` text NOT NULL,
+    \`origin_country\` text NOT NULL,
+    \`destination_city\` text NOT NULL,
+    \`destination_country\` text NOT NULL,
+    \`created_at\` text NOT NULL,
+    \`updated_at\` text NOT NULL
+  )`,
+  `CREATE TABLE IF NOT EXISTS \`route_interest_expressions\` (
+    \`id\` text PRIMARY KEY NOT NULL,
+    \`display_id\` text NOT NULL UNIQUE,
+    \`human_id\` text NOT NULL REFERENCES \`humans\`(\`id\`),
+    \`route_interest_id\` text NOT NULL REFERENCES \`route_interests\`(\`id\`),
+    \`activity_id\` text REFERENCES \`activities\`(\`id\`),
+    \`frequency\` text NOT NULL DEFAULT 'one_time',
+    \`travel_year\` integer,
+    \`travel_month\` integer,
+    \`travel_day\` integer,
+    \`notes\` text,
+    \`created_at\` text NOT NULL
+  )`,
+
+  // ── Social IDs ──────────────────────────────────────────────────
+  `CREATE TABLE IF NOT EXISTS \`social_id_platforms_config\` (
+    \`id\` text PRIMARY KEY NOT NULL,
+    \`name\` text NOT NULL,
+    \`created_at\` text NOT NULL
+  )`,
+  `CREATE TABLE IF NOT EXISTS \`social_ids\` (
+    \`id\` text PRIMARY KEY NOT NULL,
+    \`display_id\` text NOT NULL UNIQUE,
+    \`handle\` text NOT NULL,
+    \`platform_id\` text REFERENCES \`social_id_platforms_config\`(\`id\`),
+    \`human_id\` text,
+    \`account_id\` text,
+    \`created_at\` text NOT NULL
+  )`,
+
+  // ── Additional label configs ────────────────────────────────────
+  `CREATE TABLE IF NOT EXISTS \`account_email_labels_config\` (
+    \`id\` text PRIMARY KEY NOT NULL,
+    \`name\` text NOT NULL UNIQUE,
+    \`created_at\` text NOT NULL
+  )`,
+  `CREATE TABLE IF NOT EXISTS \`account_phone_labels_config\` (
+    \`id\` text PRIMARY KEY NOT NULL,
+    \`name\` text NOT NULL UNIQUE,
+    \`created_at\` text NOT NULL
+  )`,
+  `CREATE TABLE IF NOT EXISTS \`human_email_labels_config\` (
+    \`id\` text PRIMARY KEY NOT NULL,
+    \`name\` text NOT NULL UNIQUE,
+    \`created_at\` text NOT NULL
+  )`,
+  `CREATE TABLE IF NOT EXISTS \`human_phone_labels_config\` (
+    \`id\` text PRIMARY KEY NOT NULL,
+    \`name\` text NOT NULL UNIQUE,
     \`created_at\` text NOT NULL
   )`,
 
@@ -237,12 +323,22 @@ const MIGRATION_STATEMENTS = [
   `CREATE INDEX IF NOT EXISTS \`error_log_created_at_idx\` ON \`error_log\` (\`created_at\`)`,
   `CREATE INDEX IF NOT EXISTS \`geo_interest_expressions_human_id_idx\` ON \`geo_interest_expressions\` (\`human_id\`)`,
   `CREATE INDEX IF NOT EXISTS \`geo_interest_expressions_geo_interest_id_idx\` ON \`geo_interest_expressions\` (\`geo_interest_id\`)`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS \`route_interests_origin_dest_unique\` ON \`route_interests\` (\`origin_city\`, \`origin_country\`, \`destination_city\`, \`destination_country\`)`,
+  `CREATE INDEX IF NOT EXISTS \`route_interest_expressions_human_id_idx\` ON \`route_interest_expressions\` (\`human_id\`)`,
+  `CREATE INDEX IF NOT EXISTS \`route_interest_expressions_route_interest_id_idx\` ON \`route_interest_expressions\` (\`route_interest_id\`)`,
+  `CREATE INDEX IF NOT EXISTS \`social_ids_human_id_idx\` ON \`social_ids\` (\`human_id\`)`,
+  `CREATE INDEX IF NOT EXISTS \`social_ids_account_id_idx\` ON \`social_ids\` (\`account_id\`)`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS \`error_log_display_id_idx\` ON \`error_log\` (\`display_id\`)`,
+  `CREATE INDEX IF NOT EXISTS \`error_log_resolution_status_idx\` ON \`error_log\` (\`resolution_status\`)`,
 ];
 
 // Clean tables in FK-safe order (children first)
 const CLEANUP_TABLES = [
+  "route_interest_expressions",
   "geo_interest_expressions",
+  "social_ids",
   "activities",
+  "front_sync_runs",
   "account_humans",
   "account_types",
   "lead_events",
@@ -253,7 +349,13 @@ const CLEANUP_TABLES = [
   "emails",
   "audit_log",
   "error_log",
+  "route_interests",
   "geo_interests",
+  "social_id_platforms_config",
+  "account_email_labels_config",
+  "account_phone_labels_config",
+  "human_email_labels_config",
+  "human_phone_labels_config",
   "account_human_labels_config",
   "account_types_config",
   "email_labels_config",

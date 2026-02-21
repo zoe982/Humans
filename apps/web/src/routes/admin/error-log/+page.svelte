@@ -4,6 +4,7 @@
   import { ChevronLeft, ChevronRight, Copy, Check } from "lucide-svelte";
   import { formatErrorForClipboard } from "$lib/utils/error-format";
   import { Button } from "$lib/components/ui/button";
+  import * as Select from "$lib/components/ui/select";
 
   let { data }: { data: PageData } = $props();
 
@@ -81,11 +82,17 @@
     </div>
     <div>
       <label for="resolutionStatus" class="block text-xs text-text-secondary mb-1">Resolution</label>
-      <select id="resolutionStatus" name="resolutionStatus" bind:value={resolutionStatus} class="glass-input text-sm">
-        <option value="">All</option>
-        <option value="open">Open</option>
-        <option value="resolved">Resolved</option>
-      </select>
+      <input type="hidden" name="resolutionStatus" value={resolutionStatus} />
+      <Select.Root type="single" value={resolutionStatus || "all"} onValueChange={(v) => { resolutionStatus = v === "all" ? "" : (v ?? ""); }}>
+        <Select.Trigger class="w-32 text-sm">
+          <Select.Value placeholder="All" />
+        </Select.Trigger>
+        <Select.Content>
+          <Select.Item value="all">All</Select.Item>
+          <Select.Item value="open">Open</Select.Item>
+          <Select.Item value="resolved">Resolved</Select.Item>
+        </Select.Content>
+      </Select.Root>
     </div>
     <Button type="submit" size="sm">Filter</Button>
   </form>

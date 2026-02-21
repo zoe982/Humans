@@ -305,6 +305,103 @@ describe("accounts/[id] createAndLinkHuman action", () => {
   });
 });
 
+describe("accounts/[id] deletePhoneNumber error path", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("returns failure on API error", async () => {
+    const mockFetch = createMockFetch({
+      "/api/accounts/acc-1/phone-numbers/ph-1": { status: 500, body: { error: "Server error" } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent({ formData: { id: "ph-1" } });
+    const result = await actions.deletePhoneNumber(event as any);
+    expect(isActionFailure(result)).toBe(true);
+  });
+});
+
+describe("accounts/[id] addSocialId action", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("returns success when social ID is added", async () => {
+    const mockFetch = createMockFetch({
+      "/api/social-ids": { body: { data: { id: "sid-1" } } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent({
+      formData: { handle: "@acmecorp", platformId: "plat-1" },
+    });
+    const result = await actions.addSocialId(event as any);
+    expect(result).toEqual({ success: true });
+  });
+
+  it("returns failure on API error", async () => {
+    const mockFetch = createMockFetch({
+      "/api/social-ids": { status: 422, body: { error: "Handle required" } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent({ formData: { handle: "" } });
+    const result = await actions.addSocialId(event as any);
+    expect(isActionFailure(result)).toBe(true);
+  });
+});
+
+describe("accounts/[id] deleteSocialId action", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("returns success on delete", async () => {
+    const mockFetch = createMockFetch({
+      "/api/social-ids/sid-1": { body: {} },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent({ formData: { id: "sid-1" } });
+    const result = await actions.deleteSocialId(event as any);
+    expect(result).toEqual({ success: true });
+  });
+
+  it("returns failure on API error", async () => {
+    const mockFetch = createMockFetch({
+      "/api/social-ids/sid-1": { status: 500, body: { error: "Server error" } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent({ formData: { id: "sid-1" } });
+    const result = await actions.deleteSocialId(event as any);
+    expect(isActionFailure(result)).toBe(true);
+  });
+});
+
+describe("accounts/[id] createAndLinkHuman missing ID path", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("returns failure when created human has no ID in response", async () => {
+    const mockFetch = createMockFetch({
+      "/api/humans": { body: { data: {} } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent({
+      formData: { firstName: "John", lastName: "Smith" },
+    });
+    const result = await actions.createAndLinkHuman(event as any);
+    expect(isActionFailure(result)).toBe(true);
+    if (isActionFailure(result)) {
+      expect(result.data.error).toContain("Failed to get created human ID");
+    }
+  });
+});
+
 describe("accounts/[id] addActivity action", () => {
   afterEach(() => {
     vi.unstubAllGlobals();
@@ -322,6 +419,20 @@ describe("accounts/[id] addActivity action", () => {
         subject: "Check in",
         activityDate: "2025-01-15",
       },
+    });
+    const result = await actions.addActivity(event as any);
+    expect(result).toEqual({ success: true });
+  });
+
+  it("returns success with default type when type omitted", async () => {
+    const mockFetch = createMockFetch({
+      "/api/activities": { body: { data: { id: "a-2" } } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    // No activityDate so default date branch is exercised
+    const event = makeEvent({
+      formData: { subject: "No date" },
     });
     const result = await actions.addActivity(event as any);
     expect(result).toEqual({ success: true });

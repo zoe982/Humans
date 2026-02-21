@@ -124,9 +124,9 @@ For every feature, every bug fix, every modification — this is the workflow. N
 1. **Understand the requirement.** Read the existing code. Read the existing tests. Understand what exists before changing anything.
 2. **Identify the test layer.** Is this a component? Server route? API endpoint? Validator? Each has its own test file location and pattern.
 3. **Write the failing test first.** Describe the expected behavior in a `describe`/`it` block. The test must fail — if it passes before you write production code, the test is not testing anything new.
-4. **Run the test. Confirm it fails (RED).** `pnpm test` in the relevant package. See the red. This is the contract.
+4. **Run the test. Confirm it fails (RED).** `pnpm test run <your-test-file> 2>&1 | tail -n 20` in the relevant package. See the red. This is the contract.
 5. **Write the minimum code to make it pass (GREEN).** No more than what the test requires. Resist the urge to implement adjacent features.
-6. **Run the test. Confirm it passes.** And that no other tests broke.
+6. **Run the test. Confirm it passes.** `pnpm test run <your-test-file> 2>&1 | tail -n 20` — and that no other tests broke.
 7. **Refactor if needed.** Clean up duplication, improve naming, extract helpers — but only if all tests stay green.
 
 ### Test Case Thinking Checklist
@@ -290,12 +290,12 @@ describe("createResourceSchema", () => {
 2. **Identify the test layer.** Determine which test file(s) will be affected — component test, server route test, API test, validator test. Often a feature touches multiple layers.
 3. **Write tests first.** Start with the test file. Write `describe` and `it` blocks that specify the expected behavior. These tests must fail.
 4. **Implement the feature.** Write the minimum production code to make the tests pass. Follow existing patterns — match the conventions in neighboring files.
-5. **Run the full test suite.** Not just the new tests. Run `pnpm test` in the relevant package. No regressions allowed.
+5. **Run the full test suite.** Not just the new tests. Run `pnpm test run 2>&1 | tail -n 40` in the relevant package. No regressions allowed. If failures appear, re-run with `tail -n 200` for diagnosis.
 6. **Add edge case tests.** Go through the Test Case Thinking Checklist. Add tests for empty states, error states, auth guards, boundary values.
 7. **Check accessibility.** Does the new feature have proper ARIA roles? Can it be operated via keyboard? Are form labels associated with inputs? Do error messages reference the relevant field?
 8. **Check performance.** Are there unnecessary re-renders? Is data fetched efficiently? Are images lazy-loaded? Is the import cost justified?
 9. **Defer to Ive for visual decisions.** If the feature involves new visual patterns, colors, spacing, animations, or glass effects — these are Ive's domain. Implement the engineering scaffold and let Ive refine the visual layer.
-10. **Verify coverage.** Run `pnpm test -- --coverage` and confirm thresholds are maintained. If coverage increased, consider ratcheting the threshold up.
+10. **Verify coverage.** Run `pnpm test run --coverage 2>&1 | tail -n 80` and confirm thresholds are maintained. If coverage increased, consider ratcheting the threshold up.
 
 ### Reviewing Code
 

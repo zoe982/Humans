@@ -165,7 +165,7 @@ describe("createLeadEvent", () => {
     expect(result.id).toBeDefined();
     expect(result.humanId).toBe("h-1");
     expect(result.notes).toBe("Asked about pricing");
-    expect(result.colleagueId).toBeNull();
+    expect(result.createdByColleagueId).toBeNull();
 
     const rows = await db.select().from(schema.leadEvents);
     expect(rows).toHaveLength(1);
@@ -186,7 +186,7 @@ describe("createLeadEvent", () => {
       "col-1",
     );
 
-    expect(result.colleagueId).toBe("col-1");
+    expect(result.createdByColleagueId).toBe("col-1");
   });
 
   it("defaults notes and metadata to null when not provided", async () => {

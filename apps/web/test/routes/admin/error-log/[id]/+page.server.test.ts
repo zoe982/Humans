@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { isRedirect, Redirect } from "@sveltejs/kit";
 import { mockEvent, createMockFetch } from "../../../../helpers";
-import { load } from "../../../../../src/routes/admin/error-log/[id]/+page.server";
+import { load, actions } from "../../../../../src/routes/admin/error-log/[id]/+page.server";
 
 describe("admin/error-log/[id] +page.server load", () => {
   afterEach(() => {
@@ -81,5 +81,69 @@ describe("admin/error-log/[id] +page.server load", () => {
       expect((e as Redirect).status).toBe(302);
       expect((e as Redirect).location).toBe("/admin/error-log");
     }
+  });
+});
+
+describe("admin/error-log/[id] toggleResolution action", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("redirects to /login when user is null", async () => {
+    const event = mockEvent({ user: null });
+    (event.params as Record<string, string>).id = "e1";
+
+    try {
+      await actions.toggleResolution(event as any);
+      expect.fail("should have redirected");
+    } catch (e) {
+      expect(isRedirect(e)).toBe(true);
+      expect((e as Redirect).location).toBe("/login");
+    }
+  });
+
+  it("redirects to /dashboard when user is not admin", async () => {
+    const event = mockEvent({ user: { id: "u1", email: "a@b.com", role: "agent", name: "Agent" } });
+    (event.params as Record<string, string>).id = "e1";
+
+    try {
+      await actions.toggleResolution(event as any);
+      expect.fail("should have redirected");
+    } catch (e) {
+      expect(isRedirect(e)).toBe(true);
+      expect((e as Redirect).location).toBe("/dashboard");
+    }
+  });
+
+  it("returns success after toggling resolution status", async () => {
+    const mockFetch = createMockFetch({
+      "/api/admin/error-log/e1/resolution": { body: { data: {} } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = mockEvent({
+      user: { id: "u1", email: "admin@b.com", role: "admin", name: "Admin" },
+      formData: { status: "resolved" },
+    });
+    (event.params as Record<string, string>).id = "e1";
+
+    const result = await actions.toggleResolution(event as any);
+    expect(result).toEqual({ success: true });
+  });
+
+  it("returns success when API call fails (action does not check response)", async () => {
+    const mockFetch = createMockFetch({
+      "/api/admin/error-log/e1/resolution": { status: 500, body: { error: "Server error" } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = mockEvent({
+      user: { id: "u1", email: "admin@b.com", role: "admin", name: "Admin" },
+      formData: { status: "unresolved" },
+    });
+    (event.params as Record<string, string>).id = "e1";
+
+    const result = await actions.toggleResolution(event as any);
+    expect(result).toEqual({ success: true });
   });
 });

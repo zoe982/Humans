@@ -3,6 +3,7 @@ import { getTestDb } from "../setup";
 import {
   listErrorLogEntries,
   getErrorLogEntry,
+  updateErrorLogResolution,
   cleanupErrorLog,
 } from "../../../src/services/error-log";
 import * as schema from "@humans/db/schema";
@@ -14,6 +15,8 @@ function now() {
 function daysAgo(days: number) {
   return new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
 }
+
+let seedCounter = 0;
 
 async function seedErrorEntry(
   db: ReturnType<typeof getTestDb>,
@@ -29,15 +32,19 @@ async function seedErrorEntry(
     details: string;
     stack: string;
     createdAt: string;
+    resolutionStatus: string;
   }> = {},
 ) {
+  seedCounter++;
   const ts = overrides.createdAt ?? now();
   await db.insert(schema.errorLog).values({
     id,
+    displayId: `ERR-${String(seedCounter).padStart(6, "0")}`,
     requestId: overrides.requestId ?? `req-${id}`,
     code: overrides.code ?? "INTERNAL_ERROR",
     message: overrides.message ?? "Something went wrong",
     status: overrides.status ?? 500,
+    resolutionStatus: overrides.resolutionStatus ?? "open",
     method: overrides.method ?? "GET",
     path: overrides.path ?? "/api/test",
     userId: overrides.userId ?? null,
@@ -151,6 +158,24 @@ describe("getErrorLogEntry", () => {
     expect(result.path).toBe("/api/test");
     expect(result.method).toBe("POST");
     expect(result.status).toBe(500);
+  });
+});
+
+describe("updateErrorLogResolution", () => {
+  it("throws notFound for missing entry", async () => {
+    const db = getTestDb();
+    await expect(
+      updateErrorLogResolution(db, "nonexistent", "resolved"),
+    ).rejects.toThrowError("Error log entry not found");
+  });
+
+  it("updates resolutionStatus on an existing entry", async () => {
+    const db = getTestDb();
+    await seedErrorEntry(db, "err-1", { resolutionStatus: "open" });
+
+    const result = await updateErrorLogResolution(db, "err-1", "resolved");
+    expect(result.resolutionStatus).toBe("resolved");
+    expect(result.id).toBe("err-1");
   });
 });
 

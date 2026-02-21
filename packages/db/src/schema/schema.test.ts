@@ -7,11 +7,11 @@ import { leadSources, leadSourceCategories } from "./lead-sources";
 import { leadEvents, leadEventTypes } from "./lead-events";
 import { auditLog } from "./audit-log";
 import { humans, humanStatuses } from "./humans";
-import { emails } from "./emails";
+import { emails, emailOwnerTypes } from "./emails";
 import { emailLabelsConfig } from "./email-labels-config";
 import { humanTypes, humanTypeValues } from "./human-types";
 import { humanRouteSignups } from "./human-route-signups";
-import { phones } from "./phones";
+import { phones, phoneOwnerTypes } from "./phones";
 import { phoneLabelsConfig } from "./phone-labels-config";
 import { activities, activityTypeValues } from "./activities";
 import { geoInterests } from "./geo-interests";
@@ -22,7 +22,13 @@ import { accountTypes } from "./account-types";
 import { accountHumanLabelsConfig } from "./account-human-labels-config";
 import { accountHumans } from "./account-humans";
 import { displayIdCounters } from "./display-id-counters";
-import { errorLog } from "./error-log";
+import { errorLog, errorLogResolutionStatuses } from "./error-log";
+import { routeInterests } from "./route-interests";
+import {
+  routeInterestExpressions,
+  routeInterestFrequencyValues,
+} from "./route-interest-expressions";
+import { socialIds } from "./social-ids";
 
 describe("schema tables", () => {
   it("colleagues table has correct name", () => {
@@ -115,7 +121,7 @@ describe("schema tables", () => {
 
   it("errorLog table has indexes", () => {
     const config = getTableConfig(errorLog);
-    expect(config.indexes.length).toBe(3);
+    expect(config.indexes.length).toBe(5);
   });
 
   it("geoInterestExpressions table has indexes", () => {
@@ -165,11 +171,71 @@ describe("enum constants", () => {
       "whatsapp_message",
       "online_meeting",
       "phone_call",
+      "social_message",
     ]);
   });
 
   it("accountStatuses contains expected values", () => {
     expect(accountStatuses).toStrictEqual(["open", "active", "closed"]);
+  });
+});
+
+describe("table indexes", () => {
+  it("emails table has indexes", () => {
+    const config = getTableConfig(emails);
+    expect(config.indexes.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it("phones table has indexes", () => {
+    const config = getTableConfig(phones);
+    expect(config.indexes.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it("routeInterests table has indexes", () => {
+    const config = getTableConfig(routeInterests);
+    expect(config.indexes.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it("routeInterestExpressions table has indexes", () => {
+    const config = getTableConfig(routeInterestExpressions);
+    expect(config.indexes.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it("socialIds table has indexes", () => {
+    const config = getTableConfig(socialIds);
+    expect(config.indexes.length).toBeGreaterThanOrEqual(2);
+  });
+});
+
+describe("additional table names", () => {
+  it("routeInterests table has correct name", () => {
+    expect(getTableName(routeInterests)).toBe("route_interests");
+  });
+
+  it("routeInterestExpressions table has correct name", () => {
+    expect(getTableName(routeInterestExpressions)).toBe("route_interest_expressions");
+  });
+
+  it("socialIds table has correct name", () => {
+    expect(getTableName(socialIds)).toBe("social_ids");
+  });
+});
+
+describe("additional enum constants", () => {
+  it("emailOwnerTypes contains expected values", () => {
+    expect(emailOwnerTypes).toStrictEqual(["human", "account"]);
+  });
+
+  it("phoneOwnerTypes contains expected values", () => {
+    expect(phoneOwnerTypes).toStrictEqual(["human", "account"]);
+  });
+
+  it("routeInterestFrequencyValues contains expected values", () => {
+    expect(routeInterestFrequencyValues).toStrictEqual(["one_time", "repeat"]);
+  });
+
+  it("errorLogResolutionStatuses contains expected values", () => {
+    expect(errorLogResolutionStatuses).toStrictEqual(["open", "resolved"]);
   });
 });
 
@@ -205,5 +271,12 @@ describe("schema index re-exports", () => {
     expect(schemaIndex.accountHumans).toBeDefined();
     expect(schemaIndex.displayIdCounters).toBeDefined();
     expect(schemaIndex.errorLog).toBeDefined();
+    expect(schemaIndex.routeInterests).toBeDefined();
+    expect(schemaIndex.routeInterestExpressions).toBeDefined();
+    expect(schemaIndex.routeInterestFrequencyValues).toBeDefined();
+    expect(schemaIndex.socialIds).toBeDefined();
+    expect(schemaIndex.emailOwnerTypes).toBeDefined();
+    expect(schemaIndex.phoneOwnerTypes).toBeDefined();
+    expect(schemaIndex.errorLogResolutionStatuses).toBeDefined();
   });
 });

@@ -23,7 +23,7 @@ You are a TDD fanatic. Red-green-refactor is not optional — it is the only way
 2. Write the minimum route handler code to make it pass (GREEN)
 3. Add edge case tests — 401 unauth, 404 not found, 422 validation, empty states
 4. Refactor the implementation if needed — all tests stay green
-5. Run `pnpm test run --coverage` — confirm 95% per-package coverage maintained
+5. Run `pnpm test run --coverage 2>&1 | tail -n 80` — confirm 95% per-package coverage maintained
 
 You never write an endpoint and then "add tests later." Tests come first. Always.
 
@@ -454,7 +454,7 @@ app.get('/api/resource/:id', async (c) => {
 3. **Create the route file** in `apps/api/src/routes/` following the established CRUD pattern
 4. **Mount the route** in `apps/api/src/index.ts`
 5. **Write integration tests** in `apps/api/test/routes/` — 401, 404, validation, happy path
-6. **Run tests** to verify: `cd /Users/zoemarsico/Documents/Humans/apps/api && pnpm test`
+6. **Run your test file** to verify: `cd /Users/zoemarsico/Documents/Humans/apps/api && pnpm test run test/routes/<your-test-file>.test.ts 2>&1 | tail -n 20`. For full suite validation: `pnpm test run 2>&1 | tail -n 40`
 
 ### Modifying Existing Endpoints
 1. **Read the existing route and its tests** first

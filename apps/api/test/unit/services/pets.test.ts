@@ -2,9 +2,11 @@ import { describe, it, expect } from "vitest";
 import { getTestDb } from "../setup";
 import {
   getPetCount,
+  listPets,
   listPetsForHuman,
   getPet,
   createPet,
+  deletePet,
   updatePet,
 } from "../../../src/services/pets";
 import * as schema from "@humans/db/schema";
@@ -42,19 +44,56 @@ async function seedPet(
     id,
     displayId: `PET-${String(seedCounter).padStart(6, "0")}`,
     humanId,
+    type: "dog",
     name,
     breed: "Labrador",
     weight: 30,
-    age: 5,
-    specialNeeds: null,
-    healthCertR2Key: null,
-    vaccinationR2Key: null,
     isActive: true,
     createdAt: ts,
     updatedAt: ts,
   });
   return id;
 }
+
+describe("listPets", () => {
+  it("returns empty list when no pets exist", async () => {
+    const db = getTestDb();
+    const result = await listPets(db);
+    expect(result).toHaveLength(0);
+  });
+
+  it("returns pets enriched with owner name and displayId", async () => {
+    const db = getTestDb();
+    await seedHuman(db, "h-1", "Alice", "Smith");
+    await seedPet(db, "pet-1", "h-1", "Buddy");
+
+    const result = await listPets(db);
+    expect(result).toHaveLength(1);
+    expect(result[0]!.name).toBe("Buddy");
+    expect(result[0]!.ownerName).toBe("Alice Smith");
+    expect(result[0]!.ownerDisplayId).toMatch(/^HUM-/);
+  });
+
+  it("returns null ownerName for pets without a human", async () => {
+    const db = getTestDb();
+    const ts = now();
+    seedCounter++;
+    await db.insert(schema.pets).values({
+      id: "pet-orphan",
+      displayId: `PET-${String(seedCounter).padStart(6, "0")}`,
+      humanId: null,
+      type: "cat",
+      name: "Whiskers",
+      isActive: true,
+      createdAt: ts,
+      updatedAt: ts,
+    });
+
+    const result = await listPets(db);
+    expect(result).toHaveLength(1);
+    expect(result[0]!.ownerName).toBeNull();
+  });
+});
 
 describe("getPetCount", () => {
   it("returns zero when no pets exist", async () => {
@@ -146,6 +185,24 @@ describe("createPet", () => {
 
     expect(result.breed).toBe("German Shepherd");
     expect(result.weight).toBe(40);
+  });
+});
+
+describe("deletePet", () => {
+  it("throws not found for missing pet", async () => {
+    const db = getTestDb();
+    await expect(deletePet(db, "nonexistent")).rejects.toThrowError("Pet not found");
+  });
+
+  it("deletes a pet successfully", async () => {
+    const db = getTestDb();
+    await seedHuman(db, "h-1");
+    await seedPet(db, "pet-1", "h-1", "Buddy");
+
+    await deletePet(db, "pet-1");
+
+    const rows = await db.select().from(schema.pets);
+    expect(rows).toHaveLength(0);
   });
 });
 

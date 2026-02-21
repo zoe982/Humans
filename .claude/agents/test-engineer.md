@@ -259,8 +259,8 @@ Each returns a valid object with sensible defaults. Override specific fields as 
 
 Before any deploy, you must verify:
 
-1. **Run all tests**: `pnpm test run` in every package — all green
-2. **Run coverage**: `pnpm test run --coverage` in every package
+1. **Run all tests**: `pnpm test run 2>&1 | tail -n 40` in every package — all green. If failures, re-run with `tail -n 200`.
+2. **Run coverage**: `pnpm test run --coverage 2>&1 | tail -n 80` in every package
 3. **Check thresholds**: Every package meets or exceeds its threshold
 4. **Audit for gaming**: Scan for new `istanbul ignore`, trivial assertions, snapshot abuse
 5. **Check for untested files**: `all: true` catches these, but manually review new files
@@ -271,7 +271,7 @@ Before any deploy, you must verify:
 
 When auditing a package for test quality:
 
-1. **Run coverage with html reporter**: `pnpm test run --coverage` → open `coverage/index.html`
+1. **Run coverage**: `pnpm test run --coverage 2>&1 | tail -n 80`. If failures or gaps need investigation, re-run with `tail -n 200`. Open `coverage/index.html` for detailed per-file report.
 2. **Sort by coverage (ascending)** — lowest-covered files first
 3. **For each low-coverage file:**
    - Is it genuinely untestable (workerd boundary, platform code)? → Acceptable with documented `istanbul ignore`
@@ -360,7 +360,7 @@ it('returns 200 with data on success', async () => {
 ### When Validating a Completed Feature (Feature Gate)
 This is your most frequent task. After any agent completes a feature, you validate:
 
-1. **Run tests** in the affected package(s): `pnpm test run --coverage`
+1. **Run tests** in the affected package(s): `pnpm test run --coverage 2>&1 | tail -n 80`. If failures appear, re-run with `tail -n 200` for diagnosis.
 2. **Verify 95% per-package** — every package touched must be at or exceeding 95% line coverage with `perFile: true`
 3. **Audit new tests for gaming**:
    - Are assertions meaningful? (not `toBeDefined()` on non-nullables)
@@ -375,7 +375,7 @@ This is your most frequent task. After any agent completes a feature, you valida
 The feature gate is not optional. No feature is "complete" until the test engineer says it's complete.
 
 ### When Asked to Audit Coverage
-1. Run `pnpm test run --coverage` in the target package
+1. Run `pnpm test run --coverage 2>&1 | tail -n 80` in the target package. If failures need investigation, re-run with `tail -n 200`.
 2. Parse the coverage output — identify files below threshold
 3. For each low-coverage file, read the file and its tests
 4. Classify gaps: missing tests vs. gaming vs. genuinely untestable
@@ -384,7 +384,14 @@ The feature gate is not optional. No feature is "complete" until the test engine
 7. Report final numbers
 
 ### When Validating Pre-Deploy (Deploy Gate)
-1. Run `pnpm test run --coverage` in **every** package — not just the ones that changed
+1. Run coverage in **every** package with truncated output — not just the ones that changed:
+   ```bash
+   cd /Users/zoemarsico/Documents/Humans/apps/api && pnpm test run --coverage 2>&1 | tail -n 80
+   cd /Users/zoemarsico/Documents/Humans/apps/web && pnpm test run --coverage 2>&1 | tail -n 80
+   cd /Users/zoemarsico/Documents/Humans/packages/db && pnpm test run --coverage 2>&1 | tail -n 80
+   cd /Users/zoemarsico/Documents/Humans/packages/shared && pnpm test run --coverage 2>&1 | tail -n 80
+   ```
+   If any show failures, re-run that package with `tail -n 200` for diagnosis.
 2. Verify 95% per-package coverage across the board
 3. Scan for newly added `istanbul ignore` comments since last deploy
 4. Check for trivial assertions, snapshot abuse, mock-through testing
