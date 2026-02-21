@@ -3,6 +3,7 @@
   import PageHeader from "$lib/components/PageHeader.svelte";
   import { signupStatusColors } from "$lib/constants/colors";
   import { activityTypeLabels } from "$lib/constants/labels";
+  import { Button } from "$lib/components/ui/button";
 
   let { data }: { data: PageData } = $props();
 
@@ -73,7 +74,7 @@
         class="glass-input flex-1 px-4 py-3 text-sm"
         autofocus
       />
-      <button type="submit" class="btn-primary">Search</button>
+      <Button type="submit">Search</Button>
     </div>
   </form>
 

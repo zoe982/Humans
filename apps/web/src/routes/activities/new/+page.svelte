@@ -7,6 +7,7 @@
   import RouteInterestPicker from "$lib/components/RouteInterestPicker.svelte";
   import { ACTIVITY_TYPE_OPTIONS } from "$lib/constants/labels";
   import { X } from "lucide-svelte";
+  import { Button } from "$lib/components/ui/button";
 
   let { data, form }: { data: PageData; form: ActionData } = $props();
 
@@ -142,9 +143,9 @@
             notesName="pendingGeoNotes"
           />
           <div class="flex gap-2">
-            <button
+            <Button
               type="button"
-              class="btn-primary text-sm"
+              size="sm"
               onclick={() => {
                 const container = document.getElementById("new-geo-picker");
                 if (container) {
@@ -161,16 +162,16 @@
               }}
             >
               Add
-            </button>
-            <button type="button" class="btn-ghost text-sm" onclick={() => { showGeoInterestPicker = false; }}>
+            </Button>
+            <Button type="button" variant="ghost" size="sm" onclick={() => { showGeoInterestPicker = false; }}>
               Cancel
-            </button>
+            </Button>
           </div>
         </div>
       {:else}
-        <button type="button" class="text-sm text-accent hover:text-cyan-300 transition-colors" onclick={() => { showGeoInterestPicker = true; }}>
+        <Button type="button" variant="link" size="sm" onclick={() => { showGeoInterestPicker = true; }}>
           + Add Geo-Interest
-        </button>
+        </Button>
       {/if}
     </div>
 
@@ -206,9 +207,9 @@
             notesName="pendingRouteNotes"
           />
           <div class="flex gap-2">
-            <button
+            <Button
               type="button"
-              class="btn-primary text-sm"
+              size="sm"
               onclick={() => {
                 const container = document.getElementById("new-route-picker");
                 if (container) {
@@ -242,21 +243,21 @@
               }}
             >
               Add
-            </button>
-            <button type="button" class="btn-ghost text-sm" onclick={() => { showRouteInterestPicker = false; }}>
+            </Button>
+            <Button type="button" variant="ghost" size="sm" onclick={() => { showRouteInterestPicker = false; }}>
               Cancel
-            </button>
+            </Button>
           </div>
         </div>
       {:else}
-        <button type="button" class="text-sm text-accent hover:text-cyan-300 transition-colors" onclick={() => { showRouteInterestPicker = true; }}>
+        <Button type="button" variant="link" size="sm" onclick={() => { showRouteInterestPicker = true; }}>
           + Add Route-Interest
-        </button>
+        </Button>
       {/if}
     </div>
 
     <div class="flex gap-3">
-      <button type="submit" class="btn-primary">Create Activity</button>
+      <Button type="submit">Create Activity</Button>
       <a href="/activities" class="btn-ghost">Cancel</a>
     </div>
   </form>

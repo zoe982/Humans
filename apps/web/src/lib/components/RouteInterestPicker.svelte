@@ -264,17 +264,20 @@
   {#if showFrequency}
     <div>
       <label class="block text-sm font-medium text-text-secondary mb-1">Frequency</label>
-      <select name={frequencyName} class="glass-input block w-full">
-        <option value="one_time">One-time</option>
-        <option value="repeat">Repeat</option>
-      </select>
+      <SearchableSelect
+        options={[{ value: "one_time", label: "One-time" }, { value: "repeat", label: "Repeat" }]}
+        name={frequencyName}
+        placeholder="Select frequency..."
+        emptyMessage="No match"
+        value="one_time"
+      />
     </div>
   {/if}
 
   {#if showTravelDate}
     <div>
       <label class="block text-sm font-medium text-text-secondary mb-1">Travel Date (optional)</label>
-      <div class="grid gap-3 grid-cols-3">
+      <div class="grid gap-3 grid-cols-1 sm:grid-cols-3">
         <div>
           <label class="block text-xs text-text-muted mb-0.5">Year</label>
           <input
@@ -283,7 +286,7 @@
             min="2020"
             max="2100"
             placeholder="Year"
-            class="glass-input block w-full"
+            class="glass-input block w-full appearance-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
           />
         </div>
         <div>
@@ -304,7 +307,7 @@
             min="1"
             max="31"
             placeholder="Day"
-            class="glass-input block w-full"
+            class="glass-input block w-full appearance-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
           />
         </div>
       </div>

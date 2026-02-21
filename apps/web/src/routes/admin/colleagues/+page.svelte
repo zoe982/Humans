@@ -4,6 +4,7 @@
   import AlertBanner from "$lib/components/AlertBanner.svelte";
   import SearchableSelect from "$lib/components/SearchableSelect.svelte";
   import { ROLE_OPTIONS } from "$lib/constants/labels";
+  import { Button } from "$lib/components/ui/button";
 
   let { data, form }: { data: PageData; form: ActionData } = $props();
 
@@ -42,12 +43,11 @@
     breadcrumbs={[{ label: "Admin", href: "/admin" }, { label: "Colleagues" }]}
   >
     {#snippet action()}
-      <button
+      <Button
         onclick={() => { showInvite = !showInvite; }}
-        class="btn-primary"
       >
         Invite Colleague
-      </button>
+      </Button>
     {/snippet}
   </PageHeader>
 
@@ -106,8 +106,8 @@
           />
         </div>
         <div class="sm:col-span-3 flex gap-3 items-end">
-          <button type="submit" class="btn-primary">Send Invite</button>
-          <button type="button" onclick={() => { showInvite = false; }} class="btn-ghost">Cancel</button>
+          <Button type="submit">Send Invite</Button>
+          <Button type="button" variant="ghost" onclick={() => { showInvite = false; }}>Cancel</Button>
         </div>
       </form>
     </div>
@@ -160,13 +160,14 @@
                   {/each}
                 </select>
                 <input type="hidden" name="isActive" value={String(!colleague.isActive)} />
-                <button
+                <Button
                   type="submit"
                   formaction="?/update"
-                  class="btn-ghost text-xs py-1 px-2"
+                  variant="ghost"
+                  size="sm"
                 >
                   Update
-                </button>
+                </Button>
                 <button
                   type="submit"
                   class="text-xs py-1 px-2 rounded-lg {colleague.isActive ? 'btn-danger' : 'bg-[rgba(34,197,94,0.15)] border border-green-500/30 text-green-300'}"

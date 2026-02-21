@@ -3,6 +3,7 @@
   import PageHeader from "$lib/components/PageHeader.svelte";
   import { ChevronLeft, ChevronRight, Copy, Check } from "lucide-svelte";
   import { formatErrorForClipboard } from "$lib/utils/error-format";
+  import { Button } from "$lib/components/ui/button";
 
   let { data }: { data: PageData } = $props();
 
@@ -86,7 +87,7 @@
         <option value="resolved">Resolved</option>
       </select>
     </div>
-    <button type="submit" class="btn-primary text-sm">Filter</button>
+    <Button type="submit" size="sm">Filter</Button>
   </form>
 
   <div class="glass-card overflow-hidden">

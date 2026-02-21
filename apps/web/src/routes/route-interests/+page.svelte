@@ -6,6 +6,7 @@
   import SearchableSelect from "$lib/components/SearchableSelect.svelte";
   import { Search } from "lucide-svelte";
   import { COUNTRIES } from "@humans/shared";
+  import { Button } from "$lib/components/ui/button";
 
   let { data, form }: { data: PageData; form: ActionData } = $props();
 
@@ -121,20 +122,22 @@
   <PageHeader title="Route Interests" breadcrumbs={[{ label: "Dashboard", href: "/dashboard" }, { label: "Route Interests" }]}>
     {#snippet action()}
       <div class="flex gap-2">
-        <button
+        <Button
           type="button"
-          class="{view === 'routes' ? 'btn-primary' : 'btn-ghost'} text-sm"
+          size="sm"
+          variant={view === 'routes' ? 'default' : 'ghost'}
           onclick={() => (view = "routes")}
         >
           Routes
-        </button>
-        <button
+        </Button>
+        <Button
           type="button"
-          class="{view === 'expressions' ? 'btn-primary' : 'btn-ghost'} text-sm"
+          size="sm"
+          variant={view === 'expressions' ? 'default' : 'ghost'}
           onclick={() => (view = "expressions")}
         >
           Expressions
-        </button>
+        </Button>
       </div>
     {/snippet}
   </PageHeader>
@@ -157,9 +160,9 @@
   {#if view === "routes"}
     <!-- Create form -->
     <div class="mb-6 flex justify-end">
-      <button type="button" class="btn-primary text-sm" onclick={() => (showCreateForm = !showCreateForm)}>
+      <Button type="button" size="sm" onclick={() => (showCreateForm = !showCreateForm)}>
         {showCreateForm ? "Cancel" : "New Route Interest"}
-      </button>
+      </Button>
     </div>
 
     {#if showCreateForm}
@@ -212,8 +215,8 @@
           </div>
         </div>
         <div class="flex gap-3">
-          <button type="submit" class="btn-primary">Create Route Interest</button>
-          <button type="button" class="btn-ghost" onclick={() => (showCreateForm = false)}>Cancel</button>
+          <Button type="submit">Create Route Interest</Button>
+          <Button type="button" variant="ghost" onclick={() => (showCreateForm = false)}>Cancel</Button>
         </div>
       </form>
     {/if}

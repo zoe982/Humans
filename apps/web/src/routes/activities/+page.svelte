@@ -8,6 +8,7 @@
   import { activityTypeLabels, ACTIVITY_TYPE_OPTIONS } from "$lib/constants/labels";
   import { Search } from "lucide-svelte";
   import SearchableSelect from "$lib/components/SearchableSelect.svelte";
+  import { Button } from "$lib/components/ui/button";
 
   let { data, form }: { data: PageData; form: ActionData } = $props();
 
@@ -153,7 +154,7 @@
       <label for="dateTo" class="block text-sm font-medium text-text-secondary mb-1">To</label>
       <input id="dateTo" name="dateTo" type="date" value={data.dateTo} class="glass-input px-3 py-2 text-sm" />
     </div>
-    <button type="submit" class="btn-primary">Filter</button>
+    <Button type="submit">Filter</Button>
   </form>
 
   <!-- Mobile card view -->

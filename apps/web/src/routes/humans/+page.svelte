@@ -9,6 +9,7 @@
   import { statusColors, humanTypeColors } from "$lib/constants/colors";
   import { humanTypeLabels } from "$lib/constants/labels";
   import { displayName as formatDisplayName } from "$lib/utils/format";
+  import { Button } from "$lib/components/ui/button";
 
   let { data, form }: { data: PageData; form: ActionData } = $props();
 
@@ -70,7 +71,7 @@
       <Search size={16} class="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
       <input type="text" name="q" value={data.q ?? ""} placeholder="Search by name or ID..." class="glass-input w-full pl-9 pr-3 py-2 text-sm" />
     </div>
-    <button type="submit" class="btn-primary text-sm">Search</button>
+    <Button type="submit" size="sm">Search</Button>
     {#if data.q}
       <a href="/humans" class="btn-ghost text-sm">Clear</a>
     {/if}

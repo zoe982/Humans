@@ -23,6 +23,7 @@
   import { formatRelativeTime, summarizeChanges } from "$lib/utils/format";
   import { PET_BREEDS } from "@humans/shared/constants";
   import { onDestroy } from "svelte";
+  import { Button } from "$lib/components/ui/button";
 
   let { data, form }: { data: PageData; form: ActionData } = $props();
 
@@ -418,9 +419,9 @@
               Primary
             </label>
           </div>
-          <button type="submit" class="btn-primary text-sm">
+          <Button type="submit" size="sm">
             Add Email
-          </button>
+          </Button>
         </form>
       {/snippet}
     </RelatedListTable>
@@ -514,9 +515,9 @@
               Primary
             </label>
           </div>
-          <button type="submit" class="btn-primary text-sm">
+          <Button type="submit" size="sm">
             Add Phone Number
-          </button>
+          </Button>
         </form>
       {/snippet}
     </RelatedListTable>
@@ -579,9 +580,9 @@
               />
             </div>
           </div>
-          <button type="submit" class="btn-primary text-sm">
+          <Button type="submit" size="sm">
             Add Social ID
-          </button>
+          </Button>
         </form>
       {/snippet}
     </RelatedListTable>
@@ -674,9 +675,9 @@
               />
             </div>
           </div>
-          <button type="submit" class="btn-primary text-sm">
+          <Button type="submit" size="sm">
             Add Pet
-          </button>
+          </Button>
         </form>
       {/snippet}
     </RelatedListTable>
@@ -716,9 +717,9 @@
       {#snippet addForm()}
         <form method="POST" action="?/addGeoInterestExpression" class="space-y-3">
           <GeoInterestPicker {apiUrl} />
-          <button type="submit" class="btn-primary text-sm">
+          <Button type="submit" size="sm">
             Add Geo-Interest Expression
-          </button>
+          </Button>
         </form>
       {/snippet}
     </RelatedListTable>
@@ -772,9 +773,9 @@
       {#snippet addForm()}
         <form method="POST" action="?/addRouteInterestExpression" class="space-y-3">
           <RouteInterestPicker {apiUrl} />
-          <button type="submit" class="btn-primary text-sm">
+          <Button type="submit" size="sm">
             Add Route Interest Expression
-          </button>
+          </Button>
         </form>
       {/snippet}
     </RelatedListTable>
@@ -955,24 +956,26 @@
           {/if}
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-2">
-              <button
+              <Button
                 type="button"
-                class="text-sm text-accent hover:text-cyan-300 transition-colors"
+                variant="link"
+                size="sm"
                 onclick={() => { geoInterestDialogOpen = true; }}
               >
                 + Link Geo-Interest
-              </button>
-              <button
+              </Button>
+              <Button
                 type="button"
-                class="text-sm text-accent hover:text-cyan-300 transition-colors"
+                variant="link"
+                size="sm"
                 onclick={() => { routeInterestDialogOpen = true; }}
               >
                 + Link Route-Interest
-              </button>
+              </Button>
             </div>
-            <button type="submit" class="btn-primary text-sm">
+            <Button type="submit" size="sm">
               Add Activity
-            </button>
+            </Button>
           </div>
         </form>
       {/snippet}
@@ -995,9 +998,9 @@
         />
       </div>
       <Dialog.Footer>
-        <button
+        <Button
           type="button"
-          class="btn-primary text-sm"
+          size="sm"
           onclick={() => {
             const container = document.getElementById("geo-interest-dialog-body");
             if (container) {
@@ -1019,7 +1022,7 @@
           }}
         >
           Add
-        </button>
+        </Button>
       </Dialog.Footer>
     </Dialog.Content>
   </Dialog.Root>
@@ -1046,9 +1049,9 @@
         />
       </div>
       <Dialog.Footer>
-        <button
+        <Button
           type="button"
-          class="btn-primary text-sm"
+          size="sm"
           onclick={() => {
             const container = document.getElementById("route-interest-dialog-body");
             if (container) {
@@ -1057,7 +1060,7 @@
               const originCountryInput = container.querySelector<HTMLInputElement>('input[name="dialogRouteOriginCountry"]');
               const destCityInput = container.querySelector<HTMLInputElement>('input[name="dialogRouteDestCity"]');
               const destCountryInput = container.querySelector<HTMLInputElement>('input[name="dialogRouteDestCountry"]');
-              const frequencyInput = container.querySelector<HTMLSelectElement>('select[name="dialogRouteFrequency"]');
+              const frequencyInput = container.querySelector<HTMLInputElement>('input[name="dialogRouteFrequency"]');
               const travelYearInput = container.querySelector<HTMLInputElement>('input[name="dialogRouteTravelYear"]');
               const travelMonthInput = container.querySelector<HTMLInputElement>('input[name="dialogRouteTravelMonth"]');
               const travelDayInput = container.querySelector<HTMLInputElement>('input[name="dialogRouteTravelDay"]');
@@ -1082,7 +1085,7 @@
           }}
         >
           Add
-        </button>
+        </Button>
       </Dialog.Footer>
     </Dialog.Content>
   </Dialog.Root>

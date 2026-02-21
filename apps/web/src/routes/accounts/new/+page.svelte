@@ -2,6 +2,7 @@
   import type { PageData, ActionData } from "./$types";
   import PageHeader from "$lib/components/PageHeader.svelte";
   import AlertBanner from "$lib/components/AlertBanner.svelte";
+  import { Button } from "$lib/components/ui/button";
 
   let { data, form }: { data: PageData; form: ActionData } = $props();
 
@@ -48,7 +49,7 @@
     {/if}
 
     <div class="flex gap-3">
-      <button type="submit" class="btn-primary">Create Account</button>
+      <Button type="submit">Create Account</Button>
       <a href="/accounts" class="btn-ghost">Cancel</a>
     </div>
   </form>

@@ -17,6 +17,7 @@
   import { activityTypeLabels, ACTIVITY_TYPE_OPTIONS } from "$lib/constants/labels";
   import SearchableSelect from "$lib/components/SearchableSelect.svelte";
   import { formatRelativeTime, summarizeChanges } from "$lib/utils/format";
+  import { Button } from "$lib/components/ui/button";
 
   let { data, form }: { data: PageData; form: ActionData } = $props();
 
@@ -362,7 +363,7 @@
               Primary
             </label>
           </div>
-          <button type="submit" class="btn-primary text-sm">Add Email</button>
+          <Button type="submit" size="sm">Add Email</Button>
         </form>
       {/snippet}
     </RelatedListTable>
@@ -454,7 +455,7 @@
               Primary
             </label>
           </div>
-          <button type="submit" class="btn-primary text-sm">Add Phone Number</button>
+          <Button type="submit" size="sm">Add Phone Number</Button>
         </form>
       {/snippet}
     </RelatedListTable>
@@ -515,7 +516,7 @@
               />
             </div>
           </div>
-          <button type="submit" class="btn-primary text-sm">Add Social ID</button>
+          <Button type="submit" size="sm">Add Social ID</Button>
         </form>
       {/snippet}
     </RelatedListTable>
@@ -581,20 +582,22 @@
       {/snippet}
       {#snippet addForm()}
         <div class="flex gap-2 mb-3">
-          <button
+          <Button
             type="button"
+            size="sm"
+            variant={humanAddMode === 'link' ? 'default' : 'ghost'}
             onclick={() => { humanAddMode = 'link'; }}
-            class="text-sm py-1 px-3 rounded-md transition-colors {humanAddMode === 'link' ? 'btn-primary' : 'btn-ghost'}"
           >
             Link Existing
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
+            size="sm"
+            variant={humanAddMode === 'create' ? 'default' : 'ghost'}
             onclick={() => { humanAddMode = 'create'; }}
-            class="text-sm py-1 px-3 rounded-md transition-colors {humanAddMode === 'create' ? 'btn-primary' : 'btn-ghost'}"
           >
             Create New
-          </button>
+          </Button>
         </div>
 
         {#if humanAddMode === 'link'}
@@ -622,7 +625,7 @@
                 />
               </div>
             </div>
-            <button type="submit" class="btn-primary text-sm">Link Human</button>
+            <Button type="submit" size="sm">Link Human</Button>
           </form>
         {:else}
           <form method="POST" action="?/createAndLinkHuman" class="space-y-3">
@@ -654,7 +657,7 @@
                 placeholder="Select role..."
               />
             </div>
-            <button type="submit" class="btn-primary text-sm">Create & Link</button>
+            <Button type="submit" size="sm">Create & Link</Button>
           </form>
         {/if}
       {/snippet}
@@ -736,7 +739,7 @@
               class="glass-input mt-1 block w-full"
             />
           </div>
-          <button type="submit" class="btn-primary text-sm">Add Activity</button>
+          <Button type="submit" size="sm">Add Activity</Button>
         </form>
       {/snippet}
     </RelatedListTable>

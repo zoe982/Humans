@@ -4,6 +4,7 @@
   import AlertBanner from "$lib/components/AlertBanner.svelte";
   import SearchableSelect from "$lib/components/SearchableSelect.svelte";
   import PhoneInput from "$lib/components/PhoneInput.svelte";
+  import { Button } from "$lib/components/ui/button";
 
   let { data, form }: { data: PageData; form: ActionData } = $props();
 
@@ -75,7 +76,7 @@
     </div>
 
     <div class="flex gap-3">
-      <button type="submit" class="btn-primary">Create Phone Number</button>
+      <Button type="submit">Create Phone Number</Button>
       <a href="/phone-numbers" class="btn-ghost">Cancel</a>
     </div>
   </form>

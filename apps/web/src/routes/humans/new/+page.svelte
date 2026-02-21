@@ -3,6 +3,7 @@
   import PageHeader from "$lib/components/PageHeader.svelte";
   import AlertBanner from "$lib/components/AlertBanner.svelte";
   import TypeTogglePills from "$lib/components/TypeTogglePills.svelte";
+  import { Button } from "$lib/components/ui/button";
 
   let { data, form }: { data: PageData; form: ActionData } = $props();
 
@@ -64,9 +65,9 @@
     </div>
 
     <div class="flex gap-3">
-      <button type="submit" class="btn-primary">
+      <Button type="submit">
         {prefill.fromSignup ? "Create & Convert" : "Create Human"}
-      </button>
+      </Button>
       <a href={prefill.fromSignup ? "/leads/route-signups" : "/humans"} class="btn-ghost">
         Cancel
       </a>

@@ -15,6 +15,7 @@
   import SearchableSelect from "$lib/components/SearchableSelect.svelte";
   import RouteInterestPicker from "$lib/components/RouteInterestPicker.svelte";
   import ConfirmDialog from "$lib/components/ConfirmDialog.svelte";
+  import { Button } from "$lib/components/ui/button";
 
   let { data, form }: { data: PageData; form: ActionData } = $props();
 
@@ -301,9 +302,9 @@
           <form method="POST" action="?/addGeoInterestExpression" class="space-y-3">
             <input type="hidden" name="humanId" value={humanId} />
             <GeoInterestPicker {apiUrl} />
-            <button type="submit" class="btn-primary text-sm">
+            <Button type="submit" size="sm">
               Add Geo-Interest Expression
-            </button>
+            </Button>
           </form>
         {:else}
           <p class="text-sm text-text-muted">Link a human to this activity first to add geo-interest expressions.</p>
@@ -349,9 +350,9 @@
           <form method="POST" action="?/addRouteInterestExpression" class="space-y-3">
             <input type="hidden" name="humanId" value={humanId} />
             <RouteInterestPicker {apiUrl} />
-            <button type="submit" class="btn-primary text-sm">
+            <Button type="submit" size="sm">
               Add Route-Interest Expression
-            </button>
+            </Button>
           </form>
         {:else}
           <p class="text-sm text-text-muted">Link a human to this activity first to add route-interest expressions.</p>

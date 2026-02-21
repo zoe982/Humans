@@ -4,6 +4,7 @@
   import AlertBanner from "$lib/components/AlertBanner.svelte";
   import SearchableSelect from "$lib/components/SearchableSelect.svelte";
   import { PET_BREEDS } from "@humans/shared/constants";
+  import { Button } from "$lib/components/ui/button";
 
   let { data, form }: { data: PageData; form: ActionData } = $props();
 
@@ -95,7 +96,7 @@
     </div>
 
     <div class="flex gap-3">
-      <button type="submit" class="btn-primary">Create Pet</button>
+      <Button type="submit">Create Pet</Button>
       <a href="/pets" class="btn-ghost">Cancel</a>
     </div>
   </form>

@@ -6,6 +6,7 @@
   import SearchableSelect from "$lib/components/SearchableSelect.svelte";
   import { Search } from "lucide-svelte";
   import { COUNTRIES } from "@humans/shared";
+  import { Button } from "$lib/components/ui/button";
 
   let { data, form }: { data: PageData; form: ActionData } = $props();
 
@@ -65,9 +66,9 @@
 <div class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
   <PageHeader title="Geo-Interests" breadcrumbs={[{ label: "Dashboard", href: "/dashboard" }, { label: "Geo-Interests" }]}>
     {#snippet action()}
-      <button type="button" class="btn-primary" onclick={() => (showCreateForm = !showCreateForm)}>
+      <Button type="button" onclick={() => (showCreateForm = !showCreateForm)}>
         {showCreateForm ? "Cancel" : "New Geo-Interest"}
-      </button>
+      </Button>
     {/snippet}
   </PageHeader>
 
@@ -104,10 +105,10 @@
         </div>
       </div>
       <div class="flex gap-3">
-        <button type="submit" class="btn-primary" disabled={!city.trim() || !country}>
+        <Button type="submit" disabled={!city.trim() || !country}>
           Create Geo-Interest
-        </button>
-        <button type="button" class="btn-ghost" onclick={resetForm}>Cancel</button>
+        </Button>
+        <Button type="button" variant="ghost" onclick={resetForm}>Cancel</Button>
       </div>
     </form>
   {/if}

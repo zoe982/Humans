@@ -2,6 +2,7 @@
   import type { Snippet } from "svelte";
   import { slide } from "svelte/transition";
   import { Search } from "lucide-svelte";
+  import { Button } from "$lib/components/ui/button";
 
   type Column = {
     key: string;
@@ -102,13 +103,14 @@
       {/if}
     </div>
     {#if addForm && addLabel}
-      <button
+      <Button
         type="button"
+        variant="ghost"
+        size="sm"
         onclick={() => { showForm = !showForm; onFormToggle?.(showForm); }}
-        class="btn-ghost text-sm py-1 px-3"
       >
         {showForm ? "Cancel" : `+ Add ${addLabel}`}
-      </button>
+      </Button>
     {/if}
   </div>
 
@@ -126,31 +128,33 @@
     <p class="text-text-muted text-sm px-5 pb-5">{emptyMessage}</p>
   {:else}
     <div class="border-t border-glass-border"></div>
-    <table class="min-w-full">
-      <thead class="glass-thead">
-        <tr>
-          {#each columns as col}
-            <th scope="col" class={col.headerClass ?? ""} aria-sort={col.sortable ? ariaSort(col.key) : undefined}>
-              {#if col.sortable}
-                <button type="button" class="cursor-pointer select-none" onclick={() => toggleSort(col.key)}>{col.label}<span aria-hidden="true">{sortArrow(col.key)}</span></button>
-              {:else}
-                {col.label}
-              {/if}
-            </th>
-          {/each}
-        </tr>
-      </thead>
-      <tbody>
-        {#each filteredSortedItems as item (item.id)}
-          <tr class="glass-row-hover">
-            {@render row(item, searchQuery)}
-          </tr>
-        {:else}
+    <div class="overflow-x-auto">
+      <table class="min-w-full">
+        <thead class="glass-thead">
           <tr>
-            <td colspan={colCount} class="px-6 py-8 text-center text-sm text-text-muted">{searchEmptyMessage}</td>
+            {#each columns as col}
+              <th scope="col" class={col.headerClass ?? ""} aria-sort={col.sortable ? ariaSort(col.key) : undefined}>
+                {#if col.sortable}
+                  <button type="button" class="cursor-pointer select-none" onclick={() => toggleSort(col.key)}>{col.label}<span aria-hidden="true">{sortArrow(col.key)}</span></button>
+                {:else}
+                  {col.label}
+                {/if}
+              </th>
+            {/each}
           </tr>
-        {/each}
-      </tbody>
-    </table>
+        </thead>
+        <tbody>
+          {#each filteredSortedItems as item (item.id)}
+            <tr class="glass-row-hover">
+              {@render row(item, searchQuery)}
+            </tr>
+          {:else}
+            <tr>
+              <td colspan={colCount} class="px-6 py-8 text-center text-sm text-text-muted">{searchEmptyMessage}</td>
+            </tr>
+          {/each}
+        </tbody>
+      </table>
+    </div>
   {/if}
 </div>

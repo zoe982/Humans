@@ -5,6 +5,7 @@
   import ConfirmDialog from "$lib/components/ConfirmDialog.svelte";
   import RelatedListTable from "$lib/components/RelatedListTable.svelte";
   import { Trash2 } from "lucide-svelte";
+  import { Button } from "$lib/components/ui/button";
 
   let { data, form }: { data: PageData; form: ActionData } = $props();
 
@@ -199,9 +200,9 @@
           ></textarea>
         </div>
         <div class="flex gap-3">
-          <button type="submit" class="btn-primary text-sm" disabled={!selectedHumanId}>
+          <Button type="submit" size="sm" disabled={!selectedHumanId}>
             Add Expression
-          </button>
+          </Button>
         </div>
       </form>
     {/snippet}

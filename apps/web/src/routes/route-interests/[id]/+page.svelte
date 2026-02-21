@@ -6,6 +6,7 @@
   import SearchableSelect from "$lib/components/SearchableSelect.svelte";
   import RelatedListTable from "$lib/components/RelatedListTable.svelte";
   import { Trash2 } from "lucide-svelte";
+  import { Button } from "$lib/components/ui/button";
 
   const MONTH_OPTIONS = [
     { value: "1", label: "01 - January" },
@@ -379,9 +380,9 @@
           ></textarea>
         </div>
         <div class="flex gap-3">
-          <button type="submit" class="btn-primary text-sm" disabled={!selectedHumanId}>
+          <Button type="submit" size="sm" disabled={!selectedHumanId}>
             Add Expression
-          </button>
+          </Button>
         </div>
       </form>
     {/snippet}

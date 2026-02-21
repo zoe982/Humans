@@ -9,6 +9,7 @@
   import { signupStatusColors as statusColorMap, activityTypeColors } from "$lib/constants/colors";
   import { activityTypeLabels, ACTIVITY_TYPE_OPTIONS } from "$lib/constants/labels";
   import SearchableSelect from "$lib/components/SearchableSelect.svelte";
+  import { Button } from "$lib/components/ui/button";
 
   let { data, form }: { data: PageData; form: ActionData } = $props();
 
@@ -201,9 +202,9 @@
                   </div>
                   <form method="POST" action="?/convertToHuman">
                     <input type="hidden" name="humanId" value={human.id} />
-                    <button type="submit" class="btn-primary text-xs py-1 px-3">
+                    <Button type="submit" size="sm">
                       Link
-                    </button>
+                    </Button>
                   </form>
                 </li>
               {/each}
@@ -297,9 +298,9 @@
               class="glass-input mt-1 block w-full px-3 py-2 text-sm"
             />
           </div>
-          <button type="submit" class="btn-primary text-sm">
+          <Button type="submit" size="sm">
             Add Activity
-          </button>
+          </Button>
         </form>
       {/snippet}
     </RelatedListTable>
@@ -317,13 +318,14 @@
               Yes, Delete
             </button>
           </form>
-          <button
+          <Button
             type="button"
+            variant="ghost"
+            size="sm"
             onclick={() => { showDeleteConfirm = false; }}
-            class="btn-ghost text-sm"
           >
             Cancel
-          </button>
+          </Button>
         </div>
       {:else}
         <button

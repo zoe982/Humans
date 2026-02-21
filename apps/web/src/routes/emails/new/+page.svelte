@@ -3,6 +3,7 @@
   import PageHeader from "$lib/components/PageHeader.svelte";
   import AlertBanner from "$lib/components/AlertBanner.svelte";
   import SearchableSelect from "$lib/components/SearchableSelect.svelte";
+  import { Button } from "$lib/components/ui/button";
 
   let { data, form }: { data: PageData; form: ActionData } = $props();
 
@@ -74,7 +75,7 @@
     </div>
 
     <div class="flex gap-3">
-      <button type="submit" class="btn-primary">Create Email</button>
+      <Button type="submit">Create Email</Button>
       <a href="/emails" class="btn-ghost">Cancel</a>
     </div>
   </form>

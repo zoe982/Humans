@@ -2,6 +2,7 @@
   import type { PageData, ActionData } from "./$types";
   import PageHeader from "$lib/components/PageHeader.svelte";
   import AlertBanner from "$lib/components/AlertBanner.svelte";
+  import { Button } from "$lib/components/ui/button";
 
   let { data, form }: { data: PageData; form: ActionData } = $props();
 
@@ -53,7 +54,7 @@
       {/if}
       <form method="POST" action="?/createAccountType" class="flex gap-2">
         <input name="name" type="text" required placeholder="New account type..." class="glass-input flex-1 px-3 py-2 text-sm" />
-        <button type="submit" class="btn-primary text-sm">Add</button>
+        <Button type="submit" size="sm">Add</Button>
       </form>
     </div>
 
@@ -77,7 +78,7 @@
       {/if}
       <form method="POST" action="?/createHumanLabel" class="flex gap-2">
         <input name="name" type="text" required placeholder="New role label..." class="glass-input flex-1 px-3 py-2 text-sm" />
-        <button type="submit" class="btn-primary text-sm">Add</button>
+        <Button type="submit" size="sm">Add</Button>
       </form>
     </div>
 
@@ -101,7 +102,7 @@
       {/if}
       <form method="POST" action="?/createEmailLabel" class="flex gap-2">
         <input name="name" type="text" required placeholder="New email label..." class="glass-input flex-1 px-3 py-2 text-sm" />
-        <button type="submit" class="btn-primary text-sm">Add</button>
+        <Button type="submit" size="sm">Add</Button>
       </form>
     </div>
 
@@ -125,7 +126,7 @@
       {/if}
       <form method="POST" action="?/createPhoneLabel" class="flex gap-2">
         <input name="name" type="text" required placeholder="New phone label..." class="glass-input flex-1 px-3 py-2 text-sm" />
-        <button type="submit" class="btn-primary text-sm">Add</button>
+        <Button type="submit" size="sm">Add</Button>
       </form>
     </div>
 
@@ -149,7 +150,7 @@
       {/if}
       <form method="POST" action="?/createHumanEmailLabel" class="flex gap-2">
         <input name="name" type="text" required placeholder="New email label..." class="glass-input flex-1 px-3 py-2 text-sm" />
-        <button type="submit" class="btn-primary text-sm">Add</button>
+        <Button type="submit" size="sm">Add</Button>
       </form>
     </div>
 
@@ -173,7 +174,7 @@
       {/if}
       <form method="POST" action="?/createHumanPhoneLabel" class="flex gap-2">
         <input name="name" type="text" required placeholder="New phone label..." class="glass-input flex-1 px-3 py-2 text-sm" />
-        <button type="submit" class="btn-primary text-sm">Add</button>
+        <Button type="submit" size="sm">Add</Button>
       </form>
     </div>
   </div>
