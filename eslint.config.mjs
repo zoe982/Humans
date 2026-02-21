@@ -2,11 +2,14 @@ import eslint from "@eslint/js";
 import tseslint from "typescript-eslint";
 import security from "eslint-plugin-security";
 import vitest from "@vitest/eslint-plugin";
+import svelte from "eslint-plugin-svelte";
+import globals from "globals";
 
 export default tseslint.config(
   eslint.configs.recommended,
   ...tseslint.configs.strictTypeChecked,
   ...tseslint.configs.stylisticTypeChecked,
+  ...svelte.configs.recommended,
   {
     plugins: { security },
     rules: {
@@ -105,6 +108,41 @@ export default tseslint.config(
     },
   },
 
+  // ── Svelte file settings ──────────────────────────────────────────────────
+  {
+    files: ["**/*.svelte", "**/*.svelte.ts", "**/*.svelte.js"],
+    languageOptions: {
+      globals: { ...globals.browser },
+    },
+  },
+
+  // ── Disable conflicting TS rules in .svelte files ─────────────────────────
+  {
+    files: ["**/*.svelte"],
+    rules: {
+      "@typescript-eslint/explicit-function-return-type": "off",
+      "@typescript-eslint/explicit-module-boundary-types": "off",
+      "@typescript-eslint/no-unsafe-type-assertion": "off",
+    },
+  },
+
+  // ── Rune guard for plain .ts files ────────────────────────────────────────
+  {
+    files: ["**/*.ts"],
+    ignores: ["**/*.svelte.ts"],
+    rules: {
+      "no-restricted-globals": ["error",
+        { name: "$state", message: "Svelte runes require .svelte or .svelte.ts files." },
+        { name: "$derived", message: "Svelte runes require .svelte or .svelte.ts files." },
+        { name: "$effect", message: "Svelte runes require .svelte or .svelte.ts files." },
+        { name: "$props", message: "Svelte runes require .svelte or .svelte.ts files." },
+        { name: "$bindable", message: "Svelte runes require .svelte or .svelte.ts files." },
+        { name: "$inspect", message: "Svelte runes require .svelte or .svelte.ts files." },
+        { name: "$host", message: "Svelte runes require .svelte or .svelte.ts files." },
+      ],
+    },
+  },
+
   // ── Test files: vitest anti-gaming rules ─────────────────────────────────
   // These rules make it impossible to inflate coverage numbers through test tricks.
   {
@@ -166,6 +204,9 @@ export default tseslint.config(
       "**/coverage/**",
       // seed.ts is a Node.js script excluded from Workers tsconfig
       "**/seed.ts",
+      // Svelte virtual files processed by the Svelte parser, not the TS type-checker
+      "**/*.svelte.ts",
+      "**/*.svelte.js",
     ],
   },
 );

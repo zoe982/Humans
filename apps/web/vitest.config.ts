@@ -62,8 +62,8 @@ export default defineConfig({
         "src/lib/components/ui/**",
         // 1-line clsx wrapper — no meaningful logic
         "src/lib/utils/cn.ts",
-        // Uses Svelte 5 $state runes — untestable in vitest without full runtime
-        "src/lib/changeHistory.ts",
+        // Uses Svelte 5 $state runes — compiled by svelte plugin in .svelte.ts
+        "src/lib/changeHistory.svelte.ts",
         // Pure data files — no executable logic
         "src/lib/constants/**",
       ],
