@@ -33,6 +33,7 @@
     "@vitest/coverage-istanbul": "~2.1.8",
     "axe-core": "^4.11.1",
     "happy-dom": "^16.0.0",
+    "jsdom": "^28.1.0",
     "svelte": "^5.16.6",
     "svelte-check": "^4.1.4",
     "sveltekit-superforms": "^2.22.1",

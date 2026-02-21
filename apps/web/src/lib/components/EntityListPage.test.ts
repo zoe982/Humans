@@ -1,42 +1,17 @@
+// @vitest-environment jsdom
+// EntityListPage renders a <table> with <thead>/<tbody>/<tr>/<th>/<td>
+// elements. happy-dom strips table elements when parsed inside <template>
+// nodes (a known limitation), which breaks Svelte 5's $.from_html() template
+// cache. jsdom parses table elements in template context correctly.
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/svelte";
 import { createRawSnippet } from "svelte";
 import EntityListPage from "./EntityListPage.svelte";
 
-// lucide-svelte creates SVG elements via DOM manipulation that happy-dom cannot
-// handle (element.setAttribute is not a function on SVGElement). Replace all
-// icon components with simple span stubs that are safe in happy-dom.
-vi.mock("lucide-svelte", () => ({
-  Search: (node: HTMLElement) => {
-    const span = document.createElement("span");
-    span.setAttribute("data-testid", "search-icon");
-    node.before(span);
-  },
-  ChevronLeft: (node: HTMLElement) => {
-    const span = document.createElement("span");
-    span.textContent = "<";
-    node.before(span);
-  },
-  ChevronRight: (node: HTMLElement) => {
-    const span = document.createElement("span");
-    span.textContent = ">";
-    node.before(span);
-  },
-  AlertTriangle: (node: HTMLElement) => {
-    const span = document.createElement("span");
-    span.textContent = "!";
-    node.before(span);
-  },
-}));
-
-// The shadcn-svelte breadcrumb separator imports ChevronRight from this sub-path.
-vi.mock("lucide-svelte/icons/chevron-right", () => ({
-  default: (node: HTMLElement) => {
-    const span = document.createElement("span");
-    span.textContent = ">";
-    node.before(span);
-  },
-}));
+// lucide-svelte icons are replaced globally via vitest.config.ts aliases.
+// All icon imports resolve to test/mocks/lucide-svelte.ts which renders safe
+// <span> stubs instead of SVG elements (happy-dom and jsdom both cannot handle
+// SVGElement.setAttribute calls from lucide-svelte's raw SVG construction).
 
 // ---------------------------------------------------------------------------
 // Test data
@@ -120,7 +95,9 @@ describe("EntityListPage", () => {
 
   it("renders the page title heading", () => {
     render(EntityListPage, { props: baseProps() });
-    expect(screen.getByText("Items")).toBeDefined();
+    // Use getByRole to target the h1 specifically — "Items" also appears in the
+    // breadcrumb link, so getByText would match multiple elements.
+    expect(screen.getByRole("heading", { name: "Items" })).toBeDefined();
   });
 
   // ── 2. Client-side search filters items ───────────────────────────────────

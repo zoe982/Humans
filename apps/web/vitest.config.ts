@@ -16,16 +16,25 @@ export default defineConfig({
     svelte({
       // Disable HMR when running under vitest
       hot: !process.env["VITEST"],
-      // Needed so Svelte compiles components for the test environment
-      compilerOptions: { css: "injected" },
+      // Needed so Svelte compiles components for the test environment.
+      // dev:false disables add_locations() which traverses DocumentFragment
+      // via firstChild — a code path happy-dom v16 cannot handle correctly.
+      compilerOptions: { css: "injected", dev: false },
       // Skip vitePreprocess CSS pipeline — it requires a full Vite environment
       // that isn't available in the test runner context
       preprocess: [],
     }),
   ],
   resolve: {
-    // Force Svelte 5 to use its browser (client) bundle in tests
-    conditions: ["browser"],
+    // Force Svelte 5 to use its browser (client) bundle in tests.
+    // "svelte" is required for packages that export under a "svelte" condition
+    // (e.g. runed, svelte-sonner). "default" is a fallback for any remaining
+    // packages that don't advertise a specific condition.
+    conditions: ["browser", "svelte", "default"],
+    // Add .svelte.ts as a resolvable extension. Vite's default list does not
+    // include compound extensions, so $lib/changeHistory would fail to resolve
+    // to changeHistory.svelte.ts without this.
+    extensions: [".svelte.ts", ".mjs", ".js", ".mts", ".ts", ".jsx", ".tsx", ".json", ".vue", ".svelte"],
     alias: {
       "$env/static/public": path.resolve(__dirname, "test/mocks/env-static-public.ts"),
       "$env/dynamic/private": path.resolve(__dirname, "test/mocks/env-dynamic-private.ts"),
@@ -34,6 +43,25 @@ export default defineConfig({
       "$app/stores": path.resolve(__dirname, "test/mocks/app-stores.ts"),
       "$app/navigation": path.resolve(__dirname, "test/mocks/app-navigation.ts"),
       "@sveltejs/kit": path.resolve(__dirname, "test/mocks/sveltejs-kit.ts"),
+      // lucide-svelte generates SVG elements via DOM manipulation that
+      // happy-dom cannot handle (SVGElement.setAttribute is not a function).
+      // Stub both the main package and all sub-path icon imports used by
+      // shadcn-svelte components (BreadcrumbSeparator, calendar, select, etc.)
+      // and by our own components (GlassDateTimePicker, ConfirmDialog, etc.).
+      // All sub-paths point to the same icon stub file — the stub renders a safe
+      // <span data-icon> element instead of an SVG in any DOM environment.
+      "lucide-svelte/icons/chevron-right": path.resolve(__dirname, "test/mocks/lucide-svelte-icons/chevron-right.ts"),
+      "lucide-svelte/icons/chevron-left": path.resolve(__dirname, "test/mocks/lucide-svelte-icons/chevron-right.ts"),
+      "lucide-svelte/icons/chevron-down": path.resolve(__dirname, "test/mocks/lucide-svelte-icons/chevron-right.ts"),
+      "lucide-svelte/icons/alert-triangle": path.resolve(__dirname, "test/mocks/lucide-svelte-icons/chevron-right.ts"),
+      "lucide-svelte/icons/search": path.resolve(__dirname, "test/mocks/lucide-svelte-icons/chevron-right.ts"),
+      "lucide-svelte/icons/calendar-days": path.resolve(__dirname, "test/mocks/lucide-svelte-icons/chevron-right.ts"),
+      "lucide-svelte/icons/check": path.resolve(__dirname, "test/mocks/lucide-svelte-icons/chevron-right.ts"),
+      "lucide-svelte": path.resolve(__dirname, "test/mocks/lucide-svelte.ts"),
+      // .svelte.ts files use Svelte 5 runes and are compiled by vite-plugin-svelte.
+      // Vite's default extension resolution does not try the compound .svelte.ts
+      // extension, so we need explicit aliases for these rune-based modules.
+      "$lib/changeHistory": path.resolve(__dirname, "src/lib/changeHistory.svelte.ts"),
     },
   },
   test: {

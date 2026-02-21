@@ -34,8 +34,10 @@ describe("SubmitButton", () => {
     const { container } = render(SubmitButton, {
       props: { label: "Saving...", submitting: true },
     });
-    // Loader2 renders an SVG
-    const spinner = container.querySelector("svg");
+    // Loader2 is stubbed as <span data-icon> in tests (lucide-svelte SVG
+    // elements cannot be created in happy-dom). The stub element confirms the
+    // spinner component is rendered when submitting is true.
+    const spinner = container.querySelector("[data-icon]");
     expect(spinner).not.toBeNull();
   });
 
@@ -43,7 +45,8 @@ describe("SubmitButton", () => {
     const { container } = render(SubmitButton, {
       props: { label: "Save", submitting: false },
     });
-    const spinner = container.querySelector("svg");
+    // No icon stub should be present when not submitting
+    const spinner = container.querySelector("[data-icon]");
     expect(spinner).toBeNull();
   });
 
