@@ -215,15 +215,12 @@
             </td>
             <td class="text-text-muted max-w-xs truncate">{truncate(activity.notes ?? activity.body, 80)}</td>
             <td>
-              {@const entities = linkedEntities(activity)}
-              {#if entities.length > 0}
-                {#each entities as entity, i}
-                  {#if i > 0}<span class="text-text-muted">, </span>{/if}
-                  <a href={entity.href} class="text-accent hover:text-cyan-300">{entity.label}</a>
-                {/each}
+              {#each linkedEntities(activity) as entity, i}
+                {#if i > 0}<span class="text-text-muted">, </span>{/if}
+                <a href={entity.href} class="text-accent hover:text-cyan-300">{entity.label}</a>
               {:else}
                 <span class="text-text-muted">—</span>
-              {/if}
+              {/each}
             </td>
             <td class="text-text-muted">{new Date(activity.activityDate).toLocaleDateString()}</td>
             <td>
