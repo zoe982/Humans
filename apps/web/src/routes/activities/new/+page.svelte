@@ -159,7 +159,7 @@
           {#each geoInterests as geo, i}
             <span class="inline-flex items-center gap-1 rounded-full bg-[rgba(6,182,212,0.15)] text-accent px-2.5 py-1 text-sm">
               {geo.city ?? "New"}{geo.country ? `, ${geo.country}` : ""}
-              <button type="button" class="ml-0.5 hover:text-cyan-300" onclick={() => { geoInterests = geoInterests.filter((_, idx) => idx !== i); }}>
+              <button type="button" class="ml-0.5 hover:text-[var(--link-hover)]" onclick={() => { geoInterests = geoInterests.filter((_, idx) => idx !== i); }}>
                 <X size={12} />
               </button>
             </span>
@@ -215,9 +215,9 @@
         <input type="hidden" name="routeInterestsJson" value={JSON.stringify(routeInterests)} />
         <div class="flex flex-wrap gap-2 mb-2">
           {#each routeInterests as route, i}
-            <span class="inline-flex items-center gap-1 rounded-full bg-[rgba(168,85,247,0.15)] text-purple-300 px-2.5 py-1 text-sm">
+            <span class="inline-flex items-center gap-1 rounded-full badge-purple px-2.5 py-1 text-sm">
               {route.originCity ?? "?"} &rarr; {route.destinationCity ?? "?"}
-              <button type="button" class="ml-0.5 hover:text-purple-200" onclick={() => { routeInterests = routeInterests.filter((_, idx) => idx !== i); }}>
+              <button type="button" class="ml-0.5 hover:opacity-80" onclick={() => { routeInterests = routeInterests.filter((_, idx) => idx !== i); }}>
                 <X size={12} />
               </button>
             </span>

@@ -188,7 +188,7 @@
         onSelect={handleOwnerChange}
       />
       {#if email.ownerName}
-        <a href={ownerHref} class="mt-1 inline-block text-sm text-accent hover:text-cyan-300">
+        <a href={ownerHref} class="mt-1 inline-block text-sm text-accent hover:text-[var(--link-hover)]">
           View {email.ownerName}
         </a>
       {/if}

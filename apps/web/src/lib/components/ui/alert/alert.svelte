@@ -17,7 +17,7 @@
 
 	const variantClasses: Record<AlertVariant, string> = {
 		default: "glass-card p-4 text-text-primary",
-		destructive: "bg-danger border border-danger-border rounded-[1rem] p-4 text-red-300",
+		destructive: "bg-danger border border-danger-border rounded-[1rem] p-4 text-destructive-foreground",
 	};
 </script>
 

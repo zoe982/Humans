@@ -46,10 +46,10 @@
 >
   {#snippet desktopRow(account)}
     <td class="font-mono text-sm">
-      <a href="/accounts/{account.id}" class="text-accent hover:text-cyan-300">{account.displayId}</a>
+      <a href="/accounts/{account.id}" class="text-accent hover:text-[var(--link-hover)]">{account.displayId}</a>
     </td>
     <td class="font-medium">
-      <a href="/accounts/{account.id}" class="text-accent hover:text-cyan-300">{account.name}</a>
+      <a href="/accounts/{account.id}" class="text-accent hover:text-[var(--link-hover)]">{account.name}</a>
     </td>
     <td>
       <StatusBadge status={account.status ?? "open"} colorMap={statusColors} />
@@ -57,7 +57,7 @@
     <td>
       <div class="flex gap-1 flex-wrap">
         {#each account.types as t}
-          <span class="glass-badge bg-[rgba(168,85,247,0.15)] text-purple-300">
+          <span class="glass-badge badge-purple">
             {t.name}
           </span>
         {/each}
@@ -74,12 +74,12 @@
       </div>
       <div class="flex gap-1 flex-wrap">
         {#each account.types as t}
-          <span class="glass-badge text-xs bg-[rgba(168,85,247,0.15)] text-purple-300">{t.name}</span>
+          <span class="glass-badge text-xs badge-purple">{t.name}</span>
         {/each}
       </div>
       {#if data.userRole === "admin"}
         <div class="mt-2 flex justify-end">
-          <button type="button" class="text-red-400 hover:text-red-300 text-xs" onclick={(e) => { e.preventDefault(); }}>Delete</button>
+          <button type="button" class="text-destructive-foreground hover:opacity-80 text-xs" onclick={(e) => { e.preventDefault(); }}>Delete</button>
         </div>
       {/if}
     </a>

@@ -22,7 +22,7 @@
   <AlertDialog.Content class="max-w-sm">
     <AlertDialog.Header>
       <div class="flex items-start gap-3">
-        <div class="rounded-lg bg-danger p-2 text-red-400 shrink-0">
+        <div class="rounded-lg bg-danger p-2 text-destructive-foreground shrink-0">
           <AlertTriangle size={20} />
         </div>
         <div>

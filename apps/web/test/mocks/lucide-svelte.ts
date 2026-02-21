@@ -75,5 +75,7 @@ export const ClipboardList = IconStub;
 export const Globe2 = IconStub;
 export const FileText = IconStub;
 export const ArrowLeftRight = IconStub;
+export const Sun = IconStub;
+export const Moon = IconStub;
 
 export default IconStub;

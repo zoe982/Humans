@@ -193,7 +193,7 @@
         onSelect={handleOwnerChange}
       />
       {#if phone.ownerName}
-        <a href={ownerHref} class="mt-1 inline-block text-sm text-accent hover:text-cyan-300">
+        <a href={ownerHref} class="mt-1 inline-block text-sm text-accent hover:text-[var(--link-hover)]">
           View {phone.ownerName}
         </a>
       {/if}

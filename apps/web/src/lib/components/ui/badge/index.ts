@@ -14,7 +14,7 @@ export function badgeVariants({
 	const variants: Record<BadgeVariant, string> = {
 		default: "bg-accent-dim text-accent",
 		secondary: "bg-glass text-text-secondary",
-		destructive: "bg-danger text-red-300",
+		destructive: "bg-danger text-destructive-foreground",
 		outline: "border-glass-border text-text-primary",
 	};
 

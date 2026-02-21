@@ -65,10 +65,10 @@
         <div class="flex items-center justify-between mb-2">
           <span class="font-medium text-accent">{displayName(signup)}</span>
           <StatusBadge status={signupStatusLabels[signup.status ?? ""] ?? signup.status ?? "—"} colorMap={{
-            "Open": "bg-[rgba(59,130,246,0.15)] text-blue-300",
-            "Qualified": "bg-[rgba(234,179,8,0.15)] text-yellow-300",
-            "Converted": "bg-[rgba(34,197,94,0.15)] text-green-300",
-            "Rejected": "bg-[rgba(239,68,68,0.15)] text-red-300",
+            "Open": "badge-blue",
+            "Qualified": "badge-yellow",
+            "Converted": "badge-green",
+            "Rejected": "badge-red",
           }} />
         </div>
         {#if signup.email}
@@ -82,7 +82,7 @@
         <div class="mt-2 flex items-center justify-between">
           <span class="text-xs text-text-muted">{formatDatetime(signup.inserted_at)}</span>
           {#if data.userRole === "admin"}
-            <button type="button" class="text-red-400 hover:text-red-300 text-xs" onclick={(e) => { e.preventDefault(); pendingDeleteId = signup.id; }}>Delete</button>
+            <button type="button" class="text-destructive-foreground hover:opacity-80 text-xs" onclick={(e) => { e.preventDefault(); pendingDeleteId = signup.id; }}>Delete</button>
           {/if}
         </div>
       </a>
@@ -112,26 +112,26 @@
         {#each signups as signup (signup.id)}
           <tr class="glass-row-hover">
             <td class="font-mono text-sm whitespace-nowrap">
-              <a href="/leads/route-signups/{signup.id}" class="text-accent hover:text-cyan-300">{signup.display_id ?? "—"}</a>
+              <a href="/leads/route-signups/{signup.id}" class="text-accent hover:text-[var(--link-hover)]">{signup.display_id ?? "—"}</a>
             </td>
             <td class="font-medium">
-              <a href="/leads/route-signups/{signup.id}" class="text-accent hover:text-cyan-300">{displayName(signup)}</a>
+              <a href="/leads/route-signups/{signup.id}" class="text-accent hover:text-[var(--link-hover)]">{displayName(signup)}</a>
             </td>
             <td class="text-text-secondary">{signup.email ?? "—"}</td>
             <td class="text-text-secondary">{signup.origin ?? "—"}</td>
             <td class="text-text-secondary">{signup.destination ?? "—"}</td>
             <td>
               <StatusBadge status={signupStatusLabels[signup.status ?? ""] ?? signup.status ?? "—"} colorMap={{
-                "Open": "bg-[rgba(59,130,246,0.15)] text-blue-300",
-                "Qualified": "bg-[rgba(234,179,8,0.15)] text-yellow-300",
-                "Converted": "bg-[rgba(34,197,94,0.15)] text-green-300",
-                "Rejected": "bg-[rgba(239,68,68,0.15)] text-red-300",
+                "Open": "badge-blue",
+                "Qualified": "badge-yellow",
+                "Converted": "badge-green",
+                "Rejected": "badge-red",
               }} />
             </td>
             <td class="text-text-muted">{formatDatetime(signup.inserted_at)}</td>
             {#if data.userRole === "admin"}
               <td>
-                <button type="button" class="text-red-400 hover:text-red-300 text-sm" onclick={() => { pendingDeleteId = signup.id; }}>Delete</button>
+                <button type="button" class="text-destructive-foreground hover:opacity-80 text-sm" onclick={() => { pendingDeleteId = signup.id; }}>Delete</button>
               </td>
             {/if}
           </tr>

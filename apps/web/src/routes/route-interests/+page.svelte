@@ -170,14 +170,14 @@
     {/snippet}
     {#snippet desktopRow(ri)}
       <td class="font-mono text-sm">
-        <a href="/route-interests/{ri.id}" class="text-accent hover:text-cyan-300">{ri.displayId}</a>
+        <a href="/route-interests/{ri.id}" class="text-accent hover:text-[var(--link-hover)]">{ri.displayId}</a>
       </td>
       <td>
-        <a href="/route-interests/{ri.id}" class="text-accent hover:text-cyan-300">{ri.originCity}</a>
+        <a href="/route-interests/{ri.id}" class="text-accent hover:text-[var(--link-hover)]">{ri.originCity}</a>
         <span class="text-text-muted text-sm">, {ri.originCountry}</span>
       </td>
       <td>
-        <a href="/route-interests/{ri.id}" class="text-accent hover:text-cyan-300">{ri.destinationCity}</a>
+        <a href="/route-interests/{ri.id}" class="text-accent hover:text-[var(--link-hover)]">{ri.destinationCity}</a>
         <span class="text-text-muted text-sm">, {ri.destinationCountry}</span>
       </td>
       <td>{ri.humanCount}</td>
@@ -201,7 +201,7 @@
         </div>
         {#if data.userRole === "admin"}
           <div class="mt-2 flex justify-end">
-            <button type="button" class="text-red-400 hover:text-red-300 text-xs" onclick={(e) => { e.preventDefault(); }}>Delete</button>
+            <button type="button" class="text-destructive-foreground hover:opacity-80 text-xs" onclick={(e) => { e.preventDefault(); }}>Delete</button>
           </div>
         {/if}
       </a>
@@ -237,7 +237,7 @@
         <a href="/route-interests/expressions/{expr.id}" class="glass-card p-4 block hover:ring-1 hover:ring-accent/40 transition">
           <div class="flex items-center justify-between mb-1">
             <span class="font-mono text-xs text-text-muted">{expr.displayId}</span>
-            <span class="glass-badge inline-flex rounded-full px-2 py-0.5 text-xs font-medium {expr.frequency === 'repeat' ? 'bg-[rgba(168,85,247,0.15)] text-purple-300' : 'bg-glass text-text-secondary'}">
+            <span class="glass-badge inline-flex rounded-full px-2 py-0.5 text-xs font-medium {expr.frequency === 'repeat' ? 'badge-purple' : 'bg-glass text-text-secondary'}">
               {expr.frequency === "repeat" ? "Repeat" : "One-time"}
             </span>
           </div>
@@ -278,22 +278,22 @@
           {#each filteredExpressions as expr (expr.id)}
             <tr class="glass-row-hover">
               <td class="font-mono text-sm">
-                <a href="/route-interests/expressions/{expr.id}" class="text-accent hover:text-cyan-300">{expr.displayId}</a>
+                <a href="/route-interests/expressions/{expr.id}" class="text-accent hover:text-[var(--link-hover)]">{expr.displayId}</a>
               </td>
               <td>
                 {#if expr.humanName}
-                  <a href="/humans/{expr.humanId}" class="text-accent hover:text-cyan-300">{expr.humanName}</a>
+                  <a href="/humans/{expr.humanId}" class="text-accent hover:text-[var(--link-hover)]">{expr.humanName}</a>
                 {:else}
                   <span class="text-text-muted">Unknown</span>
                 {/if}
               </td>
               <td>
-                <a href="/route-interests/{expr.routeInterestId}" class="text-accent hover:text-cyan-300">
+                <a href="/route-interests/{expr.routeInterestId}" class="text-accent hover:text-[var(--link-hover)]">
                   {expr.originCity ?? "\u2014"} &rarr; {expr.destinationCity ?? "\u2014"}
                 </a>
               </td>
               <td>
-                <span class="glass-badge inline-flex rounded-full px-2 py-0.5 text-xs font-medium {expr.frequency === 'repeat' ? 'bg-[rgba(168,85,247,0.15)] text-purple-300' : 'bg-glass text-text-secondary'}">
+                <span class="glass-badge inline-flex rounded-full px-2 py-0.5 text-xs font-medium {expr.frequency === 'repeat' ? 'badge-purple' : 'bg-glass text-text-secondary'}">
                   {expr.frequency === "repeat" ? "Repeat" : "One-time"}
                 </span>
               </td>

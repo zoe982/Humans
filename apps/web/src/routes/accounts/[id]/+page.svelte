@@ -227,7 +227,7 @@
     {#snippet actions()}
       <div class="flex gap-1">
         {#each account.types as t}
-          <span class="glass-badge inline-flex rounded-full px-2 py-0.5 text-xs font-medium bg-[rgba(168,85,247,0.15)] text-purple-300">
+          <span class="glass-badge inline-flex rounded-full px-2 py-0.5 text-xs font-medium badge-purple">
             {t.name}
           </span>
         {/each}
@@ -298,7 +298,7 @@
     >
       {#snippet row(email, _searchQuery)}
         <td>
-          <a href="/emails/{email.id}" class="text-sm font-medium text-accent hover:text-cyan-300">{email.email}</a>
+          <a href="/emails/{email.id}" class="text-sm font-medium text-accent hover:text-[var(--link-hover)]">{email.email}</a>
         </td>
         <td>
           <div class="w-36">
@@ -323,13 +323,13 @@
         </td>
         <td>
           {#if email.isPrimary}
-            <span class="glass-badge inline-flex rounded-full px-2 py-0.5 text-xs font-medium bg-[rgba(59,130,246,0.15)] text-blue-300">Primary</span>
+            <span class="glass-badge inline-flex rounded-full px-2 py-0.5 text-xs font-medium badge-blue">Primary</span>
           {/if}
         </td>
         <td>
           <form method="POST" action="?/deleteEmail">
             <input type="hidden" name="id" value={email.id} />
-            <button type="submit" class="flex items-center justify-center w-7 h-7 rounded-lg text-text-muted hover:text-red-400 hover:bg-[rgba(239,68,68,0.12)] transition-colors duration-150" aria-label="Delete email">
+            <button type="submit" class="flex items-center justify-center w-7 h-7 rounded-lg text-text-muted hover:text-destructive-foreground hover:bg-destructive transition-colors duration-150" aria-label="Delete email">
               <Trash2 size={14} />
             </button>
           </form>
@@ -385,7 +385,7 @@
     >
       {#snippet row(phone, _searchQuery)}
         <td>
-          <a href="/phone-numbers/{phone.id}" class="text-sm font-medium text-accent hover:text-cyan-300">{phone.phoneNumber}</a>
+          <a href="/phone-numbers/{phone.id}" class="text-sm font-medium text-accent hover:text-[var(--link-hover)]">{phone.phoneNumber}</a>
         </td>
         <td>
           <div class="w-36">
@@ -411,17 +411,17 @@
         <td>
           <div class="flex items-center gap-1">
             {#if phone.hasWhatsapp}
-              <span class="glass-badge inline-flex rounded-full px-2 py-0.5 text-xs font-medium bg-[rgba(34,197,94,0.15)] text-green-300">WhatsApp</span>
+              <span class="glass-badge inline-flex rounded-full px-2 py-0.5 text-xs font-medium badge-green">WhatsApp</span>
             {/if}
             {#if phone.isPrimary}
-              <span class="glass-badge inline-flex rounded-full px-2 py-0.5 text-xs font-medium bg-[rgba(59,130,246,0.15)] text-blue-300">Primary</span>
+              <span class="glass-badge inline-flex rounded-full px-2 py-0.5 text-xs font-medium badge-blue">Primary</span>
             {/if}
           </div>
         </td>
         <td>
           <form method="POST" action="?/deletePhoneNumber">
             <input type="hidden" name="id" value={phone.id} />
-            <button type="submit" class="flex items-center justify-center w-7 h-7 rounded-lg text-text-muted hover:text-red-400 hover:bg-[rgba(239,68,68,0.12)] transition-colors duration-150" aria-label="Delete phone number">
+            <button type="submit" class="flex items-center justify-center w-7 h-7 rounded-lg text-text-muted hover:text-destructive-foreground hover:bg-destructive transition-colors duration-150" aria-label="Delete phone number">
               <Trash2 size={14} />
             </button>
           </form>
@@ -476,7 +476,7 @@
     >
       {#snippet row(sid, _searchQuery)}
         <td>
-          <a href="/social-ids/{sid.id}" class="text-sm font-medium text-accent hover:text-cyan-300">{sid.handle}</a>
+          <a href="/social-ids/{sid.id}" class="text-sm font-medium text-accent hover:text-[var(--link-hover)]">{sid.handle}</a>
         </td>
         <td>
           {#if sid.platformName}
@@ -488,7 +488,7 @@
         <td>
           <form method="POST" action="?/deleteSocialId">
             <input type="hidden" name="id" value={sid.id} />
-            <button type="submit" class="flex items-center justify-center w-7 h-7 rounded-lg text-text-muted hover:text-red-400 hover:bg-[rgba(239,68,68,0.12)] transition-colors duration-150" aria-label="Delete social ID">
+            <button type="submit" class="flex items-center justify-center w-7 h-7 rounded-lg text-text-muted hover:text-destructive-foreground hover:bg-destructive transition-colors duration-150" aria-label="Delete social ID">
               <Trash2 size={14} />
             </button>
           </form>
@@ -544,13 +544,13 @@
     >
       {#snippet row(link, _searchQuery)}
         <td>
-          <a href="/humans/{link.humanId}" class="text-sm font-medium text-accent hover:text-cyan-300">
+          <a href="/humans/{link.humanId}" class="text-sm font-medium text-accent hover:text-[var(--link-hover)]">
             {link.humanName}
           </a>
         </td>
         <td>
           {#if link.labelName}
-            <span class="glass-badge inline-flex rounded-full px-2 py-0.5 text-xs font-medium bg-[rgba(249,115,22,0.15)] text-orange-300">
+            <span class="glass-badge inline-flex rounded-full px-2 py-0.5 text-xs font-medium badge-orange">
               {link.labelName}
             </span>
           {:else}
@@ -574,7 +574,7 @@
         <td>
           <form method="POST" action="?/unlinkHuman">
             <input type="hidden" name="id" value={link.id} />
-            <button type="submit" class="flex items-center justify-center w-7 h-7 rounded-lg text-text-muted hover:text-red-400 hover:bg-[rgba(239,68,68,0.12)] transition-colors duration-150" aria-label="Unlink human">
+            <button type="submit" class="flex items-center justify-center w-7 h-7 rounded-lg text-text-muted hover:text-destructive-foreground hover:bg-destructive transition-colors duration-150" aria-label="Unlink human">
               <Trash2 size={14} />
             </button>
           </form>

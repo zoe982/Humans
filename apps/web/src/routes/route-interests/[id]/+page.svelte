@@ -212,7 +212,7 @@
       <p class="text-xs text-text-muted mt-1">One-time</p>
     </div>
     <div class="glass-card p-4">
-      <p class="text-2xl font-bold text-purple-300">{repeatCount}</p>
+      <p class="text-2xl font-bold text-[var(--badge-purple-text)]">{repeatCount}</p>
       <p class="text-xs text-text-muted mt-1">Repeat</p>
     </div>
   </div>
@@ -301,17 +301,17 @@
   >
     {#snippet row(expr, _searchQuery)}
       <td class="font-mono text-sm">
-        <a href="/route-interests/expressions/{expr.id}" class="text-accent hover:text-cyan-300">{expr.displayId}</a>
+        <a href="/route-interests/expressions/{expr.id}" class="text-accent hover:text-[var(--link-hover)]">{expr.displayId}</a>
       </td>
       <td>
         {#if expr.humanName}
-          <a href="/humans/{expr.humanId}" class="text-accent hover:text-cyan-300">{expr.humanName}</a>
+          <a href="/humans/{expr.humanId}" class="text-accent hover:text-[var(--link-hover)]">{expr.humanName}</a>
         {:else}
           <span class="text-text-muted">Unknown</span>
         {/if}
       </td>
       <td>
-        <span class="glass-badge inline-flex rounded-full px-2 py-0.5 text-xs font-medium {expr.frequency === 'repeat' ? 'bg-[rgba(168,85,247,0.15)] text-purple-300' : 'bg-glass text-text-secondary'}">
+        <span class="glass-badge inline-flex rounded-full px-2 py-0.5 text-xs font-medium {expr.frequency === 'repeat' ? 'badge-purple' : 'bg-glass text-text-secondary'}">
           {expr.frequency === "repeat" ? "Repeat" : "One-time"}
         </span>
       </td>
@@ -320,7 +320,7 @@
       <td>
         <form method="POST" action="?/deleteExpression">
           <input type="hidden" name="expressionId" value={expr.id} />
-          <button type="submit" class="flex items-center justify-center w-7 h-7 rounded-lg text-text-muted hover:text-red-400 hover:bg-[rgba(239,68,68,0.12)] transition-colors duration-150" aria-label="Delete expression">
+          <button type="submit" class="flex items-center justify-center w-7 h-7 rounded-lg text-text-muted hover:text-destructive-foreground hover:bg-destructive transition-colors duration-150" aria-label="Delete expression">
             <Trash2 size={14} />
           </button>
         </form>

@@ -147,7 +147,7 @@
     {#snippet row(expr, _searchQuery)}
       <td>
         {#if expr.humanName}
-          <a href="/humans/{expr.humanId}" class="text-sm font-medium text-accent hover:text-cyan-300">{expr.humanName}</a>
+          <a href="/humans/{expr.humanId}" class="text-sm font-medium text-accent hover:text-[var(--link-hover)]">{expr.humanName}</a>
         {:else}
           <span class="text-sm text-text-muted">Unknown human</span>
         {/if}
@@ -158,7 +158,7 @@
       <td>
         <form method="POST" action="?/deleteExpression">
           <input type="hidden" name="expressionId" value={expr.id} />
-          <button type="submit" class="flex items-center justify-center w-7 h-7 rounded-lg text-text-muted hover:text-red-400 hover:bg-[rgba(239,68,68,0.12)] transition-colors duration-150" aria-label="Delete expression">
+          <button type="submit" class="flex items-center justify-center w-7 h-7 rounded-lg text-text-muted hover:text-destructive-foreground hover:bg-destructive transition-colors duration-150" aria-label="Delete expression">
             <Trash2 size={14} />
           </button>
         </form>

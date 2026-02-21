@@ -106,7 +106,7 @@
   {/snippet}
   {#snippet desktopRow(activity)}
     <td class="font-mono text-sm">
-      <a href="/activities/{activity.id}" class="text-accent hover:text-cyan-300">{activity.displayId}</a>
+      <a href="/activities/{activity.id}" class="text-accent hover:text-[var(--link-hover)]">{activity.displayId}</a>
     </td>
     <td>
       <span class="glass-badge {activityTypeColors[activity.type] ?? 'bg-glass text-text-secondary'}">
@@ -114,13 +114,13 @@
       </span>
     </td>
     <td class="font-medium">
-      <a href="/activities/{activity.id}" class="text-accent hover:text-cyan-300">{activity.subject}</a>
+      <a href="/activities/{activity.id}" class="text-accent hover:text-[var(--link-hover)]">{activity.subject}</a>
     </td>
     <td class="text-text-muted max-w-xs truncate">{truncate(activity.notes ?? activity.body, 80)}</td>
     <td>
       {#each linkedEntities(activity) as entity, i}
         {#if i > 0}<span class="text-text-muted">, </span>{/if}
-        <a href={entity.href} class="text-accent hover:text-cyan-300">{entity.label}</a>
+        <a href={entity.href} class="text-accent hover:text-[var(--link-hover)]">{entity.label}</a>
       {:else}
         <span class="text-text-muted">\u2014</span>
       {/each}
@@ -144,7 +144,7 @@
         <p class="text-sm text-text-muted mt-1 line-clamp-2">{truncate(activity.notes ?? activity.body, 100)}</p>
       {/if}
       <div class="mt-2 flex justify-end">
-        <button type="button" class="text-red-400 hover:text-red-300 text-xs" onclick={(e) => { e.preventDefault(); }}>Delete</button>
+        <button type="button" class="text-destructive-foreground hover:opacity-80 text-xs" onclick={(e) => { e.preventDefault(); }}>Delete</button>
       </div>
     </a>
   {/snippet}

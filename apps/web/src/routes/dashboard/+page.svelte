@@ -102,7 +102,7 @@
   <div class="mt-8">
     <div class="flex items-center justify-between mb-3">
       <h2 class="text-lg font-semibold text-text-primary">Recent Activity</h2>
-      <a href="/activities" class="text-sm text-accent hover:text-cyan-300">View all</a>
+      <a href="/activities" class="text-sm text-accent hover:text-[var(--link-hover)]">View all</a>
     </div>
     <div class="glass-card divide-y divide-glass-border">
       {#each recentActivities as activity (activity.id)}

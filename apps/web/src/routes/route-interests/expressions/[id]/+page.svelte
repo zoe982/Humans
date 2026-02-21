@@ -130,7 +130,7 @@
   <div class="glass-card p-5 mb-6">
     <h2 class="text-lg font-semibold text-text-primary mb-3">Route</h2>
     <div class="flex items-center gap-3">
-      <a href="/route-interests/{expr.routeInterestId}" class="text-accent hover:text-cyan-300 font-medium">
+      <a href="/route-interests/{expr.routeInterestId}" class="text-accent hover:text-[var(--link-hover)] font-medium">
         {expr.originCity ?? "\u2014"}, {expr.originCountry ?? "\u2014"} &rarr; {expr.destinationCity ?? "\u2014"}, {expr.destinationCountry ?? "\u2014"}
       </a>
       {#if expr.routeDisplayId}
@@ -143,7 +143,7 @@
   <div class="glass-card p-5 mb-6">
     <h2 class="text-lg font-semibold text-text-primary mb-3">Human</h2>
     <div class="flex items-center gap-3">
-      <a href="/humans/{expr.humanId}" class="text-accent hover:text-cyan-300 font-medium">
+      <a href="/humans/{expr.humanId}" class="text-accent hover:text-[var(--link-hover)] font-medium">
         {expr.humanName ?? "Unknown"}
       </a>
       {#if expr.humanDisplayId}
@@ -261,10 +261,10 @@
 
   <!-- Danger Zone -->
   <div class="mt-6 rounded-xl border border-[rgba(239,68,68,0.20)] bg-[rgba(239,68,68,0.06)] p-5">
-    <h2 class="text-lg font-semibold text-red-400 mb-2">Danger Zone</h2>
+    <h2 class="text-lg font-semibold text-destructive-foreground mb-2">Danger Zone</h2>
     <p class="text-sm text-text-secondary mb-4">Permanently delete this expression. This action cannot be undone.</p>
     {#if form?.error}
-      <p class="text-sm text-red-400 mb-3">{form.error}</p>
+      <p class="text-sm text-destructive-foreground mb-3">{form.error}</p>
     {/if}
     <button type="button" class="btn-danger text-sm" onclick={() => { showDeleteConfirm = true; }}>
       Delete Expression

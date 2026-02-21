@@ -209,9 +209,9 @@
         <dt class="text-sm font-medium text-text-muted">Deposit Status</dt>
         <dd class="mt-1">
           <StatusBadge status={depositStatusLabels[booking.deposit_status ?? ""] ?? booking.deposit_status ?? "—"} colorMap={{
-            "Pending": "bg-[rgba(234,179,8,0.15)] text-yellow-300",
-            "Paid": "bg-[rgba(34,197,94,0.15)] text-green-300",
-            "Refunded": "bg-[rgba(168,85,247,0.15)] text-purple-300",
+            "Pending": "badge-yellow",
+            "Paid": "badge-green",
+            "Refunded": "badge-purple",
           }} />
         </dd>
       </div>
@@ -223,9 +223,9 @@
         <dt class="text-sm font-medium text-text-muted">Balance Status</dt>
         <dd class="mt-1">
           <StatusBadge status={balanceStatusLabels[booking.balance_status ?? ""] ?? booking.balance_status ?? "—"} colorMap={{
-            "Pending": "bg-[rgba(234,179,8,0.15)] text-yellow-300",
-            "Paid": "bg-[rgba(34,197,94,0.15)] text-green-300",
-            "Refunded": "bg-[rgba(168,85,247,0.15)] text-purple-300",
+            "Pending": "badge-yellow",
+            "Paid": "badge-green",
+            "Refunded": "badge-purple",
           }} />
         </dd>
       </div>
@@ -408,9 +408,9 @@
   <!-- Danger Zone (Admin only) -->
   {#if isAdmin}
     <div class="glass-card p-6 border-red-500/20 bg-red-500/5">
-      <h2 class="text-lg font-semibold text-red-300">Danger Zone</h2>
+      <h2 class="text-lg font-semibold text-destructive-foreground">Danger Zone</h2>
       {#if showDeleteConfirm}
-        <p class="mt-2 text-sm text-red-300/80">Are you sure you want to delete this booking request? This cannot be undone.</p>
+        <p class="mt-2 text-sm text-destructive-foreground/80">Are you sure you want to delete this booking request? This cannot be undone.</p>
         <div class="mt-3 flex gap-2">
           <form method="POST" action="?/delete">
             <button type="submit" class="btn-danger text-sm">

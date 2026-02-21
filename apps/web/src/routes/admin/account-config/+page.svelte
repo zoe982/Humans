@@ -46,7 +46,7 @@
               <span class="text-sm text-text-primary">{item.name}</span>
               <form method="POST" action="?/deleteAccountType">
                 <input type="hidden" name="id" value={item.id} />
-                <button type="submit" class="text-red-400 hover:text-red-300 text-sm">Remove</button>
+                <button type="submit" class="text-destructive-foreground hover:opacity-80 text-sm">Remove</button>
               </form>
             </div>
           {/each}
@@ -70,7 +70,7 @@
               <span class="text-sm text-text-primary">{item.name}</span>
               <form method="POST" action="?/deleteHumanLabel">
                 <input type="hidden" name="id" value={item.id} />
-                <button type="submit" class="text-red-400 hover:text-red-300 text-sm">Remove</button>
+                <button type="submit" class="text-destructive-foreground hover:opacity-80 text-sm">Remove</button>
               </form>
             </div>
           {/each}
@@ -94,7 +94,7 @@
               <span class="text-sm text-text-primary">{item.name}</span>
               <form method="POST" action="?/deleteEmailLabel">
                 <input type="hidden" name="id" value={item.id} />
-                <button type="submit" class="text-red-400 hover:text-red-300 text-sm">Remove</button>
+                <button type="submit" class="text-destructive-foreground hover:opacity-80 text-sm">Remove</button>
               </form>
             </div>
           {/each}
@@ -118,7 +118,7 @@
               <span class="text-sm text-text-primary">{item.name}</span>
               <form method="POST" action="?/deletePhoneLabel">
                 <input type="hidden" name="id" value={item.id} />
-                <button type="submit" class="text-red-400 hover:text-red-300 text-sm">Remove</button>
+                <button type="submit" class="text-destructive-foreground hover:opacity-80 text-sm">Remove</button>
               </form>
             </div>
           {/each}
@@ -142,7 +142,7 @@
               <span class="text-sm text-text-primary">{item.name}</span>
               <form method="POST" action="?/deleteHumanEmailLabel">
                 <input type="hidden" name="id" value={item.id} />
-                <button type="submit" class="text-red-400 hover:text-red-300 text-sm">Remove</button>
+                <button type="submit" class="text-destructive-foreground hover:opacity-80 text-sm">Remove</button>
               </form>
             </div>
           {/each}
@@ -166,7 +166,7 @@
               <span class="text-sm text-text-primary">{item.name}</span>
               <form method="POST" action="?/deleteHumanPhoneLabel">
                 <input type="hidden" name="id" value={item.id} />
-                <button type="submit" class="text-red-400 hover:text-red-300 text-sm">Remove</button>
+                <button type="submit" class="text-destructive-foreground hover:opacity-80 text-sm">Remove</button>
               </form>
             </div>
           {/each}

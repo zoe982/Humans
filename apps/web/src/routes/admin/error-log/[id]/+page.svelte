@@ -44,8 +44,8 @@
   }
 
   const resolutionColorMap: Record<string, string> = {
-    open: "bg-amber-500/20 text-amber-300",
-    resolved: "bg-green-500/20 text-green-300",
+    open: "badge-yellow",
+    resolved: "badge-green",
   };
 
   const resolutionLabels: Record<string, string> = {
@@ -76,7 +76,7 @@
         class="btn-ghost text-sm py-1.5 px-3 inline-flex items-center gap-2"
       >
         {#if copied}
-          <Check size={14} class="text-green-400" /> Copied
+          <Check size={14} class="text-[var(--badge-green-text)]" /> Copied
         {:else}
           <Copy size={14} /> Copy for Claude
         {/if}
@@ -93,7 +93,7 @@
       <div>
         <dt class="text-xs text-text-muted uppercase tracking-wider">Status</dt>
         <dd class="mt-1">
-          <span class="glass-badge {entry.status >= 500 ? 'bg-red-500/20 text-red-300' : 'bg-amber-500/20 text-amber-300'}">
+          <span class="glass-badge {entry.status >= 500 ? 'badge-red' : 'badge-yellow'}">
             {entry.status}
           </span>
         </dd>
@@ -141,7 +141,7 @@
       <div>
         <dt class="text-xs text-text-muted uppercase tracking-wider mb-2">Stack Trace</dt>
         <dd>
-          <pre class="glass-card p-4 text-sm font-mono text-red-300 overflow-x-auto whitespace-pre-wrap">{entry.stack}</pre>
+          <pre class="glass-card p-4 text-sm font-mono text-destructive-foreground overflow-x-auto whitespace-pre-wrap">{entry.stack}</pre>
         </dd>
       </div>
     {/if}

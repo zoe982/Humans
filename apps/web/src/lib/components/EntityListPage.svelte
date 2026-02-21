@@ -192,7 +192,7 @@
             {@render desktopRow(item)}
             {#if canDelete}
               <td>
-                <button type="button" class="text-red-400 hover:text-red-300 text-sm" onclick={() => { pendingDeleteId = item.id; }}>Delete</button>
+                <button type="button" class="text-destructive-foreground hover:opacity-80 text-sm" onclick={() => { pendingDeleteId = item.id; }}>Delete</button>
               </td>
             {/if}
           </tr>

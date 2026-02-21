@@ -2,6 +2,7 @@
   import { page } from "$app/stores";
   import { Menu } from "lucide-svelte";
   import * as Sheet from "$lib/components/ui/sheet/index.js";
+  import ThemeToggle from "$lib/components/ThemeToggle.svelte";
 
   type NavLink = {
     href: string;
@@ -49,10 +50,11 @@
           {#if avatarUrl}
             <img src={avatarUrl} alt={userName} class="h-10 w-10 rounded-full ring-1 ring-glass-border" />
           {/if}
-          <div>
+          <div class="flex-1">
             <p class="text-sm font-medium text-text-primary">{userName}</p>
             <p class="text-xs text-text-muted">{userRole}</p>
           </div>
+          <ThemeToggle />
         </div>
 
         <!-- Nav links -->

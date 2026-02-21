@@ -144,7 +144,7 @@
           {selectedRoute.originCity}, {selectedRoute.originCountry} &rarr; {selectedRoute.destinationCity}, {selectedRoute.destinationCountry}
           <button
             type="button"
-            class="ml-1 text-accent hover:text-cyan-300"
+            class="ml-1 text-accent hover:text-[var(--link-hover)]"
             aria-label="Clear selection"
             onclick={clearSelection}
           >
@@ -206,7 +206,7 @@
       <div class="flex justify-center my-1">
         <button
           type="button"
-          class="text-accent hover:text-cyan-300 p-1 rounded-lg hover:bg-glass-hover transition-colors"
+          class="text-accent hover:text-[var(--link-hover)] p-1 rounded-lg hover:bg-glass-hover transition-colors"
           aria-label="Swap origin and destination"
           onclick={swapOriginDest}
         >

@@ -92,7 +92,7 @@
               <div class="flex items-center gap-2">
                 <p class="text-sm font-medium text-accent">{account.name}</p>
                 {#each account.types as t}
-                  <span class="glass-badge bg-[rgba(168,85,247,0.15)] text-purple-300 text-xs">{t.name}</span>
+                  <span class="glass-badge badge-purple text-xs">{t.name}</span>
                 {/each}
               </div>
             </a>
@@ -163,9 +163,9 @@
             </div>
             <div class="mt-1">
               {#if activity.humanId}
-                <a href="/humans/{activity.humanId}" class="text-xs text-accent hover:text-cyan-300">View Human</a>
+                <a href="/humans/{activity.humanId}" class="text-xs text-accent hover:text-[var(--link-hover)]">View Human</a>
               {:else if activity.routeSignupId}
-                <a href="/leads/route-signups/{activity.routeSignupId}" class="text-xs text-accent hover:text-cyan-300">View Signup</a>
+                <a href="/leads/route-signups/{activity.routeSignupId}" class="text-xs text-accent hover:text-[var(--link-hover)]">View Signup</a>
               {/if}
             </div>
           </li>

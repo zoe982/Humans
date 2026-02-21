@@ -19,8 +19,8 @@
   const emails = $derived(data.emails as Email[]);
 
   const labelColors: Record<string, string> = {
-    work: "bg-[rgba(59,130,246,0.15)] text-blue-300",
-    personal: "bg-[rgba(34,197,94,0.15)] text-green-300",
+    work: "badge-blue",
+    personal: "badge-green",
     other: "bg-glass text-text-secondary",
   };
 
@@ -52,9 +52,9 @@
   searchPlaceholder="Search emails, owners, labels..."
 >
   {#snippet desktopRow(email)}
-    <td class="font-mono text-sm"><a href="/emails/{email.id}" class="text-accent hover:text-cyan-300">{email.displayId}</a></td>
+    <td class="font-mono text-sm"><a href="/emails/{email.id}" class="text-accent hover:text-[var(--link-hover)]">{email.displayId}</a></td>
     <td class="font-medium">
-      <a href={ownerHref(email)} class="text-accent hover:text-cyan-300">{email.ownerName ?? "\u2014"}</a>
+      <a href={ownerHref(email)} class="text-accent hover:text-[var(--link-hover)]">{email.ownerName ?? "\u2014"}</a>
       {#if email.ownerDisplayId}
         <span class="ml-1 text-xs text-text-muted">{email.ownerDisplayId}</span>
       {/if}

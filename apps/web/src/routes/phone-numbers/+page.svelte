@@ -48,9 +48,9 @@
   searchPlaceholder="Search phones, owners, labels..."
 >
   {#snippet desktopRow(phone)}
-    <td class="font-mono text-sm"><a href="/phone-numbers/{phone.id}" class="text-accent hover:text-cyan-300">{phone.displayId}</a></td>
+    <td class="font-mono text-sm"><a href="/phone-numbers/{phone.id}" class="text-accent hover:text-[var(--link-hover)]">{phone.displayId}</a></td>
     <td class="font-medium">
-      <a href={ownerHref(phone)} class="text-accent hover:text-cyan-300">{phone.ownerName ?? "\u2014"}</a>
+      <a href={ownerHref(phone)} class="text-accent hover:text-[var(--link-hover)]">{phone.ownerName ?? "\u2014"}</a>
       {#if phone.ownerDisplayId}
         <span class="ml-1 text-xs text-text-muted">{phone.ownerDisplayId}</span>
       {/if}

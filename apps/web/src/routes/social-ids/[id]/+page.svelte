@@ -173,7 +173,7 @@
         onSelect={handleHumanChange}
       />
       {#if humanId}
-        <a href="/humans/{humanId}" class="mt-1 inline-block text-sm text-accent hover:text-cyan-300">
+        <a href="/humans/{humanId}" class="mt-1 inline-block text-sm text-accent hover:text-[var(--link-hover)]">
           View Human
         </a>
       {/if}
@@ -191,7 +191,7 @@
         onSelect={handleAccountChange}
       />
       {#if accountId}
-        <a href="/accounts/{accountId}" class="mt-1 inline-block text-sm text-accent hover:text-cyan-300">
+        <a href="/accounts/{accountId}" class="mt-1 inline-block text-sm text-accent hover:text-[var(--link-hover)]">
           View Account
         </a>
       {/if}

@@ -64,8 +64,8 @@
         <div class="flex items-center justify-between mb-2">
           <span class="font-medium text-accent">{displayName(booking)}</span>
           <StatusBadge status={bookingRequestStatusLabels[booking.status ?? ""] ?? booking.status ?? "—"} colorMap={{
-            "Confirmed": "bg-[rgba(34,197,94,0.15)] text-green-300",
-            "Cancelled": "bg-[rgba(239,68,68,0.15)] text-red-300",
+            "Confirmed": "badge-green",
+            "Cancelled": "badge-red",
           }} />
         </div>
         {#if booking.client_email}
@@ -80,16 +80,16 @@
           {#if booking.travel_date}<span>{booking.travel_date}</span>{/if}
           {#if booking.deposit_status}
             <StatusBadge status={depositStatusLabels[booking.deposit_status] ?? booking.deposit_status} colorMap={{
-              "Pending": "bg-[rgba(234,179,8,0.15)] text-yellow-300",
-              "Paid": "bg-[rgba(34,197,94,0.15)] text-green-300",
-              "Refunded": "bg-[rgba(168,85,247,0.15)] text-purple-300",
+              "Pending": "badge-yellow",
+              "Paid": "badge-green",
+              "Refunded": "badge-purple",
             }} />
           {/if}
         </div>
         <div class="mt-2 flex items-center justify-between">
           <span class="text-xs text-text-muted">{formatDatetime(booking.inserted_at)}</span>
           {#if data.userRole === "admin"}
-            <button type="button" class="text-red-400 hover:text-red-300 text-xs" onclick={(e) => { e.preventDefault(); pendingDeleteId = booking.id; }}>Delete</button>
+            <button type="button" class="text-destructive-foreground hover:opacity-80 text-xs" onclick={(e) => { e.preventDefault(); pendingDeleteId = booking.id; }}>Delete</button>
           {/if}
         </div>
       </a>
@@ -120,10 +120,10 @@
         {#each bookings as booking (booking.id)}
           <tr class="glass-row-hover">
             <td class="font-mono text-sm whitespace-nowrap">
-              <a href="/leads/website-booking-requests/{booking.id}" class="text-accent hover:text-cyan-300">{booking.crm_display_id ?? "—"}</a>
+              <a href="/leads/website-booking-requests/{booking.id}" class="text-accent hover:text-[var(--link-hover)]">{booking.crm_display_id ?? "—"}</a>
             </td>
             <td class="font-medium">
-              <a href="/leads/website-booking-requests/{booking.id}" class="text-accent hover:text-cyan-300">{displayName(booking)}</a>
+              <a href="/leads/website-booking-requests/{booking.id}" class="text-accent hover:text-[var(--link-hover)]">{displayName(booking)}</a>
             </td>
             <td class="text-text-secondary">{booking.client_email ?? "—"}</td>
             <td class="text-text-secondary">
@@ -136,21 +136,21 @@
             <td class="text-text-secondary">{booking.travel_date ?? "—"}</td>
             <td>
               <StatusBadge status={depositStatusLabels[booking.deposit_status ?? ""] ?? booking.deposit_status ?? "—"} colorMap={{
-                "Pending": "bg-[rgba(234,179,8,0.15)] text-yellow-300",
-                "Paid": "bg-[rgba(34,197,94,0.15)] text-green-300",
-                "Refunded": "bg-[rgba(168,85,247,0.15)] text-purple-300",
+                "Pending": "badge-yellow",
+                "Paid": "badge-green",
+                "Refunded": "badge-purple",
               }} />
             </td>
             <td>
               <StatusBadge status={bookingRequestStatusLabels[booking.status ?? ""] ?? booking.status ?? "—"} colorMap={{
-                "Confirmed": "bg-[rgba(34,197,94,0.15)] text-green-300",
-                "Cancelled": "bg-[rgba(239,68,68,0.15)] text-red-300",
+                "Confirmed": "badge-green",
+                "Cancelled": "badge-red",
               }} />
             </td>
             <td class="text-text-muted">{formatDatetime(booking.inserted_at)}</td>
             {#if data.userRole === "admin"}
               <td>
-                <button type="button" class="text-red-400 hover:text-red-300 text-sm" onclick={() => { pendingDeleteId = booking.id; }}>Delete</button>
+                <button type="button" class="text-destructive-foreground hover:opacity-80 text-sm" onclick={() => { pendingDeleteId = booking.id; }}>Delete</button>
               </td>
             {/if}
           </tr>

@@ -45,10 +45,10 @@
           <tr class="glass-row-hover">
             <td class="font-mono text-sm text-text-muted">{expr.displayId}</td>
             <td class="font-medium">
-              <a href="/humans/{expr.humanId}" class="text-accent hover:text-cyan-300">{expr.humanName ?? "—"}</a>
+              <a href="/humans/{expr.humanId}" class="text-accent hover:text-[var(--link-hover)]">{expr.humanName ?? "—"}</a>
             </td>
             <td>
-              <a href="/geo-interests/{expr.geoInterestId}" class="text-accent hover:text-cyan-300">
+              <a href="/geo-interests/{expr.geoInterestId}" class="text-accent hover:text-[var(--link-hover)]">
                 {expr.city ?? "—"}, {expr.country ?? "—"}
               </a>
             </td>

@@ -309,9 +309,9 @@
   <!-- Danger Zone (Admin only) -->
   {#if isAdmin}
     <div class="glass-card p-6 border-red-500/20 bg-red-500/5">
-      <h2 class="text-lg font-semibold text-red-300">Danger Zone</h2>
+      <h2 class="text-lg font-semibold text-destructive-foreground">Danger Zone</h2>
       {#if showDeleteConfirm}
-        <p class="mt-2 text-sm text-red-300/80">Are you sure you want to delete this signup? This cannot be undone.</p>
+        <p class="mt-2 text-sm text-destructive-foreground/80">Are you sure you want to delete this signup? This cannot be undone.</p>
         <div class="mt-3 flex gap-2">
           <form method="POST" action="?/delete">
             <button type="submit" class="btn-danger text-sm">

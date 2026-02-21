@@ -149,14 +149,14 @@
           <button
             type="button"
             onclick={() => handleTypeChange("dog")}
-            class="px-4 py-2 rounded-lg text-sm font-medium transition-colors {petType === 'dog' ? 'bg-[rgba(59,130,246,0.2)] text-blue-300 ring-1 ring-blue-400/30' : 'bg-glass text-text-secondary hover:bg-glass-hover'}"
+            class="px-4 py-2 rounded-lg text-sm font-medium transition-colors {petType === 'dog' ? 'badge-blue ring-1 ring-[var(--badge-blue-text)]/30' : 'bg-glass text-text-secondary hover:bg-glass-hover'}"
           >
             Dog
           </button>
           <button
             type="button"
             onclick={() => handleTypeChange("cat")}
-            class="px-4 py-2 rounded-lg text-sm font-medium transition-colors {petType === 'cat' ? 'bg-[rgba(168,85,247,0.2)] text-purple-300 ring-1 ring-purple-400/30' : 'bg-glass text-text-secondary hover:bg-glass-hover'}"
+            class="px-4 py-2 rounded-lg text-sm font-medium transition-colors {petType === 'cat' ? 'badge-purple ring-1 ring-[var(--badge-purple-text)]/30' : 'bg-glass text-text-secondary hover:bg-glass-hover'}"
           >
             Cat
           </button>
@@ -203,7 +203,7 @@
         onSelect={handleOwnerChange}
       />
       {#if pet.humanId && pet.ownerName}
-        <a href="/humans/{pet.humanId}" class="mt-1 inline-block text-sm text-accent hover:text-cyan-300">
+        <a href="/humans/{pet.humanId}" class="mt-1 inline-block text-sm text-accent hover:text-[var(--link-hover)]">
           View {pet.ownerName}
         </a>
       {/if}

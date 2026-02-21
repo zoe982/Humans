@@ -110,10 +110,10 @@
   {/snippet}
   {#snippet desktopRow(gi)}
     <td class="font-mono text-sm">
-      <a href="/geo-interests/{gi.id}" class="text-accent hover:text-cyan-300">{gi.displayId}</a>
+      <a href="/geo-interests/{gi.id}" class="text-accent hover:text-[var(--link-hover)]">{gi.displayId}</a>
     </td>
     <td class="font-medium">
-      <a href="/geo-interests/{gi.id}" class="text-accent hover:text-cyan-300">{gi.city}</a>
+      <a href="/geo-interests/{gi.id}" class="text-accent hover:text-[var(--link-hover)]">{gi.city}</a>
     </td>
     <td>{gi.country}</td>
     <td>{gi.humanCount}</td>
@@ -133,7 +133,7 @@
       </div>
       {#if data.userRole === "admin"}
         <div class="mt-2 flex justify-end">
-          <button type="button" class="text-red-400 hover:text-red-300 text-xs" onclick={(e) => { e.preventDefault(); }}>Delete</button>
+          <button type="button" class="text-destructive-foreground hover:opacity-80 text-xs" onclick={(e) => { e.preventDefault(); }}>Delete</button>
         </div>
       {/if}
     </a>

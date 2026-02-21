@@ -19,8 +19,8 @@
   const pets = $derived(data.pets as Pet[]);
 
   const typeColors: Record<string, string> = {
-    dog: "bg-[rgba(59,130,246,0.15)] text-blue-300",
-    cat: "bg-[rgba(168,85,247,0.15)] text-purple-300",
+    dog: "badge-blue",
+    cat: "badge-purple",
   };
 </script>
 
@@ -54,10 +54,10 @@
   emptyMessage={pets.length === 0 ? "No pets found." : "No matching pets."}
 >
   {#snippet desktopRow(pet)}
-    <td class="font-mono text-sm"><a href="/pets/{pet.id}" class="text-accent hover:text-cyan-300">{pet.displayId}</a></td>
+    <td class="font-mono text-sm"><a href="/pets/{pet.id}" class="text-accent hover:text-[var(--link-hover)]">{pet.displayId}</a></td>
     <td class="font-medium">
       {#if pet.humanId}
-        <a href="/humans/{pet.humanId}" class="text-accent hover:text-cyan-300">{pet.ownerName ?? "\u2014"}</a>
+        <a href="/humans/{pet.humanId}" class="text-accent hover:text-[var(--link-hover)]">{pet.ownerName ?? "\u2014"}</a>
         {#if pet.ownerDisplayId}
           <span class="ml-1 text-xs text-text-muted">{pet.ownerDisplayId}</span>
         {/if}

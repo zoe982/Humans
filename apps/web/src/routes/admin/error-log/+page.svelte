@@ -116,13 +116,13 @@
           {#each errors as entry (entry.id)}
             <tr class="glass-row-hover">
               <td class="font-mono text-xs">
-                <a href="/admin/error-log/{entry.id}" class="text-accent hover:text-cyan-300">{entry.displayId}</a>
+                <a href="/admin/error-log/{entry.id}" class="text-accent hover:text-[var(--link-hover)]">{entry.displayId}</a>
               </td>
               <td class="text-text-muted font-mono text-xs whitespace-nowrap">
                 {new Date(entry.createdAt).toLocaleString()}
               </td>
               <td>
-                <span class="glass-badge {entry.status >= 500 ? 'bg-red-500/20 text-red-300' : 'bg-amber-500/20 text-amber-300'}">
+                <span class="glass-badge {entry.status >= 500 ? 'badge-red' : 'badge-yellow'}">
                   {entry.status}
                 </span>
               </td>
@@ -130,7 +130,7 @@
                 <form method="POST" action="?/toggleResolution" class="inline">
                   <input type="hidden" name="id" value={entry.id} />
                   <input type="hidden" name="resolutionStatus" value={entry.resolutionStatus === "open" ? "resolved" : "open"} />
-                  <button type="submit" class="glass-badge cursor-pointer {entry.resolutionStatus === 'open' ? 'bg-amber-500/20 text-amber-300' : 'bg-green-500/20 text-green-300'}">
+                  <button type="submit" class="glass-badge cursor-pointer {entry.resolutionStatus === 'open' ? 'badge-yellow' : 'badge-green'}">
                     {entry.resolutionStatus === "open" ? "Open" : "Resolved"}
                   </button>
                 </form>
@@ -149,7 +149,7 @@
                   title="Copy error details"
                 >
                   {#if copiedId === entry.id}
-                    <Check size={14} class="text-green-400" />
+                    <Check size={14} class="text-[var(--badge-green-text)]" />
                   {:else}
                     <Copy size={14} />
                   {/if}

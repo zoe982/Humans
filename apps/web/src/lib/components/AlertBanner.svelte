@@ -17,7 +17,7 @@
   <Alert
     variant={type === "error" ? "destructive" : "default"}
     role={type === "success" ? "status" : "alert"}
-    class="mb-4 {type === 'success' ? 'border-green-500/30 bg-green-500/10 text-green-300' : ''}"
+    class="mb-4 {type === 'success' ? 'border-green-500/30 bg-green-500/10 text-[var(--badge-green-text)]' : ''}"
   >
     {message}
     {#if type === "error" && (code || truncatedRef)}

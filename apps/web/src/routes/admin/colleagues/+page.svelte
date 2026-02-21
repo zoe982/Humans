@@ -27,9 +27,9 @@
   let showInvite = $state(false);
 
   const roleColors: Record<string, string> = {
-    admin: "bg-[rgba(168,85,247,0.15)] text-purple-300",
-    manager: "bg-[rgba(59,130,246,0.15)] text-blue-300",
-    agent: "bg-[rgba(34,197,94,0.15)] text-green-300",
+    admin: "badge-purple",
+    manager: "badge-blue",
+    agent: "badge-green",
     viewer: "bg-glass text-text-secondary",
   };
 </script>
@@ -142,7 +142,7 @@
               </span>
             </td>
             <td>
-              <span class="glass-badge {colleague.isActive ? 'bg-[rgba(34,197,94,0.15)] text-green-300' : 'bg-[rgba(239,68,68,0.15)] text-red-300'}">
+              <span class="glass-badge {colleague.isActive ? 'badge-green' : 'badge-red'}">
                 {colleague.isActive ? "Active" : "Inactive"}
               </span>
             </td>
@@ -179,7 +179,7 @@
                 </Button>
                 <button
                   type="submit"
-                  class="text-xs py-1 px-2 rounded-lg {colleague.isActive ? 'btn-danger' : 'bg-[rgba(34,197,94,0.15)] border border-green-500/30 text-green-300'}"
+                  class="text-xs py-1 px-2 rounded-lg {colleague.isActive ? 'btn-danger' : 'badge-green'}"
                 >
                   {colleague.isActive ? "Deactivate" : "Activate"}
                 </button>

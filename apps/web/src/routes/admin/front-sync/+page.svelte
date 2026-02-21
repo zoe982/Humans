@@ -127,10 +127,10 @@
   }
 
   const statusColors: Record<string, string> = {
-    running: "bg-blue-500/20 text-blue-400",
-    completed: "bg-green-500/20 text-green-400",
-    failed: "bg-red-500/20 text-red-400",
-    reverted: "bg-yellow-500/20 text-yellow-400",
+    running: "badge-blue",
+    completed: "badge-green",
+    failed: "badge-red",
+    reverted: "badge-yellow",
   };
 </script>
 
@@ -191,10 +191,10 @@
                   </span>
                 </td>
                 <td class="text-text-muted text-xs whitespace-nowrap">{formatDate(run.startedAt)}</td>
-                <td class="text-green-400 font-medium">{run.imported}</td>
+                <td class="text-[var(--badge-green-text)] font-medium">{run.imported}</td>
                 <td class="text-text-secondary">{run.skipped}</td>
-                <td class="text-yellow-400">{run.unmatched}</td>
-                <td class="text-red-400">{run.errorCount}</td>
+                <td class="text-[var(--badge-yellow-text)]">{run.unmatched}</td>
+                <td class="text-destructive-foreground">{run.errorCount}</td>
                 <td class="text-xs text-text-muted whitespace-nowrap">
                   {#if run.linkedToHumans > 0}<span class="mr-1">H:{run.linkedToHumans}</span>{/if}
                   {#if run.linkedToAccounts > 0}<span class="mr-1">A:{run.linkedToAccounts}</span>{/if}
@@ -209,7 +209,7 @@
                   {#if run.status === "completed"}
                     <button
                       type="button"
-                      class="text-xs text-red-400 hover:text-red-300 transition-colors"
+                      class="text-xs text-destructive-foreground hover:opacity-80 transition-colors"
                       onclick={() => { revertTargetId = run.id; showRevertConfirm = true; }}
                     >
                       Revert
@@ -250,7 +250,7 @@
       <div class="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
         <div class="rounded-lg border border-glass-border bg-glass-bg p-4">
           <p class="text-xs font-medium uppercase text-text-muted">Imported</p>
-          <p class="mt-1 text-2xl font-bold text-green-400">{totals.imported}</p>
+          <p class="mt-1 text-2xl font-bold text-[var(--badge-green-text)]">{totals.imported}</p>
         </div>
         <div class="rounded-lg border border-glass-border bg-glass-bg p-4">
           <p class="text-xs font-medium uppercase text-text-muted">Skipped</p>
@@ -258,11 +258,11 @@
         </div>
         <div class="rounded-lg border border-glass-border bg-glass-bg p-4">
           <p class="text-xs font-medium uppercase text-text-muted">Unmatched</p>
-          <p class="mt-1 text-2xl font-bold text-yellow-400">{totals.unmatched}</p>
+          <p class="mt-1 text-2xl font-bold text-[var(--badge-yellow-text)]">{totals.unmatched}</p>
         </div>
         <div class="rounded-lg border border-glass-border bg-glass-bg p-4">
           <p class="text-xs font-medium uppercase text-text-muted">Errors</p>
-          <p class="mt-1 text-2xl font-bold text-red-400">{totals.errors}</p>
+          <p class="mt-1 text-2xl font-bold text-destructive-foreground">{totals.errors}</p>
         </div>
       </div>
 
@@ -301,8 +301,8 @@
 
       {#if errorMessages.length > 0}
         <div class="mt-4 rounded-lg border border-red-500/30 bg-red-500/10 p-4">
-          <p class="text-sm font-medium text-red-400 mb-2">Errors ({errorMessages.length}):</p>
-          <ul class="space-y-1 text-xs text-red-300 max-h-40 overflow-y-auto">
+          <p class="text-sm font-medium text-destructive-foreground mb-2">Errors ({errorMessages.length}):</p>
+          <ul class="space-y-1 text-xs text-destructive-foreground max-h-40 overflow-y-auto">
             {#each errorMessages as err}
               <li class="font-mono">{err}</li>
             {/each}

@@ -130,7 +130,7 @@
       </div>
       <button
         type="button"
-        class="mt-1 text-xs text-accent hover:text-cyan-300"
+        class="mt-1 text-xs text-accent hover:text-[var(--link-hover)]"
         onclick={switchToCreate}
       >
         or create new
@@ -145,7 +145,7 @@
           {selectedGeo?.city}, {selectedGeo?.country}
           <button
             type="button"
-            class="ml-1 text-accent hover:text-cyan-300"
+            class="ml-1 text-accent hover:text-[var(--link-hover)]"
             aria-label="Clear selection"
             onclick={clearSelection}
           >
@@ -160,7 +160,7 @@
         <label class="block text-sm font-medium text-text-secondary">New Geo-Interest</label>
         <button
           type="button"
-          class="text-xs text-accent hover:text-cyan-300"
+          class="text-xs text-accent hover:text-[var(--link-hover)]"
           onclick={switchToSearch}
         >
           search existing instead

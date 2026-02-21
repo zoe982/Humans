@@ -44,7 +44,7 @@
   searchPlaceholder="Search handles, platforms, humans, accounts..."
 >
   {#snippet desktopRow(sid)}
-    <td class="font-mono text-sm"><a href="/social-ids/{sid.id}" class="text-accent hover:text-cyan-300">{sid.displayId}</a></td>
+    <td class="font-mono text-sm"><a href="/social-ids/{sid.id}" class="text-accent hover:text-[var(--link-hover)]">{sid.displayId}</a></td>
     <td class="font-medium">{sid.handle}</td>
     <td>
       {#if sid.platformName}
@@ -55,7 +55,7 @@
     </td>
     <td>
       {#if sid.humanId}
-        <a href="/humans/{sid.humanId}" class="text-accent hover:text-cyan-300">{sid.humanName ?? "\u2014"}</a>
+        <a href="/humans/{sid.humanId}" class="text-accent hover:text-[var(--link-hover)]">{sid.humanName ?? "\u2014"}</a>
         {#if sid.humanDisplayId}
           <span class="ml-1 text-xs text-text-muted">{sid.humanDisplayId}</span>
         {/if}
@@ -65,7 +65,7 @@
     </td>
     <td>
       {#if sid.accountId}
-        <a href="/accounts/{sid.accountId}" class="text-accent hover:text-cyan-300">{sid.accountName ?? "\u2014"}</a>
+        <a href="/accounts/{sid.accountId}" class="text-accent hover:text-[var(--link-hover)]">{sid.accountName ?? "\u2014"}</a>
         {#if sid.accountDisplayId}
           <span class="ml-1 text-xs text-text-muted">{sid.accountDisplayId}</span>
         {/if}

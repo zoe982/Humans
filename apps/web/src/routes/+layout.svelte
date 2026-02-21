@@ -5,6 +5,7 @@
   import { Search, Users } from "lucide-svelte";
   import MobileNav from "$lib/components/MobileNav.svelte";
   import CommandPalette from "$lib/components/CommandPalette.svelte";
+  import ThemeToggle from "$lib/components/ThemeToggle.svelte";
   import { Toaster } from "svelte-sonner";
 
   let commandPaletteOpen = $state(false);
@@ -79,6 +80,7 @@
               <Search size={20} />
               <kbd class="hidden sm:inline-flex text-xs text-text-muted border border-glass-border rounded px-1.5 py-0.5">⌘K</kbd>
             </button>
+            <ThemeToggle />
             <div class="hidden sm:block text-right">
               <p class="text-sm font-medium text-text-primary">{data.user.name}</p>
               <p class="text-xs text-text-muted">{data.user.role}</p>
@@ -114,7 +116,7 @@
       classes: {
         toast: "glass-card-strong p-4 shadow-xl max-w-sm flex items-center gap-3",
         title: "text-sm text-text-primary",
-        actionButton: "text-sm font-medium text-accent hover:text-cyan-300 whitespace-nowrap",
+        actionButton: "text-sm font-medium text-accent hover:text-[var(--link-hover)] whitespace-nowrap",
       },
     }}
   />

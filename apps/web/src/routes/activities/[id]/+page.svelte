@@ -288,7 +288,7 @@
           onSelect={(v) => { routeSignupId = v; triggerSaveImmediate(); }}
         />
         {#if routeSignupId}
-          <a href="/leads/route-signups/{routeSignupId}" class="mt-1 inline-block text-sm text-accent hover:text-cyan-300">View Route Signup</a>
+          <a href="/leads/route-signups/{routeSignupId}" class="mt-1 inline-block text-sm text-accent hover:text-[var(--link-hover)]">View Route Signup</a>
         {/if}
       </div>
       <div>
@@ -303,7 +303,7 @@
           onSelect={(v) => { websiteBookingRequestId = v; triggerSaveImmediate(); }}
         />
         {#if websiteBookingRequestId}
-          <a href="/leads/website-booking-requests/{websiteBookingRequestId}" class="mt-1 inline-block text-sm text-accent hover:text-cyan-300">View Booking Request</a>
+          <a href="/leads/website-booking-requests/{websiteBookingRequestId}" class="mt-1 inline-block text-sm text-accent hover:text-[var(--link-hover)]">View Booking Request</a>
         {/if}
       </div>
     </div>
@@ -325,7 +325,7 @@
       {#snippet row(item, _searchQuery)}
         {@const expr = item as unknown as GeoInterestExpression}
         <td>
-          <a href="/geo-interests/{expr.geoInterestId}" class="text-sm font-medium text-accent hover:text-cyan-300">
+          <a href="/geo-interests/{expr.geoInterestId}" class="text-sm font-medium text-accent hover:text-[var(--link-hover)]">
             {expr.city ?? "—"}, {expr.country ?? "—"}
           </a>
         </td>
@@ -333,7 +333,7 @@
         <td>
           <form method="POST" action="?/deleteGeoInterestExpression">
             <input type="hidden" name="id" value={expr.id} />
-            <button type="submit" class="flex items-center justify-center w-7 h-7 rounded-lg text-text-muted hover:text-red-400 hover:bg-[rgba(239,68,68,0.12)] transition-colors duration-150" aria-label="Delete expression">
+            <button type="submit" class="flex items-center justify-center w-7 h-7 rounded-lg text-text-muted hover:text-destructive-foreground hover:bg-destructive transition-colors duration-150" aria-label="Delete expression">
               <Trash2 size={14} />
             </button>
           </form>
@@ -372,7 +372,7 @@
       {#snippet row(item, _searchQuery)}
         {@const expr = item as unknown as RouteInterestExpression}
         <td>
-          <a href="/route-interests/{expr.routeInterestId}" class="text-sm font-medium text-accent hover:text-cyan-300">
+          <a href="/route-interests/{expr.routeInterestId}" class="text-sm font-medium text-accent hover:text-[var(--link-hover)]">
             {expr.originCity ?? "—"}, {expr.originCountry ?? "—"} &rarr; {expr.destinationCity ?? "—"}, {expr.destinationCountry ?? "—"}
           </a>
         </td>
@@ -381,7 +381,7 @@
         <td>
           <form method="POST" action="?/deleteRouteInterestExpression">
             <input type="hidden" name="id" value={expr.id} />
-            <button type="submit" class="flex items-center justify-center w-7 h-7 rounded-lg text-text-muted hover:text-red-400 hover:bg-[rgba(239,68,68,0.12)] transition-colors duration-150" aria-label="Delete expression">
+            <button type="submit" class="flex items-center justify-center w-7 h-7 rounded-lg text-text-muted hover:text-destructive-foreground hover:bg-destructive transition-colors duration-150" aria-label="Delete expression">
               <Trash2 size={14} />
             </button>
           </form>

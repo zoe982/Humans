@@ -354,7 +354,7 @@
       {#snippet row(email, _searchQuery)}
         <td class="font-mono text-sm whitespace-nowrap">{email.displayId}</td>
         <td>
-          <a href="/emails/{email.id}" class="text-sm font-medium text-accent hover:text-cyan-300">{email.email}</a>
+          <a href="/emails/{email.id}" class="text-sm font-medium text-accent hover:text-[var(--link-hover)]">{email.email}</a>
         </td>
         <td>
           <div class="w-44">
@@ -379,13 +379,13 @@
         </td>
         <td>
           {#if email.isPrimary}
-            <span class="glass-badge inline-flex rounded-full px-2 py-0.5 text-xs font-medium bg-[rgba(59,130,246,0.15)] text-blue-300">Primary</span>
+            <span class="glass-badge inline-flex rounded-full px-2 py-0.5 text-xs font-medium badge-blue">Primary</span>
           {/if}
         </td>
         <td>
           <form method="POST" action="?/deleteEmail">
             <input type="hidden" name="id" value={email.id} />
-            <button type="submit" class="flex items-center justify-center w-7 h-7 rounded-lg text-text-muted hover:text-red-400 hover:bg-[rgba(239,68,68,0.12)] transition-colors duration-150" aria-label="Delete email">
+            <button type="submit" class="flex items-center justify-center w-7 h-7 rounded-lg text-text-muted hover:text-destructive-foreground hover:bg-destructive transition-colors duration-150" aria-label="Delete email">
               <Trash2 size={14} />
             </button>
           </form>
@@ -445,7 +445,7 @@
       {#snippet row(phone, _searchQuery)}
         <td class="font-mono text-sm whitespace-nowrap">{phone.displayId}</td>
         <td>
-          <a href="/phone-numbers/{phone.id}" class="text-sm font-medium text-accent hover:text-cyan-300">{phone.phoneNumber}</a>
+          <a href="/phone-numbers/{phone.id}" class="text-sm font-medium text-accent hover:text-[var(--link-hover)]">{phone.phoneNumber}</a>
         </td>
         <td>
           <div class="w-44">
@@ -471,17 +471,17 @@
         <td>
           <div class="flex items-center gap-1">
             {#if phone.hasWhatsapp}
-              <span class="glass-badge inline-flex rounded-full px-2 py-0.5 text-xs font-medium bg-[rgba(34,197,94,0.15)] text-green-300">WhatsApp</span>
+              <span class="glass-badge inline-flex rounded-full px-2 py-0.5 text-xs font-medium badge-green">WhatsApp</span>
             {/if}
             {#if phone.isPrimary}
-              <span class="glass-badge inline-flex rounded-full px-2 py-0.5 text-xs font-medium bg-[rgba(59,130,246,0.15)] text-blue-300">Primary</span>
+              <span class="glass-badge inline-flex rounded-full px-2 py-0.5 text-xs font-medium badge-blue">Primary</span>
             {/if}
           </div>
         </td>
         <td>
           <form method="POST" action="?/deletePhoneNumber">
             <input type="hidden" name="phoneId" value={phone.id} />
-            <button type="submit" class="flex items-center justify-center w-7 h-7 rounded-lg text-text-muted hover:text-red-400 hover:bg-[rgba(239,68,68,0.12)] transition-colors duration-150" aria-label="Delete phone number">
+            <button type="submit" class="flex items-center justify-center w-7 h-7 rounded-lg text-text-muted hover:text-destructive-foreground hover:bg-destructive transition-colors duration-150" aria-label="Delete phone number">
               <Trash2 size={14} />
             </button>
           </form>
@@ -540,7 +540,7 @@
       {#snippet row(sid, _searchQuery)}
         <td class="font-mono text-sm whitespace-nowrap">{sid.displayId}</td>
         <td>
-          <a href="/social-ids/{sid.id}" class="text-sm font-medium text-accent hover:text-cyan-300">{sid.handle}</a>
+          <a href="/social-ids/{sid.id}" class="text-sm font-medium text-accent hover:text-[var(--link-hover)]">{sid.handle}</a>
         </td>
         <td>
           {#if sid.platformName}
@@ -552,7 +552,7 @@
         <td>
           <form method="POST" action="?/deleteSocialId">
             <input type="hidden" name="id" value={sid.id} />
-            <button type="submit" class="flex items-center justify-center w-7 h-7 rounded-lg text-text-muted hover:text-red-400 hover:bg-[rgba(239,68,68,0.12)] transition-colors duration-150" aria-label="Delete social ID">
+            <button type="submit" class="flex items-center justify-center w-7 h-7 rounded-lg text-text-muted hover:text-destructive-foreground hover:bg-destructive transition-colors duration-150" aria-label="Delete social ID">
               <Trash2 size={14} />
             </button>
           </form>
@@ -607,10 +607,10 @@
       {#snippet row(pet, _searchQuery)}
         <td class="font-mono text-sm whitespace-nowrap">{pet.displayId}</td>
         <td>
-          <a href="/pets/{pet.id}" class="text-sm font-medium text-accent hover:text-cyan-300">{pet.name}</a>
+          <a href="/pets/{pet.id}" class="text-sm font-medium text-accent hover:text-[var(--link-hover)]">{pet.name}</a>
         </td>
         <td>
-          <span class="glass-badge inline-flex rounded-full px-2 py-0.5 text-xs font-medium {pet.type === 'cat' ? 'bg-[rgba(168,85,247,0.15)] text-purple-300' : 'bg-[rgba(59,130,246,0.15)] text-blue-300'}">
+          <span class="glass-badge inline-flex rounded-full px-2 py-0.5 text-xs font-medium {pet.type === 'cat' ? 'badge-purple' : 'badge-blue'}">
             {pet.type === "cat" ? "Cat" : "Dog"}
           </span>
         </td>
@@ -619,7 +619,7 @@
         <td>
           <form method="POST" action="?/deletePet">
             <input type="hidden" name="id" value={pet.id} />
-            <button type="submit" class="flex items-center justify-center w-7 h-7 rounded-lg text-text-muted hover:text-red-400 hover:bg-[rgba(239,68,68,0.12)] transition-colors duration-150" aria-label="Delete pet">
+            <button type="submit" class="flex items-center justify-center w-7 h-7 rounded-lg text-text-muted hover:text-destructive-foreground hover:bg-destructive transition-colors duration-150" aria-label="Delete pet">
               <Trash2 size={14} />
             </button>
           </form>
@@ -634,14 +634,14 @@
               <button
                 type="button"
                 onclick={() => { newPetType = "dog"; }}
-                class="px-4 py-2 rounded-lg text-sm font-medium transition-colors {newPetType === 'dog' ? 'bg-[rgba(59,130,246,0.2)] text-blue-300 ring-1 ring-blue-400/30' : 'bg-glass text-text-secondary hover:bg-glass-hover'}"
+                class="px-4 py-2 rounded-lg text-sm font-medium transition-colors {newPetType === 'dog' ? 'badge-blue ring-1 ring-[var(--badge-blue-text)]/30' : 'bg-glass text-text-secondary hover:bg-glass-hover'}"
               >
                 Dog
               </button>
               <button
                 type="button"
                 onclick={() => { newPetType = "cat"; }}
-                class="px-4 py-2 rounded-lg text-sm font-medium transition-colors {newPetType === 'cat' ? 'bg-[rgba(168,85,247,0.2)] text-purple-300 ring-1 ring-purple-400/30' : 'bg-glass text-text-secondary hover:bg-glass-hover'}"
+                class="px-4 py-2 rounded-lg text-sm font-medium transition-colors {newPetType === 'cat' ? 'badge-purple ring-1 ring-[var(--badge-purple-text)]/30' : 'bg-glass text-text-secondary hover:bg-glass-hover'}"
               >
                 Cat
               </button>
@@ -700,7 +700,7 @@
       {#snippet row(expr, _searchQuery)}
         <td class="font-mono text-sm whitespace-nowrap">{expr.displayId}</td>
         <td>
-          <a href="/geo-interests/{expr.geoInterestId}" class="text-sm font-medium text-accent hover:text-cyan-300">
+          <a href="/geo-interests/{expr.geoInterestId}" class="text-sm font-medium text-accent hover:text-[var(--link-hover)]">
             {expr.city ?? "\u2014"}, {expr.country ?? "\u2014"}
           </a>
         </td>
@@ -708,7 +708,7 @@
         <td>
           <form method="POST" action="?/deleteGeoInterestExpression">
             <input type="hidden" name="id" value={expr.id} />
-            <button type="submit" class="flex items-center justify-center w-7 h-7 rounded-lg text-text-muted hover:text-red-400 hover:bg-[rgba(239,68,68,0.12)] transition-colors duration-150" aria-label="Delete geo-interest expression">
+            <button type="submit" class="flex items-center justify-center w-7 h-7 rounded-lg text-text-muted hover:text-destructive-foreground hover:bg-destructive transition-colors duration-150" aria-label="Delete geo-interest expression">
               <Trash2 size={14} />
             </button>
           </form>
@@ -744,12 +744,12 @@
       {#snippet row(expr, _searchQuery)}
         <td class="font-mono text-sm whitespace-nowrap">{expr.displayId}</td>
         <td>
-          <a href="/route-interests/{expr.routeInterestId}" class="text-sm font-medium text-accent hover:text-cyan-300">
+          <a href="/route-interests/{expr.routeInterestId}" class="text-sm font-medium text-accent hover:text-[var(--link-hover)]">
             {expr.originCity ?? "\u2014"}, {expr.originCountry ?? "\u2014"} &rarr; {expr.destinationCity ?? "\u2014"}, {expr.destinationCountry ?? "\u2014"}
           </a>
         </td>
         <td>
-          <span class="glass-badge inline-flex rounded-full px-2 py-0.5 text-xs font-medium {expr.frequency === 'repeat' ? 'bg-[rgba(168,85,247,0.15)] text-purple-300' : 'bg-glass text-text-secondary'}">
+          <span class="glass-badge inline-flex rounded-full px-2 py-0.5 text-xs font-medium {expr.frequency === 'repeat' ? 'badge-purple' : 'bg-glass text-text-secondary'}">
             {expr.frequency === "repeat" ? "Repeat" : "One-time"}
           </span>
         </td>
@@ -764,7 +764,7 @@
         <td>
           <form method="POST" action="?/deleteRouteInterestExpression">
             <input type="hidden" name="id" value={expr.id} />
-            <button type="submit" class="flex items-center justify-center w-7 h-7 rounded-lg text-text-muted hover:text-red-400 hover:bg-[rgba(239,68,68,0.12)] transition-colors duration-150" aria-label="Delete route interest expression">
+            <button type="submit" class="flex items-center justify-center w-7 h-7 rounded-lg text-text-muted hover:text-destructive-foreground hover:bg-destructive transition-colors duration-150" aria-label="Delete route interest expression">
               <Trash2 size={14} />
             </button>
           </form>
@@ -794,13 +794,13 @@
     >
       {#snippet row(link, _searchQuery)}
         <td>
-          <a href="/accounts/{link.accountId}" class="text-sm font-medium text-accent hover:text-cyan-300">
+          <a href="/accounts/{link.accountId}" class="text-sm font-medium text-accent hover:text-[var(--link-hover)]">
             {link.accountName}
           </a>
         </td>
         <td>
           {#if link.labelName}
-            <span class="glass-badge inline-flex rounded-full px-2 py-0.5 text-xs font-medium bg-[rgba(249,115,22,0.15)] text-orange-300">
+            <span class="glass-badge inline-flex rounded-full px-2 py-0.5 text-xs font-medium badge-orange">
               {link.labelName}
             </span>
           {:else}
@@ -825,7 +825,7 @@
     >
       {#snippet row(link, _searchQuery)}
         <td>
-          <a href="/leads/route-signups/{link.routeSignupId}" class="text-sm font-medium text-accent hover:text-cyan-300">
+          <a href="/leads/route-signups/{link.routeSignupId}" class="text-sm font-medium text-accent hover:text-[var(--link-hover)]">
             Signup {link.routeSignupId.slice(0, 8)}...
           </a>
         </td>
@@ -833,7 +833,7 @@
         <td>
           <form method="POST" action="?/unlinkSignup">
             <input type="hidden" name="linkId" value={link.id} />
-            <button type="submit" class="flex items-center justify-center w-7 h-7 rounded-lg text-text-muted hover:text-red-400 hover:bg-[rgba(239,68,68,0.12)] transition-colors duration-150" aria-label="Unlink signup">
+            <button type="submit" class="flex items-center justify-center w-7 h-7 rounded-lg text-text-muted hover:text-destructive-foreground hover:bg-destructive transition-colors duration-150" aria-label="Unlink signup">
               <Trash2 size={14} />
             </button>
           </form>
@@ -870,7 +870,7 @@
     >
       {#snippet row(activity, searchQuery)}
         <td class="font-mono text-sm whitespace-nowrap">
-          <a href="/activities/{activity.id}" class="text-accent hover:text-cyan-300">{activity.displayId}</a>
+          <a href="/activities/{activity.id}" class="text-accent hover:text-[var(--link-hover)]">{activity.displayId}</a>
         </td>
         <td>
           <span class="glass-badge {activityTypeColors[activity.type] ?? 'bg-glass text-text-secondary'}">
@@ -886,7 +886,7 @@
           <button
             type="button"
             onclick={() => deleteActivity(activity.id)}
-            class="flex items-center justify-center w-7 h-7 rounded-lg text-text-muted hover:text-red-400 hover:bg-[rgba(239,68,68,0.12)] transition-colors duration-150"
+            class="flex items-center justify-center w-7 h-7 rounded-lg text-text-muted hover:text-destructive-foreground hover:bg-destructive transition-colors duration-150"
             aria-label="Delete activity"
           >
             <Trash2 size={14} />
@@ -943,13 +943,13 @@
               {#each geoInterests as geo, i}
                 <span class="inline-flex items-center gap-1 rounded-full bg-[rgba(6,182,212,0.15)] text-accent px-2 py-0.5 text-xs">
                   {geo.city ?? "New"}{geo.country ? `, ${geo.country}` : ""}
-                  <button type="button" class="ml-0.5 hover:text-cyan-300" onclick={() => { geoInterests = geoInterests.filter((_, idx) => idx !== i); }}>&times;</button>
+                  <button type="button" class="ml-0.5 hover:text-[var(--link-hover)]" onclick={() => { geoInterests = geoInterests.filter((_, idx) => idx !== i); }}>&times;</button>
                 </span>
               {/each}
               {#each routeInterests as route, i}
-                <span class="inline-flex items-center gap-1 rounded-full bg-[rgba(168,85,247,0.15)] text-purple-300 px-2 py-0.5 text-xs">
+                <span class="inline-flex items-center gap-1 rounded-full badge-purple px-2 py-0.5 text-xs">
                   {route.originCity ?? "?"} &rarr; {route.destinationCity ?? "?"}
-                  <button type="button" class="ml-0.5 hover:text-purple-200" onclick={() => { routeInterests = routeInterests.filter((_, idx) => idx !== i); }}>&times;</button>
+                  <button type="button" class="ml-0.5 hover:opacity-80" onclick={() => { routeInterests = routeInterests.filter((_, idx) => idx !== i); }}>&times;</button>
                 </span>
               {/each}
             </div>

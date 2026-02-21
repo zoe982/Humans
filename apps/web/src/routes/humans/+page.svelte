@@ -78,10 +78,10 @@
   {/snippet}
   {#snippet desktopRow(human)}
     <td class="font-mono text-sm">
-      <a href="/humans/{human.id}" class="text-accent hover:text-cyan-300">{human.displayId}</a>
+      <a href="/humans/{human.id}" class="text-accent hover:text-[var(--link-hover)]">{human.displayId}</a>
     </td>
     <td class="font-medium">
-      <a href="/humans/{human.id}" class="text-accent hover:text-cyan-300">{formatDisplayName(human)}</a>
+      <a href="/humans/{human.id}" class="text-accent hover:text-[var(--link-hover)]">{formatDisplayName(human)}</a>
     </td>
     <td class="text-text-secondary">{primaryEmail(human)}</td>
     <td>
@@ -115,7 +115,7 @@
       </div>
       {#if data.userRole === "admin"}
         <div class="mt-2 flex justify-end">
-          <button type="button" class="text-red-400 hover:text-red-300 text-xs" onclick={(e) => { e.preventDefault(); }}>Delete</button>
+          <button type="button" class="text-destructive-foreground hover:opacity-80 text-xs" onclick={(e) => { e.preventDefault(); }}>Delete</button>
         </div>
       {/if}
     </a>
