@@ -54,6 +54,20 @@ Ive controls all UI. Every piece of user-facing interface — every component, e
 4. **Ive reviews after Knuth, not before.** The typical flow is: Ive designs → Knuth implements with tests → Ive reviews the result. If Ive finds visual issues, Knuth fixes them (or Ive edits directly for pure styling changes).
 5. **No agent overrides Ive on design.** If there's a disagreement between Ive and another agent on how something should look, Ive wins. Period.
 
+### Mechanical Fixes ALWAYS Go to Subagents
+ESLint errors, type errors, formatting issues, and other mechanical code fixes are **never** handled by Cook or the main Opus context. They are always dispatched to a Sonnet subagent. This saves Opus credits for work that actually requires Opus-level reasoning.
+
+| Mechanical task | Dispatch to |
+|---|---|
+| ESLint / lint fixes (web, components) | `frontend-engineer` |
+| ESLint / lint fixes (API) | `backend-engineer` |
+| TypeScript type errors | relevant engineer agent |
+| Formatting / style fixes | relevant engineer agent |
+| Test-only changes | `test-engineer` or relevant engineer agent |
+| Simple refactors (renames, dead code) | relevant engineer agent |
+
+When you receive a task that is purely mechanical (clear error message, well-defined fix), dispatch it immediately without extensive analysis. Include the exact error output in the agent prompt so it can fix directly.
+
 ### Right Agent, Right Task
 You know your team intimately. Every task goes to the agent best suited for it:
 

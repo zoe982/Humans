@@ -59,6 +59,21 @@ Check table status:
 npx wrangler d1 execute humans-db --remote --command "SELECT name FROM sqlite_master WHERE type='table';" --config apps/api/wrangler.toml
 ```
 
+## Model Usage — MANDATORY
+
+**NEVER fix ESLint errors, type errors, formatting issues, or other mechanical code fixes directly in the main (Opus) context.** ALWAYS delegate these to a subagent (which runs on Sonnet). This is a hard rule — no exceptions.
+
+| Task type | Delegate to |
+|-----------|-------------|
+| ESLint / lint fixes (web, components) | `frontend-engineer` |
+| ESLint / lint fixes (API) | `backend-engineer` |
+| TypeScript type errors | relevant engineer agent |
+| Formatting / style fixes | relevant engineer agent |
+| Test-only changes (new tests, fix failing tests) | `test-engineer` or relevant engineer agent |
+| Simple refactors (renames, moves, dead code removal) | relevant engineer agent |
+
+**Opus is reserved for**: architectural decisions, complex multi-system debugging, planning, and orchestration. If a task has a clear error message and a mechanical fix, it goes to a subagent.
+
 ## Testing Commands
 
 All test commands use absolute paths and pipe through `tail` to prevent context window overflow in subagents.
