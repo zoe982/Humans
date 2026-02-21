@@ -1,5 +1,5 @@
 <script lang="ts">
-  import * as Command from "$lib/components/ui/command/index.js";
+  import { ChevronDown } from "lucide-svelte";
 
   type Option = { value: string; label: string };
 
@@ -121,50 +121,55 @@
 
 <div class="relative">
   <input type="hidden" {name} value={selectedValue} />
-  <input
-    type="text"
-    {id}
-    role="combobox"
-    aria-expanded={open && displayList.length > 0}
-    aria-controls={listboxId}
-    aria-activedescendant={activeDescendantId}
-    aria-autocomplete="list"
-    bind:value={query}
-    oninput={handleInput}
-    onfocus={() => { open = true; }}
-    onblur={handleBlur}
-    onkeydown={handleKeydown}
-    {placeholder}
-    {required}
-    autocomplete="off"
-    class="glass-input mt-1 block w-full"
-  />
+  <div class="relative">
+    <input
+      type="text"
+      {id}
+      role="combobox"
+      aria-expanded={open && displayList.length > 0}
+      aria-controls={listboxId}
+      aria-activedescendant={activeDescendantId}
+      aria-autocomplete="list"
+      bind:value={query}
+      oninput={handleInput}
+      onfocus={() => { open = true; }}
+      onblur={handleBlur}
+      onkeydown={handleKeydown}
+      {placeholder}
+      {required}
+      autocomplete="off"
+      class="glass-input mt-1 block w-full pr-8"
+    />
+    <ChevronDown
+      class="pointer-events-none absolute right-3 top-1/2 mt-0.5 h-4 w-4 -translate-y-1/2 text-text-muted"
+      aria-hidden="true"
+    />
+  </div>
   {#if open && displayList.length > 0}
-    <Command.Root shouldFilter={false} class="absolute z-50 mt-1 w-full">
-      <Command.List
-        id={listboxId}
-        class="glass-popover max-h-48 overflow-auto"
-        aria-label=""
-      >
-        {#each displayList as option, i}
-          <Command.Item
-            id="{listboxId}-option-{i}"
-            value={option.value !== "" ? option.value : "__empty__"}
-            onSelect={() => {}}
+    <ul
+      id={listboxId}
+      role="listbox"
+      class="glass-popover absolute z-50 mt-1 w-full max-h-48 overflow-auto py-1"
+      aria-label=""
+    >
+      {#each displayList as option, i}
+        <li
+          id="{listboxId}-option-{i}"
+          role="option"
+          aria-selected={option.value === selectedValue}
+        >
+          <button
+            type="button"
+            class="w-full px-3 py-2 text-left text-sm transition-colors {i === highlightIndex ? 'bg-glass-hover text-text-primary' : 'text-text-secondary hover:bg-glass-hover hover:text-text-primary'}"
+            onmousedown={(e) => { e.preventDefault(); select(option); }}
+            onmouseenter={() => { highlightIndex = i; }}
+            tabindex="-1"
           >
-            <button
-              type="button"
-              class="w-full px-3 py-2 text-left text-sm transition-colors {i === highlightIndex ? 'bg-glass-hover text-text-primary' : 'text-text-secondary hover:bg-glass-hover hover:text-text-primary'}"
-              onmousedown={(e: MouseEvent) => { e.preventDefault(); select(option); }}
-              onmouseenter={() => { highlightIndex = i; }}
-              tabindex="-1"
-            >
-              {option.label}
-            </button>
-          </Command.Item>
-        {/each}
-      </Command.List>
-    </Command.Root>
+            {option.label}
+          </button>
+        </li>
+      {/each}
+    </ul>
   {/if}
   {#if open && query.trim() !== "" && displayList.length === 0}
     <div class="glass-popover absolute z-50 mt-1 w-full px-3 py-2 text-sm text-text-muted" role="status">

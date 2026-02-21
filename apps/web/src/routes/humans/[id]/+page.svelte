@@ -136,9 +136,12 @@
   let historyEntries = $state<AuditEntry[]>([]);
   let historyLoaded = $state(false);
 
-  let showGeoInterestInActivity = $state(false);
+  type GeoInterestItem = { id?: string; city?: string; country?: string; notes?: string };
+  type RouteInterestItem = { id?: string; originCity?: string; originCountry?: string; destinationCity?: string; destinationCountry?: string; frequency?: string; travelYear?: number; travelMonth?: number; travelDay?: number; notes?: string };
+  let geoInterests = $state<GeoInterestItem[]>([]);
   let geoInterestDialogOpen = $state(false);
-  let geoInterestSelected = $state<{ id?: string; city?: string; country?: string; notes?: string } | null>(null);
+  let routeInterests = $state<RouteInterestItem[]>([]);
+  let routeInterestDialogOpen = $state(false);
   let breedDropdownOpen = $state(false);
   let newActivityType = $state("email");
   let newPetType = $state("dog");
@@ -862,7 +865,7 @@
       emptyMessage="No activities yet."
       searchEmptyMessage="No activities match your search."
       addLabel="Activity"
-      onFormToggle={(open) => { if (!open) { showGeoInterestInActivity = false; geoInterestSelected = null; } }}
+      onFormToggle={(open) => { if (!open) { geoInterests = []; routeInterests = []; } }}
     >
       {#snippet row(activity, searchQuery)}
         <td class="font-mono text-sm whitespace-nowrap">
@@ -927,33 +930,45 @@
               placeholder="Optional notes..."
             ></textarea>
           </div>
-          {#if showGeoInterestInActivity && geoInterestSelected}
-            <input type="hidden" name="geoInterestId" value={geoInterestSelected.id ?? ""} />
-            <input type="hidden" name="geoCity" value={geoInterestSelected.city ?? ""} />
-            <input type="hidden" name="geoCountry" value={geoInterestSelected.country ?? ""} />
-            <input type="hidden" name="geoNotes" value={geoInterestSelected.notes ?? ""} />
+          {#if geoInterests.length > 0}
+            <input type="hidden" name="geoInterestsJson" value={JSON.stringify(geoInterests)} />
+          {/if}
+          {#if routeInterests.length > 0}
+            <input type="hidden" name="routeInterestsJson" value={JSON.stringify(routeInterests)} />
+          {/if}
+          <!-- Linked interests chips -->
+          {#if geoInterests.length > 0 || routeInterests.length > 0}
+            <div class="flex flex-wrap gap-2">
+              {#each geoInterests as geo, i}
+                <span class="inline-flex items-center gap-1 rounded-full bg-[rgba(6,182,212,0.15)] text-accent px-2 py-0.5 text-xs">
+                  {geo.city ?? "New"}{geo.country ? `, ${geo.country}` : ""}
+                  <button type="button" class="ml-0.5 hover:text-cyan-300" onclick={() => { geoInterests = geoInterests.filter((_, idx) => idx !== i); }}>&times;</button>
+                </span>
+              {/each}
+              {#each routeInterests as route, i}
+                <span class="inline-flex items-center gap-1 rounded-full bg-[rgba(168,85,247,0.15)] text-purple-300 px-2 py-0.5 text-xs">
+                  {route.originCity ?? "?"} &rarr; {route.destinationCity ?? "?"}
+                  <button type="button" class="ml-0.5 hover:text-purple-200" onclick={() => { routeInterests = routeInterests.filter((_, idx) => idx !== i); }}>&times;</button>
+                </span>
+              {/each}
+            </div>
           {/if}
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-2">
               <button
                 type="button"
-                class="text-sm {showGeoInterestInActivity ? 'text-red-400 hover:text-red-300' : 'text-accent hover:text-cyan-300'} transition-colors"
-                onclick={() => {
-                  if (showGeoInterestInActivity) {
-                    showGeoInterestInActivity = false;
-                    geoInterestSelected = null;
-                  } else {
-                    geoInterestDialogOpen = true;
-                  }
-                }}
+                class="text-sm text-accent hover:text-cyan-300 transition-colors"
+                onclick={() => { geoInterestDialogOpen = true; }}
               >
-                {showGeoInterestInActivity ? "- Remove Geo-Interest" : "+ Link Geo-Interest"}
+                + Link Geo-Interest
               </button>
-              {#if showGeoInterestInActivity && geoInterestSelected}
-                <span class="inline-flex items-center gap-1 rounded-full bg-[rgba(6,182,212,0.15)] text-accent px-2 py-0.5 text-xs">
-                  {geoInterestSelected.city ?? "New"}{geoInterestSelected.country ? `, ${geoInterestSelected.country}` : ""}
-                </span>
-              {/if}
+              <button
+                type="button"
+                class="text-sm text-accent hover:text-cyan-300 transition-colors"
+                onclick={() => { routeInterestDialogOpen = true; }}
+              >
+                + Link Route-Interest
+              </button>
             </div>
             <button type="submit" class="btn-primary text-sm">
               Add Activity
@@ -990,18 +1005,83 @@
               const cityInput = container.querySelector<HTMLInputElement>('input[name="dialogGeoCity"]');
               const countryInput = container.querySelector<HTMLInputElement>('input[name="dialogGeoCountry"]');
               const notesInput = container.querySelector<HTMLTextAreaElement>('textarea[name="dialogGeoNotes"]');
-              geoInterestSelected = {
+              const item: GeoInterestItem = {
                 id: geoIdInput?.value || undefined,
                 city: cityInput?.value || undefined,
                 country: countryInput?.value || undefined,
                 notes: notesInput?.value || undefined,
               };
+              if (item.id || (item.city && item.country)) {
+                geoInterests = [...geoInterests, item];
+              }
             }
-            showGeoInterestInActivity = true;
             geoInterestDialogOpen = false;
           }}
         >
-          Done
+          Add
+        </button>
+      </Dialog.Footer>
+    </Dialog.Content>
+  </Dialog.Root>
+
+  <Dialog.Root bind:open={routeInterestDialogOpen}>
+    <Dialog.Content class="max-w-2xl">
+      <Dialog.Header>
+        <Dialog.Title>Link Route-Interest</Dialog.Title>
+        <Dialog.Description>Define origin, destination, and travel details.</Dialog.Description>
+      </Dialog.Header>
+      <div class="mt-4" id="route-interest-dialog-body">
+        <RouteInterestPicker
+          {apiUrl}
+          routeInterestIdName="dialogRouteId"
+          originCityName="dialogRouteOriginCity"
+          originCountryName="dialogRouteOriginCountry"
+          destinationCityName="dialogRouteDestCity"
+          destinationCountryName="dialogRouteDestCountry"
+          frequencyName="dialogRouteFrequency"
+          travelYearName="dialogRouteTravelYear"
+          travelMonthName="dialogRouteTravelMonth"
+          travelDayName="dialogRouteTravelDay"
+          notesName="dialogRouteNotes"
+        />
+      </div>
+      <Dialog.Footer>
+        <button
+          type="button"
+          class="btn-primary text-sm"
+          onclick={() => {
+            const container = document.getElementById("route-interest-dialog-body");
+            if (container) {
+              const routeIdInput = container.querySelector<HTMLInputElement>('input[name="dialogRouteId"]');
+              const originCityInput = container.querySelector<HTMLInputElement>('input[name="dialogRouteOriginCity"]');
+              const originCountryInput = container.querySelector<HTMLInputElement>('input[name="dialogRouteOriginCountry"]');
+              const destCityInput = container.querySelector<HTMLInputElement>('input[name="dialogRouteDestCity"]');
+              const destCountryInput = container.querySelector<HTMLInputElement>('input[name="dialogRouteDestCountry"]');
+              const frequencyInput = container.querySelector<HTMLSelectElement>('select[name="dialogRouteFrequency"]');
+              const travelYearInput = container.querySelector<HTMLInputElement>('input[name="dialogRouteTravelYear"]');
+              const travelMonthInput = container.querySelector<HTMLInputElement>('input[name="dialogRouteTravelMonth"]');
+              const travelDayInput = container.querySelector<HTMLInputElement>('input[name="dialogRouteTravelDay"]');
+              const notesInput = container.querySelector<HTMLTextAreaElement>('textarea[name="dialogRouteNotes"]');
+              const item: RouteInterestItem = {
+                id: routeIdInput?.value || undefined,
+                originCity: originCityInput?.value || undefined,
+                originCountry: originCountryInput?.value || undefined,
+                destinationCity: destCityInput?.value || undefined,
+                destinationCountry: destCountryInput?.value || undefined,
+                frequency: frequencyInput?.value || undefined,
+                travelYear: travelYearInput?.value ? parseInt(travelYearInput.value, 10) : undefined,
+                travelMonth: travelMonthInput?.value ? parseInt(travelMonthInput.value, 10) : undefined,
+                travelDay: travelDayInput?.value ? parseInt(travelDayInput.value, 10) : undefined,
+                notes: notesInput?.value || undefined,
+              };
+              if (item.id || (item.originCity && item.originCountry && item.destinationCity && item.destinationCountry)) {
+                routeInterests = [...routeInterests, item];
+              }
+            }
+            routeInterestDialogOpen = false;
+          }}
+        >
+          Add
         </button>
       </Dialog.Footer>
     </Dialog.Content>

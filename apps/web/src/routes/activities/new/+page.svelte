@@ -6,6 +6,7 @@
   import GeoInterestPicker from "$lib/components/GeoInterestPicker.svelte";
   import RouteInterestPicker from "$lib/components/RouteInterestPicker.svelte";
   import { ACTIVITY_TYPE_OPTIONS } from "$lib/constants/labels";
+  import { X } from "lucide-svelte";
 
   let { data, form }: { data: PageData; form: ActionData } = $props();
 
@@ -16,13 +17,17 @@
     lastName: string;
   };
   type Account = { id: string; name: string };
+  type GeoInterestItem = { id?: string; city?: string; country?: string; notes?: string };
+  type RouteInterestItem = { id?: string; originCity?: string; originCountry?: string; destinationCity?: string; destinationCountry?: string; frequency?: string; travelYear?: number; travelMonth?: number; travelDay?: number; notes?: string };
 
   const humans = $derived(data.humans as Human[]);
   const accountsList = $derived(data.accounts as Account[]);
   const apiUrl = $derived(data.apiUrl as string);
   let selectedType = $state("email");
-  let showGeoInterest = $state(false);
-  let showRouteInterest = $state(false);
+  let geoInterests = $state<GeoInterestItem[]>([]);
+  let showGeoInterestPicker = $state(false);
+  let routeInterests = $state<RouteInterestItem[]>([]);
+  let showRouteInterestPicker = $state(false);
 
   function displayName(h: Human): string {
     return [h.firstName, h.middleName, h.lastName].filter(Boolean).join(" ");
@@ -111,55 +116,144 @@
       />
     </div>
 
+    <!-- Geo-Interests -->
     <div>
-      <label class="flex items-center gap-2 text-sm text-text-secondary">
-        <input
-          type="checkbox"
-          class="rounded border-glass-border"
-          bind:checked={showGeoInterest}
-        />
-        Link a Geo-Interest?
-      </label>
+      <label class="block text-sm font-medium text-text-secondary mb-2">Geo-Interests</label>
+      {#if geoInterests.length > 0}
+        <input type="hidden" name="geoInterestsJson" value={JSON.stringify(geoInterests)} />
+        <div class="flex flex-wrap gap-2 mb-2">
+          {#each geoInterests as geo, i}
+            <span class="inline-flex items-center gap-1 rounded-full bg-[rgba(6,182,212,0.15)] text-accent px-2.5 py-1 text-sm">
+              {geo.city ?? "New"}{geo.country ? `, ${geo.country}` : ""}
+              <button type="button" class="ml-0.5 hover:text-cyan-300" onclick={() => { geoInterests = geoInterests.filter((_, idx) => idx !== i); }}>
+                <X size={12} />
+              </button>
+            </span>
+          {/each}
+        </div>
+      {/if}
+      {#if showGeoInterestPicker}
+        <div class="p-3 rounded-lg bg-glass border border-glass-border space-y-3" id="new-geo-picker">
+          <GeoInterestPicker
+            {apiUrl}
+            geoInterestIdName="pendingGeoId"
+            cityName="pendingGeoCity"
+            countryName="pendingGeoCountry"
+            notesName="pendingGeoNotes"
+          />
+          <div class="flex gap-2">
+            <button
+              type="button"
+              class="btn-primary text-sm"
+              onclick={() => {
+                const container = document.getElementById("new-geo-picker");
+                if (container) {
+                  const geoId = container.querySelector<HTMLInputElement>('input[name="pendingGeoId"]')?.value;
+                  const city = container.querySelector<HTMLInputElement>('input[name="pendingGeoCity"]')?.value;
+                  const country = container.querySelector<HTMLInputElement>('input[name="pendingGeoCountry"]')?.value;
+                  const notes = container.querySelector<HTMLTextAreaElement>('textarea[name="pendingGeoNotes"]')?.value;
+                  const item: GeoInterestItem = { id: geoId || undefined, city: city || undefined, country: country || undefined, notes: notes || undefined };
+                  if (item.id || (item.city && item.country)) {
+                    geoInterests = [...geoInterests, item];
+                  }
+                }
+                showGeoInterestPicker = false;
+              }}
+            >
+              Add
+            </button>
+            <button type="button" class="btn-ghost text-sm" onclick={() => { showGeoInterestPicker = false; }}>
+              Cancel
+            </button>
+          </div>
+        </div>
+      {:else}
+        <button type="button" class="text-sm text-accent hover:text-cyan-300 transition-colors" onclick={() => { showGeoInterestPicker = true; }}>
+          + Add Geo-Interest
+        </button>
+      {/if}
     </div>
-    {#if showGeoInterest}
-      <div class="p-3 rounded-lg bg-glass border border-glass-border">
-        <GeoInterestPicker
-          {apiUrl}
-          geoInterestIdName="geoInterestId"
-          cityName="geoCity"
-          countryName="geoCountry"
-          notesName="geoNotes"
-        />
-      </div>
-    {/if}
 
+    <!-- Route-Interests -->
     <div>
-      <label class="flex items-center gap-2 text-sm text-text-secondary">
-        <input
-          type="checkbox"
-          class="rounded border-glass-border"
-          bind:checked={showRouteInterest}
-        />
-        Link a Route-Interest?
-      </label>
+      <label class="block text-sm font-medium text-text-secondary mb-2">Route-Interests</label>
+      {#if routeInterests.length > 0}
+        <input type="hidden" name="routeInterestsJson" value={JSON.stringify(routeInterests)} />
+        <div class="flex flex-wrap gap-2 mb-2">
+          {#each routeInterests as route, i}
+            <span class="inline-flex items-center gap-1 rounded-full bg-[rgba(168,85,247,0.15)] text-purple-300 px-2.5 py-1 text-sm">
+              {route.originCity ?? "?"} &rarr; {route.destinationCity ?? "?"}
+              <button type="button" class="ml-0.5 hover:text-purple-200" onclick={() => { routeInterests = routeInterests.filter((_, idx) => idx !== i); }}>
+                <X size={12} />
+              </button>
+            </span>
+          {/each}
+        </div>
+      {/if}
+      {#if showRouteInterestPicker}
+        <div class="p-3 rounded-lg bg-glass border border-glass-border space-y-3" id="new-route-picker">
+          <RouteInterestPicker
+            {apiUrl}
+            routeInterestIdName="pendingRouteId"
+            originCityName="pendingRouteOriginCity"
+            originCountryName="pendingRouteOriginCountry"
+            destinationCityName="pendingRouteDestCity"
+            destinationCountryName="pendingRouteDestCountry"
+            frequencyName="pendingRouteFrequency"
+            travelYearName="pendingRouteTravelYear"
+            travelMonthName="pendingRouteTravelMonth"
+            travelDayName="pendingRouteTravelDay"
+            notesName="pendingRouteNotes"
+          />
+          <div class="flex gap-2">
+            <button
+              type="button"
+              class="btn-primary text-sm"
+              onclick={() => {
+                const container = document.getElementById("new-route-picker");
+                if (container) {
+                  const routeId = container.querySelector<HTMLInputElement>('input[name="pendingRouteId"]')?.value;
+                  const originCity = container.querySelector<HTMLInputElement>('input[name="pendingRouteOriginCity"]')?.value;
+                  const originCountry = container.querySelector<HTMLInputElement>('input[name="pendingRouteOriginCountry"]')?.value;
+                  const destCity = container.querySelector<HTMLInputElement>('input[name="pendingRouteDestCity"]')?.value;
+                  const destCountry = container.querySelector<HTMLInputElement>('input[name="pendingRouteDestCountry"]')?.value;
+                  const frequency = container.querySelector<HTMLSelectElement>('select[name="pendingRouteFrequency"]')?.value;
+                  const travelYear = container.querySelector<HTMLInputElement>('input[name="pendingRouteTravelYear"]')?.value;
+                  const travelMonth = container.querySelector<HTMLInputElement>('input[name="pendingRouteTravelMonth"]')?.value;
+                  const travelDay = container.querySelector<HTMLInputElement>('input[name="pendingRouteTravelDay"]')?.value;
+                  const notes = container.querySelector<HTMLTextAreaElement>('textarea[name="pendingRouteNotes"]')?.value;
+                  const item: RouteInterestItem = {
+                    id: routeId || undefined,
+                    originCity: originCity || undefined,
+                    originCountry: originCountry || undefined,
+                    destinationCity: destCity || undefined,
+                    destinationCountry: destCountry || undefined,
+                    frequency: frequency || undefined,
+                    travelYear: travelYear ? parseInt(travelYear, 10) : undefined,
+                    travelMonth: travelMonth ? parseInt(travelMonth, 10) : undefined,
+                    travelDay: travelDay ? parseInt(travelDay, 10) : undefined,
+                    notes: notes || undefined,
+                  };
+                  if (item.id || (item.originCity && item.originCountry && item.destinationCity && item.destinationCountry)) {
+                    routeInterests = [...routeInterests, item];
+                  }
+                }
+                showRouteInterestPicker = false;
+              }}
+            >
+              Add
+            </button>
+            <button type="button" class="btn-ghost text-sm" onclick={() => { showRouteInterestPicker = false; }}>
+              Cancel
+            </button>
+          </div>
+        </div>
+      {:else}
+        <button type="button" class="text-sm text-accent hover:text-cyan-300 transition-colors" onclick={() => { showRouteInterestPicker = true; }}>
+          + Add Route-Interest
+        </button>
+      {/if}
     </div>
-    {#if showRouteInterest}
-      <div class="p-3 rounded-lg bg-glass border border-glass-border">
-        <RouteInterestPicker
-          {apiUrl}
-          routeInterestIdName="routeInterestId"
-          originCityName="routeOriginCity"
-          originCountryName="routeOriginCountry"
-          destinationCityName="routeDestinationCity"
-          destinationCountryName="routeDestinationCountry"
-          frequencyName="routeFrequency"
-          travelYearName="routeTravelYear"
-          travelMonthName="routeTravelMonth"
-          travelDayName="routeTravelDay"
-          notesName="routeNotes"
-        />
-      </div>
-    {/if}
 
     <div class="flex gap-3">
       <button type="submit" class="btn-primary">Create Activity</button>

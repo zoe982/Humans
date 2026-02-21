@@ -88,37 +88,77 @@ export const actions = {
       return failFromApi(resBody, res.status, "Failed to create activity");
     }
 
-    // If geo-interest fields are present, create a geo-interest expression linked to this activity
-    const geoInterestId = (form.get("geoInterestId") as string)?.trim();
-    const geoCity = (form.get("geoCity") as string)?.trim();
-    const geoCountry = (form.get("geoCountry") as string)?.trim();
-    if (geoInterestId || (geoCity && geoCountry)) {
-      let activityId: string | undefined;
-      if (isObjData(resBody)) {
-        activityId = (resBody.data as { id?: string }).id;
-      }
+    let activityId: string | undefined;
+    if (isObjData(resBody)) {
+      activityId = (resBody.data as { id?: string }).id;
+    }
 
-      const geoPayload: Record<string, unknown> = {
-        humanId: params.id,
-        notes: (form.get("geoNotes") as string)?.trim() || undefined,
-        activityId,
-      };
+    // Create geo-interest expressions from JSON array
+    const geoInterestsRaw = (form.get("geoInterestsJson") as string)?.trim();
+    if (geoInterestsRaw) {
+      try {
+        const geoItems = JSON.parse(geoInterestsRaw) as Array<{ id?: string; city?: string; country?: string; notes?: string }>;
+        for (const geo of geoItems) {
+          const geoPayload: Record<string, unknown> = {
+            humanId: params.id,
+            activityId,
+            notes: geo.notes || undefined,
+          };
+          if (geo.id) {
+            geoPayload.geoInterestId = geo.id;
+          } else {
+            geoPayload.city = geo.city;
+            geoPayload.country = geo.country;
+          }
+          await fetch(`${PUBLIC_API_URL}/api/geo-interest-expressions`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Cookie: `humans_session=${sessionToken ?? ""}`,
+            },
+            body: JSON.stringify(geoPayload),
+          });
+        }
+      } catch { /* ignore malformed JSON */ }
+    }
 
-      if (geoInterestId) {
-        geoPayload.geoInterestId = geoInterestId;
-      } else {
-        geoPayload.city = geoCity;
-        geoPayload.country = geoCountry;
-      }
-
-      await fetch(`${PUBLIC_API_URL}/api/geo-interest-expressions`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Cookie: `humans_session=${sessionToken ?? ""}`,
-        },
-        body: JSON.stringify(geoPayload),
-      });
+    // Create route-interest expressions from JSON array
+    const routeInterestsRaw = (form.get("routeInterestsJson") as string)?.trim();
+    if (routeInterestsRaw) {
+      try {
+        const routeItems = JSON.parse(routeInterestsRaw) as Array<{
+          id?: string; originCity?: string; originCountry?: string;
+          destinationCity?: string; destinationCountry?: string;
+          frequency?: string; travelYear?: number; travelMonth?: number; travelDay?: number; notes?: string;
+        }>;
+        for (const route of routeItems) {
+          const routePayload: Record<string, unknown> = {
+            humanId: params.id,
+            activityId,
+            frequency: route.frequency || "one_time",
+            notes: route.notes || undefined,
+          };
+          if (route.id) {
+            routePayload.routeInterestId = route.id;
+          } else {
+            routePayload.originCity = route.originCity;
+            routePayload.originCountry = route.originCountry;
+            routePayload.destinationCity = route.destinationCity;
+            routePayload.destinationCountry = route.destinationCountry;
+          }
+          if (route.travelYear) routePayload.travelYear = route.travelYear;
+          if (route.travelMonth) routePayload.travelMonth = route.travelMonth;
+          if (route.travelDay) routePayload.travelDay = route.travelDay;
+          await fetch(`${PUBLIC_API_URL}/api/route-interest-expressions`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Cookie: `humans_session=${sessionToken ?? ""}`,
+            },
+            body: JSON.stringify(routePayload),
+          });
+        }
+      } catch { /* ignore malformed JSON */ }
     }
 
     return { success: true };
