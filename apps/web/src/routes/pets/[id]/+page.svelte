@@ -7,6 +7,9 @@
   import { createAutoSaver, type SaveStatus } from "$lib/autosave";
   import { PET_BREEDS } from "@humans/shared/constants";
   import { onDestroy } from "svelte";
+  import { formatRelativeTime, summarizeChanges } from "$lib/utils/format";
+  import { createChangeHistoryLoader } from "$lib/changeHistory";
+  import RelatedListTable from "$lib/components/RelatedListTable.svelte";
 
   let { data }: { data: PageData } = $props();
 
@@ -36,6 +39,15 @@
   let initialized = $state(false);
   let breedDropdownOpen = $state(false);
 
+  // Change history
+  const history = createChangeHistoryLoader("pet", pet.id);
+
+  $effect(() => {
+    if (!history.historyLoaded) {
+      void history.loadHistory();
+    }
+  });
+
   // Initialize state from data
   $effect(() => {
     petName = pet.name;
@@ -55,6 +67,7 @@
     onStatusChange: (s) => { saveStatus = s; },
     onSaved: () => {
       toast("Changes saved");
+      history.resetHistory();
     },
     onError: (err) => {
       toast(`Save failed: ${err}`);
@@ -104,7 +117,7 @@
 </script>
 
 <svelte:head>
-  <title>{pet.displayId} — {pet.name} - Humans CRM</title>
+  <title>{pet.displayId} — {pet.name} - Humans</title>
 </svelte:head>
 
 <div class="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
@@ -120,60 +133,62 @@
       <SaveIndicator status={saveStatus} />
     </div>
 
-    <div>
-      <label for="petName" class="block text-sm font-medium text-text-secondary">Name</label>
-      <input
-        id="petName" type="text"
-        bind:value={petName}
-        oninput={triggerSave}
-        class="glass-input mt-1 block w-full"
-      />
-    </div>
-
-    <div>
-      <label class="block text-sm font-medium text-text-secondary mb-2">Type</label>
-      <div class="flex gap-2">
-        <button
-          type="button"
-          onclick={() => handleTypeChange("dog")}
-          class="px-4 py-2 rounded-lg text-sm font-medium transition-colors {petType === 'dog' ? 'bg-[rgba(59,130,246,0.2)] text-blue-300 ring-1 ring-blue-400/30' : 'bg-glass text-text-secondary hover:bg-glass-hover'}"
-        >
-          Dog
-        </button>
-        <button
-          type="button"
-          onclick={() => handleTypeChange("cat")}
-          class="px-4 py-2 rounded-lg text-sm font-medium transition-colors {petType === 'cat' ? 'bg-[rgba(168,85,247,0.2)] text-purple-300 ring-1 ring-purple-400/30' : 'bg-glass text-text-secondary hover:bg-glass-hover'}"
-        >
-          Cat
-        </button>
-      </div>
-    </div>
-
-    {#if petType === "dog"}
-      <div class={breedDropdownOpen ? "relative z-10" : ""}>
-        <label for="petBreed" class="block text-sm font-medium text-text-secondary">Breed</label>
-        <SearchableSelect
-          options={PET_BREEDS}
-          name="breed"
-          id="petBreed"
-          value={petBreed}
-          placeholder="Search breeds..."
-          emptyOption="None"
-          onSelect={handleBreedChange}
-          onOpenChange={(isOpen) => { breedDropdownOpen = isOpen; }}
+    <div class="grid gap-4 sm:grid-cols-2">
+      <div>
+        <label for="petName" class="block text-sm font-medium text-text-secondary">Name</label>
+        <input
+          id="petName" type="text"
+          bind:value={petName}
+          oninput={triggerSave}
+          class="glass-input mt-1 block w-full"
         />
       </div>
-    {/if}
+      <div>
+        <label class="block text-sm font-medium text-text-secondary mb-2">Type</label>
+        <div class="flex gap-2">
+          <button
+            type="button"
+            onclick={() => handleTypeChange("dog")}
+            class="px-4 py-2 rounded-lg text-sm font-medium transition-colors {petType === 'dog' ? 'bg-[rgba(59,130,246,0.2)] text-blue-300 ring-1 ring-blue-400/30' : 'bg-glass text-text-secondary hover:bg-glass-hover'}"
+          >
+            Dog
+          </button>
+          <button
+            type="button"
+            onclick={() => handleTypeChange("cat")}
+            class="px-4 py-2 rounded-lg text-sm font-medium transition-colors {petType === 'cat' ? 'bg-[rgba(168,85,247,0.2)] text-purple-300 ring-1 ring-purple-400/30' : 'bg-glass text-text-secondary hover:bg-glass-hover'}"
+          >
+            Cat
+          </button>
+        </div>
+      </div>
+    </div>
 
-    <div>
-      <label for="petWeight" class="block text-sm font-medium text-text-secondary">Weight (kg)</label>
-      <input
-        id="petWeight" type="number" step="0.1" min="0"
-        bind:value={petWeight}
-        oninput={triggerSave}
-        class="glass-input mt-1 block w-full"
-      />
+    <div class="grid gap-4 sm:grid-cols-2">
+      {#if petType === "dog"}
+        <div class={breedDropdownOpen ? "relative z-10" : ""}>
+          <label for="petBreed" class="block text-sm font-medium text-text-secondary">Breed</label>
+          <SearchableSelect
+            options={PET_BREEDS}
+            name="breed"
+            id="petBreed"
+            value={petBreed}
+            placeholder="Search breeds..."
+            emptyOption="None"
+            onSelect={handleBreedChange}
+            onOpenChange={(isOpen) => { breedDropdownOpen = isOpen; }}
+          />
+        </div>
+      {/if}
+      <div class={petType === "dog" ? "" : "sm:col-span-2 sm:max-w-[calc(50%-0.5rem)]"}>
+        <label for="petWeight" class="block text-sm font-medium text-text-secondary">Weight (kg)</label>
+        <input
+          id="petWeight" type="number" step="0.1" min="0"
+          bind:value={petWeight}
+          oninput={triggerSave}
+          class="glass-input mt-1 block w-full"
+        />
+      </div>
     </div>
 
     <div>
@@ -193,5 +208,31 @@
         </a>
       {/if}
     </div>
+  </div>
+
+  <!-- Change History -->
+  <div class="mt-6">
+    <RelatedListTable
+      title="Change History"
+      items={history.historyEntries}
+      columns={[
+        { key: "colleague", label: "Colleague" },
+        { key: "action", label: "Action" },
+        { key: "time", label: "Time" },
+        { key: "changes", label: "Changes" },
+      ]}
+      emptyMessage="No changes recorded yet."
+    >
+      {#snippet row(entry, _searchQuery)}
+        <td class="text-sm font-medium text-text-primary">{entry.colleagueName ?? "System"}</td>
+        <td>
+          <span class="glass-badge inline-flex rounded-full px-2 py-0.5 text-xs font-medium bg-glass text-text-secondary">
+            {entry.action}
+          </span>
+        </td>
+        <td class="text-sm text-text-muted whitespace-nowrap">{formatRelativeTime(entry.createdAt)}</td>
+        <td class="text-xs text-text-secondary max-w-sm truncate">{summarizeChanges(entry.changes)}</td>
+      {/snippet}
+    </RelatedListTable>
   </div>
 </div>

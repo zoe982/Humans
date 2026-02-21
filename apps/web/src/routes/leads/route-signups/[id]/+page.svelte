@@ -99,7 +99,7 @@
 </script>
 
 <svelte:head>
-  <title>{signup.display_id ? signup.display_id + ' — ' : ''}{displayName(signup)} - Route Signup - Humans CRM</title>
+  <title>{signup.display_id ? signup.display_id + ' — ' : ''}{displayName(signup)} - Route Signup - Humans</title>
 </svelte:head>
 
 <div class="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">

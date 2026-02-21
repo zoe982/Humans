@@ -6,6 +6,8 @@
   import RelatedListTable from "$lib/components/RelatedListTable.svelte";
   import { Trash2 } from "lucide-svelte";
   import { Button } from "$lib/components/ui/button";
+  import { formatRelativeTime, summarizeChanges } from "$lib/utils/format";
+  import { createChangeHistoryLoader } from "$lib/changeHistory";
 
   let { data, form }: { data: PageData; form: ActionData } = $props();
 
@@ -98,10 +100,19 @@
     { key: "date", label: "Date" },
     { key: "delete", label: "", headerClass: "w-10" },
   ];
+
+  // Change history
+  const history = createChangeHistoryLoader("geo_interest", geoInterest.id);
+
+  $effect(() => {
+    if (!history.historyLoaded) {
+      void history.loadHistory();
+    }
+  });
 </script>
 
 <svelte:head>
-  <title>{geoInterest.city}, {geoInterest.country} - Humans CRM</title>
+  <title>{geoInterest.city}, {geoInterest.country} - Humans</title>
 </svelte:head>
 
 <div class="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
@@ -207,6 +218,32 @@
       </form>
     {/snippet}
   </RelatedListTable>
+
+  <!-- Change History -->
+  <div class="mt-6">
+    <RelatedListTable
+      title="Change History"
+      items={history.historyEntries}
+      columns={[
+        { key: "colleague", label: "Colleague" },
+        { key: "action", label: "Action" },
+        { key: "time", label: "Time" },
+        { key: "changes", label: "Changes" },
+      ]}
+      emptyMessage="No changes recorded yet."
+    >
+      {#snippet row(entry, _searchQuery)}
+        <td class="text-sm font-medium text-text-primary">{entry.colleagueName ?? "System"}</td>
+        <td>
+          <span class="glass-badge inline-flex rounded-full px-2 py-0.5 text-xs font-medium bg-glass text-text-secondary">
+            {entry.action}
+          </span>
+        </td>
+        <td class="text-sm text-text-muted whitespace-nowrap">{formatRelativeTime(entry.createdAt)}</td>
+        <td class="text-xs text-text-secondary max-w-sm truncate">{summarizeChanges(entry.changes)}</td>
+      {/snippet}
+    </RelatedListTable>
+  </div>
 </div>
 
 <form method="POST" action="?/delete" bind:this={deleteFormEl} class="hidden"></form>

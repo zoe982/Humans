@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { PageData } from "./$types";
   import PageHeader from "$lib/components/PageHeader.svelte";
+  import ActivityChart from "$lib/components/ActivityChart.svelte";
   import { Users, PawPrint, Activity, Globe2, Plus, Search, ClipboardList } from "lucide-svelte";
   import { activityTypeLabels } from "$lib/constants/labels";
   import { activityTypeColors } from "$lib/constants/colors";
@@ -17,10 +18,11 @@
   };
 
   const recentActivities = $derived(data.recentActivities as RecentActivity[]);
+  const dailyCounts = $derived(data.dailyCounts as { date: string; count: number }[]);
 </script>
 
 <svelte:head>
-  <title>Dashboard - Humans CRM</title>
+  <title>Dashboard - Humans</title>
 </svelte:head>
 
 <div class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
@@ -71,6 +73,14 @@
       <p class="mt-2 text-3xl font-bold text-text-primary">{data.counts.geoInterests}</p>
     </a>
   </div>
+
+  <!-- Activity Chart -->
+  {#if dailyCounts.length > 0}
+    <div class="mt-8 glass-card p-6">
+      <h2 class="text-lg font-semibold text-text-primary mb-4">Activity (Last 30 Days)</h2>
+      <ActivityChart data={dailyCounts} />
+    </div>
+  {/if}
 
   <!-- Quick Actions -->
   <div class="mt-8">

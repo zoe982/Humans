@@ -260,7 +260,7 @@
 </script>
 
 <svelte:head>
-  <title>{human.displayId} — {human.firstName} {human.lastName} - Humans CRM</title>
+  <title>{human.displayId} — {human.firstName} {human.lastName} - Humans</title>
 </svelte:head>
 
 <div class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">

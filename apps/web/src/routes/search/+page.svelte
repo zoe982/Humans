@@ -58,7 +58,7 @@
 </script>
 
 <svelte:head>
-  <title>Search - Humans CRM</title>
+  <title>Search - Humans</title>
 </svelte:head>
 
 <div class="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">

@@ -21,11 +21,17 @@ export const load = async ({ locals, cookies }: RequestEvent) => {
 
   const sessionToken = cookies.get("humans_session");
 
-  const [humansRes, accountsRes] = await Promise.all([
+  const [humansRes, accountsRes, routeSignupsRes, bookingRequestsRes] = await Promise.all([
     fetch(`${PUBLIC_API_URL}/api/humans`, {
       headers: { Cookie: `humans_session=${sessionToken ?? ""}` },
     }),
     fetch(`${PUBLIC_API_URL}/api/accounts`, {
+      headers: { Cookie: `humans_session=${sessionToken ?? ""}` },
+    }),
+    fetch(`${PUBLIC_API_URL}/api/route-signups?limit=100`, {
+      headers: { Cookie: `humans_session=${sessionToken ?? ""}` },
+    }),
+    fetch(`${PUBLIC_API_URL}/api/website-booking-requests?limit=100`, {
       headers: { Cookie: `humans_session=${sessionToken ?? ""}` },
     }),
   ]);
@@ -42,7 +48,19 @@ export const load = async ({ locals, cookies }: RequestEvent) => {
     accounts = isListData(raw) ? raw.data : [];
   }
 
-  return { humans, accounts, apiUrl: PUBLIC_API_URL };
+  let routeSignups: unknown[] = [];
+  if (routeSignupsRes.ok) {
+    const raw: unknown = await routeSignupsRes.json();
+    routeSignups = isListData(raw) ? raw.data : [];
+  }
+
+  let websiteBookingRequests: unknown[] = [];
+  if (bookingRequestsRes.ok) {
+    const raw: unknown = await bookingRequestsRes.json();
+    websiteBookingRequests = isListData(raw) ? raw.data : [];
+  }
+
+  return { humans, accounts, routeSignups, websiteBookingRequests, apiUrl: PUBLIC_API_URL };
 };
 
 export const actions = {
@@ -52,6 +70,8 @@ export const actions = {
 
     const humanId = (form.get("humanId") as string) || undefined;
     const accountId = (form.get("accountId") as string) || undefined;
+    const routeSignupId = (form.get("routeSignupId") as string) || undefined;
+    const websiteBookingRequestId = (form.get("websiteBookingRequestId") as string) || undefined;
 
     const payload = {
       type: form.get("type"),
@@ -60,10 +80,12 @@ export const actions = {
       activityDate: new Date(form.get("activityDate") as string).toISOString(),
       humanId,
       accountId,
+      routeSignupId,
+      websiteBookingRequestId,
     };
 
-    if (!humanId) {
-      return fail(400, { error: "A linked human is required." });
+    if (!humanId && !accountId && !routeSignupId && !websiteBookingRequestId) {
+      return fail(400, { error: "At least one linked entity is required." });
     }
 
     const res = await fetch(`${PUBLIC_API_URL}/api/activities`, {

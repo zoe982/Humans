@@ -2,7 +2,7 @@
   import "../app.css";
   import type { LayoutData } from "./$types";
   import { page } from "$app/stores";
-  import { Search } from "lucide-svelte";
+  import { Search, Users } from "lucide-svelte";
   import MobileNav from "$lib/components/MobileNav.svelte";
   import CommandPalette from "$lib/components/CommandPalette.svelte";
   import { Toaster } from "svelte-sonner";
@@ -56,7 +56,9 @@
       <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div class="flex h-16 items-center justify-between">
           <div class="flex items-center gap-8">
-            <a href="/dashboard" class="text-xl font-bold text-accent">Humans CRM</a>
+            <a href="/dashboard" class="text-xl font-bold text-accent inline-flex items-center gap-2">
+              <Users size={22} /> Humans
+            </a>
             <div class="hidden sm:flex sm:gap-1">
               {#each navLinks as link}
                 <a

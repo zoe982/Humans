@@ -6,6 +6,9 @@
   import { toast } from "svelte-sonner";
   import { createAutoSaver, type SaveStatus } from "$lib/autosave";
   import { onDestroy } from "svelte";
+  import { formatRelativeTime, summarizeChanges } from "$lib/utils/format";
+  import { createChangeHistoryLoader } from "$lib/changeHistory";
+  import RelatedListTable from "$lib/components/RelatedListTable.svelte";
 
   let { data }: { data: PageData } = $props();
 
@@ -40,6 +43,15 @@
   let saveStatus = $state<SaveStatus>("idle");
   let initialized = $state(false);
 
+  // Change history
+  const history = createChangeHistoryLoader("email", email.id);
+
+  $effect(() => {
+    if (!history.historyLoaded) {
+      void history.loadHistory();
+    }
+  });
+
   // Initialize state from data
   $effect(() => {
     emailAddress = email.email;
@@ -73,6 +85,7 @@
     onStatusChange: (s) => { saveStatus = s; },
     onSaved: () => {
       toast("Changes saved");
+      history.resetHistory();
     },
     onError: (err) => {
       toast(`Save failed: ${err}`);
@@ -124,7 +137,7 @@
 </script>
 
 <svelte:head>
-  <title>{email.displayId} — {email.email} - Humans CRM</title>
+  <title>{email.displayId} — {email.email} - Humans</title>
 </svelte:head>
 
 <div class="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
@@ -192,5 +205,31 @@
         Primary
       </label>
     </div>
+  </div>
+
+  <!-- Change History -->
+  <div class="mt-6">
+    <RelatedListTable
+      title="Change History"
+      items={history.historyEntries}
+      columns={[
+        { key: "colleague", label: "Colleague" },
+        { key: "action", label: "Action" },
+        { key: "time", label: "Time" },
+        { key: "changes", label: "Changes" },
+      ]}
+      emptyMessage="No changes recorded yet."
+    >
+      {#snippet row(entry, _searchQuery)}
+        <td class="text-sm font-medium text-text-primary">{entry.colleagueName ?? "System"}</td>
+        <td>
+          <span class="glass-badge inline-flex rounded-full px-2 py-0.5 text-xs font-medium bg-glass text-text-secondary">
+            {entry.action}
+          </span>
+        </td>
+        <td class="text-sm text-text-muted whitespace-nowrap">{formatRelativeTime(entry.createdAt)}</td>
+        <td class="text-xs text-text-secondary max-w-sm truncate">{summarizeChanges(entry.changes)}</td>
+      {/snippet}
+    </RelatedListTable>
   </div>
 </div>

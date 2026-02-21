@@ -39,10 +39,16 @@ export const load = async ({ locals, cookies }: RequestEvent) => {
   const geoInterestsList = isListData(geoInterestsRaw) ? geoInterestsRaw.data : [];
   const petsTotal = (petsCountRaw as { data?: { total?: number } } | null)?.data?.total ?? 0;
 
-  // Fetch recent activities for feed
-  const recentRes = await fetch(`${PUBLIC_API_URL}/api/activities?page=1&limit=10`, { headers });
+  // Fetch recent activities and daily counts in parallel
+  const [recentRes, dailyCountsRes] = await Promise.all([
+    fetch(`${PUBLIC_API_URL}/api/activities?page=1&limit=10`, { headers }),
+    fetch(`${PUBLIC_API_URL}/api/activities/daily-counts?days=30`, { headers }),
+  ]);
   const recentRaw: unknown = recentRes.ok ? await recentRes.json() : null;
   const recentActivities = isListData(recentRaw) ? recentRaw.data : [];
+
+  const dailyCountsRaw: unknown = dailyCountsRes.ok ? await dailyCountsRes.json() : null;
+  const dailyCounts = isListData(dailyCountsRaw) ? dailyCountsRaw.data : [];
 
   return {
     user: locals.user,
@@ -53,5 +59,6 @@ export const load = async ({ locals, cookies }: RequestEvent) => {
       geoInterests: geoInterestsList.length,
     },
     recentActivities,
+    dailyCounts,
   };
 };

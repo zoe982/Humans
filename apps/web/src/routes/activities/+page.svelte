@@ -46,12 +46,13 @@
     return s.length > len ? s.slice(0, len) + "..." : s;
   }
 
-  function linkedEntity(a: Activity): { label: string; href: string } | null {
-    if (a.humanName && a.humanId) return { label: a.humanName, href: `/humans/${a.humanId}` };
-    if (a.accountName && a.accountId) return { label: a.accountName, href: `/accounts/${a.accountId}` };
-    if (a.routeSignupId) return { label: `Signup ${a.routeSignupId.slice(0, 8)}...`, href: `/leads/route-signups/${a.routeSignupId}` };
-    if (a.websiteBookingRequestId) return { label: `Booking ${a.websiteBookingRequestId.slice(0, 8)}...`, href: `/leads/website-booking-requests/${a.websiteBookingRequestId}` };
-    return null;
+  function linkedEntities(a: Activity): { label: string; href: string }[] {
+    const links: { label: string; href: string }[] = [];
+    if (a.humanName && a.humanId) links.push({ label: a.humanName, href: `/humans/${a.humanId}` });
+    if (a.accountName && a.accountId) links.push({ label: a.accountName, href: `/accounts/${a.accountId}` });
+    if (a.routeSignupId) links.push({ label: `Signup ${a.routeSignupId.slice(0, 8)}...`, href: `/leads/route-signups/${a.routeSignupId}` });
+    if (a.websiteBookingRequestId) links.push({ label: `Booking ${a.websiteBookingRequestId.slice(0, 8)}...`, href: `/leads/website-booking-requests/${a.websiteBookingRequestId}` });
+    return links;
   }
 
   // Sorting state
@@ -112,7 +113,7 @@
 </script>
 
 <svelte:head>
-  <title>Activities - Humans CRM</title>
+  <title>Activities - Humans</title>
 </svelte:head>
 
 <div class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
@@ -169,9 +170,8 @@
           <span class="text-xs text-text-muted">{new Date(activity.activityDate).toLocaleDateString()}</span>
         </div>
         <p class="font-medium text-text-primary">{activity.subject}</p>
-        {#if linkedEntity(activity)}
-          {@const entity = linkedEntity(activity)!}
-          <p class="text-sm text-accent mt-1">{entity.label}</p>
+        {#if linkedEntities(activity).length > 0}
+          <p class="text-sm text-accent mt-1">{linkedEntities(activity).map(e => e.label).join(", ")}</p>
         {/if}
         {#if activity.notes || activity.body}
           <p class="text-sm text-text-muted mt-1 line-clamp-2">{truncate(activity.notes ?? activity.body, 100)}</p>
@@ -215,9 +215,12 @@
             </td>
             <td class="text-text-muted max-w-xs truncate">{truncate(activity.notes ?? activity.body, 80)}</td>
             <td>
-              {#if linkedEntity(activity)}
-                {@const entity = linkedEntity(activity)!}
-                <a href={entity.href} class="text-accent hover:text-cyan-300">{entity.label}</a>
+              {@const entities = linkedEntities(activity)}
+              {#if entities.length > 0}
+                {#each entities as entity, i}
+                  {#if i > 0}<span class="text-text-muted">, </span>{/if}
+                  <a href={entity.href} class="text-accent hover:text-cyan-300">{entity.label}</a>
+                {/each}
               {:else}
                 <span class="text-text-muted">—</span>
               {/if}

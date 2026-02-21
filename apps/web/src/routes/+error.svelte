@@ -7,7 +7,7 @@
 </script>
 
 <svelte:head>
-  <title>Error - Humans CRM</title>
+  <title>Error - Humans</title>
 </svelte:head>
 
 <div class="flex min-h-screen items-center justify-center">

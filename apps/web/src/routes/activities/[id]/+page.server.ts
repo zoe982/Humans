@@ -32,12 +32,18 @@ export const load = async ({ locals, cookies, params }: RequestEvent) => {
   const activity = isObjData(activityRaw) ? activityRaw.data : null;
   if (activity == null) redirect(302, "/activities");
 
-  // Fetch humans and accounts for dropdowns
-  const [humansRes, accountsRes] = await Promise.all([
+  // Fetch humans, accounts, route signups, and website booking requests for dropdowns
+  const [humansRes, accountsRes, routeSignupsRes, bookingRequestsRes] = await Promise.all([
     fetch(`${PUBLIC_API_URL}/api/humans`, {
       headers: { Cookie: `humans_session=${sessionToken ?? ""}` },
     }),
     fetch(`${PUBLIC_API_URL}/api/accounts`, {
+      headers: { Cookie: `humans_session=${sessionToken ?? ""}` },
+    }),
+    fetch(`${PUBLIC_API_URL}/api/route-signups?limit=100`, {
+      headers: { Cookie: `humans_session=${sessionToken ?? ""}` },
+    }),
+    fetch(`${PUBLIC_API_URL}/api/website-booking-requests?limit=100`, {
       headers: { Cookie: `humans_session=${sessionToken ?? ""}` },
     }),
   ]);
@@ -54,7 +60,19 @@ export const load = async ({ locals, cookies, params }: RequestEvent) => {
     accounts = isListData(raw) ? raw.data : [];
   }
 
-  return { activity, humans, accounts, apiUrl: PUBLIC_API_URL };
+  let routeSignups: unknown[] = [];
+  if (routeSignupsRes.ok) {
+    const raw: unknown = await routeSignupsRes.json();
+    routeSignups = isListData(raw) ? raw.data : [];
+  }
+
+  let websiteBookingRequests: unknown[] = [];
+  if (bookingRequestsRes.ok) {
+    const raw: unknown = await bookingRequestsRes.json();
+    websiteBookingRequests = isListData(raw) ? raw.data : [];
+  }
+
+  return { activity, humans, accounts, routeSignups, websiteBookingRequests, apiUrl: PUBLIC_API_URL };
 };
 
 export const actions = {

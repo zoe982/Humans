@@ -10,6 +10,8 @@ describe("activities/new load", () => {
     mockFetch = createMockFetch({
       "/api/humans": { body: { data: [{ id: "h-1", firstName: "Jane" }] } },
       "/api/accounts": { body: { data: [{ id: "acc-1", name: "Acme" }] } },
+      "/api/route-signups": { body: { data: [] } },
+      "/api/website-booking-requests": { body: { data: [] } },
     });
     vi.stubGlobal("fetch", mockFetch);
   });
@@ -40,6 +42,8 @@ describe("activities/new load", () => {
     mockFetch = createMockFetch({
       "/api/humans": { status: 500, body: {} },
       "/api/accounts": { status: 500, body: {} },
+      "/api/route-signups": { status: 500, body: {} },
+      "/api/website-booking-requests": { status: 500, body: {} },
     });
     vi.stubGlobal("fetch", mockFetch);
 
@@ -77,7 +81,7 @@ describe("activities/new create action", () => {
     }
   });
 
-  it("returns failure when humanId is missing", async () => {
+  it("returns failure when no linked entity is provided", async () => {
     const mockFetch = createMockFetch({});
     vi.stubGlobal("fetch", mockFetch);
 
@@ -91,7 +95,7 @@ describe("activities/new create action", () => {
     const result = await actions.create(event as any);
     expect(isActionFailure(result)).toBe(true);
     if (isActionFailure(result)) {
-      expect(result.data.error).toBe("A linked human is required.");
+      expect(result.data.error).toBe("At least one linked entity is required.");
     }
   });
 
@@ -116,7 +120,7 @@ describe("activities/new create action", () => {
     }
   });
 
-  it("creates geo-interest expression when geo fields present", async () => {
+  it("creates geo-interest expression from geoInterestsJson", async () => {
     const mockFetch = createMockFetch({
       "/api/activities": { body: { data: { id: "a-new" } } },
       "/api/geo-interest-expressions": { body: { data: {} } },
@@ -129,9 +133,7 @@ describe("activities/new create action", () => {
         subject: "Travel planning",
         activityDate: "2025-01-15",
         humanId: "h-1",
-        geoCity: "Rome",
-        geoCountry: "Italy",
-        geoNotes: "Wants to visit",
+        geoInterestsJson: JSON.stringify([{ city: "Rome", country: "Italy", notes: "Wants to visit" }]),
       },
     });
     try {
@@ -143,7 +145,7 @@ describe("activities/new create action", () => {
     expect(calls.some((u: string) => u.includes("geo-interest-expressions"))).toBe(true);
   });
 
-  it("creates geo-interest expression with geoInterestId", async () => {
+  it("creates geo-interest expression with geoInterestId from JSON", async () => {
     const mockFetch = createMockFetch({
       "/api/activities": { body: { data: { id: "a-new" } } },
       "/api/geo-interest-expressions": { body: { data: {} } },
@@ -156,7 +158,7 @@ describe("activities/new create action", () => {
         subject: "Travel planning",
         activityDate: "2025-01-15",
         humanId: "h-1",
-        geoInterestId: "gi-1",
+        geoInterestsJson: JSON.stringify([{ id: "gi-1" }]),
       },
     });
     try {

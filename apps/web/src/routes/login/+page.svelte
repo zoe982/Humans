@@ -1,17 +1,18 @@
 <script lang="ts">
   import { PUBLIC_API_URL } from "$env/static/public";
+  import { Users } from "lucide-svelte";
 
   const apiUrl = PUBLIC_API_URL ?? "http://localhost:8787";
 </script>
 
 <svelte:head>
-  <title>Sign In - Humans CRM</title>
+  <title>Sign In - Humans</title>
 </svelte:head>
 
 <div class="flex min-h-screen items-center justify-center">
   <div class="w-full max-w-md glass-card-strong p-8">
     <div class="mb-8 text-center">
-      <h1 class="text-3xl font-bold text-accent">Humans CRM</h1>
+      <h1 class="text-3xl font-bold text-accent inline-flex items-center gap-2"><Users size={28} /> Humans</h1>
       <p class="mt-2 text-text-secondary">Sign in to manage Pet Air Valet</p>
     </div>
     <a

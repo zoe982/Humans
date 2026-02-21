@@ -1,4 +1,6 @@
 import { Hono } from "hono";
+import { sql, gte } from "drizzle-orm";
+import { activities } from "@humans/db/schema";
 import { createActivitySchema, updateActivitySchema } from "@humans/shared";
 import { authMiddleware } from "../middleware/auth";
 import { requirePermission } from "../middleware/rbac";
@@ -33,6 +35,46 @@ activityRoutes.get("/api/activities", requirePermission("viewRecords"), async (c
     limit,
   });
   return c.json(result);
+});
+
+// Daily activity counts for the past N days (default 30, max 90)
+activityRoutes.get("/api/activities/daily-counts", requirePermission("viewRecords"), async (c) => {
+  const rawDays = Number(c.req.query("days")) || 30;
+  const days = Math.min(90, Math.max(1, rawDays));
+
+  // Calculate the start date (inclusive) as an ISO date string
+  const since = new Date();
+  since.setDate(since.getDate() - (days - 1));
+  const sinceDate = since.toISOString().slice(0, 10); // "YYYY-MM-DD"
+
+  const db = c.get("db");
+
+  // Query counts grouped by date for the window
+  const rows = await db
+    .select({
+      date: sql<string>`DATE(${activities.activityDate})`,
+      count: sql<number>`COUNT(*)`,
+    })
+    .from(activities)
+    .where(gte(activities.activityDate, sinceDate))
+    .groupBy(sql`DATE(${activities.activityDate})`)
+    .orderBy(sql`DATE(${activities.activityDate})`);
+
+  // Build a lookup from the query results
+  const countByDate = new Map<string, number>(
+    rows.map((r) => [r.date, Number(r.count)]),
+  );
+
+  // Fill every day in the window with 0 if no row returned for that date
+  const data: { date: string; count: number }[] = [];
+  for (let i = 0; i < days; i++) {
+    const d = new Date();
+    d.setDate(d.getDate() - (days - 1 - i));
+    const dateStr = d.toISOString().slice(0, 10);
+    data.push({ date: dateStr, count: countByDate.get(dateStr) ?? 0 });
+  }
+
+  return c.json({ data });
 });
 
 // Get single activity with enriched data

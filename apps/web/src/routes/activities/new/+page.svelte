@@ -18,11 +18,15 @@
     lastName: string;
   };
   type Account = { id: string; name: string };
+  type RouteSignup = { id: string; display_id: string | null; first_name: string | null; last_name: string | null; origin: string | null; destination: string | null };
+  type WebsiteBookingRequest = { id: string; crm_display_id: string | null; passenger_name: string | null; origin: string | null; destination: string | null };
   type GeoInterestItem = { id?: string; city?: string; country?: string; notes?: string };
   type RouteInterestItem = { id?: string; originCity?: string; originCountry?: string; destinationCity?: string; destinationCountry?: string; frequency?: string; travelYear?: number; travelMonth?: number; travelDay?: number; notes?: string };
 
   const humans = $derived(data.humans as Human[]);
   const accountsList = $derived(data.accounts as Account[]);
+  const routeSignups = $derived((data.routeSignups ?? []) as RouteSignup[]);
+  const websiteBookingRequests = $derived((data.websiteBookingRequests ?? []) as WebsiteBookingRequest[]);
   const apiUrl = $derived(data.apiUrl as string);
   let selectedType = $state("email");
   let geoInterests = $state<GeoInterestItem[]>([]);
@@ -36,10 +40,18 @@
 
   const humanOptions = $derived(humans.map((h) => ({ value: h.id, label: displayName(h) })));
   const accountOptions = $derived(accountsList.map((a) => ({ value: a.id, label: a.name })));
+  const routeSignupOptions = $derived(routeSignups.map((s) => ({
+    value: s.id,
+    label: `${s.display_id ?? s.id.slice(0, 8)} — ${s.first_name ?? ""} ${s.last_name ?? ""} (${s.origin ?? "?"} → ${s.destination ?? "?"})`.trim(),
+  })));
+  const bookingRequestOptions = $derived(websiteBookingRequests.map((b) => ({
+    value: b.id,
+    label: `${b.crm_display_id ?? b.id.slice(0, 8)} — ${b.passenger_name ?? "Unknown"} (${b.origin ?? "?"} → ${b.destination ?? "?"})`.trim(),
+  })));
 </script>
 
 <svelte:head>
-  <title>New Activity - Humans CRM</title>
+  <title>New Activity - Humans</title>
 </svelte:head>
 
 <div class="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
@@ -94,28 +106,49 @@
       />
     </div>
 
-    <div>
-      <label for="humanId" class="block text-sm font-medium text-text-secondary mb-1">Linked Human</label>
-      <SearchableSelect
-        options={humanOptions}
-        name="humanId"
-        id="humanId"
-        emptyOption="— Select a human —"
-        placeholder="Search humans..."
-      />
-      <p class="mt-1 text-xs text-text-muted">A linked human is required.</p>
+    <div class="grid gap-4 sm:grid-cols-2">
+      <div>
+        <label for="humanId" class="block text-sm font-medium text-text-secondary mb-1">Linked Human</label>
+        <SearchableSelect
+          options={humanOptions}
+          name="humanId"
+          id="humanId"
+          emptyOption="— None —"
+          placeholder="Search humans..."
+        />
+      </div>
+      <div>
+        <label for="accountId" class="block text-sm font-medium text-text-secondary mb-1">Linked Account</label>
+        <SearchableSelect
+          options={accountOptions}
+          name="accountId"
+          id="accountId"
+          emptyOption="— None —"
+          placeholder="Search accounts..."
+        />
+      </div>
+      <div>
+        <label for="routeSignupId" class="block text-sm font-medium text-text-secondary mb-1">Linked Route Signup</label>
+        <SearchableSelect
+          options={routeSignupOptions}
+          name="routeSignupId"
+          id="routeSignupId"
+          emptyOption="— None —"
+          placeholder="Search route signups..."
+        />
+      </div>
+      <div>
+        <label for="websiteBookingRequestId" class="block text-sm font-medium text-text-secondary mb-1">Linked Booking Request</label>
+        <SearchableSelect
+          options={bookingRequestOptions}
+          name="websiteBookingRequestId"
+          id="websiteBookingRequestId"
+          emptyOption="— None —"
+          placeholder="Search booking requests..."
+        />
+      </div>
     </div>
-
-    <div>
-      <label for="accountId" class="block text-sm font-medium text-text-secondary mb-1">Linked Account</label>
-      <SearchableSelect
-        options={accountOptions}
-        name="accountId"
-        id="accountId"
-        emptyOption="— None —"
-        placeholder="Search accounts..."
-      />
-    </div>
+    <p class="text-xs text-text-muted">At least one linked entity is required.</p>
 
     <!-- Geo-Interests -->
     <div>
@@ -218,7 +251,7 @@
                   const originCountry = container.querySelector<HTMLInputElement>('input[name="pendingRouteOriginCountry"]')?.value;
                   const destCity = container.querySelector<HTMLInputElement>('input[name="pendingRouteDestCity"]')?.value;
                   const destCountry = container.querySelector<HTMLInputElement>('input[name="pendingRouteDestCountry"]')?.value;
-                  const frequency = container.querySelector<HTMLSelectElement>('select[name="pendingRouteFrequency"]')?.value;
+                  const frequency = container.querySelector<HTMLInputElement>('input[name="pendingRouteFrequency"]')?.value;
                   const travelYear = container.querySelector<HTMLInputElement>('input[name="pendingRouteTravelYear"]')?.value;
                   const travelMonth = container.querySelector<HTMLInputElement>('input[name="pendingRouteTravelMonth"]')?.value;
                   const travelDay = container.querySelector<HTMLInputElement>('input[name="pendingRouteTravelDay"]')?.value;
