@@ -3,6 +3,8 @@
   import RecordManagementBar from "$lib/components/RecordManagementBar.svelte";
   import AlertBanner from "$lib/components/AlertBanner.svelte";
   import ConfirmDialog from "$lib/components/ConfirmDialog.svelte";
+  import RelatedListTable from "$lib/components/RelatedListTable.svelte";
+  import { Trash2 } from "lucide-svelte";
 
   let { data, form }: { data: PageData; form: ActionData } = $props();
 
@@ -37,7 +39,6 @@
   const geoInterest = $derived(data.geoInterest as GeoInterest);
   const humans = $derived(data.humans as Human[]);
 
-  let showAddForm = $state(false);
   let humanSearch = $state("");
   let selectedHumanId = $state("");
   let showHumanDropdown = $state(false);
@@ -76,7 +77,6 @@
     humanSearch = "";
     selectedHumanId = "";
     notes = "";
-    showAddForm = false;
   }
 
   let showDeleteConfirm = $state(false);
@@ -89,6 +89,14 @@
       resetAddForm();
     }
   });
+
+  const expressionColumns = [
+    { key: "human", label: "Human" },
+    { key: "activity", label: "Activity" },
+    { key: "notes", label: "Notes" },
+    { key: "date", label: "Date" },
+    { key: "delete", label: "", headerClass: "w-10" },
+  ];
 </script>
 
 <svelte:head>
@@ -117,22 +125,36 @@
   </div>
 
   <!-- Expressions -->
-  <div class="glass-card p-5">
-    <div class="flex items-center justify-between mb-4">
-      <h2 class="text-lg font-semibold text-text-primary">
-        Expressions ({geoInterest.expressions.length})
-      </h2>
-      <button
-        type="button"
-        class="btn-ghost text-sm py-1 px-3"
-        onclick={() => (showAddForm = !showAddForm)}
-      >
-        {showAddForm ? "Cancel" : "+ Add Expression"}
-      </button>
-    </div>
+  <RelatedListTable
+    title="Expressions ({geoInterest.expressions.length})"
+    items={geoInterest.expressions}
+    columns={expressionColumns}
+    addLabel="Expression"
+    onFormToggle={(open) => { if (!open) resetAddForm(); }}
+  >
+    {#snippet row(expr, _searchQuery)}
+      <td>
+        {#if expr.humanName}
+          <a href="/humans/{expr.humanId}" class="text-sm font-medium text-accent hover:text-cyan-300">{expr.humanName}</a>
+        {:else}
+          <span class="text-sm text-text-muted">Unknown human</span>
+        {/if}
+      </td>
+      <td class="text-xs text-text-muted">{expr.activitySubject ?? "—"}</td>
+      <td class="text-sm text-text-secondary max-w-xs truncate">{expr.notes ?? "—"}</td>
+      <td class="text-xs text-text-muted">{new Date(expr.createdAt).toLocaleDateString()}</td>
+      <td>
+        <form method="POST" action="?/deleteExpression">
+          <input type="hidden" name="expressionId" value={expr.id} />
+          <button type="submit" class="flex items-center justify-center w-7 h-7 rounded-lg text-text-muted hover:text-red-400 hover:bg-[rgba(239,68,68,0.12)] transition-colors duration-150" aria-label="Delete expression">
+            <Trash2 size={14} />
+          </button>
+        </form>
+      </td>
+    {/snippet}
 
-    {#if showAddForm}
-      <form method="POST" action="?/createExpression" class="mb-4 p-4 rounded-lg bg-glass border border-glass-border space-y-3">
+    {#snippet addForm()}
+      <form method="POST" action="?/createExpression" class="space-y-3">
         <input type="hidden" name="humanId" value={selectedHumanId} />
         <div class="relative">
           <label for="humanSearch" class="block text-sm font-medium text-text-secondary mb-1">Human</label>
@@ -180,46 +202,10 @@
           <button type="submit" class="btn-primary text-sm" disabled={!selectedHumanId}>
             Add Expression
           </button>
-          <button type="button" class="btn-ghost text-sm" onclick={resetAddForm}>Cancel</button>
         </div>
       </form>
-    {/if}
-
-    {#if geoInterest.expressions.length === 0 && !showAddForm}
-      <p class="text-text-muted text-sm">No expressions yet.</p>
-    {:else}
-      <div class="space-y-2">
-        {#each geoInterest.expressions as expr (expr.id)}
-          <div class="flex items-center justify-between p-3 rounded-lg bg-glass hover:bg-glass-hover transition-colors">
-            <div class="flex-1">
-              <div class="flex items-center gap-3">
-                {#if expr.humanName}
-                  <a href="/humans/{expr.humanId}" class="text-sm font-medium text-accent hover:text-cyan-300">
-                    {expr.humanName}
-                  </a>
-                {:else}
-                  <span class="text-sm text-text-muted">Unknown human</span>
-                {/if}
-                {#if expr.activitySubject}
-                  <span class="text-xs text-text-muted">via activity: {expr.activitySubject}</span>
-                {/if}
-              </div>
-              {#if expr.notes}
-                <p class="mt-1 text-sm text-text-secondary">{expr.notes}</p>
-              {/if}
-              <p class="mt-1 text-xs text-text-muted">{new Date(expr.createdAt).toLocaleDateString()}</p>
-            </div>
-            <form method="POST" action="?/deleteExpression">
-              <input type="hidden" name="expressionId" value={expr.id} />
-              <button type="submit" class="text-red-400 hover:text-red-300 text-sm ml-3">
-                Remove
-              </button>
-            </form>
-          </div>
-        {/each}
-      </div>
-    {/if}
-  </div>
+    {/snippet}
+  </RelatedListTable>
 </div>
 
 <form method="POST" action="?/delete" bind:this={deleteFormEl} class="hidden"></form>

@@ -133,4 +133,73 @@ export const actions = {
 
     return { success: true };
   },
+
+  addRouteInterestExpression: async ({ request, cookies, params }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
+    const form = await request.formData();
+    const sessionToken = cookies.get("humans_session");
+
+    const routeInterestId = (form.get("routeInterestId") as string)?.trim();
+    const humanId = (form.get("humanId") as string)?.trim();
+
+    if (!humanId) {
+      return fail(400, { error: "Activity must be linked to a human to add route-interest expressions." });
+    }
+
+    const payload: Record<string, unknown> = {
+      humanId,
+      activityId: params.id,
+      frequency: form.get("frequency") || "one_time",
+      notes: (form.get("notes") as string)?.trim() || undefined,
+    };
+
+    const travelYear = form.get("travelYear");
+    const travelMonth = form.get("travelMonth");
+    const travelDay = form.get("travelDay");
+    if (travelYear) payload.travelYear = Number(travelYear);
+    if (travelMonth) payload.travelMonth = Number(travelMonth);
+    if (travelDay) payload.travelDay = Number(travelDay);
+
+    if (routeInterestId) {
+      payload.routeInterestId = routeInterestId;
+    } else {
+      payload.originCity = form.get("originCity");
+      payload.originCountry = form.get("originCountry");
+      payload.destinationCity = form.get("destinationCity");
+      payload.destinationCountry = form.get("destinationCountry");
+    }
+
+    const res = await fetch(`${PUBLIC_API_URL}/api/route-interest-expressions`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Cookie: `humans_session=${sessionToken ?? ""}`,
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!res.ok) {
+      const resBody: unknown = await res.json();
+      return failFromApi(resBody, res.status, "Failed to add route-interest expression");
+    }
+
+    return { success: true };
+  },
+
+  deleteRouteInterestExpression: async ({ request, cookies }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
+    const form = await request.formData();
+    const sessionToken = cookies.get("humans_session");
+    const expressionId = form.get("id");
+
+    const res = await fetch(`${PUBLIC_API_URL}/api/route-interest-expressions/${expressionId}`, {
+      method: "DELETE",
+      headers: { Cookie: `humans_session=${sessionToken ?? ""}` },
+    });
+
+    if (!res.ok) {
+      const resBody: unknown = await res.json();
+      return failFromApi(resBody, res.status, "Failed to delete route-interest expression");
+    }
+
+    return { success: true };
+  },
 };

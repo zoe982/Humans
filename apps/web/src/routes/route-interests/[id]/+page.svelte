@@ -4,6 +4,8 @@
   import AlertBanner from "$lib/components/AlertBanner.svelte";
   import ConfirmDialog from "$lib/components/ConfirmDialog.svelte";
   import SearchableSelect from "$lib/components/SearchableSelect.svelte";
+  import RelatedListTable from "$lib/components/RelatedListTable.svelte";
+  import { Trash2 } from "lucide-svelte";
 
   const MONTH_OPTIONS = [
     { value: "1", label: "01 - January" },
@@ -90,7 +92,6 @@
     return `${direction} has ${Math.abs(diff)} more expression${Math.abs(diff) === 1 ? "" : "s"} than ${diff > 0 ? "return" : "outbound"}.`;
   });
 
-  let showAddForm = $state(false);
   let humanSearch = $state("");
   let selectedHumanId = $state("");
   let showHumanDropdown = $state(false);
@@ -129,7 +130,6 @@
     humanSearch = "";
     selectedHumanId = "";
     notes = "";
-    showAddForm = false;
   }
 
   function formatTravelDate(expr: Expression): string {
@@ -152,6 +152,15 @@
       resetAddForm();
     }
   });
+
+  const expressionColumns = [
+    { key: "id", label: "ID" },
+    { key: "human", label: "Human" },
+    { key: "frequency", label: "Frequency" },
+    { key: "travelDate", label: "Travel Date" },
+    { key: "notes", label: "Notes" },
+    { key: "delete", label: "" },
+  ];
 </script>
 
 <svelte:head>
@@ -267,22 +276,44 @@
   </div>
 
   <!-- Expressions -->
-  <div class="glass-card p-5">
-    <div class="flex items-center justify-between mb-4">
-      <h2 class="text-lg font-semibold text-text-primary">
-        Expressions ({routeInterest.expressions.length})
-      </h2>
-      <button
-        type="button"
-        class="btn-ghost text-sm py-1 px-3"
-        onclick={() => (showAddForm = !showAddForm)}
-      >
-        {showAddForm ? "Cancel" : "+ Add Expression"}
-      </button>
-    </div>
+  <RelatedListTable
+    title="Expressions ({routeInterest.expressions.length})"
+    items={routeInterest.expressions}
+    columns={expressionColumns}
+    addLabel="Expression"
+    onFormToggle={(open) => { if (!open) resetAddForm(); }}
+    emptyMessage="No expressions yet."
+  >
+    {#snippet row(expr, _searchQuery)}
+      <td class="font-mono text-sm">
+        <a href="/route-interests/expressions/{expr.id}" class="text-accent hover:text-cyan-300">{expr.displayId}</a>
+      </td>
+      <td>
+        {#if expr.humanName}
+          <a href="/humans/{expr.humanId}" class="text-accent hover:text-cyan-300">{expr.humanName}</a>
+        {:else}
+          <span class="text-text-muted">Unknown</span>
+        {/if}
+      </td>
+      <td>
+        <span class="glass-badge inline-flex rounded-full px-2 py-0.5 text-xs font-medium {expr.frequency === 'repeat' ? 'bg-[rgba(168,85,247,0.15)] text-purple-300' : 'bg-glass text-text-secondary'}">
+          {expr.frequency === "repeat" ? "Repeat" : "One-time"}
+        </span>
+      </td>
+      <td class="text-text-muted text-sm">{formatTravelDate(expr) || "—"}</td>
+      <td class="text-sm text-text-secondary max-w-[200px] truncate">{expr.notes ?? "—"}</td>
+      <td>
+        <form method="POST" action="?/deleteExpression">
+          <input type="hidden" name="expressionId" value={expr.id} />
+          <button type="submit" class="flex items-center justify-center w-7 h-7 rounded-lg text-text-muted hover:text-red-400 hover:bg-[rgba(239,68,68,0.12)] transition-colors duration-150" aria-label="Delete expression">
+            <Trash2 size={14} />
+          </button>
+        </form>
+      </td>
+    {/snippet}
 
-    {#if showAddForm}
-      <form method="POST" action="?/createExpression" class="mb-4 p-4 rounded-lg bg-glass border border-glass-border space-y-3">
+    {#snippet addForm()}
+      <form method="POST" action="?/createExpression" class="space-y-3">
         <input type="hidden" name="humanId" value={selectedHumanId} />
         <div class="relative">
           <label for="humanSearch" class="block text-sm font-medium text-text-secondary mb-1">Human</label>
@@ -351,93 +382,10 @@
           <button type="submit" class="btn-primary text-sm" disabled={!selectedHumanId}>
             Add Expression
           </button>
-          <button type="button" class="btn-ghost text-sm" onclick={resetAddForm}>Cancel</button>
         </div>
       </form>
-    {/if}
-
-    {#if routeInterest.expressions.length === 0 && !showAddForm}
-      <p class="text-text-muted text-sm">No expressions yet.</p>
-    {:else}
-      <!-- Mobile card view -->
-      <div class="sm:hidden space-y-2">
-        {#each routeInterest.expressions as expr (expr.id)}
-          <div class="p-3 rounded-lg bg-glass hover:bg-glass-hover transition-colors">
-            <div class="flex items-center justify-between mb-1">
-              <a href="/route-interests/expressions/{expr.id}" class="font-mono text-xs text-accent hover:text-cyan-300">{expr.displayId}</a>
-              <span class="glass-badge inline-flex rounded-full px-2 py-0.5 text-xs font-medium {expr.frequency === 'repeat' ? 'bg-[rgba(168,85,247,0.15)] text-purple-300' : 'bg-glass text-text-secondary'}">
-                {expr.frequency === "repeat" ? "Repeat" : "One-time"}
-              </span>
-            </div>
-            <div class="flex items-center justify-between">
-              <div>
-                {#if expr.humanName}
-                  <a href="/humans/{expr.humanId}" class="text-sm font-medium text-accent hover:text-cyan-300">{expr.humanName}</a>
-                {:else}
-                  <span class="text-sm text-text-muted">Unknown human</span>
-                {/if}
-                {#if formatTravelDate(expr)}
-                  <span class="text-xs text-text-muted ml-2">Travel: {formatTravelDate(expr)}</span>
-                {/if}
-              </div>
-              <form method="POST" action="?/deleteExpression">
-                <input type="hidden" name="expressionId" value={expr.id} />
-                <button type="submit" class="text-red-400 hover:text-red-300 text-xs">Remove</button>
-              </form>
-            </div>
-            {#if expr.notes}
-              <p class="mt-1 text-sm text-text-secondary">{expr.notes}</p>
-            {/if}
-          </div>
-        {/each}
-      </div>
-
-      <!-- Desktop table view -->
-      <div class="hidden sm:block">
-        <table class="min-w-full">
-          <thead class="glass-thead">
-            <tr>
-              <th scope="col">ID</th>
-              <th scope="col">Human</th>
-              <th scope="col">Frequency</th>
-              <th scope="col">Travel Date</th>
-              <th scope="col">Notes</th>
-              <th scope="col"></th>
-            </tr>
-          </thead>
-          <tbody>
-            {#each routeInterest.expressions as expr (expr.id)}
-              <tr class="glass-row-hover">
-                <td class="font-mono text-sm">
-                  <a href="/route-interests/expressions/{expr.id}" class="text-accent hover:text-cyan-300">{expr.displayId}</a>
-                </td>
-                <td>
-                  {#if expr.humanName}
-                    <a href="/humans/{expr.humanId}" class="text-accent hover:text-cyan-300">{expr.humanName}</a>
-                  {:else}
-                    <span class="text-text-muted">Unknown</span>
-                  {/if}
-                </td>
-                <td>
-                  <span class="glass-badge inline-flex rounded-full px-2 py-0.5 text-xs font-medium {expr.frequency === 'repeat' ? 'bg-[rgba(168,85,247,0.15)] text-purple-300' : 'bg-glass text-text-secondary'}">
-                    {expr.frequency === "repeat" ? "Repeat" : "One-time"}
-                  </span>
-                </td>
-                <td class="text-text-muted text-sm">{formatTravelDate(expr) || "\u2014"}</td>
-                <td class="text-sm text-text-secondary max-w-[200px] truncate">{expr.notes ?? "\u2014"}</td>
-                <td>
-                  <form method="POST" action="?/deleteExpression">
-                    <input type="hidden" name="expressionId" value={expr.id} />
-                    <button type="submit" class="text-red-400 hover:text-red-300 text-sm">Remove</button>
-                  </form>
-                </td>
-              </tr>
-            {/each}
-          </tbody>
-        </table>
-      </div>
-    {/if}
-  </div>
+    {/snippet}
+  </RelatedListTable>
 </div>
 
 <form method="POST" action="?/delete" bind:this={deleteFormEl} class="hidden"></form>

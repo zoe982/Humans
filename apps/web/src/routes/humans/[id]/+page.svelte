@@ -2,7 +2,7 @@
   import { invalidateAll } from "$app/navigation";
   import type { PageData, ActionData } from "./$types";
   import RecordManagementBar from "$lib/components/RecordManagementBar.svelte";
-  import LinkedRecordBox from "$lib/components/LinkedRecordBox.svelte";
+  import RelatedListTable from "$lib/components/RelatedListTable.svelte";
   import AlertBanner from "$lib/components/AlertBanner.svelte";
   import SearchableSelect from "$lib/components/SearchableSelect.svelte";
   import GeoInterestPicker from "$lib/components/GeoInterestPicker.svelte";
@@ -10,6 +10,11 @@
   import PhoneInput from "$lib/components/PhoneInput.svelte";
   import SaveIndicator from "$lib/components/SaveIndicator.svelte";
   import { toast } from "svelte-sonner";
+  import { Trash2 } from "lucide-svelte";
+  import * as Select from "$lib/components/ui/select";
+  import * as Dialog from "$lib/components/ui/dialog";
+  import GlassDateTimePicker from "$lib/components/GlassDateTimePicker.svelte";
+  import HighlightText from "$lib/components/HighlightText.svelte";
   import TypeTogglePills from "$lib/components/TypeTogglePills.svelte";
   import { createAutoSaver, type SaveStatus } from "$lib/autosave";
   import { api } from "$lib/api";
@@ -22,7 +27,7 @@
   let { data, form }: { data: PageData; form: ActionData } = $props();
 
   function truncateText(s: string | null, len: number): string {
-    if (!s) return "—";
+    if (!s) return "\u2014";
     return s.length > len ? s.slice(0, len) + "..." : s;
   }
 
@@ -107,7 +112,8 @@
   };
 
   const human = $derived(data.human as Human);
-  const activities = $derived(data.activities as Activity[]);
+  let activities = $state<Activity[]>(data.activities as Activity[]);
+  $effect(() => { activities = data.activities as Activity[]; });
   const apiUrl = $derived(data.apiUrl as string);
   const emailLabelConfigs = $derived(data.emailLabelConfigs as ConfigItem[]);
   const phoneLabelConfigs = $derived(data.phoneLabelConfigs as ConfigItem[]);
@@ -130,9 +136,11 @@
   let historyEntries = $state<AuditEntry[]>([]);
   let historyLoaded = $state(false);
 
-  let showActivityForm = $state(false);
   let showGeoInterestInActivity = $state(false);
+  let geoInterestDialogOpen = $state(false);
+  let geoInterestSelected = $state<{ id?: string; city?: string; country?: string; notes?: string } | null>(null);
   let breedDropdownOpen = $state(false);
+  let newActivityType = $state("email");
   let newPetType = $state("dog");
 
   // Initialize state from data — runs on each data update (e.g. after invalidateAll)
@@ -182,6 +190,19 @@
       lastName,
       types,
     });
+  }
+
+  async function deleteActivity(id: string) {
+    // Optimistic removal
+    activities = activities.filter((a) => a.id !== id);
+    try {
+      await api(`/api/activities/${id}`, { method: "DELETE" });
+      toast("Activity deleted");
+    } catch {
+      toast("Failed to delete activity");
+      // Restore on failure
+      await invalidateAll();
+    }
   }
 
   async function handleStatusChange(newStatus: string) {
@@ -238,7 +259,7 @@
   <title>{human.displayId} — {human.firstName} {human.lastName} - Humans CRM</title>
 </svelte:head>
 
-<div class="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
+<div class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
   <!-- Record Management Bar -->
   <RecordManagementBar
     backHref="/humans"
@@ -313,18 +334,25 @@
 
   <!-- Emails Section -->
   <div class="mt-6">
-    <LinkedRecordBox
+    <RelatedListTable
       title="Emails"
       items={human.emails}
+      columns={[
+        { key: "displayId", label: "ID" },
+        { key: "email", label: "Email" },
+        { key: "label", label: "Label" },
+        { key: "flags", label: "" },
+        { key: "delete", label: "", headerClass: "w-10" },
+      ]}
       emptyMessage="No emails yet."
       addLabel="Email"
-      deleteFormAction="?/deleteEmail"
     >
-      {#snippet itemRow(item)}
-        {@const email = item as unknown as HumanEmail}
-        <div class="flex items-center gap-3">
-          <span class="font-mono text-xs text-text-muted">{email.displayId}</span>
+      {#snippet row(email, _searchQuery)}
+        <td class="font-mono text-sm whitespace-nowrap">{email.displayId}</td>
+        <td>
           <a href="/emails/{email.id}" class="text-sm font-medium text-accent hover:text-cyan-300">{email.email}</a>
+        </td>
+        <td>
           <div class="w-36">
             <SearchableSelect
               options={emailLabelOptions}
@@ -344,10 +372,20 @@
               }}
             />
           </div>
+        </td>
+        <td>
           {#if email.isPrimary}
             <span class="glass-badge inline-flex rounded-full px-2 py-0.5 text-xs font-medium bg-[rgba(59,130,246,0.15)] text-blue-300">Primary</span>
           {/if}
-        </div>
+        </td>
+        <td>
+          <form method="POST" action="?/deleteEmail">
+            <input type="hidden" name="id" value={email.id} />
+            <button type="submit" class="flex items-center justify-center w-7 h-7 rounded-lg text-text-muted hover:text-red-400 hover:bg-[rgba(239,68,68,0.12)] transition-colors duration-150" aria-label="Delete email">
+              <Trash2 size={14} />
+            </button>
+          </form>
+        </td>
       {/snippet}
       {#snippet addForm()}
         <form method="POST" action="?/addEmail" class="space-y-3">
@@ -382,22 +420,30 @@
           </button>
         </form>
       {/snippet}
-    </LinkedRecordBox>
+    </RelatedListTable>
   </div>
 
   <!-- Phone Numbers Section -->
   <div class="mt-6">
-    <LinkedRecordBox
+    <RelatedListTable
       title="Phone Numbers"
       items={human.phoneNumbers}
+      columns={[
+        { key: "displayId", label: "ID" },
+        { key: "phone", label: "Phone" },
+        { key: "label", label: "Label" },
+        { key: "flags", label: "" },
+        { key: "delete", label: "", headerClass: "w-10" },
+      ]}
       emptyMessage="No phone numbers yet."
       addLabel="Phone"
     >
-      {#snippet itemRow(item)}
-        {@const phone = item as unknown as PhoneNumber}
-        <div class="flex items-center gap-3">
-          <span class="font-mono text-xs text-text-muted">{phone.displayId}</span>
+      {#snippet row(phone, _searchQuery)}
+        <td class="font-mono text-sm whitespace-nowrap">{phone.displayId}</td>
+        <td>
           <a href="/phone-numbers/{phone.id}" class="text-sm font-medium text-accent hover:text-cyan-300">{phone.phoneNumber}</a>
+        </td>
+        <td>
           <div class="w-36">
             <SearchableSelect
               options={phoneLabelOptions}
@@ -417,13 +463,25 @@
               }}
             />
           </div>
-          {#if phone.hasWhatsapp}
-            <span class="glass-badge inline-flex rounded-full px-2 py-0.5 text-xs font-medium bg-[rgba(34,197,94,0.15)] text-green-300">WhatsApp</span>
-          {/if}
-          {#if phone.isPrimary}
-            <span class="glass-badge inline-flex rounded-full px-2 py-0.5 text-xs font-medium bg-[rgba(59,130,246,0.15)] text-blue-300">Primary</span>
-          {/if}
-        </div>
+        </td>
+        <td>
+          <div class="flex items-center gap-1">
+            {#if phone.hasWhatsapp}
+              <span class="glass-badge inline-flex rounded-full px-2 py-0.5 text-xs font-medium bg-[rgba(34,197,94,0.15)] text-green-300">WhatsApp</span>
+            {/if}
+            {#if phone.isPrimary}
+              <span class="glass-badge inline-flex rounded-full px-2 py-0.5 text-xs font-medium bg-[rgba(59,130,246,0.15)] text-blue-300">Primary</span>
+            {/if}
+          </div>
+        </td>
+        <td>
+          <form method="POST" action="?/deletePhoneNumber">
+            <input type="hidden" name="phoneId" value={phone.id} />
+            <button type="submit" class="flex items-center justify-center w-7 h-7 rounded-lg text-text-muted hover:text-red-400 hover:bg-[rgba(239,68,68,0.12)] transition-colors duration-150" aria-label="Delete phone number">
+              <Trash2 size={14} />
+            </button>
+          </form>
+        </td>
       {/snippet}
       {#snippet addForm()}
         <form method="POST" action="?/addPhoneNumber" class="space-y-3">
@@ -458,27 +516,43 @@
           </button>
         </form>
       {/snippet}
-    </LinkedRecordBox>
+    </RelatedListTable>
   </div>
 
   <!-- Social Media IDs Section -->
   <div class="mt-6">
-    <LinkedRecordBox
+    <RelatedListTable
       title="Social Media IDs"
       items={human.socialIds}
+      columns={[
+        { key: "displayId", label: "ID" },
+        { key: "handle", label: "Handle" },
+        { key: "platform", label: "Platform" },
+        { key: "delete", label: "", headerClass: "w-10" },
+      ]}
       emptyMessage="No social media IDs yet."
       addLabel="Social ID"
-      deleteFormAction="?/deleteSocialId"
     >
-      {#snippet itemRow(item)}
-        {@const sid = item as unknown as SocialIdItem}
-        <div class="flex items-center gap-3">
-          <span class="font-mono text-xs text-text-muted">{sid.displayId}</span>
+      {#snippet row(sid, _searchQuery)}
+        <td class="font-mono text-sm whitespace-nowrap">{sid.displayId}</td>
+        <td>
           <a href="/social-ids/{sid.id}" class="text-sm font-medium text-accent hover:text-cyan-300">{sid.handle}</a>
+        </td>
+        <td>
           {#if sid.platformName}
             <span class="glass-badge inline-flex rounded-full px-2 py-0.5 text-xs font-medium bg-glass text-text-secondary">{sid.platformName}</span>
+          {:else}
+            <span class="text-text-muted">&mdash;</span>
           {/if}
-        </div>
+        </td>
+        <td>
+          <form method="POST" action="?/deleteSocialId">
+            <input type="hidden" name="id" value={sid.id} />
+            <button type="submit" class="flex items-center justify-center w-7 h-7 rounded-lg text-text-muted hover:text-red-400 hover:bg-[rgba(239,68,68,0.12)] transition-colors duration-150" aria-label="Delete social ID">
+              <Trash2 size={14} />
+            </button>
+          </form>
+        </td>
       {/snippet}
       {#snippet addForm()}
         <form method="POST" action="?/addSocialId" class="space-y-3">
@@ -507,32 +581,45 @@
           </button>
         </form>
       {/snippet}
-    </LinkedRecordBox>
+    </RelatedListTable>
   </div>
 
   <!-- Pets Section -->
   <div class="mt-6 {breedDropdownOpen ? 'relative z-10' : ''}">
-    <LinkedRecordBox
+    <RelatedListTable
       title="Pets"
       items={human.pets}
+      columns={[
+        { key: "displayId", label: "ID" },
+        { key: "name", label: "Name" },
+        { key: "type", label: "Type" },
+        { key: "breed", label: "Breed" },
+        { key: "weight", label: "Weight" },
+        { key: "delete", label: "", headerClass: "w-10" },
+      ]}
       emptyMessage="No pets yet."
       addLabel="Pet"
     >
-      {#snippet itemRow(item)}
-        {@const pet = item as unknown as Pet}
-        <div class="flex items-center gap-3">
-          <span class="font-mono text-xs text-text-muted">{pet.displayId}</span>
+      {#snippet row(pet, _searchQuery)}
+        <td class="font-mono text-sm whitespace-nowrap">{pet.displayId}</td>
+        <td>
           <a href="/pets/{pet.id}" class="text-sm font-medium text-accent hover:text-cyan-300">{pet.name}</a>
+        </td>
+        <td>
           <span class="glass-badge inline-flex rounded-full px-2 py-0.5 text-xs font-medium {pet.type === 'cat' ? 'bg-[rgba(168,85,247,0.15)] text-purple-300' : 'bg-[rgba(59,130,246,0.15)] text-blue-300'}">
             {pet.type === "cat" ? "Cat" : "Dog"}
           </span>
-          {#if pet.type === "dog" && pet.breed}
-            <span class="text-sm text-text-secondary">{pet.breed}</span>
-          {/if}
-          {#if pet.weight}
-            <span class="text-sm text-text-muted">{pet.weight} kg</span>
-          {/if}
-        </div>
+        </td>
+        <td class="text-sm text-text-secondary">{pet.type === "dog" && pet.breed ? pet.breed : "\u2014"}</td>
+        <td class="text-sm text-text-muted">{pet.weight ? `${pet.weight} kg` : "\u2014"}</td>
+        <td>
+          <form method="POST" action="?/deletePet">
+            <input type="hidden" name="id" value={pet.id} />
+            <button type="submit" class="flex items-center justify-center w-7 h-7 rounded-lg text-text-muted hover:text-red-400 hover:bg-[rgba(239,68,68,0.12)] transition-colors duration-150" aria-label="Delete pet">
+              <Trash2 size={14} />
+            </button>
+          </form>
+        </td>
       {/snippet}
       {#snippet addForm()}
         <form method="POST" action="?/addPet" class="space-y-3">
@@ -589,34 +676,39 @@
           </button>
         </form>
       {/snippet}
-    </LinkedRecordBox>
+    </RelatedListTable>
   </div>
 
   <!-- Geo-Interest Expressions Section -->
   <div class="mt-6">
-    <LinkedRecordBox
+    <RelatedListTable
       title="Geo-Interest Expressions"
       items={human.geoInterestExpressions}
+      columns={[
+        { key: "displayId", label: "ID" },
+        { key: "location", label: "Location" },
+        { key: "notes", label: "Notes" },
+        { key: "delete", label: "", headerClass: "w-10" },
+      ]}
       emptyMessage="No geo-interest expressions yet."
       addLabel="Geo-Interest"
-      deleteFormAction="?/deleteGeoInterestExpression"
     >
-      {#snippet itemRow(item)}
-        {@const expr = item as unknown as GeoInterestExpression}
-        <div>
-          <div class="flex items-center gap-3">
-            <span class="font-mono text-xs text-text-muted">{expr.displayId}</span>
-            <a href="/geo-interests/{expr.geoInterestId}" class="text-sm font-medium text-accent hover:text-cyan-300">
-              {expr.city ?? "\u2014"}, {expr.country ?? "\u2014"}
-            </a>
-            {#if expr.activityId}
-              <span class="text-xs text-text-muted">linked to activity</span>
-            {/if}
-          </div>
-          {#if expr.notes}
-            <p class="mt-0.5 text-sm text-text-secondary">{expr.notes}</p>
-          {/if}
-        </div>
+      {#snippet row(expr, _searchQuery)}
+        <td class="font-mono text-sm whitespace-nowrap">{expr.displayId}</td>
+        <td>
+          <a href="/geo-interests/{expr.geoInterestId}" class="text-sm font-medium text-accent hover:text-cyan-300">
+            {expr.city ?? "\u2014"}, {expr.country ?? "\u2014"}
+          </a>
+        </td>
+        <td class="text-sm text-text-secondary max-w-xs truncate">{expr.notes ?? "\u2014"}</td>
+        <td>
+          <form method="POST" action="?/deleteGeoInterestExpression">
+            <input type="hidden" name="id" value={expr.id} />
+            <button type="submit" class="flex items-center justify-center w-7 h-7 rounded-lg text-text-muted hover:text-red-400 hover:bg-[rgba(239,68,68,0.12)] transition-colors duration-150" aria-label="Delete geo-interest expression">
+              <Trash2 size={14} />
+            </button>
+          </form>
+        </td>
       {/snippet}
       {#snippet addForm()}
         <form method="POST" action="?/addGeoInterestExpression" class="space-y-3">
@@ -626,39 +718,53 @@
           </button>
         </form>
       {/snippet}
-    </LinkedRecordBox>
+    </RelatedListTable>
   </div>
 
   <!-- Route Interest Expressions Section -->
   <div class="mt-6">
-    <LinkedRecordBox
+    <RelatedListTable
       title="Route Interest Expressions"
       items={human.routeInterestExpressions}
+      columns={[
+        { key: "displayId", label: "ID" },
+        { key: "route", label: "Route" },
+        { key: "frequency", label: "Frequency" },
+        { key: "travelDate", label: "Travel Date" },
+        { key: "notes", label: "Notes" },
+        { key: "delete", label: "", headerClass: "w-10" },
+      ]}
       emptyMessage="No route interest expressions yet."
       addLabel="Route Interest"
-      deleteFormAction="?/deleteRouteInterestExpression"
     >
-      {#snippet itemRow(item)}
-        {@const expr = item as unknown as RouteInterestExpression}
-        <div>
-          <div class="flex items-center gap-3 flex-wrap">
-            <span class="font-mono text-xs text-text-muted">{expr.displayId}</span>
-            <a href="/route-interests/{expr.routeInterestId}" class="text-sm font-medium text-accent hover:text-cyan-300">
-              {expr.originCity ?? "\u2014"}, {expr.originCountry ?? "\u2014"} &rarr; {expr.destinationCity ?? "\u2014"}, {expr.destinationCountry ?? "\u2014"}
-            </a>
-            <span class="glass-badge inline-flex rounded-full px-2 py-0.5 text-xs font-medium {expr.frequency === 'repeat' ? 'bg-[rgba(168,85,247,0.15)] text-purple-300' : 'bg-glass text-text-secondary'}">
-              {expr.frequency === "repeat" ? "Repeat" : "One-time"}
-            </span>
-            {#if expr.travelYear}
-              <span class="text-xs text-text-muted">
-                {expr.travelYear}{#if expr.travelMonth}-{String(expr.travelMonth).padStart(2, "0")}{#if expr.travelDay}-{String(expr.travelDay).padStart(2, "0")}{/if}{/if}
-              </span>
-            {/if}
-          </div>
-          {#if expr.notes}
-            <p class="mt-0.5 text-sm text-text-secondary">{expr.notes}</p>
+      {#snippet row(expr, _searchQuery)}
+        <td class="font-mono text-sm whitespace-nowrap">{expr.displayId}</td>
+        <td>
+          <a href="/route-interests/{expr.routeInterestId}" class="text-sm font-medium text-accent hover:text-cyan-300">
+            {expr.originCity ?? "\u2014"}, {expr.originCountry ?? "\u2014"} &rarr; {expr.destinationCity ?? "\u2014"}, {expr.destinationCountry ?? "\u2014"}
+          </a>
+        </td>
+        <td>
+          <span class="glass-badge inline-flex rounded-full px-2 py-0.5 text-xs font-medium {expr.frequency === 'repeat' ? 'bg-[rgba(168,85,247,0.15)] text-purple-300' : 'bg-glass text-text-secondary'}">
+            {expr.frequency === "repeat" ? "Repeat" : "One-time"}
+          </span>
+        </td>
+        <td class="text-sm text-text-muted whitespace-nowrap">
+          {#if expr.travelYear}
+            {expr.travelYear}{#if expr.travelMonth}-{String(expr.travelMonth).padStart(2, "0")}{#if expr.travelDay}-{String(expr.travelDay).padStart(2, "0")}{/if}{/if}
+          {:else}
+            &mdash;
           {/if}
-        </div>
+        </td>
+        <td class="text-sm text-text-secondary max-w-[200px] truncate">{expr.notes ?? "\u2014"}</td>
+        <td>
+          <form method="POST" action="?/deleteRouteInterestExpression">
+            <input type="hidden" name="id" value={expr.id} />
+            <button type="submit" class="flex items-center justify-center w-7 h-7 rounded-lg text-text-muted hover:text-red-400 hover:bg-[rgba(239,68,68,0.12)] transition-colors duration-150" aria-label="Delete route interest expression">
+              <Trash2 size={14} />
+            </button>
+          </form>
+        </td>
       {/snippet}
       {#snippet addForm()}
         <form method="POST" action="?/addRouteInterestExpression" class="space-y-3">
@@ -668,192 +774,263 @@
           </button>
         </form>
       {/snippet}
-    </LinkedRecordBox>
+    </RelatedListTable>
   </div>
 
   <!-- Linked Accounts -->
-  {#if human.linkedAccounts && human.linkedAccounts.length > 0}
-    <div class="mt-6 glass-card p-5">
-      <h2 class="text-lg font-semibold text-text-primary mb-4">Linked Accounts</h2>
-      <div class="space-y-2">
-        {#each human.linkedAccounts as link (link.id)}
-          <div class="flex items-center gap-3 p-3 rounded-lg bg-glass hover:bg-glass-hover transition-colors">
-            <a href="/accounts/{link.accountId}" class="text-sm font-medium text-accent hover:text-cyan-300">
-              {link.accountName}
-            </a>
-            {#if link.labelName}
-              <span class="glass-badge inline-flex rounded-full px-2 py-0.5 text-xs font-medium bg-[rgba(249,115,22,0.15)] text-orange-300">
-                {link.labelName}
-              </span>
-            {/if}
-          </div>
-        {/each}
-      </div>
-    </div>
-  {/if}
+  <div class="mt-6">
+    <RelatedListTable
+      title="Linked Accounts"
+      items={human.linkedAccounts}
+      columns={[
+        { key: "account", label: "Account" },
+        { key: "role", label: "Role" },
+      ]}
+      emptyMessage="No linked accounts."
+    >
+      {#snippet row(link, _searchQuery)}
+        <td>
+          <a href="/accounts/{link.accountId}" class="text-sm font-medium text-accent hover:text-cyan-300">
+            {link.accountName}
+          </a>
+        </td>
+        <td>
+          {#if link.labelName}
+            <span class="glass-badge inline-flex rounded-full px-2 py-0.5 text-xs font-medium bg-[rgba(249,115,22,0.15)] text-orange-300">
+              {link.labelName}
+            </span>
+          {:else}
+            <span class="text-text-muted">&mdash;</span>
+          {/if}
+        </td>
+      {/snippet}
+    </RelatedListTable>
+  </div>
 
   <!-- Linked Route Signups -->
-  {#if human.linkedRouteSignups.length > 0}
-    <div class="mt-6 glass-card p-5">
-      <h2 class="text-lg font-semibold text-text-primary mb-4">Linked Route Signups</h2>
-      <div class="space-y-2">
-        {#each human.linkedRouteSignups as link (link.id)}
-          <div class="flex items-center justify-between p-3 rounded-lg bg-glass hover:bg-glass-hover transition-colors">
-            <div>
-              <a href="/leads/route-signups/{link.routeSignupId}" class="text-sm font-medium text-blue-300 hover:text-blue-200">
-                Signup {link.routeSignupId.slice(0, 8)}...
-              </a>
-              <p class="text-xs text-text-muted">Linked {new Date(link.linkedAt).toLocaleDateString()}</p>
-            </div>
-            <form method="POST" action="?/unlinkSignup">
-              <input type="hidden" name="linkId" value={link.id} />
-              <button type="submit" class="btn-danger text-xs py-1 px-2">
-                Unlink
-              </button>
-            </form>
-          </div>
-        {/each}
-      </div>
-    </div>
-  {/if}
+  <div class="mt-6">
+    <RelatedListTable
+      title="Linked Route Signups"
+      items={human.linkedRouteSignups}
+      columns={[
+        { key: "signup", label: "Signup" },
+        { key: "linkedAt", label: "Linked Date" },
+        { key: "unlink", label: "", headerClass: "w-10" },
+      ]}
+      emptyMessage="No linked route signups."
+    >
+      {#snippet row(link, _searchQuery)}
+        <td>
+          <a href="/leads/route-signups/{link.routeSignupId}" class="text-sm font-medium text-accent hover:text-cyan-300">
+            Signup {link.routeSignupId.slice(0, 8)}...
+          </a>
+        </td>
+        <td class="text-sm text-text-muted">{new Date(link.linkedAt).toLocaleDateString()}</td>
+        <td>
+          <form method="POST" action="?/unlinkSignup">
+            <input type="hidden" name="linkId" value={link.id} />
+            <button type="submit" class="flex items-center justify-center w-7 h-7 rounded-lg text-text-muted hover:text-red-400 hover:bg-[rgba(239,68,68,0.12)] transition-colors duration-150" aria-label="Unlink signup">
+              <Trash2 size={14} />
+            </button>
+          </form>
+        </td>
+      {/snippet}
+    </RelatedListTable>
+  </div>
 
   <!-- Activities -->
-  <div class="mt-6 glass-card p-5">
-    <div class="flex items-center justify-between mb-4">
-      <h2 class="text-lg font-semibold text-text-primary">Activities</h2>
-      <button
-        type="button"
-        onclick={() => { showActivityForm = !showActivityForm; }}
-        class="btn-ghost text-sm py-1 px-3"
-      >
-        {showActivityForm ? "Cancel" : "+ Add Activity"}
-      </button>
-    </div>
-
-    {#if showActivityForm}
-      <div class="mb-4 p-4 rounded-lg bg-glass border border-glass-border">
+  <div class="mt-6">
+    <RelatedListTable
+      title="Activities"
+      items={activities}
+      columns={[
+        { key: "displayId", label: "ID", sortable: true, sortValue: (a) => a.displayId },
+        { key: "type", label: "Type", sortable: true, sortValue: (a) => activityTypeLabels[a.type] ?? a.type },
+        { key: "subject", label: "Subject", sortable: true, sortValue: (a) => a.subject },
+        { key: "notes", label: "Notes", sortable: true, sortValue: (a) => a.notes ?? "" },
+        { key: "activityDate", label: "Date", sortable: true, sortValue: (a) => a.activityDate },
+        { key: "delete", label: "", headerClass: "w-10" },
+      ]}
+      defaultSortKey="activityDate"
+      defaultSortDirection="desc"
+      searchFilter={(a, q) => {
+        const typeLabel = (activityTypeLabels[a.type] ?? a.type).toLowerCase();
+        return a.subject.toLowerCase().includes(q) ||
+          (a.notes ?? "").toLowerCase().includes(q) ||
+          typeLabel.includes(q);
+      }}
+      emptyMessage="No activities yet."
+      searchEmptyMessage="No activities match your search."
+      addLabel="Activity"
+      onFormToggle={(open) => { if (!open) { showGeoInterestInActivity = false; geoInterestSelected = null; } }}
+    >
+      {#snippet row(activity, searchQuery)}
+        <td class="font-mono text-sm whitespace-nowrap">
+          <a href="/activities/{activity.id}" class="text-accent hover:text-cyan-300">{activity.displayId}</a>
+        </td>
+        <td>
+          <span class="glass-badge {activityTypeColors[activity.type] ?? 'bg-glass text-text-secondary'}">
+            <HighlightText text={activityTypeLabels[activity.type] ?? activity.type} query={searchQuery} />
+          </span>
+        </td>
+        <td class="font-medium max-w-sm truncate">
+          <a href="/activities/{activity.id}" class="hover:text-accent transition-colors duration-150"><HighlightText text={activity.subject} query={searchQuery} /></a>
+        </td>
+        <td class="text-text-muted max-w-xs truncate"><HighlightText text={truncateText(activity.notes ?? activity.body, 80)} query={searchQuery} /></td>
+        <td class="text-text-muted whitespace-nowrap">{new Date(activity.activityDate).toLocaleString(undefined, { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })}</td>
+        <td>
+          <button
+            type="button"
+            onclick={() => deleteActivity(activity.id)}
+            class="flex items-center justify-center w-7 h-7 rounded-lg text-text-muted hover:text-red-400 hover:bg-[rgba(239,68,68,0.12)] transition-colors duration-150"
+            aria-label="Delete activity"
+          >
+            <Trash2 size={14} />
+          </button>
+        </td>
+      {/snippet}
+      {#snippet addForm()}
         <form method="POST" action="?/addActivity" class="space-y-3">
-          <div>
-            <label for="activityType" class="block text-sm font-medium text-text-secondary">Type</label>
-            <SearchableSelect
-              options={ACTIVITY_TYPE_OPTIONS}
-              name="type"
-              id="activityType"
-              value="email"
-              placeholder="Select type..."
-            />
+          <div class="grid gap-3 sm:grid-cols-2">
+            <div>
+              <label for="activityType" class="block text-sm font-medium text-text-secondary mb-1">Type</label>
+              <input type="hidden" name="type" value={newActivityType} />
+              <Select.Root type="single" value={newActivityType} onValueChange={(v) => { if (v) newActivityType = v; }}>
+                <Select.Trigger>
+                  <Select.Value placeholder="Select type..." />
+                </Select.Trigger>
+                <Select.Content>
+                  {#each ACTIVITY_TYPE_OPTIONS as opt}
+                    <Select.Item value={opt.value}>{opt.label}</Select.Item>
+                  {/each}
+                </Select.Content>
+              </Select.Root>
+            </div>
+            <div>
+              <label for="activityDate" class="block text-sm font-medium text-text-secondary mb-1">Date</label>
+              <GlassDateTimePicker name="activityDate" id="activityDate" />
+            </div>
           </div>
           <div>
-            <label for="subject" class="block text-sm font-medium text-text-secondary">Subject</label>
+            <label for="subject" class="block text-sm font-medium text-text-secondary mb-1">Subject</label>
             <input
               id="subject" name="subject" type="text" required
-              class="glass-input mt-1 block w-full"
+              class="glass-input w-full px-3 py-2 text-sm"
               placeholder="Activity subject"
             />
           </div>
           <div>
-            <label for="notes" class="block text-sm font-medium text-text-secondary">Notes</label>
+            <label for="activityNotes" class="block text-sm font-medium text-text-secondary mb-1">Notes</label>
             <textarea
-              id="notes" name="notes" rows="3"
-              class="glass-input mt-1 block w-full"
+              id="activityNotes" name="notes" rows="2"
+              class="glass-input w-full px-3 py-2 text-sm"
               placeholder="Optional notes..."
             ></textarea>
           </div>
-          <div>
-            <label for="activityDate" class="block text-sm font-medium text-text-secondary">Date</label>
-            <input
-              id="activityDate" name="activityDate" type="datetime-local"
-              class="glass-input mt-1 block w-full"
-            />
-          </div>
-          <div>
-            <label class="flex items-center gap-2 text-sm text-text-secondary">
-              <input
-                type="checkbox"
-                class="rounded border-glass-border"
-                bind:checked={showGeoInterestInActivity}
-              />
-              Link a Geo-Interest?
-            </label>
-          </div>
-          {#if showGeoInterestInActivity}
-            <div class="p-3 rounded-lg bg-glass border border-glass-border">
-              <GeoInterestPicker
-                {apiUrl}
-                geoInterestIdName="geoInterestId"
-                cityName="geoCity"
-                countryName="geoCountry"
-                notesName="geoNotes"
-              />
-            </div>
+          {#if showGeoInterestInActivity && geoInterestSelected}
+            <input type="hidden" name="geoInterestId" value={geoInterestSelected.id ?? ""} />
+            <input type="hidden" name="geoCity" value={geoInterestSelected.city ?? ""} />
+            <input type="hidden" name="geoCountry" value={geoInterestSelected.country ?? ""} />
+            <input type="hidden" name="geoNotes" value={geoInterestSelected.notes ?? ""} />
           {/if}
-          <button type="submit" class="btn-primary text-sm">
-            Add Activity
-          </button>
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <button
+                type="button"
+                class="text-sm {showGeoInterestInActivity ? 'text-red-400 hover:text-red-300' : 'text-accent hover:text-cyan-300'} transition-colors"
+                onclick={() => {
+                  if (showGeoInterestInActivity) {
+                    showGeoInterestInActivity = false;
+                    geoInterestSelected = null;
+                  } else {
+                    geoInterestDialogOpen = true;
+                  }
+                }}
+              >
+                {showGeoInterestInActivity ? "- Remove Geo-Interest" : "+ Link Geo-Interest"}
+              </button>
+              {#if showGeoInterestInActivity && geoInterestSelected}
+                <span class="inline-flex items-center gap-1 rounded-full bg-[rgba(6,182,212,0.15)] text-accent px-2 py-0.5 text-xs">
+                  {geoInterestSelected.city ?? "New"}{geoInterestSelected.country ? `, ${geoInterestSelected.country}` : ""}
+                </span>
+              {/if}
+            </div>
+            <button type="submit" class="btn-primary text-sm">
+              Add Activity
+            </button>
+          </div>
         </form>
-      </div>
-    {/if}
-
-    {#if activities.length === 0}
-      <p class="text-text-muted text-sm">No activities yet.</p>
-    {:else}
-      <div class="glass-card overflow-hidden">
-        <table class="min-w-full">
-          <thead class="glass-thead">
-            <tr>
-              <th scope="col">ID</th>
-              <th scope="col">Type</th>
-              <th scope="col">Subject</th>
-              <th scope="col">Notes</th>
-              <th scope="col">Date</th>
-            </tr>
-          </thead>
-          <tbody>
-            {#each activities as activity (activity.id)}
-              <tr class="glass-row-hover">
-                <td class="font-mono text-sm">
-                  <a href="/activities/{activity.id}" class="text-accent hover:text-cyan-300">{activity.displayId}</a>
-                </td>
-                <td>
-                  <span class="glass-badge {activityTypeColors[activity.type] ?? 'bg-glass text-text-secondary'}">
-                    {activityTypeLabels[activity.type] ?? activity.type}
-                  </span>
-                </td>
-                <td class="font-medium">{activity.subject}</td>
-                <td class="text-text-muted max-w-xs truncate">{truncateText(activity.notes ?? activity.body, 80)}</td>
-                <td class="text-text-muted">{new Date(activity.activityDate).toLocaleDateString()}</td>
-              </tr>
-            {/each}
-          </tbody>
-        </table>
-      </div>
-    {/if}
+      {/snippet}
+    </RelatedListTable>
   </div>
 
+  <Dialog.Root bind:open={geoInterestDialogOpen}>
+    <Dialog.Content>
+      <Dialog.Header>
+        <Dialog.Title>Link Geo-Interest</Dialog.Title>
+        <Dialog.Description>Search for an existing geo-interest or create a new one.</Dialog.Description>
+      </Dialog.Header>
+      <div class="mt-4" id="geo-interest-dialog-body">
+        <GeoInterestPicker
+          {apiUrl}
+          geoInterestIdName="dialogGeoId"
+          cityName="dialogGeoCity"
+          countryName="dialogGeoCountry"
+          notesName="dialogGeoNotes"
+        />
+      </div>
+      <Dialog.Footer>
+        <button
+          type="button"
+          class="btn-primary text-sm"
+          onclick={() => {
+            const container = document.getElementById("geo-interest-dialog-body");
+            if (container) {
+              const geoIdInput = container.querySelector<HTMLInputElement>('input[name="dialogGeoId"]');
+              const cityInput = container.querySelector<HTMLInputElement>('input[name="dialogGeoCity"]');
+              const countryInput = container.querySelector<HTMLInputElement>('input[name="dialogGeoCountry"]');
+              const notesInput = container.querySelector<HTMLTextAreaElement>('textarea[name="dialogGeoNotes"]');
+              geoInterestSelected = {
+                id: geoIdInput?.value || undefined,
+                city: cityInput?.value || undefined,
+                country: countryInput?.value || undefined,
+                notes: notesInput?.value || undefined,
+              };
+            }
+            showGeoInterestInActivity = true;
+            geoInterestDialogOpen = false;
+          }}
+        >
+          Done
+        </button>
+      </Dialog.Footer>
+    </Dialog.Content>
+  </Dialog.Root>
+
   <!-- Change History -->
-  <div class="mt-6 glass-card p-5">
-    <h2 class="text-lg font-semibold text-text-primary mb-4">Change History</h2>
-    <div class="space-y-2">
-      {#if historyEntries.length === 0}
-        <p class="text-text-muted text-sm">No changes recorded yet.</p>
-      {:else}
-        {#each historyEntries as entry (entry.id)}
-          <div class="p-3 rounded-lg bg-glass">
-            <div class="flex items-center justify-between">
-              <div class="flex items-center gap-2">
-                <span class="text-sm font-medium text-text-primary">{entry.colleagueName ?? "System"}</span>
-                <span class="glass-badge inline-flex rounded-full px-2 py-0.5 text-xs font-medium bg-glass text-text-secondary">
-                  {entry.action}
-                </span>
-              </div>
-              <span class="text-xs text-text-muted">{formatRelativeTime(entry.createdAt)}</span>
-            </div>
-            <p class="mt-1 text-xs text-text-secondary">{summarizeChanges(entry.changes)}</p>
-          </div>
-        {/each}
-      {/if}
-    </div>
+  <div class="mt-6">
+    <RelatedListTable
+      title="Change History"
+      items={historyEntries}
+      columns={[
+        { key: "colleague", label: "Colleague" },
+        { key: "action", label: "Action" },
+        { key: "time", label: "Time" },
+        { key: "changes", label: "Changes" },
+      ]}
+      emptyMessage="No changes recorded yet."
+    >
+      {#snippet row(entry, _searchQuery)}
+        <td class="text-sm font-medium text-text-primary">{entry.colleagueName ?? "System"}</td>
+        <td>
+          <span class="glass-badge inline-flex rounded-full px-2 py-0.5 text-xs font-medium bg-glass text-text-secondary">
+            {entry.action}
+          </span>
+        </td>
+        <td class="text-sm text-text-muted whitespace-nowrap">{formatRelativeTime(entry.createdAt)}</td>
+        <td class="text-xs text-text-secondary max-w-sm truncate">{summarizeChanges(entry.changes)}</td>
+      {/snippet}
+    </RelatedListTable>
   </div>
 
 </div>
-

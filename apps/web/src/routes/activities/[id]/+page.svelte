@@ -2,16 +2,18 @@
   import { invalidateAll } from "$app/navigation";
   import type { PageData, ActionData } from "./$types";
   import RecordManagementBar from "$lib/components/RecordManagementBar.svelte";
-  import LinkedRecordBox from "$lib/components/LinkedRecordBox.svelte";
+  import RelatedListTable from "$lib/components/RelatedListTable.svelte";
   import AlertBanner from "$lib/components/AlertBanner.svelte";
   import GeoInterestPicker from "$lib/components/GeoInterestPicker.svelte";
   import SaveIndicator from "$lib/components/SaveIndicator.svelte";
+  import { Trash2 } from "lucide-svelte";
   import { toast } from "svelte-sonner";
   import { createAutoSaver, type SaveStatus } from "$lib/autosave";
   import { onDestroy } from "svelte";
   import { activityTypeLabels, ACTIVITY_TYPE_OPTIONS } from "$lib/constants/labels";
   import { displayName } from "$lib/utils/format";
   import SearchableSelect from "$lib/components/SearchableSelect.svelte";
+  import RouteInterestPicker from "$lib/components/RouteInterestPicker.svelte";
   import ConfirmDialog from "$lib/components/ConfirmDialog.svelte";
 
   let { data, form }: { data: PageData; form: ActionData } = $props();
@@ -26,10 +28,27 @@
     country: string | null;
     createdAt: string;
   };
+  type RouteInterestExpression = {
+    id: string;
+    humanId: string;
+    routeInterestId: string;
+    activityId: string | null;
+    frequency: string;
+    travelYear: number | null;
+    travelMonth: number | null;
+    travelDay: number | null;
+    notes: string | null;
+    originCity: string | null;
+    originCountry: string | null;
+    destinationCity: string | null;
+    destinationCountry: string | null;
+    createdAt: string;
+  };
   type Human = { id: string; firstName: string; middleName: string | null; lastName: string };
   type Account = { id: string; name: string };
   type Activity = {
     id: string;
+    displayId: string;
     type: string;
     subject: string;
     notes: string | null;
@@ -40,7 +59,9 @@
     accountId: string | null;
     accountName: string | null;
     routeSignupId: string | null;
+    websiteBookingRequestId: string | null;
     geoInterestExpressions: GeoInterestExpression[];
+    routeInterestExpressions: RouteInterestExpression[];
     colleagueId: string | null;
     createdAt: string;
     updatedAt: string;
@@ -114,6 +135,12 @@
 
   let showDeleteConfirm = $state(false);
   let deleteFormEl = $state<HTMLFormElement>();
+
+  const metadataItems = $derived([
+    { id: "created", field: "Created", value: new Date(activity.createdAt).toLocaleString() },
+    { id: "updated", field: "Updated", value: new Date(activity.updatedAt).toLocaleString() },
+    { id: "createdBy", field: "Created by", value: activity.colleagueId ?? "—" },
+  ]);
 </script>
 
 <svelte:head>
@@ -216,29 +243,58 @@
         />
       </div>
     </div>
+
+    {#if activity.routeSignupId || activity.websiteBookingRequestId}
+      <div class="grid gap-4 sm:grid-cols-2">
+        {#if activity.routeSignupId}
+          <div>
+            <span class="block text-sm font-medium text-text-secondary">Linked Route Signup</span>
+            <a href="/leads/route-signups/{activity.routeSignupId}" class="text-sm text-accent hover:text-cyan-300">
+              View Route Signup
+            </a>
+          </div>
+        {/if}
+        {#if activity.websiteBookingRequestId}
+          <div>
+            <span class="block text-sm font-medium text-text-secondary">Linked Booking Request</span>
+            <a href="/leads/website-booking-requests/{activity.websiteBookingRequestId}" class="text-sm text-accent hover:text-cyan-300">
+              View Booking Request
+            </a>
+          </div>
+        {/if}
+      </div>
+    {/if}
   </div>
 
   <!-- Geo-Interest Expressions -->
   <div class="mt-6">
-    <LinkedRecordBox
+    <RelatedListTable
       title="Geo-Interest Expressions"
       items={activity.geoInterestExpressions}
+      columns={[
+        { key: "location", label: "Location" },
+        { key: "notes", label: "Notes" },
+        { key: "delete", label: "", headerClass: "w-10" },
+      ]}
       emptyMessage="No geo-interest expressions yet."
       addLabel="Geo-Interest"
-      deleteFormAction="?/deleteGeoInterestExpression"
     >
-      {#snippet itemRow(item)}
+      {#snippet row(item, _searchQuery)}
         {@const expr = item as unknown as GeoInterestExpression}
-        <div>
-          <div class="flex items-center gap-3">
-            <a href="/geo-interests/{expr.geoInterestId}" class="text-sm font-medium text-accent hover:text-cyan-300">
-              {expr.city ?? "—"}, {expr.country ?? "—"}
-            </a>
-          </div>
-          {#if expr.notes}
-            <p class="mt-0.5 text-sm text-text-secondary">{expr.notes}</p>
-          {/if}
-        </div>
+        <td>
+          <a href="/geo-interests/{expr.geoInterestId}" class="text-sm font-medium text-accent hover:text-cyan-300">
+            {expr.city ?? "—"}, {expr.country ?? "—"}
+          </a>
+        </td>
+        <td class="text-sm text-text-secondary">{expr.notes ?? "—"}</td>
+        <td>
+          <form method="POST" action="?/deleteGeoInterestExpression">
+            <input type="hidden" name="id" value={expr.id} />
+            <button type="submit" class="flex items-center justify-center w-7 h-7 rounded-lg text-text-muted hover:text-red-400 hover:bg-[rgba(239,68,68,0.12)] transition-colors duration-150" aria-label="Delete expression">
+              <Trash2 size={14} />
+            </button>
+          </form>
+        </td>
       {/snippet}
       {#snippet addForm()}
         {#if humanId}
@@ -253,17 +309,72 @@
           <p class="text-sm text-text-muted">Link a human to this activity first to add geo-interest expressions.</p>
         {/if}
       {/snippet}
-    </LinkedRecordBox>
+    </RelatedListTable>
+  </div>
+
+  <!-- Route-Interest Expressions -->
+  <div class="mt-6">
+    <RelatedListTable
+      title="Route-Interest Expressions"
+      items={activity.routeInterestExpressions}
+      columns={[
+        { key: "route", label: "Route" },
+        { key: "frequency", label: "Frequency" },
+        { key: "notes", label: "Notes" },
+        { key: "delete", label: "", headerClass: "w-10" },
+      ]}
+      emptyMessage="No route-interest expressions yet."
+      addLabel="Route-Interest"
+    >
+      {#snippet row(item, _searchQuery)}
+        {@const expr = item as unknown as RouteInterestExpression}
+        <td>
+          <a href="/route-interests/{expr.routeInterestId}" class="text-sm font-medium text-accent hover:text-cyan-300">
+            {expr.originCity ?? "—"}, {expr.originCountry ?? "—"} &rarr; {expr.destinationCity ?? "—"}, {expr.destinationCountry ?? "—"}
+          </a>
+        </td>
+        <td class="text-sm text-text-secondary">{expr.frequency === "repeat" ? "Repeat" : "One-time"}</td>
+        <td class="text-sm text-text-secondary">{expr.notes ?? "—"}</td>
+        <td>
+          <form method="POST" action="?/deleteRouteInterestExpression">
+            <input type="hidden" name="id" value={expr.id} />
+            <button type="submit" class="flex items-center justify-center w-7 h-7 rounded-lg text-text-muted hover:text-red-400 hover:bg-[rgba(239,68,68,0.12)] transition-colors duration-150" aria-label="Delete expression">
+              <Trash2 size={14} />
+            </button>
+          </form>
+        </td>
+      {/snippet}
+      {#snippet addForm()}
+        {#if humanId}
+          <form method="POST" action="?/addRouteInterestExpression" class="space-y-3">
+            <input type="hidden" name="humanId" value={humanId} />
+            <RouteInterestPicker {apiUrl} />
+            <button type="submit" class="btn-primary text-sm">
+              Add Route-Interest Expression
+            </button>
+          </form>
+        {:else}
+          <p class="text-sm text-text-muted">Link a human to this activity first to add route-interest expressions.</p>
+        {/if}
+      {/snippet}
+    </RelatedListTable>
   </div>
 
   <!-- Metadata -->
-  <div class="mt-6 glass-card p-5">
-    <h2 class="text-lg font-semibold text-text-primary mb-3">Metadata</h2>
-    <div class="grid gap-2 text-sm text-text-secondary">
-      <p>Created: {new Date(activity.createdAt).toLocaleString()}</p>
-      <p>Updated: {new Date(activity.updatedAt).toLocaleString()}</p>
-      <p>Created by: {activity.colleagueId ?? "—"}</p>
-    </div>
+  <div class="mt-6">
+    <RelatedListTable
+      title="Metadata"
+      items={metadataItems}
+      columns={[
+        { key: "field", label: "Field" },
+        { key: "value", label: "Value" },
+      ]}
+    >
+      {#snippet row(item, _searchQuery)}
+        <td class="text-sm font-medium text-text-secondary">{item.field}</td>
+        <td class="text-sm text-text-primary">{item.value}</td>
+      {/snippet}
+    </RelatedListTable>
   </div>
 </div>
 

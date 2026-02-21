@@ -14,6 +14,7 @@
   },
   "dependencies": {
     "@humans/shared": "workspace:*",
+    "@internationalized/date": "^3.11.0",
     "bits-ui": "^2.16.1",
     "clsx": "^2.1.1",
     "lucide-svelte": "^0.468.0",

@@ -4,6 +4,7 @@
   import AlertBanner from "$lib/components/AlertBanner.svelte";
   import SearchableSelect from "$lib/components/SearchableSelect.svelte";
   import GeoInterestPicker from "$lib/components/GeoInterestPicker.svelte";
+  import RouteInterestPicker from "$lib/components/RouteInterestPicker.svelte";
   import { ACTIVITY_TYPE_OPTIONS } from "$lib/constants/labels";
 
   let { data, form }: { data: PageData; form: ActionData } = $props();
@@ -21,6 +22,7 @@
   const apiUrl = $derived(data.apiUrl as string);
   let selectedType = $state("email");
   let showGeoInterest = $state(false);
+  let showRouteInterest = $state(false);
 
   function displayName(h: Human): string {
     return [h.firstName, h.middleName, h.lastName].filter(Boolean).join(" ");
@@ -127,6 +129,34 @@
           cityName="geoCity"
           countryName="geoCountry"
           notesName="geoNotes"
+        />
+      </div>
+    {/if}
+
+    <div>
+      <label class="flex items-center gap-2 text-sm text-text-secondary">
+        <input
+          type="checkbox"
+          class="rounded border-glass-border"
+          bind:checked={showRouteInterest}
+        />
+        Link a Route-Interest?
+      </label>
+    </div>
+    {#if showRouteInterest}
+      <div class="p-3 rounded-lg bg-glass border border-glass-border">
+        <RouteInterestPicker
+          {apiUrl}
+          routeInterestIdName="routeInterestId"
+          originCityName="routeOriginCity"
+          originCountryName="routeOriginCountry"
+          destinationCityName="routeDestinationCity"
+          destinationCountryName="routeDestinationCountry"
+          frequencyName="routeFrequency"
+          travelYearName="routeTravelYear"
+          travelMonthName="routeTravelMonth"
+          travelDayName="routeTravelDay"
+          notesName="routeNotes"
         />
       </div>
     {/if}

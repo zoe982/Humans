@@ -96,6 +96,9 @@ importers:
       '@humans/shared':
         specifier: workspace:*
         version: link:../../packages/shared
+      '@internationalized/date':
+        specifier: ^3.11.0
+        version: 3.11.0
       bits-ui:
         specifier: ^2.16.1
         version: 2.16.1(@internationalized/date@3.11.0)(@sveltejs/kit@2.52.0(@sveltejs/vite-plugin-svelte@5.1.1(svelte@5.51.3)(vite@6.4.1(@types/node@25.2.3)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.21.0)))(svelte@5.51.3)(typescript@5.9.3)(vite@6.4.1(@types/node@25.2.3)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.21.0)))(svelte@5.51.3)

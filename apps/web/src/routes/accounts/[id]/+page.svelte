@@ -2,14 +2,14 @@
   import { invalidateAll } from "$app/navigation";
   import type { PageData, ActionData } from "./$types";
   import RecordManagementBar from "$lib/components/RecordManagementBar.svelte";
-  import LinkedRecordBox from "$lib/components/LinkedRecordBox.svelte";
+  import RelatedListTable from "$lib/components/RelatedListTable.svelte";
   import AlertBanner from "$lib/components/AlertBanner.svelte";
   import PhoneInput from "$lib/components/PhoneInput.svelte";
   import SaveIndicator from "$lib/components/SaveIndicator.svelte";
+  import HighlightText from "$lib/components/HighlightText.svelte";
   import { toast } from "svelte-sonner";
   import TabBar from "$lib/components/TabBar.svelte";
-  import { ChevronRight, ChevronDown } from "lucide-svelte";
-  import { slide } from "svelte/transition";
+  import { Trash2 } from "lucide-svelte";
   import { createAutoSaver, type SaveStatus } from "$lib/autosave";
   import { api } from "$lib/api";
   import { onDestroy } from "svelte";
@@ -19,6 +19,11 @@
   import { formatRelativeTime, summarizeChanges } from "$lib/utils/format";
 
   let { data, form }: { data: PageData; form: ActionData } = $props();
+
+  function truncateText(s: string | null, len: number): string {
+    if (!s) return "\u2014";
+    return s.length > len ? s.slice(0, len) + "..." : s;
+  }
 
   type ConfigItem = { id: string; name: string };
   type AccountType = { id: string; name: string };
@@ -95,12 +100,10 @@
   let initialized = $state(false);
 
   // Change history
-  let historyOpen = $state(false);
   let historyEntries = $state<AuditEntry[]>([]);
   let historyLoaded = $state(false);
 
   let activeTab = $state("overview");
-  let showActivityForm = $state(false);
   let humanAddMode = $state<'link' | 'create'>('link');
 
   const accountTabs = [
@@ -196,10 +199,12 @@
     }
   }
 
-  function toggleHistory() {
-    historyOpen = !historyOpen;
-    if (historyOpen) loadHistory();
-  }
+  // Auto-load history when History tab is active
+  $effect(() => {
+    if (activeTab === "history" && !historyLoaded) {
+      void loadHistory();
+    }
+  });
 
 </script>
 
@@ -278,17 +283,23 @@
 
   <!-- Emails Section -->
   <div class="mt-6">
-    <LinkedRecordBox
+    <RelatedListTable
       title="Emails"
       items={account.emails}
+      columns={[
+        { key: "email", label: "Email" },
+        { key: "label", label: "Label" },
+        { key: "flags", label: "" },
+        { key: "delete", label: "", headerClass: "w-10" },
+      ]}
       emptyMessage="No emails yet."
       addLabel="Email"
-      deleteFormAction="?/deleteEmail"
     >
-      {#snippet itemRow(item)}
-        {@const email = item as unknown as AccountEmail}
-        <div class="flex items-center gap-3">
+      {#snippet row(email, _searchQuery)}
+        <td>
           <a href="/emails/{email.id}" class="text-sm font-medium text-accent hover:text-cyan-300">{email.email}</a>
+        </td>
+        <td>
           <div class="w-36">
             <SearchableSelect
               options={emailLabelOptions}
@@ -308,10 +319,20 @@
               }}
             />
           </div>
+        </td>
+        <td>
           {#if email.isPrimary}
             <span class="glass-badge inline-flex rounded-full px-2 py-0.5 text-xs font-medium bg-[rgba(59,130,246,0.15)] text-blue-300">Primary</span>
           {/if}
-        </div>
+        </td>
+        <td>
+          <form method="POST" action="?/deleteEmail">
+            <input type="hidden" name="id" value={email.id} />
+            <button type="submit" class="flex items-center justify-center w-7 h-7 rounded-lg text-text-muted hover:text-red-400 hover:bg-[rgba(239,68,68,0.12)] transition-colors duration-150" aria-label="Delete email">
+              <Trash2 size={14} />
+            </button>
+          </form>
+        </td>
       {/snippet}
       {#snippet addForm()}
         <form method="POST" action="?/addEmail" class="space-y-3">
@@ -344,22 +365,28 @@
           <button type="submit" class="btn-primary text-sm">Add Email</button>
         </form>
       {/snippet}
-    </LinkedRecordBox>
+    </RelatedListTable>
   </div>
 
   <!-- Phone Numbers Section -->
   <div class="mt-6">
-    <LinkedRecordBox
+    <RelatedListTable
       title="Phone Numbers"
       items={account.phoneNumbers}
+      columns={[
+        { key: "phone", label: "Phone" },
+        { key: "label", label: "Label" },
+        { key: "flags", label: "" },
+        { key: "delete", label: "", headerClass: "w-10" },
+      ]}
       emptyMessage="No phone numbers yet."
       addLabel="Phone"
-      deleteFormAction="?/deletePhoneNumber"
     >
-      {#snippet itemRow(item)}
-        {@const phone = item as unknown as AccountPhone}
-        <div class="flex items-center gap-3">
+      {#snippet row(phone, _searchQuery)}
+        <td>
           <a href="/phone-numbers/{phone.id}" class="text-sm font-medium text-accent hover:text-cyan-300">{phone.phoneNumber}</a>
+        </td>
+        <td>
           <div class="w-36">
             <SearchableSelect
               options={phoneLabelOptions}
@@ -379,13 +406,25 @@
               }}
             />
           </div>
-          {#if phone.hasWhatsapp}
-            <span class="glass-badge inline-flex rounded-full px-2 py-0.5 text-xs font-medium bg-[rgba(34,197,94,0.15)] text-green-300">WhatsApp</span>
-          {/if}
-          {#if phone.isPrimary}
-            <span class="glass-badge inline-flex rounded-full px-2 py-0.5 text-xs font-medium bg-[rgba(59,130,246,0.15)] text-blue-300">Primary</span>
-          {/if}
-        </div>
+        </td>
+        <td>
+          <div class="flex items-center gap-1">
+            {#if phone.hasWhatsapp}
+              <span class="glass-badge inline-flex rounded-full px-2 py-0.5 text-xs font-medium bg-[rgba(34,197,94,0.15)] text-green-300">WhatsApp</span>
+            {/if}
+            {#if phone.isPrimary}
+              <span class="glass-badge inline-flex rounded-full px-2 py-0.5 text-xs font-medium bg-[rgba(59,130,246,0.15)] text-blue-300">Primary</span>
+            {/if}
+          </div>
+        </td>
+        <td>
+          <form method="POST" action="?/deletePhoneNumber">
+            <input type="hidden" name="id" value={phone.id} />
+            <button type="submit" class="flex items-center justify-center w-7 h-7 rounded-lg text-text-muted hover:text-red-400 hover:bg-[rgba(239,68,68,0.12)] transition-colors duration-150" aria-label="Delete phone number">
+              <Trash2 size={14} />
+            </button>
+          </form>
+        </td>
       {/snippet}
       {#snippet addForm()}
         <form method="POST" action="?/addPhoneNumber" class="space-y-3">
@@ -418,26 +457,41 @@
           <button type="submit" class="btn-primary text-sm">Add Phone Number</button>
         </form>
       {/snippet}
-    </LinkedRecordBox>
+    </RelatedListTable>
   </div>
 
   <!-- Social Media IDs Section -->
   <div class="mt-6">
-    <LinkedRecordBox
+    <RelatedListTable
       title="Social Media IDs"
       items={account.socialIds}
+      columns={[
+        { key: "handle", label: "Handle" },
+        { key: "platform", label: "Platform" },
+        { key: "delete", label: "", headerClass: "w-10" },
+      ]}
       emptyMessage="No social media IDs yet."
       addLabel="Social ID"
-      deleteFormAction="?/deleteSocialId"
     >
-      {#snippet itemRow(item)}
-        {@const sid = item as unknown as SocialIdItem}
-        <div class="flex items-center gap-3">
+      {#snippet row(sid, _searchQuery)}
+        <td>
           <a href="/social-ids/{sid.id}" class="text-sm font-medium text-accent hover:text-cyan-300">{sid.handle}</a>
+        </td>
+        <td>
           {#if sid.platformName}
             <span class="glass-badge inline-flex rounded-full px-2 py-0.5 text-xs font-medium bg-glass text-text-secondary">{sid.platformName}</span>
+          {:else}
+            <span class="text-text-muted">&mdash;</span>
           {/if}
-        </div>
+        </td>
+        <td>
+          <form method="POST" action="?/deleteSocialId">
+            <input type="hidden" name="id" value={sid.id} />
+            <button type="submit" class="flex items-center justify-center w-7 h-7 rounded-lg text-text-muted hover:text-red-400 hover:bg-[rgba(239,68,68,0.12)] transition-colors duration-150" aria-label="Delete social ID">
+              <Trash2 size={14} />
+            </button>
+          </form>
+        </td>
       {/snippet}
       {#snippet addForm()}
         <form method="POST" action="?/addSocialId" class="space-y-3">
@@ -464,7 +518,7 @@
           <button type="submit" class="btn-primary text-sm">Add Social ID</button>
         </form>
       {/snippet}
-    </LinkedRecordBox>
+    </RelatedListTable>
   </div>
 
   </div><!-- /panel-overview -->
@@ -474,41 +528,56 @@
 
   <!-- Linked Humans Section -->
   <div class="mt-6">
-    <LinkedRecordBox
+    <RelatedListTable
       title="Linked Humans"
       items={account.linkedHumans}
+      columns={[
+        { key: "name", label: "Name" },
+        { key: "role", label: "Role" },
+        { key: "emails", label: "Emails" },
+        { key: "phones", label: "Phones" },
+        { key: "unlink", label: "", headerClass: "w-10" },
+      ]}
       emptyMessage="No humans linked yet."
       addLabel="Human"
-      deleteFormAction="?/unlinkHuman"
     >
-      {#snippet itemRow(item)}
-        {@const link = item as unknown as LinkedHuman}
-        <div>
-          <div class="flex items-center gap-3">
-            <a href="/humans/{link.humanId}" class="text-sm font-medium text-accent hover:text-cyan-300">
-              {link.humanName}
-            </a>
-            {#if link.labelName}
-              <span class="glass-badge inline-flex rounded-full px-2 py-0.5 text-xs font-medium bg-[rgba(249,115,22,0.15)] text-orange-300">
-                {link.labelName}
-              </span>
-            {/if}
-          </div>
-          {#if link.emails.length > 0}
-            <div class="mt-1 flex flex-wrap gap-2">
-              {#each link.emails as e}
-                <span class="text-xs text-text-muted">{e.email}</span>
-              {/each}
-            </div>
+      {#snippet row(link, _searchQuery)}
+        <td>
+          <a href="/humans/{link.humanId}" class="text-sm font-medium text-accent hover:text-cyan-300">
+            {link.humanName}
+          </a>
+        </td>
+        <td>
+          {#if link.labelName}
+            <span class="glass-badge inline-flex rounded-full px-2 py-0.5 text-xs font-medium bg-[rgba(249,115,22,0.15)] text-orange-300">
+              {link.labelName}
+            </span>
+          {:else}
+            <span class="text-text-muted">&mdash;</span>
           {/if}
-          {#if link.phoneNumbers.length > 0}
-            <div class="mt-0.5 flex flex-wrap gap-2">
-              {#each link.phoneNumbers as p}
-                <span class="text-xs text-text-muted">{p.phoneNumber}</span>
-              {/each}
-            </div>
-          {/if}
-        </div>
+        </td>
+        <td class="text-xs text-text-muted">
+          {#each link.emails as e, i}
+            {#if i > 0}, {/if}{e.email}
+          {:else}
+            &mdash;
+          {/each}
+        </td>
+        <td class="text-xs text-text-muted">
+          {#each link.phoneNumbers as p, i}
+            {#if i > 0}, {/if}{p.phoneNumber}
+          {:else}
+            &mdash;
+          {/each}
+        </td>
+        <td>
+          <form method="POST" action="?/unlinkHuman">
+            <input type="hidden" name="id" value={link.id} />
+            <button type="submit" class="flex items-center justify-center w-7 h-7 rounded-lg text-text-muted hover:text-red-400 hover:bg-[rgba(239,68,68,0.12)] transition-colors duration-150" aria-label="Unlink human">
+              <Trash2 size={14} />
+            </button>
+          </form>
+        </td>
       {/snippet}
       {#snippet addForm()}
         <div class="flex gap-2 mb-3">
@@ -589,7 +658,7 @@
           </form>
         {/if}
       {/snippet}
-    </LinkedRecordBox>
+    </RelatedListTable>
   </div>
 
   </div><!-- /panel-people -->
@@ -598,20 +667,41 @@
   <div id="panel-activity" role="tabpanel" aria-labelledby="tab-activity" class={activeTab !== "activity" ? "hidden" : ""}>
 
   <!-- Account Activities (direct) -->
-  <div class="mt-6 glass-card p-5">
-    <div class="flex items-center justify-between mb-4">
-      <h2 class="text-lg font-semibold text-text-primary">Account Activities</h2>
-      <button
-        type="button"
-        onclick={() => { showActivityForm = !showActivityForm; }}
-        class="btn-ghost text-sm py-1 px-3"
-      >
-        {showActivityForm ? "Cancel" : "+ Add Activity"}
-      </button>
-    </div>
-
-    {#if showActivityForm}
-      <div class="mb-4 p-4 rounded-lg bg-glass border border-glass-border">
+  <div class="mt-6">
+    <RelatedListTable
+      title="Account Activities"
+      items={account.activities}
+      columns={[
+        { key: "type", label: "Type", sortable: true, sortValue: (a) => activityTypeLabels[a.type] ?? a.type },
+        { key: "subject", label: "Subject", sortable: true, sortValue: (a) => a.subject },
+        { key: "notes", label: "Notes", sortable: true, sortValue: (a) => a.notes ?? "" },
+        { key: "date", label: "Date", sortable: true, sortValue: (a) => a.activityDate },
+      ]}
+      defaultSortKey="date"
+      defaultSortDirection="desc"
+      searchFilter={(a, q) => {
+        const typeLabel = (activityTypeLabels[a.type] ?? a.type).toLowerCase();
+        return a.subject.toLowerCase().includes(q) ||
+          (a.notes ?? "").toLowerCase().includes(q) ||
+          typeLabel.includes(q);
+      }}
+      emptyMessage="No account activities yet."
+      searchEmptyMessage="No activities match your search."
+      addLabel="Activity"
+    >
+      {#snippet row(activity, searchQuery)}
+        <td>
+          <span class="glass-badge inline-flex rounded-full px-2 py-0.5 text-xs font-medium {activityTypeColors[activity.type] ?? 'bg-glass text-text-secondary'}">
+            <HighlightText text={activityTypeLabels[activity.type] ?? activity.type} query={searchQuery} />
+          </span>
+        </td>
+        <td class="text-sm font-medium max-w-sm truncate">
+          <HighlightText text={activity.subject} query={searchQuery} />
+        </td>
+        <td class="text-text-muted max-w-xs truncate"><HighlightText text={truncateText(activity.notes ?? activity.body, 80)} query={searchQuery} /></td>
+        <td class="text-text-muted whitespace-nowrap">{new Date(activity.activityDate).toLocaleString(undefined, { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })}</td>
+      {/snippet}
+      {#snippet addForm()}
         <form method="POST" action="?/addActivity" class="space-y-3">
           <div>
             <label for="activityType" class="block text-sm font-medium text-text-secondary">Type</label>
@@ -648,58 +738,51 @@
           </div>
           <button type="submit" class="btn-primary text-sm">Add Activity</button>
         </form>
-      </div>
-    {/if}
-
-    {#if account.activities.length === 0}
-      <p class="text-text-muted text-sm">No account activities yet.</p>
-    {:else}
-      <div class="space-y-2">
-        {#each account.activities as activity (activity.id)}
-          <div class="p-3 rounded-lg bg-glass hover:bg-glass-hover transition-colors">
-            <div class="flex items-center justify-between">
-              <div class="flex items-center gap-2">
-                <span class="glass-badge inline-flex rounded-full px-2 py-0.5 text-xs font-medium {activityTypeColors[activity.type] ?? 'bg-glass text-text-secondary'}">
-                  {activityTypeLabels[activity.type] ?? activity.type}
-                </span>
-                <p class="text-sm font-medium text-text-primary">{activity.subject}</p>
-              </div>
-              <span class="text-xs text-text-muted">{new Date(activity.activityDate).toLocaleDateString()}</span>
-            </div>
-            {#if activity.notes || activity.body}
-              <p class="mt-1 text-sm text-text-secondary">{activity.notes ?? activity.body}</p>
-            {/if}
-          </div>
-        {/each}
-      </div>
-    {/if}
+      {/snippet}
+    </RelatedListTable>
   </div>
 
   <!-- Human Activities (from linked humans, read-only) -->
-  {#if account.humanActivities.length > 0}
-    <div class="mt-6 glass-card p-5">
-      <h2 class="text-lg font-semibold text-text-primary mb-4">Human Activities</h2>
-      <div class="space-y-2">
-        {#each account.humanActivities as activity (activity.id)}
-          <div class="p-3 rounded-lg bg-glass hover:bg-glass-hover transition-colors">
-            <div class="flex items-center justify-between">
-              <div class="flex items-center gap-2">
-                <span class="glass-badge inline-flex rounded-full px-2 py-0.5 text-xs font-medium {activityTypeColors[activity.type] ?? 'bg-glass text-text-secondary'}">
-                  {activityTypeLabels[activity.type] ?? activity.type}
-                </span>
-                <p class="text-sm font-medium text-text-primary">{activity.subject}</p>
-                <span class="text-xs text-text-muted">via {activity.viaHumanName}</span>
-              </div>
-              <span class="text-xs text-text-muted">{new Date(activity.activityDate).toLocaleDateString()}</span>
-            </div>
-            {#if activity.notes || activity.body}
-              <p class="mt-1 text-sm text-text-secondary">{activity.notes ?? activity.body}</p>
-            {/if}
-          </div>
-        {/each}
-      </div>
-    </div>
-  {/if}
+  <div class="mt-6">
+    <RelatedListTable
+      title="Human Activities"
+      items={account.humanActivities}
+      columns={[
+        { key: "type", label: "Type", sortable: true, sortValue: (a) => activityTypeLabels[a.type] ?? a.type },
+        { key: "subject", label: "Subject", sortable: true, sortValue: (a) => a.subject },
+        { key: "via", label: "Via" },
+        { key: "notes", label: "Notes", sortable: true, sortValue: (a) => a.notes ?? "" },
+        { key: "date", label: "Date", sortable: true, sortValue: (a) => a.activityDate },
+      ]}
+      defaultSortKey="date"
+      defaultSortDirection="desc"
+      searchFilter={(a, q) => {
+        const typeLabel = (activityTypeLabels[a.type] ?? a.type).toLowerCase();
+        return a.subject.toLowerCase().includes(q) ||
+          (a.notes ?? "").toLowerCase().includes(q) ||
+          typeLabel.includes(q) ||
+          a.viaHumanName.toLowerCase().includes(q);
+      }}
+      emptyMessage="No human activities."
+      searchEmptyMessage="No activities match your search."
+    >
+      {#snippet row(activity, searchQuery)}
+        <td>
+          <span class="glass-badge inline-flex rounded-full px-2 py-0.5 text-xs font-medium {activityTypeColors[activity.type] ?? 'bg-glass text-text-secondary'}">
+            <HighlightText text={activityTypeLabels[activity.type] ?? activity.type} query={searchQuery} />
+          </span>
+        </td>
+        <td class="text-sm font-medium max-w-sm truncate">
+          <HighlightText text={activity.subject} query={searchQuery} />
+        </td>
+        <td class="text-xs text-text-muted">
+          <HighlightText text={activity.viaHumanName} query={searchQuery} />
+        </td>
+        <td class="text-text-muted max-w-xs truncate"><HighlightText text={truncateText(activity.notes ?? activity.body, 80)} query={searchQuery} /></td>
+        <td class="text-text-muted whitespace-nowrap">{new Date(activity.activityDate).toLocaleString(undefined, { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })}</td>
+      {/snippet}
+    </RelatedListTable>
+  </div>
 
   </div><!-- /panel-activity -->
 
@@ -707,43 +790,30 @@
   <div id="panel-history" role="tabpanel" aria-labelledby="tab-history" class={activeTab !== "history" ? "hidden" : ""}>
 
   <!-- Change History -->
-  <div class="mt-6 glass-card p-5">
-    <button
-      type="button"
-      aria-expanded={historyOpen}
-      onclick={toggleHistory}
-      class="flex items-center gap-2 w-full text-left"
+  <div class="mt-6">
+    <RelatedListTable
+      title="Change History"
+      items={historyEntries}
+      columns={[
+        { key: "colleague", label: "Colleague" },
+        { key: "action", label: "Action" },
+        { key: "time", label: "Time" },
+        { key: "changes", label: "Changes" },
+      ]}
+      emptyMessage="No changes recorded yet."
     >
-      <span class="text-lg font-semibold text-text-primary">Change History</span>
-      <span class="text-text-muted" aria-hidden="true">
-        {#if historyOpen}<ChevronDown size={16} />{:else}<ChevronRight size={16} />{/if}
-      </span>
-    </button>
-
-    {#if historyOpen}
-      <div transition:slide={{ duration: 200 }} class="mt-4 space-y-2">
-        {#if historyEntries.length === 0}
-          <p class="text-text-muted text-sm">No changes recorded yet.</p>
-        {:else}
-          {#each historyEntries as entry (entry.id)}
-            <div class="p-3 rounded-lg bg-glass">
-              <div class="flex items-center justify-between">
-                <div class="flex items-center gap-2">
-                  <span class="text-sm font-medium text-text-primary">{entry.colleagueName ?? "System"}</span>
-                  <span class="glass-badge inline-flex rounded-full px-2 py-0.5 text-xs font-medium bg-glass text-text-secondary">
-                    {entry.action}
-                  </span>
-                </div>
-                <span class="text-xs text-text-muted">{formatRelativeTime(entry.createdAt)}</span>
-              </div>
-              <p class="mt-1 text-xs text-text-secondary">{summarizeChanges(entry.changes)}</p>
-            </div>
-          {/each}
-        {/if}
-      </div>
-    {/if}
+      {#snippet row(entry, _searchQuery)}
+        <td class="text-sm font-medium text-text-primary">{entry.colleagueName ?? "System"}</td>
+        <td>
+          <span class="glass-badge inline-flex rounded-full px-2 py-0.5 text-xs font-medium bg-glass text-text-secondary">
+            {entry.action}
+          </span>
+        </td>
+        <td class="text-sm text-text-muted whitespace-nowrap">{formatRelativeTime(entry.createdAt)}</td>
+        <td class="text-xs text-text-secondary max-w-sm truncate">{summarizeChanges(entry.changes)}</td>
+      {/snippet}
+    </RelatedListTable>
   </div>
 
   </div><!-- /panel-history -->
 </div>
-

@@ -3,7 +3,9 @@
   import RecordManagementBar from "$lib/components/RecordManagementBar.svelte";
   import StatusBadge from "$lib/components/StatusBadge.svelte";
   import AlertBanner from "$lib/components/AlertBanner.svelte";
-  import { bookingRequestStatusColors } from "$lib/constants/colors";
+  import RelatedListTable from "$lib/components/RelatedListTable.svelte";
+  import HighlightText from "$lib/components/HighlightText.svelte";
+  import { bookingRequestStatusColors, activityTypeColors } from "$lib/constants/colors";
   import { bookingRequestStatusLabels, depositStatusLabels, balanceStatusLabels, activityTypeLabels, ACTIVITY_TYPE_OPTIONS } from "$lib/constants/labels";
   import SearchableSelect from "$lib/components/SearchableSelect.svelte";
 
@@ -52,7 +54,6 @@
   const isAdmin = $derived(data.user?.role === "admin");
   const isManager = $derived(data.user?.role === "manager" || data.user?.role === "admin");
 
-  let showActivityForm = $state(false);
   let showDeleteConfirm = $state(false);
   let editingNote = $state(false);
   let noteValue = $state("");
@@ -326,79 +327,81 @@
   </div>
 
   <!-- Activities -->
-  <div class="glass-card p-6 mb-6">
-    <div class="flex items-center justify-between">
-      <h2 class="text-lg font-semibold text-text-primary">Activities</h2>
-      <button
-        type="button"
-        onclick={() => { showActivityForm = !showActivityForm; }}
-        class="btn-ghost text-sm"
-      >
-        {showActivityForm ? "Cancel" : "+ Add Activity"}
-      </button>
-    </div>
-
-    {#if showActivityForm}
-      <form method="POST" action="?/addActivity" class="mt-4 space-y-3 rounded-xl border border-glass-border bg-glass p-4">
-        <div>
-          <label for="type" class="block text-sm font-medium text-text-secondary">Type</label>
-          <SearchableSelect
-            options={ACTIVITY_TYPE_OPTIONS}
-            name="type"
-            id="type"
-            value="email"
-            placeholder="Select type..."
-          />
-        </div>
-        <div>
-          <label for="subject" class="block text-sm font-medium text-text-secondary">Subject</label>
-          <input
-            id="subject" name="subject" type="text" required
-            class="glass-input mt-1 block w-full px-3 py-2 text-sm"
-            placeholder="Activity subject"
-          />
-        </div>
-        <div>
-          <label for="notes" class="block text-sm font-medium text-text-secondary">Notes</label>
-          <textarea
-            id="notes" name="notes" rows="3"
-            class="glass-input mt-1 block w-full px-3 py-2 text-sm"
-            placeholder="Optional notes..."
-          ></textarea>
-        </div>
-        <div>
-          <label for="activityDate" class="block text-sm font-medium text-text-secondary">Date</label>
-          <input
-            id="activityDate" name="activityDate" type="datetime-local"
-            class="glass-input mt-1 block w-full px-3 py-2 text-sm"
-          />
-        </div>
-        <button type="submit" class="btn-primary text-sm">
-          Add Activity
-        </button>
-      </form>
-    {/if}
-
-    <ul class="mt-4 divide-y divide-glass-border">
-      {#each activities as activity (activity.id)}
-        <li class="py-3">
-          <div class="flex items-center justify-between">
-            <div class="flex items-center gap-2">
-              <span class="glass-badge bg-glass text-text-secondary">
-                {activityTypeLabels[activity.type] ?? activity.type}
-              </span>
-              <p class="text-sm font-medium text-text-primary">{activity.subject}</p>
-            </div>
-            <span class="text-xs text-text-muted">{new Date(activity.activityDate).toLocaleDateString()}</span>
+  <div class="mb-6">
+    <RelatedListTable
+      title="Activities"
+      items={activities}
+      columns={[
+        { key: "type", label: "Type", sortable: true, sortValue: (a) => activityTypeLabels[a.type] ?? a.type },
+        { key: "subject", label: "Subject", sortable: true, sortValue: (a) => a.subject },
+        { key: "notes", label: "Notes", sortable: true, sortValue: (a) => a.notes ?? "" },
+        { key: "date", label: "Date", sortable: true, sortValue: (a) => a.activityDate },
+      ]}
+      defaultSortKey="date"
+      defaultSortDirection="desc"
+      searchFilter={(a, q) => {
+        const typeLabel = (activityTypeLabels[a.type] ?? a.type).toLowerCase();
+        return a.subject.toLowerCase().includes(q) ||
+          (a.notes ?? "").toLowerCase().includes(q) ||
+          typeLabel.includes(q);
+      }}
+      emptyMessage="No activities yet."
+      searchEmptyMessage="No activities match your search."
+      addLabel="Activity"
+    >
+      {#snippet row(activity, searchQuery)}
+        <td>
+          <span class="glass-badge inline-flex rounded-full px-2 py-0.5 text-xs font-medium {activityTypeColors[activity.type] ?? 'bg-glass text-text-secondary'}">
+            <HighlightText text={activityTypeLabels[activity.type] ?? activity.type} query={searchQuery} />
+          </span>
+        </td>
+        <td class="text-sm font-medium max-w-sm truncate">
+          <HighlightText text={activity.subject} query={searchQuery} />
+        </td>
+        <td class="text-text-muted max-w-xs truncate"><HighlightText text={activity.notes ?? activity.body ?? "—"} query={searchQuery} /></td>
+        <td class="text-text-muted whitespace-nowrap">{new Date(activity.activityDate).toLocaleString(undefined, { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })}</td>
+      {/snippet}
+      {#snippet addForm()}
+        <form method="POST" action="?/addActivity" class="space-y-3">
+          <div>
+            <label for="type" class="block text-sm font-medium text-text-secondary">Type</label>
+            <SearchableSelect
+              options={ACTIVITY_TYPE_OPTIONS}
+              name="type"
+              id="type"
+              value="email"
+              placeholder="Select type..."
+            />
           </div>
-          {#if activity.notes || activity.body}
-            <p class="mt-1 text-sm text-text-muted">{activity.notes ?? activity.body}</p>
-          {/if}
-        </li>
-      {:else}
-        <li class="py-4 text-center text-sm text-text-muted">No activities yet.</li>
-      {/each}
-    </ul>
+          <div>
+            <label for="subject" class="block text-sm font-medium text-text-secondary">Subject</label>
+            <input
+              id="subject" name="subject" type="text" required
+              class="glass-input mt-1 block w-full px-3 py-2 text-sm"
+              placeholder="Activity subject"
+            />
+          </div>
+          <div>
+            <label for="notes" class="block text-sm font-medium text-text-secondary">Notes</label>
+            <textarea
+              id="notes" name="notes" rows="3"
+              class="glass-input mt-1 block w-full px-3 py-2 text-sm"
+              placeholder="Optional notes..."
+            ></textarea>
+          </div>
+          <div>
+            <label for="activityDate" class="block text-sm font-medium text-text-secondary">Date</label>
+            <input
+              id="activityDate" name="activityDate" type="datetime-local"
+              class="glass-input mt-1 block w-full px-3 py-2 text-sm"
+            />
+          </div>
+          <button type="submit" class="btn-primary text-sm">
+            Add Activity
+          </button>
+        </form>
+      {/snippet}
+    </RelatedListTable>
   </div>
 
   <!-- Danger Zone (Admin only) -->

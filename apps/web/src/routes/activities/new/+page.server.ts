@@ -114,6 +114,52 @@ export const actions = {
       });
     }
 
+    // If route-interest fields are present, create a route-interest expression linked to this activity
+    const routeInterestId = (form.get("routeInterestId") as string)?.trim();
+    const routeOriginCity = (form.get("routeOriginCity") as string)?.trim();
+    const routeOriginCountry = (form.get("routeOriginCountry") as string)?.trim();
+    const routeDestCity = (form.get("routeDestinationCity") as string)?.trim();
+    const routeDestCountry = (form.get("routeDestinationCountry") as string)?.trim();
+
+    if (routeInterestId || (routeOriginCity && routeOriginCountry && routeDestCity && routeDestCountry)) {
+      let activityId: string | undefined;
+      if (isObjData(resBody)) {
+        activityId = (resBody.data as { id?: string }).id;
+      }
+
+      const routePayload: Record<string, unknown> = {
+        humanId,
+        activityId,
+        frequency: form.get("routeFrequency") || "one_time",
+        notes: (form.get("routeNotes") as string)?.trim() || undefined,
+      };
+
+      const routeTravelYear = form.get("routeTravelYear");
+      const routeTravelMonth = form.get("routeTravelMonth");
+      const routeTravelDay = form.get("routeTravelDay");
+      if (routeTravelYear) routePayload.travelYear = Number(routeTravelYear);
+      if (routeTravelMonth) routePayload.travelMonth = Number(routeTravelMonth);
+      if (routeTravelDay) routePayload.travelDay = Number(routeTravelDay);
+
+      if (routeInterestId) {
+        routePayload.routeInterestId = routeInterestId;
+      } else {
+        routePayload.originCity = routeOriginCity;
+        routePayload.originCountry = routeOriginCountry;
+        routePayload.destinationCity = routeDestCity;
+        routePayload.destinationCountry = routeDestCountry;
+      }
+
+      await fetch(`${PUBLIC_API_URL}/api/route-interest-expressions`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Cookie: `humans_session=${sessionToken ?? ""}`,
+        },
+        body: JSON.stringify(routePayload),
+      });
+    }
+
     redirect(302, "/activities");
   },
 };

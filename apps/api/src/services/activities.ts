@@ -1,5 +1,5 @@
 import { eq, and, gte, lte, sql, desc, like, or } from "drizzle-orm";
-import { activities, humans, accounts, geoInterestExpressions, geoInterests } from "@humans/db/schema";
+import { activities, humans, accounts, geoInterestExpressions, geoInterests, routeInterestExpressions, routeInterests } from "@humans/db/schema";
 import { createId } from "@humans/db";
 import { ERROR_CODES } from "@humans/shared";
 import { notFound } from "../lib/errors";
@@ -102,11 +102,33 @@ export async function getActivityDetail(db: DB, id: string) {
     };
   });
 
+  // Fetch linked route-interest expressions
+  const routeExpressions = await db
+    .select()
+    .from(routeInterestExpressions)
+    .where(eq(routeInterestExpressions.activityId, id));
+
+  const allRouteInterests = routeExpressions.length > 0
+    ? await db.select().from(routeInterests)
+    : [];
+
+  const routeExprData = routeExpressions.map((expr) => {
+    const ri = allRouteInterests.find((r) => r.id === expr.routeInterestId);
+    return {
+      ...expr,
+      originCity: ri?.originCity ?? null,
+      originCountry: ri?.originCountry ?? null,
+      destinationCity: ri?.destinationCity ?? null,
+      destinationCountry: ri?.destinationCountry ?? null,
+    };
+  });
+
   return {
     ...activity,
     humanName: human ? `${human.firstName} ${human.lastName}` : null,
     accountName: account?.name ?? null,
     geoInterestExpressions: geoExpressions,
+    routeInterestExpressions: routeExprData,
   };
 }
 
@@ -219,6 +241,12 @@ export async function deleteActivity(db: DB, id: string) {
     .update(geoInterestExpressions)
     .set({ activityId: null })
     .where(eq(geoInterestExpressions.activityId, id));
+
+  // Nullify activityId on any route-interest expressions referencing this activity
+  await db
+    .update(routeInterestExpressions)
+    .set({ activityId: null })
+    .where(eq(routeInterestExpressions.activityId, id));
 
   await db.delete(activities).where(eq(activities.id, id));
 }

@@ -24,6 +24,7 @@
     accountId: string | null;
     accountName: string | null;
     routeSignupId: string | null;
+    websiteBookingRequestId: string | null;
     createdAt: string;
   };
 
@@ -48,6 +49,7 @@
     if (a.humanName && a.humanId) return { label: a.humanName, href: `/humans/${a.humanId}` };
     if (a.accountName && a.accountId) return { label: a.accountName, href: `/accounts/${a.accountId}` };
     if (a.routeSignupId) return { label: `Signup ${a.routeSignupId.slice(0, 8)}...`, href: `/leads/route-signups/${a.routeSignupId}` };
+    if (a.websiteBookingRequestId) return { label: `Booking ${a.websiteBookingRequestId.slice(0, 8)}...`, href: `/leads/website-booking-requests/${a.websiteBookingRequestId}` };
     return null;
   }
 
