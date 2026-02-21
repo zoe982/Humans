@@ -149,7 +149,7 @@
     <ul
       id={listboxId}
       role="listbox"
-      class="glass-popover glass-dropdown-animate absolute z-50 mt-1 w-full min-w-[8rem] max-h-48 overflow-auto py-1"
+      class="glass-popover glass-dropdown-animate absolute z-50 mt-1 w-full min-w-[8rem] max-h-56 overflow-auto py-1.5 px-1"
       aria-label="{name} options"
     >
       {#each displayList as option, i}
@@ -160,20 +160,22 @@
           id="{listboxId}-option-{i}"
           role="option"
           aria-selected={option.value === selectedValue}
-          class="glass-dropdown-item flex items-center justify-between text-left {i === highlightIndex ? 'bg-glass-hover !text-text-primary' : ''}"
+          class="glass-dropdown-item flex items-center justify-between gap-3 text-left {i === highlightIndex ? '!bg-[rgba(255,255,255,0.12)]' : ''} {option.value === selectedValue ? '!bg-accent-dim' : ''}"
           onmousedown={(e) => { e.preventDefault(); select(option); }}
           onmouseenter={() => { highlightIndex = i; }}
         >
-          <span>{option.label}</span>
-          {#if option.value === selectedValue}
-            <Check class="h-4 w-4 text-accent" aria-hidden="true" />
-          {/if}
+          <span class="truncate">{option.label}</span>
+          <span class="flex h-4 w-4 shrink-0 items-center justify-center">
+            {#if option.value === selectedValue}
+              <Check class="h-4 w-4 text-accent" aria-hidden="true" />
+            {/if}
+          </span>
         </li>
       {/each}
     </ul>
   {/if}
   {#if open && query.trim() !== "" && displayList.length === 0}
-    <div class="glass-popover glass-dropdown-animate absolute z-50 mt-1 w-full" role="status">
+    <div class="glass-popover glass-dropdown-animate absolute z-50 mt-1 w-full py-1" role="status">
       <p class="glass-dropdown-empty">{emptyMessage}</p>
     </div>
   {/if}

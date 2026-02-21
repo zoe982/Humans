@@ -9,12 +9,12 @@
 <SelectPrimitive.Portal>
 	<SelectPrimitive.Content
 		class={cn(
-			"glass-popover relative z-50 max-h-96 min-w-[8rem] overflow-hidden p-1",
+			"glass-popover glass-dropdown-animate relative z-50 max-h-96 min-w-[8rem] overflow-hidden py-1.5",
 			className,
 		)}
 		{...restProps}
 	>
-		<SelectPrimitive.Viewport class="p-1">
+		<SelectPrimitive.Viewport class="px-1">
 			{@render children?.()}
 		</SelectPrimitive.Viewport>
 	</SelectPrimitive.Content>
