@@ -346,6 +346,55 @@ describe("SearchableSelect", () => {
     });
   });
 
+  // ── Dropdown layout ────────────────────────────────────────────
+
+  describe("Dropdown layout", () => {
+    it("with emptyOption='None' and no real options, dropdown shows exactly 1 item", async () => {
+      const { container } = render(SearchableSelect, {
+        props: { options: [], emptyOption: "None", name: "test", placeholder: "Pick..." },
+      });
+      const input = container.querySelector('input[type="text"]')!;
+      await fireEvent.focus(input);
+
+      const listbox = container.querySelector('[role="listbox"]');
+      expect(listbox).not.toBeNull();
+      const optionItems = listbox!.querySelectorAll('[role="option"]');
+      expect(optionItems).toHaveLength(1);
+      expect(optionItems[0]?.textContent?.trim()).toBe("None");
+    });
+
+    it("selecting emptyOption fires onSelect with empty string", async () => {
+      const onSelect = vi.fn();
+      const { container } = render(SearchableSelect, {
+        props: {
+          options: [{ value: "a", label: "Alpha" }],
+          emptyOption: "None",
+          name: "test",
+          onSelect,
+        },
+      });
+      const input = container.querySelector('input[type="text"]')!;
+      await fireEvent.focus(input);
+
+      const noneOption = screen.getByText("None");
+      await fireEvent.mouseDown(noneOption);
+
+      expect(onSelect).toHaveBeenCalledWith("");
+    });
+
+    it("dropdown ul has min-w-[8rem] class", async () => {
+      const { container } = render(SearchableSelect, {
+        props: { options, name: "test" },
+      });
+      const input = container.querySelector('input[type="text"]')!;
+      await fireEvent.focus(input);
+
+      const listbox = container.querySelector('[role="listbox"]');
+      expect(listbox).not.toBeNull();
+      expect(listbox!.classList.contains("min-w-[8rem]")).toBe(true);
+    });
+  });
+
   // ── Accessibility (axe-core) ────────────────────────────────────
 
   describe("Accessibility", () => {

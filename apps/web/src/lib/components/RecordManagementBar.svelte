@@ -64,7 +64,7 @@
         {#if onStatusChange}
           <Select.Root type="single" value={selectedStatus} onValueChange={handleBitsStatusChange}>
             <Select.Trigger class="w-40 text-sm" aria-label="Status">
-              <Select.Value placeholder="Select status..." />
+              {statusLabels?.[selectedStatus] ?? selectedStatus ?? "Select status..."}
             </Select.Trigger>
             <Select.Content>
               {#each statusOptions as opt}
@@ -77,7 +77,7 @@
             <input type="hidden" name="status" value={selectedStatus} />
             <Select.Root type="single" value={selectedStatus} onValueChange={(v) => { if (v) selectedStatus = v; }}>
               <Select.Trigger class="w-40 text-sm" aria-label="Status">
-                <Select.Value placeholder="Select status..." />
+                {statusLabels?.[selectedStatus] ?? selectedStatus ?? "Select status..."}
               </Select.Trigger>
               <Select.Content>
                 {#each statusOptions as opt}

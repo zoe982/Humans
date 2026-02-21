@@ -160,7 +160,7 @@
                   if (hidden) hidden.value = v;
                 }}>
                   <Select.Trigger class="w-28 text-xs">
-                    <Select.Value placeholder="Role" />
+                    {colleague.role || "Role"}
                   </Select.Trigger>
                   <Select.Content>
                     {#each ["viewer", "agent", "manager", "admin"] as r}

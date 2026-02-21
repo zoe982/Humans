@@ -357,7 +357,7 @@
           <a href="/emails/{email.id}" class="text-sm font-medium text-accent hover:text-cyan-300">{email.email}</a>
         </td>
         <td>
-          <div class="w-36">
+          <div class="w-44">
             <SearchableSelect
               options={emailLabelOptions}
               name="emailLabel-{email.id}"
@@ -448,7 +448,7 @@
           <a href="/phone-numbers/{phone.id}" class="text-sm font-medium text-accent hover:text-cyan-300">{phone.phoneNumber}</a>
         </td>
         <td>
-          <div class="w-36">
+          <div class="w-44">
             <SearchableSelect
               options={phoneLabelOptions}
               name="phoneLabel-{phone.id}"
@@ -895,13 +895,13 @@
       {/snippet}
       {#snippet addForm()}
         <form method="POST" action="?/addActivity" class="space-y-3">
-          <div class="grid gap-3 sm:grid-cols-2">
-            <div>
+          <div class="flex gap-3 items-end">
+            <div class="w-48 shrink-0">
               <label for="activityType" class="block text-sm font-medium text-text-secondary mb-1">Type</label>
               <input type="hidden" name="type" value={newActivityType} />
               <Select.Root type="single" value={newActivityType} onValueChange={(v) => { if (v) newActivityType = v; }}>
                 <Select.Trigger>
-                  <Select.Value placeholder="Select type..." />
+                  {activityTypeLabels[newActivityType] ?? "Select type..."}
                 </Select.Trigger>
                 <Select.Content>
                   {#each ACTIVITY_TYPE_OPTIONS as opt}
@@ -910,7 +910,7 @@
                 </Select.Content>
               </Select.Root>
             </div>
-            <div>
+            <div class="flex-1 min-w-0">
               <label for="activityDate" class="block text-sm font-medium text-text-secondary mb-1">Date</label>
               <GlassDateTimePicker name="activityDate" id="activityDate" />
             </div>

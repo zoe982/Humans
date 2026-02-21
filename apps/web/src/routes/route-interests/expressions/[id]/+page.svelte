@@ -164,7 +164,7 @@
       <label for="frequency" class="block text-sm font-medium text-text-secondary mb-1">Frequency</label>
       <Select.Root type="single" value={frequency} onValueChange={(v) => { if (v) { frequency = v; triggerSaveImmediate(); } }}>
         <Select.Trigger class="w-full sm:w-48 text-sm">
-          <Select.Value placeholder="Select frequency..." />
+          {frequency === "repeat" ? "Repeat" : "One-time"}
         </Select.Trigger>
         <Select.Content>
           <Select.Item value="one_time">One-time</Select.Item>

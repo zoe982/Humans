@@ -85,7 +85,7 @@
       <input type="hidden" name="resolutionStatus" value={resolutionStatus} />
       <Select.Root type="single" value={resolutionStatus || "all"} onValueChange={(v) => { resolutionStatus = v === "all" ? "" : (v ?? ""); }}>
         <Select.Trigger class="w-32 text-sm">
-          <Select.Value placeholder="All" />
+          {resolutionStatus === "open" ? "Open" : resolutionStatus === "resolved" ? "Resolved" : "All"}
         </Select.Trigger>
         <Select.Content>
           <Select.Item value="all">All</Select.Item>

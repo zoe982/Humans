@@ -100,6 +100,7 @@
   let selectedHumanId = $state("");
   let showHumanDropdown = $state(false);
   let notes = $state("");
+  let addFrequency = $state("one_time");
 
   function humanDisplayName(h: Human): string {
     return [h.firstName, h.middleName, h.lastName].filter(Boolean).join(" ");
@@ -134,6 +135,7 @@
     humanSearch = "";
     selectedHumanId = "";
     notes = "";
+    addFrequency = "one_time";
   }
 
   function formatTravelDate(expr: Expression): string {
@@ -363,12 +365,13 @@
         <div>
           <label for="frequency" class="block text-sm font-medium text-text-secondary mb-1">Frequency</label>
           <input type="hidden" name="frequency" value="one_time" id="frequency-hidden" />
-          <Select.Root type="single" value="one_time" onValueChange={(v) => {
+          <Select.Root type="single" value={addFrequency} onValueChange={(v) => {
             const hidden = document.getElementById("frequency-hidden") as HTMLInputElement | null;
             if (hidden && v) hidden.value = v;
+            if (v) addFrequency = v;
           }}>
             <Select.Trigger class="w-full text-sm">
-              <Select.Value placeholder="Select frequency..." />
+              {addFrequency === "repeat" ? "Repeat" : "One-time"}
             </Select.Trigger>
             <Select.Content>
               <Select.Item value="one_time">One-time</Select.Item>

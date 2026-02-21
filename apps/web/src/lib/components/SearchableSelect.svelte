@@ -149,7 +149,7 @@
     <ul
       id={listboxId}
       role="listbox"
-      class="glass-popover glass-dropdown-animate absolute z-50 mt-1 w-full max-h-48 overflow-auto py-1"
+      class="glass-popover glass-dropdown-animate absolute z-50 mt-1 w-full min-w-[8rem] max-h-48 overflow-auto py-1"
       aria-label="{name} options"
     >
       {#each displayList as option, i}
