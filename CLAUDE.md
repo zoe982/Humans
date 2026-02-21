@@ -61,18 +61,24 @@ npx wrangler d1 execute humans-db --remote --command "SELECT name FROM sqlite_ma
 
 ## Model Usage — MANDATORY
 
-**NEVER fix ESLint errors, type errors, formatting issues, or other mechanical code fixes directly in the main (Opus) context.** ALWAYS delegate these to a subagent (which runs on Sonnet). This is a hard rule — no exceptions.
+**NEVER fix ESLint errors, type errors, formatting issues, or other mechanical code fixes directly in the main (Opus) context.** ALWAYS delegate these to a subagent. This is a hard rule — no exceptions.
 
-| Task type | Delegate to |
-|-----------|-------------|
-| ESLint / lint fixes (web, components) | `frontend-engineer` |
-| ESLint / lint fixes (API) | `backend-engineer` |
-| TypeScript type errors | relevant engineer agent |
-| Formatting / style fixes | relevant engineer agent |
-| Test-only changes (new tests, fix failing tests) | `test-engineer` or relevant engineer agent |
-| Simple refactors (renames, moves, dead code removal) | relevant engineer agent |
+A PreToolUse hook (`.claude/hooks/enforce-model-selection.sh`) auto-corrects Task calls to Sonnet when the prompt matches mechanical patterns. The table below is the source of truth for model selection:
 
-**Opus is reserved for**: architectural decisions, complex multi-system debugging, planning, and orchestration. If a task has a clear error message and a mechanical fix, it goes to a subagent.
+| Task type                                    | Model  | Delegate to                        |
+|----------------------------------------------|--------|------------------------------------|
+| ESLint / lint fixes (web, components)        | sonnet | `frontend-engineer`                |
+| ESLint / lint fixes (API)                    | sonnet | `backend-engineer`                 |
+| TypeScript type errors                       | sonnet | relevant engineer agent            |
+| Test assertion updates                       | sonnet | `test-engineer` or relevant agent  |
+| Formatting / style fixes                     | sonnet | relevant engineer agent            |
+| Simple refactors (renames, dead code)        | sonnet | relevant engineer agent            |
+| Code review / audits                         | sonnet | `superpowers:code-reviewer`        |
+| Complex debugging (hangs, race conditions)   | opus   | stay in main context               |
+| Architectural decisions                      | opus   | stay in main context               |
+| New feature implementation                   | opus   | stay in main context               |
+
+**When spawning subagents for Sonnet tasks, always pass `model: "sonnet"` explicitly.** The hook is a safety net, not a substitute for correct behavior.
 
 ## Testing Commands
 

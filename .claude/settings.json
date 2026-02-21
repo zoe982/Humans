@@ -1,0 +1,16 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Task",
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/enforce-model-selection.sh",
+            "timeout": 5000
+          }
+        ]
+      }
+    ]
+  }
+}
