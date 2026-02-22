@@ -8,7 +8,6 @@
   import SaveIndicator from "$lib/components/SaveIndicator.svelte";
   import HighlightText from "$lib/components/HighlightText.svelte";
   import { toast } from "svelte-sonner";
-  import TabBar from "$lib/components/TabBar.svelte";
   import { Trash2 } from "lucide-svelte";
   import { createAutoSaver, type SaveStatus } from "$lib/autosave";
   import { api } from "$lib/api";
@@ -104,15 +103,7 @@
   let historyEntries = $state<AuditEntry[]>([]);
   let historyLoaded = $state(false);
 
-  let activeTab = $state("overview");
   let humanAddMode = $state<'link' | 'create'>('link');
-
-  const accountTabs = [
-    { id: "overview", label: "Overview" },
-    { id: "people", label: "People" },
-    { id: "activity", label: "Activity" },
-    { id: "history", label: "History" },
-  ];
 
   // Initialize state from data
   $effect(() => {
@@ -200,9 +191,8 @@
     }
   }
 
-  // Auto-load history when History tab is active
   $effect(() => {
-    if (activeTab === "history" && !historyLoaded) {
+    if (!historyLoaded) {
       void loadHistory();
     }
   });
@@ -239,11 +229,6 @@
   {#if form?.error}
     <AlertBanner type="error" message={form.error} />
   {/if}
-
-  <TabBar tabs={accountTabs} {activeTab} onTabChange={(id) => { activeTab = id; }} />
-
-  <!-- Overview Tab -->
-  <div id="panel-overview" role="tabpanel" aria-labelledby="tab-overview" class={activeTab !== "overview" ? "hidden" : ""}>
 
   <!-- Details (auto-save, no form submission) -->
   <div class="glass-card p-6 space-y-6">
@@ -288,12 +273,18 @@
       title="Emails"
       items={account.emails}
       columns={[
-        { key: "email", label: "Email" },
-        { key: "label", label: "Label" },
+        { key: "email", label: "Email", sortable: true, sortValue: (e) => e.email },
+        { key: "label", label: "Label", sortable: true, sortValue: (e) => e.labelName ?? "" },
         { key: "flags", label: "" },
         { key: "delete", label: "", headerClass: "w-10" },
       ]}
+      defaultSortKey="email"
+      defaultSortDirection="asc"
+      searchFilter={(e, q) =>
+        e.email.toLowerCase().includes(q) ||
+        (e.labelName ?? "").toLowerCase().includes(q)}
       emptyMessage="No emails yet."
+      searchEmptyMessage="No emails match your search."
       addLabel="Email"
     >
       {#snippet row(email, _searchQuery)}
@@ -375,12 +366,18 @@
       title="Phone Numbers"
       items={account.phoneNumbers}
       columns={[
-        { key: "phone", label: "Phone" },
-        { key: "label", label: "Label" },
+        { key: "phone", label: "Phone", sortable: true, sortValue: (p) => p.phoneNumber },
+        { key: "label", label: "Label", sortable: true, sortValue: (p) => p.labelName ?? "" },
         { key: "flags", label: "" },
         { key: "delete", label: "", headerClass: "w-10" },
       ]}
+      defaultSortKey="phone"
+      defaultSortDirection="asc"
+      searchFilter={(p, q) =>
+        p.phoneNumber.toLowerCase().includes(q) ||
+        (p.labelName ?? "").toLowerCase().includes(q)}
       emptyMessage="No phone numbers yet."
+      searchEmptyMessage="No phone numbers match your search."
       addLabel="Phone"
     >
       {#snippet row(phone, _searchQuery)}
@@ -467,11 +464,17 @@
       title="Social Media IDs"
       items={account.socialIds}
       columns={[
-        { key: "handle", label: "Handle" },
-        { key: "platform", label: "Platform" },
+        { key: "handle", label: "Handle", sortable: true, sortValue: (s) => s.handle },
+        { key: "platform", label: "Platform", sortable: true, sortValue: (s) => s.platformName ?? "" },
         { key: "delete", label: "", headerClass: "w-10" },
       ]}
+      defaultSortKey="handle"
+      defaultSortDirection="asc"
+      searchFilter={(s, q) =>
+        s.handle.toLowerCase().includes(q) ||
+        (s.platformName ?? "").toLowerCase().includes(q)}
       emptyMessage="No social media IDs yet."
+      searchEmptyMessage="No social media IDs match your search."
       addLabel="Social ID"
     >
       {#snippet row(sid, _searchQuery)}
@@ -522,24 +525,25 @@
     </RelatedListTable>
   </div>
 
-  </div><!-- /panel-overview -->
-
-  <!-- People Tab -->
-  <div id="panel-people" role="tabpanel" aria-labelledby="tab-people" class={activeTab !== "people" ? "hidden" : ""}>
-
   <!-- Linked Humans Section -->
   <div class="mt-6">
     <RelatedListTable
       title="Linked Humans"
       items={account.linkedHumans}
       columns={[
-        { key: "name", label: "Name" },
-        { key: "role", label: "Role" },
+        { key: "name", label: "Name", sortable: true, sortValue: (l) => l.humanName },
+        { key: "role", label: "Role", sortable: true, sortValue: (l) => l.labelName ?? "" },
         { key: "emails", label: "Emails" },
         { key: "phones", label: "Phones" },
         { key: "unlink", label: "", headerClass: "w-10" },
       ]}
+      defaultSortKey="name"
+      defaultSortDirection="asc"
+      searchFilter={(l, q) =>
+        l.humanName.toLowerCase().includes(q) ||
+        (l.labelName ?? "").toLowerCase().includes(q)}
       emptyMessage="No humans linked yet."
+      searchEmptyMessage="No linked humans match your search."
       addLabel="Human"
     >
       {#snippet row(link, _searchQuery)}
@@ -664,11 +668,6 @@
     </RelatedListTable>
   </div>
 
-  </div><!-- /panel-people -->
-
-  <!-- Activity Tab -->
-  <div id="panel-activity" role="tabpanel" aria-labelledby="tab-activity" class={activeTab !== "activity" ? "hidden" : ""}>
-
   <!-- Account Activities (direct) -->
   <div class="mt-6">
     <RelatedListTable
@@ -787,23 +786,25 @@
     </RelatedListTable>
   </div>
 
-  </div><!-- /panel-activity -->
-
-  <!-- History Tab -->
-  <div id="panel-history" role="tabpanel" aria-labelledby="tab-history" class={activeTab !== "history" ? "hidden" : ""}>
-
   <!-- Change History -->
   <div class="mt-6">
     <RelatedListTable
       title="Change History"
       items={historyEntries}
       columns={[
-        { key: "colleague", label: "Colleague" },
-        { key: "action", label: "Action" },
-        { key: "time", label: "Time" },
-        { key: "changes", label: "Changes" },
+        { key: "colleague", label: "Colleague", sortable: true, sortValue: (e) => e.colleagueName ?? "" },
+        { key: "action", label: "Action", sortable: true, sortValue: (e) => e.action },
+        { key: "time", label: "Time", sortable: true, sortValue: (e) => e.createdAt },
+        { key: "changes", label: "Changes", sortable: true, sortValue: (e) => summarizeChanges(e.changes) },
       ]}
+      defaultSortKey="time"
+      defaultSortDirection="desc"
+      searchFilter={(e, q) =>
+        (e.colleagueName ?? "").toLowerCase().includes(q) ||
+        e.action.toLowerCase().includes(q) ||
+        summarizeChanges(e.changes).toLowerCase().includes(q)}
       emptyMessage="No changes recorded yet."
+      searchEmptyMessage="No history entries match your search."
     >
       {#snippet row(entry, _searchQuery)}
         <td class="text-sm font-medium text-text-primary">{entry.colleagueName ?? "System"}</td>
@@ -818,5 +819,4 @@
     </RelatedListTable>
   </div>
 
-  </div><!-- /panel-history -->
 </div>

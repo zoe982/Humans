@@ -160,11 +160,11 @@
   });
 
   const expressionColumns = [
-    { key: "id", label: "ID" },
-    { key: "human", label: "Human" },
-    { key: "frequency", label: "Frequency" },
-    { key: "travelDate", label: "Travel Date" },
-    { key: "notes", label: "Notes" },
+    { key: "id", label: "ID", sortable: true, sortValue: (e: Expression) => e.displayId },
+    { key: "human", label: "Human", sortable: true, sortValue: (e: Expression) => e.humanName ?? "" },
+    { key: "frequency", label: "Frequency", sortable: true, sortValue: (e: Expression) => e.frequency },
+    { key: "travelDate", label: "Travel Date", sortable: true, sortValue: (e: Expression) => formatTravelDate(e) },
+    { key: "notes", label: "Notes", sortable: true, sortValue: (e: Expression) => e.notes ?? "" },
     { key: "delete", label: "" },
   ];
 
@@ -295,6 +295,15 @@
     title="Expressions ({routeInterest.expressions.length})"
     items={routeInterest.expressions}
     columns={expressionColumns}
+    defaultSortKey="human"
+    defaultSortDirection="asc"
+    searchFilter={(e, q) =>
+      (e.humanName ?? "").toLowerCase().includes(q) ||
+      e.frequency.toLowerCase().includes(q) ||
+      (e.notes ?? "").toLowerCase().includes(q) ||
+      formatTravelDate(e).toLowerCase().includes(q) ||
+      e.displayId.toLowerCase().includes(q)}
+    searchEmptyMessage="No expressions match your search."
     addLabel="Expression"
     onFormToggle={(open) => { if (!open) resetAddForm(); }}
     emptyMessage="No expressions yet."
@@ -418,11 +427,18 @@
       title="Change History"
       items={history.historyEntries}
       columns={[
-        { key: "colleague", label: "Colleague" },
-        { key: "action", label: "Action" },
-        { key: "time", label: "Time" },
-        { key: "changes", label: "Changes" },
+        { key: "colleague", label: "Colleague", sortable: true, sortValue: (e) => e.colleagueName ?? "" },
+        { key: "action", label: "Action", sortable: true, sortValue: (e) => e.action },
+        { key: "time", label: "Time", sortable: true, sortValue: (e) => e.createdAt },
+        { key: "changes", label: "Changes", sortable: true, sortValue: (e) => summarizeChanges(e.changes) },
       ]}
+      defaultSortKey="time"
+      defaultSortDirection="desc"
+      searchFilter={(e, q) =>
+        (e.colleagueName ?? "").toLowerCase().includes(q) ||
+        e.action.toLowerCase().includes(q) ||
+        summarizeChanges(e.changes).toLowerCase().includes(q)}
+      searchEmptyMessage="No history entries match your search."
       emptyMessage="No changes recorded yet."
     >
       {#snippet row(entry, _searchQuery)}

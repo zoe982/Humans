@@ -26,6 +26,7 @@ import ActivityDetailPage from "../../src/routes/activities/[id]/+page.svelte";
 import GeoInterestDetailPage from "../../src/routes/geo-interests/[id]/+page.svelte";
 import RouteInterestDetailPage from "../../src/routes/route-interests/[id]/+page.svelte";
 import SocialIdDetailPage from "../../src/routes/social-ids/[id]/+page.svelte";
+import AccountDetailPage from "../../src/routes/accounts/[id]/+page.svelte";
 
 // ---------------------------------------------------------------------------
 // Smoke tests — each page gets the minimal data shape for the primary record
@@ -215,4 +216,96 @@ describe("Detail page smoke tests", () => {
     // RecordManagementBar renders <h1>{displayId} — {handle}</h1>
     expect(screen.getByRole("heading", { name: "SID-001 — @testuser" })).toBeDefined();
   });
+
+  it("Account detail page renders without error", () => {
+    render(AccountDetailPage, {
+      props: {
+        data: {
+          account: {
+            id: "acc-1",
+            displayId: "ACC-001",
+            name: "Acme Corp",
+            status: "active",
+            types: [],
+            emails: [],
+            phoneNumbers: [],
+            socialIds: [],
+            linkedHumans: [],
+            activities: [],
+            humanActivities: [],
+            createdAt: "2025-01-15T10:00:00.000Z",
+            updatedAt: "2025-01-15T10:00:00.000Z",
+          },
+          typeConfigs: [],
+          humanLabelConfigs: [],
+          emailLabelConfigs: [],
+          phoneLabelConfigs: [],
+          allHumans: [],
+          socialIdPlatformConfigs: [],
+        },
+        form: null,
+      },
+    });
+    expect(screen.getByRole("heading", { name: /ACC-001/ })).toBeDefined();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Structural enforcement — no detail page should use tabs
+// ---------------------------------------------------------------------------
+
+describe("Detail page structure enforcement", () => {
+  const pages = [
+    {
+      name: "Account",
+      component: AccountDetailPage,
+      props: {
+        data: {
+          account: {
+            id: "acc-1", displayId: "ACC-001", name: "Acme Corp", status: "active",
+            types: [], emails: [], phoneNumbers: [], socialIds: [],
+            linkedHumans: [], activities: [], humanActivities: [],
+            createdAt: "2025-01-15T10:00:00.000Z", updatedAt: "2025-01-15T10:00:00.000Z",
+          },
+          typeConfigs: [], humanLabelConfigs: [], emailLabelConfigs: [],
+          phoneLabelConfigs: [], allHumans: [], socialIdPlatformConfigs: [],
+        },
+        form: null,
+      },
+    },
+    {
+      name: "Pet",
+      component: PetDetailPage,
+      props: {
+        data: {
+          pet: { id: "pet-1", displayId: "PET-001", humanId: null, type: "dog", name: "Buddy", breed: null, weight: null, ownerName: null, ownerDisplayId: null },
+          allHumans: [],
+        },
+      },
+    },
+    {
+      name: "Activity",
+      component: ActivityDetailPage,
+      props: {
+        data: {
+          activity: {
+            id: "act-1", displayId: "ACT-001", type: "email", subject: "Test", notes: null, body: null,
+            activityDate: "2025-01-15T10:00:00.000Z", humanId: null, humanName: null,
+            accountId: null, accountName: null, routeSignupId: null, websiteBookingRequestId: null,
+            geoInterestExpressions: [], routeInterestExpressions: [],
+            colleagueId: null, createdAt: "2025-01-15T10:00:00.000Z", updatedAt: "2025-01-15T10:00:00.000Z",
+          },
+          humans: [], accounts: [], routeSignups: [], websiteBookingRequests: [], apiUrl: "http://localhost",
+        },
+        form: null,
+      },
+    },
+  ];
+
+  for (const { name, component, props } of pages) {
+    it(`${name} detail page does not use tabs (no role=tablist)`, () => {
+      const { container } = render(component, { props });
+      expect(container.querySelector('[role="tablist"]')).toBeNull();
+    });
+  }
 });

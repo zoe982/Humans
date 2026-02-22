@@ -110,4 +110,29 @@ describe("ConfirmDialog", () => {
     });
     expect(screen.getByText("Cancel")).toBeDefined();
   });
+
+  it("uses glass-dialog (opaque) on the dialog content, not glass-card-strong (translucent)", () => {
+    render(ConfirmDialog, {
+      props: {
+        open: true,
+        message: "Delete this record?",
+        onConfirm: vi.fn(),
+        onCancel: vi.fn(),
+      },
+    });
+    const title = screen.getByText("Confirm Action");
+    // Walk up from the title to find the dialog content container with glass styling
+    let el: HTMLElement | null = title;
+    let dialogContent: HTMLElement | null = null;
+    while (el) {
+      if (el.getAttribute?.("role") === "alertdialog") {
+        dialogContent = el;
+        break;
+      }
+      el = el.parentElement;
+    }
+    expect(dialogContent).not.toBeNull();
+    expect(dialogContent!.className).toContain("glass-dialog");
+    expect(dialogContent!.className).not.toContain("glass-card-strong");
+  });
 });

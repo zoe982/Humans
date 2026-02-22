@@ -22,7 +22,7 @@
 		<DialogPrimitive.Overlay class="fixed inset-0 z-50 bg-black/50" />
 		<DialogPrimitive.Content
 			class={cn(
-				"fixed left-1/2 top-1/2 z-50 w-full max-w-lg -translate-x-1/2 -translate-y-1/2 glass-card-strong overflow-hidden p-0 shadow-lg",
+				"fixed left-1/2 top-1/2 z-50 w-full max-w-lg -translate-x-1/2 -translate-y-1/2 glass-dialog overflow-hidden p-0 shadow-lg",
 				className,
 			)}
 		>

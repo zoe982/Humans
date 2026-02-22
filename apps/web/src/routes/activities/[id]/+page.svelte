@@ -315,11 +315,20 @@
       title="Geo-Interest Expressions"
       items={activity.geoInterestExpressions}
       columns={[
-        { key: "location", label: "Location" },
-        { key: "notes", label: "Notes" },
+        { key: "location", label: "Location", sortable: true, sortValue: (e) => `${(e as unknown as GeoInterestExpression).city ?? ""}, ${(e as unknown as GeoInterestExpression).country ?? ""}` },
+        { key: "notes", label: "Notes", sortable: true, sortValue: (e) => (e as unknown as GeoInterestExpression).notes ?? "" },
         { key: "delete", label: "", headerClass: "w-10" },
       ]}
+      defaultSortKey="location"
+      defaultSortDirection="asc"
+      searchFilter={(e, q) => {
+        const expr = e as unknown as GeoInterestExpression;
+        return (expr.city ?? "").toLowerCase().includes(q) ||
+          (expr.country ?? "").toLowerCase().includes(q) ||
+          (expr.notes ?? "").toLowerCase().includes(q);
+      }}
       emptyMessage="No geo-interest expressions yet."
+      searchEmptyMessage="No geo-interest expressions match your search."
       addLabel="Geo-Interest"
     >
       {#snippet row(item, _searchQuery)}
@@ -361,12 +370,24 @@
       title="Route-Interest Expressions"
       items={activity.routeInterestExpressions}
       columns={[
-        { key: "route", label: "Route" },
-        { key: "frequency", label: "Frequency" },
-        { key: "notes", label: "Notes" },
+        { key: "route", label: "Route", sortable: true, sortValue: (e) => `${(e as unknown as RouteInterestExpression).originCity ?? ""} ${(e as unknown as RouteInterestExpression).destinationCity ?? ""}` },
+        { key: "frequency", label: "Frequency", sortable: true, sortValue: (e) => (e as unknown as RouteInterestExpression).frequency },
+        { key: "notes", label: "Notes", sortable: true, sortValue: (e) => (e as unknown as RouteInterestExpression).notes ?? "" },
         { key: "delete", label: "", headerClass: "w-10" },
       ]}
+      defaultSortKey="route"
+      defaultSortDirection="asc"
+      searchFilter={(e, q) => {
+        const expr = e as unknown as RouteInterestExpression;
+        return (expr.originCity ?? "").toLowerCase().includes(q) ||
+          (expr.originCountry ?? "").toLowerCase().includes(q) ||
+          (expr.destinationCity ?? "").toLowerCase().includes(q) ||
+          (expr.destinationCountry ?? "").toLowerCase().includes(q) ||
+          expr.frequency.toLowerCase().includes(q) ||
+          (expr.notes ?? "").toLowerCase().includes(q);
+      }}
       emptyMessage="No route-interest expressions yet."
+      searchEmptyMessage="No route-interest expressions match your search."
       addLabel="Route-Interest"
     >
       {#snippet row(item, _searchQuery)}
@@ -426,11 +447,18 @@
       title="Change History"
       items={history.historyEntries}
       columns={[
-        { key: "colleague", label: "Colleague" },
-        { key: "action", label: "Action" },
-        { key: "time", label: "Time" },
-        { key: "changes", label: "Changes" },
+        { key: "colleague", label: "Colleague", sortable: true, sortValue: (e) => e.colleagueName ?? "" },
+        { key: "action", label: "Action", sortable: true, sortValue: (e) => e.action },
+        { key: "time", label: "Time", sortable: true, sortValue: (e) => e.createdAt },
+        { key: "changes", label: "Changes", sortable: true, sortValue: (e) => summarizeChanges(e.changes) },
       ]}
+      defaultSortKey="time"
+      defaultSortDirection="desc"
+      searchFilter={(e, q) =>
+        (e.colleagueName ?? "").toLowerCase().includes(q) ||
+        e.action.toLowerCase().includes(q) ||
+        summarizeChanges(e.changes).toLowerCase().includes(q)}
+      searchEmptyMessage="No history entries match your search."
       emptyMessage="No changes recorded yet."
     >
       {#snippet row(entry, _searchQuery)}

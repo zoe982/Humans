@@ -1,18 +1,5 @@
 <script lang="ts">
   import PageHeader from "$lib/components/PageHeader.svelte";
-
-  let { data } = $props();
-
-  type Colleague = {
-    id: string;
-    displayId: string;
-    email: string;
-    name: string;
-    role: string;
-    isActive: boolean;
-  };
-
-  const colleagues = $derived((data.colleagues ?? []) as Colleague[]);
 </script>
 
 <svelte:head>
@@ -35,44 +22,13 @@
       <h2 class="text-lg font-semibold text-text-primary">Social Media IDs</h2>
       <p class="mt-2 text-sm text-text-secondary">View and manage all social media handles and profiles.</p>
     </a>
+    <a href="/geo-interests" class="glass-card p-6 hover:bg-glass-hover transition-colors">
+      <h2 class="text-lg font-semibold text-text-primary">Geo-Interests</h2>
+      <p class="mt-2 text-sm text-text-secondary">View and manage geographic interest locations.</p>
+    </a>
+    <a href="/admin/colleagues" class="glass-card p-6 hover:bg-glass-hover transition-colors">
+      <h2 class="text-lg font-semibold text-text-primary">Colleagues</h2>
+      <p class="mt-2 text-sm text-text-secondary">View and manage team members, roles, and access.</p>
+    </a>
   </div>
-
-  <!-- Colleagues -->
-  {#if colleagues.length > 0}
-    <div class="mt-8">
-      <h2 class="text-lg font-semibold text-text-primary mb-4">Colleagues</h2>
-      <div class="glass-card overflow-hidden">
-        <table class="min-w-full text-sm">
-          <thead class="glass-thead">
-            <tr>
-              <th>ID</th>
-              <th>Name</th>
-              <th>Email</th>
-              <th>Role</th>
-              <th>Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {#each colleagues as colleague (colleague.id)}
-              <tr class="glass-row-hover">
-                <td class="font-mono text-xs text-accent">{colleague.displayId}</td>
-                <td class="font-medium text-text-primary">{colleague.name}</td>
-                <td class="text-text-secondary">{colleague.email}</td>
-                <td>
-                  <span class="glass-badge bg-glass text-text-secondary capitalize">{colleague.role}</span>
-                </td>
-                <td>
-                  {#if colleague.isActive}
-                    <span class="glass-badge badge-green">Active</span>
-                  {:else}
-                    <span class="glass-badge badge-red">Inactive</span>
-                  {/if}
-                </td>
-              </tr>
-            {/each}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  {/if}
 </div>

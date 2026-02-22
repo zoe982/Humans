@@ -343,11 +343,14 @@
       items={human.emails}
       columns={[
         { key: "displayId", label: "ID" },
-        { key: "email", label: "Email" },
-        { key: "label", label: "Label" },
+        { key: "email", label: "Email", sortable: true, sortValue: (e) => e.email },
+        { key: "label", label: "Label", sortable: true, sortValue: (e) => e.labelName ?? "" },
         { key: "flags", label: "" },
         { key: "delete", label: "", headerClass: "w-10" },
       ]}
+      defaultSortKey="email"
+      defaultSortDirection="asc"
+      searchFilter={(e, q) => e.email.toLowerCase().includes(q) || (e.labelName ?? "").toLowerCase().includes(q)}
       emptyMessage="No emails yet."
       addLabel="Email"
     >
@@ -434,11 +437,14 @@
       items={human.phoneNumbers}
       columns={[
         { key: "displayId", label: "ID" },
-        { key: "phone", label: "Phone" },
-        { key: "label", label: "Label" },
+        { key: "phone", label: "Phone", sortable: true, sortValue: (p) => p.phoneNumber },
+        { key: "label", label: "Label", sortable: true, sortValue: (p) => p.labelName ?? "" },
         { key: "flags", label: "" },
         { key: "delete", label: "", headerClass: "w-10" },
       ]}
+      defaultSortKey="phone"
+      defaultSortDirection="asc"
+      searchFilter={(p, q) => p.phoneNumber.toLowerCase().includes(q) || (p.labelName ?? "").toLowerCase().includes(q)}
       emptyMessage="No phone numbers yet."
       addLabel="Phone"
     >
@@ -530,10 +536,13 @@
       items={human.socialIds}
       columns={[
         { key: "displayId", label: "ID" },
-        { key: "handle", label: "Handle" },
-        { key: "platform", label: "Platform" },
+        { key: "handle", label: "Handle", sortable: true, sortValue: (s) => s.handle },
+        { key: "platform", label: "Platform", sortable: true, sortValue: (s) => s.platformName ?? "" },
         { key: "delete", label: "", headerClass: "w-10" },
       ]}
+      defaultSortKey="handle"
+      defaultSortDirection="asc"
+      searchFilter={(s, q) => s.handle.toLowerCase().includes(q) || (s.platformName ?? "").toLowerCase().includes(q)}
       emptyMessage="No social media IDs yet."
       addLabel="Social ID"
     >
@@ -595,12 +604,15 @@
       items={human.pets}
       columns={[
         { key: "displayId", label: "ID" },
-        { key: "name", label: "Name" },
-        { key: "type", label: "Type" },
+        { key: "name", label: "Name", sortable: true, sortValue: (p) => p.name },
+        { key: "type", label: "Type", sortable: true, sortValue: (p) => p.type },
         { key: "breed", label: "Breed" },
         { key: "weight", label: "Weight" },
         { key: "delete", label: "", headerClass: "w-10" },
       ]}
+      defaultSortKey="name"
+      defaultSortDirection="asc"
+      searchFilter={(p, q) => p.name.toLowerCase().includes(q) || (p.breed ?? "").toLowerCase().includes(q) || p.type.toLowerCase().includes(q)}
       emptyMessage="No pets yet."
       addLabel="Pet"
     >
@@ -690,10 +702,13 @@
       items={human.geoInterestExpressions}
       columns={[
         { key: "displayId", label: "ID" },
-        { key: "location", label: "Location" },
+        { key: "location", label: "Location", sortable: true, sortValue: (e) => `${e.city ?? ""}, ${e.country ?? ""}` },
         { key: "notes", label: "Notes" },
         { key: "delete", label: "", headerClass: "w-10" },
       ]}
+      defaultSortKey="location"
+      defaultSortDirection="asc"
+      searchFilter={(e, q) => (e.city ?? "").toLowerCase().includes(q) || (e.country ?? "").toLowerCase().includes(q) || (e.notes ?? "").toLowerCase().includes(q)}
       emptyMessage="No geo-interest expressions yet."
       addLabel="Geo-Interest"
     >
@@ -732,12 +747,15 @@
       items={human.routeInterestExpressions}
       columns={[
         { key: "displayId", label: "ID" },
-        { key: "route", label: "Route" },
-        { key: "frequency", label: "Frequency" },
+        { key: "route", label: "Route", sortable: true, sortValue: (e) => `${e.originCity ?? ""}, ${e.originCountry ?? ""} → ${e.destinationCity ?? ""}, ${e.destinationCountry ?? ""}` },
+        { key: "frequency", label: "Frequency", sortable: true, sortValue: (e) => e.frequency },
         { key: "travelDate", label: "Travel Date" },
         { key: "notes", label: "Notes" },
         { key: "delete", label: "", headerClass: "w-10" },
       ]}
+      defaultSortKey="route"
+      defaultSortDirection="asc"
+      searchFilter={(e, q) => (e.originCity ?? "").toLowerCase().includes(q) || (e.originCountry ?? "").toLowerCase().includes(q) || (e.destinationCity ?? "").toLowerCase().includes(q) || (e.destinationCountry ?? "").toLowerCase().includes(q) || (e.notes ?? "").toLowerCase().includes(q)}
       emptyMessage="No route interest expressions yet."
       addLabel="Route Interest"
     >
@@ -787,9 +805,12 @@
       title="Linked Accounts"
       items={human.linkedAccounts}
       columns={[
-        { key: "account", label: "Account" },
-        { key: "role", label: "Role" },
+        { key: "account", label: "Account", sortable: true, sortValue: (a) => a.accountName },
+        { key: "role", label: "Role", sortable: true, sortValue: (a) => a.labelName ?? "" },
       ]}
+      defaultSortKey="account"
+      defaultSortDirection="asc"
+      searchFilter={(a, q) => (a.accountName ?? "").toLowerCase().includes(q) || (a.labelName ?? "").toLowerCase().includes(q)}
       emptyMessage="No linked accounts."
     >
       {#snippet row(link, _searchQuery)}
@@ -817,10 +838,13 @@
       title="Linked Route Signups"
       items={human.linkedRouteSignups}
       columns={[
-        { key: "signup", label: "Signup" },
-        { key: "linkedAt", label: "Linked Date" },
+        { key: "signup", label: "Signup", sortable: true, sortValue: (l) => l.routeSignupId },
+        { key: "linkedAt", label: "Linked Date", sortable: true, sortValue: (l) => l.linkedAt },
         { key: "unlink", label: "", headerClass: "w-10" },
       ]}
+      defaultSortKey="linkedAt"
+      defaultSortDirection="desc"
+      searchFilter={(l, q) => l.routeSignupId.toLowerCase().includes(q)}
       emptyMessage="No linked route signups."
     >
       {#snippet row(link, _searchQuery)}

@@ -94,10 +94,10 @@
   });
 
   const expressionColumns = [
-    { key: "human", label: "Human" },
-    { key: "activity", label: "Activity" },
-    { key: "notes", label: "Notes" },
-    { key: "date", label: "Date" },
+    { key: "human", label: "Human", sortable: true, sortValue: (e: Expression) => e.humanName ?? "" },
+    { key: "activity", label: "Activity", sortable: true, sortValue: (e: Expression) => e.activitySubject ?? "" },
+    { key: "notes", label: "Notes", sortable: true, sortValue: (e: Expression) => e.notes ?? "" },
+    { key: "date", label: "Date", sortable: true, sortValue: (e: Expression) => e.createdAt },
     { key: "delete", label: "", headerClass: "w-10" },
   ];
 
@@ -141,6 +141,13 @@
     title="Expressions ({geoInterest.expressions.length})"
     items={geoInterest.expressions}
     columns={expressionColumns}
+    defaultSortKey="date"
+    defaultSortDirection="desc"
+    searchFilter={(e, q) =>
+      (e.humanName ?? "").toLowerCase().includes(q) ||
+      (e.activitySubject ?? "").toLowerCase().includes(q) ||
+      (e.notes ?? "").toLowerCase().includes(q)}
+    searchEmptyMessage="No expressions match your search."
     addLabel="Expression"
     onFormToggle={(open) => { if (!open) resetAddForm(); }}
   >
@@ -225,11 +232,18 @@
       title="Change History"
       items={history.historyEntries}
       columns={[
-        { key: "colleague", label: "Colleague" },
-        { key: "action", label: "Action" },
-        { key: "time", label: "Time" },
-        { key: "changes", label: "Changes" },
+        { key: "colleague", label: "Colleague", sortable: true, sortValue: (e) => e.colleagueName ?? "" },
+        { key: "action", label: "Action", sortable: true, sortValue: (e) => e.action },
+        { key: "time", label: "Time", sortable: true, sortValue: (e) => e.createdAt },
+        { key: "changes", label: "Changes", sortable: true, sortValue: (e) => summarizeChanges(e.changes) },
       ]}
+      defaultSortKey="time"
+      defaultSortDirection="desc"
+      searchFilter={(e, q) =>
+        (e.colleagueName ?? "").toLowerCase().includes(q) ||
+        e.action.toLowerCase().includes(q) ||
+        summarizeChanges(e.changes).toLowerCase().includes(q)}
+      searchEmptyMessage="No history entries match your search."
       emptyMessage="No changes recorded yet."
     >
       {#snippet row(entry, _searchQuery)}

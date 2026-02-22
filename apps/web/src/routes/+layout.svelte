@@ -23,7 +23,6 @@
       { href: "/pets", label: "Pets" },
       { href: "/accounts", label: "Accounts" },
       { href: "/activities", label: "Activities" },
-      { href: "/geo-interests", label: "Geo-Interests" },
       { href: "/route-interests", label: "Routes" },
     ];
     if (isManager) links.push({ href: "/reports", label: "Reports" });

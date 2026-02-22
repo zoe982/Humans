@@ -30,10 +30,20 @@ test.describe("Navigation smoke tests", () => {
     await page.getByRole("link", { name: "Humans", exact: true }).first().click();
     await expect(page).toHaveURL(/\/humans/);
 
-    await page.getByRole("link", { name: "Geo-Interests", exact: true }).first().click();
-    await expect(page).toHaveURL(/\/geo-interests/);
-
     await page.getByRole("link", { name: "Dashboard", exact: true }).first().click();
     await expect(page).toHaveURL(/\/dashboard/);
+  });
+
+  test("Geo-Interests is not in the heading bar", async ({ page }) => {
+    await page.goto("/dashboard");
+    const nav = page.locator("nav");
+    await expect(nav.getByRole("link", { name: "Geo-Interests", exact: true })).not.toBeVisible();
+  });
+
+  test("Reports page shows Geo-Interests and Colleagues as report cards", async ({ page }) => {
+    await page.goto("/reports");
+    await expect(page.getByRole("heading", { name: "Reports" })).toBeVisible();
+    await expect(page.getByRole("link", { name: /Geo-Interests/ })).toBeVisible();
+    await expect(page.getByRole("link", { name: /Colleagues/ })).toBeVisible();
   });
 });

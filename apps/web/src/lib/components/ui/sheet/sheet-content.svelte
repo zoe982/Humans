@@ -29,7 +29,7 @@
 	<SheetOverlay />
 	<SheetPrimitive.Content
 		class={cn(
-			"fixed z-50 gap-4 glass-card-strong p-6 shadow-lg transition ease-in-out border-glass-border",
+			"fixed z-50 gap-4 glass-dialog p-6 shadow-lg transition ease-in-out border-glass-border",
 			sideClasses[side],
 			className,
 		)}

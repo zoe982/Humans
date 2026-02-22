@@ -216,11 +216,18 @@
       title="Change History"
       items={history.historyEntries}
       columns={[
-        { key: "colleague", label: "Colleague" },
-        { key: "action", label: "Action" },
-        { key: "time", label: "Time" },
-        { key: "changes", label: "Changes" },
+        { key: "colleague", label: "Colleague", sortable: true, sortValue: (e) => e.colleagueName ?? "" },
+        { key: "action", label: "Action", sortable: true, sortValue: (e) => e.action },
+        { key: "time", label: "Time", sortable: true, sortValue: (e) => e.createdAt },
+        { key: "changes", label: "Changes", sortable: true, sortValue: (e) => summarizeChanges(e.changes) },
       ]}
+      defaultSortKey="time"
+      defaultSortDirection="desc"
+      searchFilter={(e, q) =>
+        (e.colleagueName ?? "").toLowerCase().includes(q) ||
+        e.action.toLowerCase().includes(q) ||
+        summarizeChanges(e.changes).toLowerCase().includes(q)}
+      searchEmptyMessage="No history entries match your search."
       emptyMessage="No changes recorded yet."
     >
       {#snippet row(entry, _searchQuery)}
