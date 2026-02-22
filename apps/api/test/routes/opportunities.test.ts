@@ -543,9 +543,8 @@ describe("PATCH /api/opportunities/:id/next-action", () => {
 });
 
 describe("POST /api/opportunities/:id/next-action/done", () => {
-  it("completes next action and creates activity", async () => {
+  it("clears next action fields without creating activity", async () => {
     const db = getDb();
-    await seedDisplayIdCounter();
     const colleague = buildColleague();
     await db.insert(schema.colleagues).values(colleague);
     const opp = buildOpportunity({
@@ -565,12 +564,10 @@ describe("POST /api/opportunities/:id/next-action/done", () => {
     const body = (await res.json()) as { data: { nextActionDescription: string | null } };
     expect(body.data.nextActionDescription).toBeNull();
 
-    // Verify activity was created
+    // Verify no activity was created
     const oppActivities = await db.select().from(schema.activities);
     const forOpp = oppActivities.filter((a) => a.opportunityId === opp.id);
-    expect(forOpp).toHaveLength(1);
-    expect(forOpp[0].subject).toBe("Follow up call");
-    expect(forOpp[0].type).toBe("phone_call");
+    expect(forOpp).toHaveLength(0);
   });
 
   it("returns 400 when no next action exists", async () => {

@@ -294,32 +294,19 @@
   }
 
   async function completeNextAction() {
-    saveStatus = "saving";
+    // Show confetti and clear next action fields for new entry
+    showConfetti = true;
+    setTimeout(() => { showConfetti = false; }, 2000);
+    naOwnerId = data.currentColleagueId ?? "";
+    naDescription = "";
+    naType = "email";
+    naStartDate = "";
+    naDueDate = "";
+    naSaveStatus = "idle";
+    // Clear server-side next action data
     try {
-      // If the server doesn't have the description yet, save first
-      if (!opportunity.nextActionDescription && naDescription) {
-        await api(`/api/opportunities/${opportunity.id}/next-action`, {
-          method: "PATCH",
-          body: JSON.stringify({
-            ownerId: naOwnerId || data.currentColleagueId,
-            description: naDescription,
-            type: naType || "email",
-            startDate: naStartDate || undefined,
-            dueDate: naDueDate ? new Date(naDueDate).toISOString() : new Date().toISOString(),
-          }),
-        });
-      }
       await api(`/api/opportunities/${opportunity.id}/next-action/done`, { method: "POST" });
-      saveStatus = "saved";
-      showConfetti = true;
-      setTimeout(() => { showConfetti = false; }, 2000);
-      toast("Next action completed!");
-      historyLoaded = false;
-      await invalidateAll();
-    } catch (err) {
-      saveStatus = "error";
-      toast(`Failed: ${err instanceof Error ? err.message : "Unknown error"}`);
-    }
+    } catch { /* fields already cleared locally */ }
   }
 
   async function setPrimaryHuman(linkId: string) {

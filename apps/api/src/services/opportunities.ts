@@ -776,20 +776,6 @@ export async function completeNextAction(db: DB, id: string, colleagueId: string
 
   const now = new Date().toISOString();
 
-  // Create activity from next action
-  const actDisplayId = await nextDisplayId(db, "ACT");
-  await db.insert(activities).values({
-    id: createId(),
-    displayId: actDisplayId,
-    type: (existing.nextActionType as "email") ?? "email",
-    subject: existing.nextActionDescription,
-    activityDate: now,
-    opportunityId: id,
-    colleagueId,
-    createdAt: now,
-    updatedAt: now,
-  });
-
   // Clear next action fields
   await db.update(opportunities).set({
     nextActionOwnerId: null,
