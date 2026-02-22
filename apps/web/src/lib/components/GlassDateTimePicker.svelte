@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { untrack } from "svelte";
   import * as Popover from "$lib/components/ui/popover";
   import { Calendar } from "$lib/components/ui/calendar";
   import { CalendarDate, type DateValue, today, getLocalTimeZone } from "@internationalized/date";
@@ -17,23 +16,27 @@
   let selectedDate = $state<DateValue | undefined>(undefined);
   let hour = $state(12);
   let minute = $state(0);
-  let lastEmitted = "";
+  let popoverOpen = $state(false);
 
-  // Reactively parse value prop — untrack lastEmitted so this only re-runs when value changes
+  // Track whether we caused the last value change (to avoid re-parsing our own output)
+  let selfUpdate = false;
+
+  // Parse external value prop into internal state
   $effect(() => {
-    if (value && value !== lastEmitted) {
+    if (selfUpdate) return;
+    if (value) {
       const d = new Date(value);
       if (!isNaN(d.getTime())) {
         selectedDate = new CalendarDate(d.getFullYear(), d.getMonth() + 1, d.getDate());
         hour = d.getHours();
         minute = d.getMinutes();
       }
-    } else if (!value) {
+    } else {
       selectedDate = undefined;
     }
   });
 
-  const isoString = $derived.by(() => {
+  function buildIso(): string {
     if (!selectedDate) return "";
     const y = selectedDate.year;
     const m = String(selectedDate.month).padStart(2, "0");
@@ -41,7 +44,9 @@
     const h = String(hour).padStart(2, "0");
     const min = String(minute).padStart(2, "0");
     return `${y}-${m}-${d}T${h}:${min}:00`;
-  });
+  }
+
+  const isoString = $derived(buildIso());
 
   const displayText = $derived.by(() => {
     if (!selectedDate) return "";
@@ -55,15 +60,20 @@
     });
   });
 
-  // Notify parent when value changes (guard against feedback loops)
-  $effect(() => {
-    if (isoString && isoString !== value) {
-      lastEmitted = isoString;
-      onchange?.(isoString);
+  function emitChange() {
+    const iso = buildIso();
+    if (iso && iso !== value) {
+      selfUpdate = true;
+      onchange?.(iso);
+      // Reset on next microtask so the prop-parse effect skips this cycle
+      queueMicrotask(() => { selfUpdate = false; });
     }
-  });
+  }
 
-  let popoverOpen = $state(false);
+  function handleDateSelect(newDate: DateValue | undefined) {
+    selectedDate = newDate;
+    emitChange();
+  }
 </script>
 
 <input type="hidden" {name} {id} value={isoString} />
@@ -80,7 +90,8 @@
   <Popover.Content class="w-auto p-0" align="start">
     <Calendar
       type="single"
-      bind:value={selectedDate}
+      value={selectedDate}
+      onValueChange={handleDateSelect}
       placeholder={selectedDate ?? today(getLocalTimeZone())}
     />
     <div class="flex items-center gap-2 px-4 pb-4 pt-1">
@@ -90,6 +101,7 @@
         min="0"
         max="23"
         bind:value={hour}
+        oninput={() => emitChange()}
         class="glass-input w-14 px-2 py-1 text-sm text-center"
       />
       <span class="text-text-muted">:</span>
@@ -98,6 +110,7 @@
         min="0"
         max="59"
         bind:value={minute}
+        oninput={() => emitChange()}
         class="glass-input w-14 px-2 py-1 text-sm text-center"
       />
     </div>
