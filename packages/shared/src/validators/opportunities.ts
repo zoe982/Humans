@@ -77,6 +77,10 @@ export const linkOpportunityPetSchema = z.object({
   petId: z.string().min(1),
 });
 
+export const linkBookingRequestSchema = z.object({
+  bookingRequestLinkId: z.string().min(1),
+});
+
 export type CreateOpportunityInput = z.infer<typeof createOpportunitySchema>;
 export type UpdateOpportunityInput = z.infer<typeof updateOpportunitySchema>;
 export type UpdateOpportunityStageInput = z.infer<typeof updateOpportunityStageSchema>;
@@ -84,3 +88,4 @@ export type UpdateNextActionInput = z.infer<typeof updateNextActionSchema>;
 export type LinkOpportunityHumanInput = z.infer<typeof linkOpportunityHumanSchema>;
 export type UpdateOpportunityHumanInput = z.infer<typeof updateOpportunityHumanSchema>;
 export type LinkOpportunityPetInput = z.infer<typeof linkOpportunityPetSchema>;
+export type LinkBookingRequestInput = z.infer<typeof linkBookingRequestSchema>;

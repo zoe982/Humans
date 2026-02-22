@@ -8,6 +8,7 @@ import {
   linkOpportunityHumanSchema,
   updateOpportunityHumanSchema,
   linkOpportunityPetSchema,
+  linkBookingRequestSchema,
 } from "@humans/shared";
 import { authMiddleware } from "../middleware/auth";
 import { requirePermission } from "../middleware/rbac";
@@ -27,6 +28,9 @@ import {
   completeNextAction,
   linkOpportunityFlight,
   unlinkOpportunityFlight,
+  getOpportunityBookingRequests,
+  linkBookingRequest,
+  unlinkBookingRequest,
 } from "../services/opportunities";
 import type { AppContext } from "../types";
 
@@ -137,6 +141,26 @@ opportunityRoutes.post("/api/opportunities/:id/pets", requirePermission("manageO
 opportunityRoutes.delete("/api/opportunities/:id/pets/:linkId", requirePermission("manageOpportunities"), async (c) => {
   await unlinkOpportunityPet(c.get("db"), c.req.param("linkId"));
   return c.json({ success: true });
+});
+
+// GET /api/opportunities/:id/booking-requests
+opportunityRoutes.get("/api/opportunities/:id/booking-requests", requirePermission("viewRecords"), async (c) => {
+  const result = await getOpportunityBookingRequests(c.get("db"), c.req.param("id"));
+  return c.json({ data: result });
+});
+
+// POST /api/opportunities/:id/booking-requests
+opportunityRoutes.post("/api/opportunities/:id/booking-requests", requirePermission("manageOpportunities"), async (c) => {
+  const body: unknown = await c.req.json();
+  const data = linkBookingRequestSchema.parse(body);
+  const result = await linkBookingRequest(c.get("db"), c.req.param("id"), data.bookingRequestLinkId);
+  return c.json(result);
+});
+
+// DELETE /api/opportunities/:id/booking-requests/:linkId
+opportunityRoutes.delete("/api/opportunities/:id/booking-requests/:linkId", requirePermission("manageOpportunities"), async (c) => {
+  const result = await unlinkBookingRequest(c.get("db"), c.req.param("id"), c.req.param("linkId"));
+  return c.json(result);
 });
 
 // PATCH /api/opportunities/:id/flight

@@ -8,6 +8,7 @@ import {
   humans,
   pets,
   colleagues,
+  humanWebsiteBookingRequests,
 } from "@humans/db/schema";
 import { createId } from "@humans/db";
 import { ERROR_CODES } from "@humans/shared";
@@ -102,6 +103,7 @@ export async function listOpportunities(
     return {
       ...opp,
       primaryHuman: primary ? { id: primary.humanId, displayId: primary.displayId, firstName: primary.firstName, lastName: primary.lastName } : null,
+      primaryHumanName: primary ? `${primary.firstName} ${primary.lastName}` : null,
       nextActionOwnerName: owner?.name ?? null,
       isOverdue,
     };
@@ -182,6 +184,12 @@ export async function getOpportunityDetail(db: DB, id: string) {
     nextActionOwnerName = owner?.name ?? null;
   }
 
+  // Linked booking requests
+  const linkedBookingRequests = await db
+    .select()
+    .from(humanWebsiteBookingRequests)
+    .where(eq(humanWebsiteBookingRequests.opportunityId, id));
+
   const now = new Date().toISOString();
   const isOverdue = opp.nextActionDueDate != null && opp.nextActionCompletedAt == null && opp.nextActionDueDate < now;
 
@@ -189,6 +197,7 @@ export async function getOpportunityDetail(db: DB, id: string) {
     ...opp,
     linkedHumans,
     linkedPets,
+    linkedBookingRequests,
     activities: oppActivities,
     nextActionOwnerName,
     isOverdue,
@@ -670,6 +679,87 @@ export async function unlinkOpportunityFlight(db: DB, id: string, colleagueId: s
     where: eq(opportunities.id, id),
   });
   return { data: updated };
+}
+
+// ─── Link/Unlink Booking Requests ────────────────────────────────
+
+export async function getOpportunityBookingRequests(db: DB, oppId: string) {
+  const opp = await db.query.opportunities.findFirst({
+    where: eq(opportunities.id, oppId),
+  });
+  if (opp == null) {
+    throw notFound(ERROR_CODES.OPPORTUNITY_NOT_FOUND, "Opportunity not found");
+  }
+
+  // Linked booking requests
+  const linked = await db
+    .select()
+    .from(humanWebsiteBookingRequests)
+    .where(eq(humanWebsiteBookingRequests.opportunityId, oppId));
+
+  // Available = unlinked requests from humans linked to this opportunity
+  const linkedHumanIds = await db
+    .select({ humanId: opportunityHumans.humanId })
+    .from(opportunityHumans)
+    .where(eq(opportunityHumans.opportunityId, oppId));
+
+  const humanIds = linkedHumanIds.map((h) => h.humanId);
+
+  const available = humanIds.length > 0
+    ? await db
+        .select()
+        .from(humanWebsiteBookingRequests)
+        .where(
+          and(
+            inArray(humanWebsiteBookingRequests.humanId, humanIds),
+            isNull(humanWebsiteBookingRequests.opportunityId),
+          ),
+        )
+    : [];
+
+  return { linked, available };
+}
+
+export async function linkBookingRequest(db: DB, oppId: string, bookingRequestLinkId: string) {
+  const opp = await db.query.opportunities.findFirst({
+    where: eq(opportunities.id, oppId),
+  });
+  if (opp == null) {
+    throw notFound(ERROR_CODES.OPPORTUNITY_NOT_FOUND, "Opportunity not found");
+  }
+
+  const br = await db.query.humanWebsiteBookingRequests.findFirst({
+    where: eq(humanWebsiteBookingRequests.id, bookingRequestLinkId),
+  });
+  if (br == null) {
+    throw notFound(ERROR_CODES.BOOKING_NOT_FOUND, "Booking request link not found");
+  }
+
+  await db
+    .update(humanWebsiteBookingRequests)
+    .set({ opportunityId: oppId })
+    .where(eq(humanWebsiteBookingRequests.id, bookingRequestLinkId));
+
+  return { success: true };
+}
+
+export async function unlinkBookingRequest(db: DB, oppId: string, bookingRequestLinkId: string) {
+  const br = await db.query.humanWebsiteBookingRequests.findFirst({
+    where: and(
+      eq(humanWebsiteBookingRequests.id, bookingRequestLinkId),
+      eq(humanWebsiteBookingRequests.opportunityId, oppId),
+    ),
+  });
+  if (br == null) {
+    throw notFound(ERROR_CODES.BOOKING_NOT_FOUND, "Booking request link not found for this opportunity");
+  }
+
+  await db
+    .update(humanWebsiteBookingRequests)
+    .set({ opportunityId: null })
+    .where(eq(humanWebsiteBookingRequests.id, bookingRequestLinkId));
+
+  return { success: true };
 }
 
 export async function completeNextAction(db: DB, id: string, colleagueId: string) {

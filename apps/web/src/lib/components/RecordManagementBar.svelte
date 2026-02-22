@@ -13,6 +13,7 @@
     statusOptions?: string[];
     statusColorMap?: Record<string, string>;
     statusLabels?: Record<string, string>;
+    statusLabel?: string;
     statusFormAction?: string;
     onStatusChange?: (newStatus: string) => void;
     actions?: Snippet;
@@ -26,6 +27,7 @@
     statusOptions = [],
     statusColorMap = {},
     statusLabels,
+    statusLabel,
     statusFormAction,
     onStatusChange,
     actions,
@@ -56,7 +58,14 @@
       </a>
       <h1 class="text-xl font-bold text-text-primary">{title}</h1>
       {#if status}
-        <StatusBadge status={statusLabels?.[status] ?? status} colorMap={displayColorMap} />
+        {#if statusLabel}
+          <span class="inline-flex items-center gap-2 bg-glass/30 px-3 py-1 rounded-lg">
+            <span class="text-sm font-medium text-text-secondary">{statusLabel}:</span>
+            <StatusBadge status={statusLabels?.[status] ?? status} colorMap={displayColorMap} />
+          </span>
+        {:else}
+          <StatusBadge status={statusLabels?.[status] ?? status} colorMap={displayColorMap} />
+        {/if}
       {/if}
     </div>
     <div class="flex items-center gap-3">

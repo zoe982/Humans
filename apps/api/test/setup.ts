@@ -124,6 +124,7 @@ const MIGRATION_STATEMENTS = [
     \`id\` text PRIMARY KEY NOT NULL,
     \`human_id\` text NOT NULL,
     \`website_booking_request_id\` text NOT NULL,
+    \`opportunity_id\` text REFERENCES \`opportunities\`(\`id\`),
     \`linked_at\` text NOT NULL,
     FOREIGN KEY (\`human_id\`) REFERENCES \`humans\`(\`id\`) ON UPDATE no action ON DELETE no action
   )`,

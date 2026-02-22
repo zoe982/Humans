@@ -16,11 +16,13 @@
     displayId: string;
     stage: string;
     seatsRequested: number;
+    passengerSeats: number;
+    petSeats: number;
     primaryHumanName: string | null;
-    ownerName: string | null;
+    nextActionOwnerName: string | null;
     nextActionDueDate: string | null;
     isOverdue: boolean;
-    lastTouched: string | null;
+    updatedAt: string | null;
     createdAt: string;
   };
 
@@ -51,10 +53,11 @@
     { key: "displayId", label: "ID" },
     { key: "stage", label: "Stage" },
     { key: "primaryHuman", label: "Primary Human" },
-    { key: "seats", label: "Seats" },
+    { key: "pax", label: "Pax" },
+    { key: "pets", label: "Pets" },
     { key: "dueDate", label: "Next Action Due" },
     { key: "owner", label: "Owner" },
-    { key: "lastTouched", label: "Last Touched" },
+    { key: "updatedAt", label: "Last Touched" },
   ]}
   deleteAction="?/delete"
   deleteMessage="Are you sure you want to delete this opportunity? This cannot be undone."
@@ -105,7 +108,8 @@
       <StatusBadge status={opportunityStageLabels[opp.stage] ?? opp.stage} colorMap={Object.fromEntries(Object.entries(opportunityStageColors).map(([k, v]) => [opportunityStageLabels[k] ?? k, v]))} />
     </td>
     <td class="text-text-secondary text-sm">{opp.primaryHumanName ?? "\u2014"}</td>
-    <td class="text-text-secondary text-sm">{opp.seatsRequested}</td>
+    <td class="text-text-secondary text-sm">{opp.passengerSeats}</td>
+    <td class="text-text-secondary text-sm">{opp.petSeats}</td>
     <td class="text-sm whitespace-nowrap">
       {#if opp.nextActionDueDate}
         <span class={opp.isOverdue ? "text-red-400 font-medium" : "text-text-muted"}>
@@ -118,8 +122,8 @@
         <span class="text-text-muted">&mdash;</span>
       {/if}
     </td>
-    <td class="text-text-secondary text-sm">{opp.ownerName ?? "\u2014"}</td>
-    <td class="text-text-muted text-sm">{opp.lastTouched ? new Date(opp.lastTouched).toLocaleDateString() : "\u2014"}</td>
+    <td class="text-text-secondary text-sm">{opp.nextActionOwnerName ?? "\u2014"}</td>
+    <td class="text-text-muted text-sm">{opp.updatedAt ? new Date(opp.updatedAt).toLocaleDateString() : "\u2014"}</td>
   {/snippet}
   {#snippet mobileCard(opp)}
     <a href="/opportunities/{opp.id}" class="glass-card p-4 block hover:ring-1 hover:ring-accent/40 transition">
@@ -129,7 +133,8 @@
         <StatusBadge status={opportunityStageLabels[opp.stage] ?? opp.stage} colorMap={Object.fromEntries(Object.entries(opportunityStageColors).map(([k, v]) => [opportunityStageLabels[k] ?? k, v]))} />
       </div>
       <div class="flex items-center gap-3 text-sm text-text-secondary">
-        <span>{opp.seatsRequested} seat{opp.seatsRequested !== 1 ? "s" : ""}</span>
+        <span>{opp.passengerSeats} pax</span>
+        <span>{opp.petSeats} pet{opp.petSeats !== 1 ? "s" : ""}</span>
         {#if opp.isOverdue}
           <span class="glass-badge badge-red text-xs">Overdue</span>
         {/if}

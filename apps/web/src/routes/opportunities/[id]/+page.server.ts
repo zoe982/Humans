@@ -41,12 +41,13 @@ export const load = async ({ locals, cookies, params }: RequestEvent) => {
   if (opportunity == null) redirect(302, "/opportunities");
 
   const headers = { Cookie: `humans_session=${sessionToken ?? ""}` };
-  const [colleaguesRes, humansRes, roleConfigs, petsRes, flightSummaryRes] = await Promise.all([
+  const [colleaguesRes, humansRes, roleConfigs, petsRes, flightSummaryRes, bookingRequestsRes] = await Promise.all([
     fetch(`${PUBLIC_API_URL}/api/colleagues`, { headers }),
     fetch(`${PUBLIC_API_URL}/api/humans?limit=200`, { headers }),
     fetchConfig(sessionToken ?? "", "opportunity-human-roles"),
     fetch(`${PUBLIC_API_URL}/api/pets`, { headers }),
     fetch(`${PUBLIC_API_URL}/api/flights/summary`, { headers }),
+    fetch(`${PUBLIC_API_URL}/api/opportunities/${id}/booking-requests`, { headers }),
   ]);
 
   let colleagues: unknown[] = [];
@@ -73,6 +74,15 @@ export const load = async ({ locals, cookies, params }: RequestEvent) => {
     flightSummary = isListData(raw) ? raw.data : [];
   }
 
+  let bookingRequests: { linked: unknown[]; available: unknown[] } = { linked: [], available: [] };
+  if (bookingRequestsRes.ok) {
+    const raw: unknown = await bookingRequestsRes.json();
+    if (isObjData(raw) && raw.data) {
+      const d = raw.data as { linked?: unknown[]; available?: unknown[] };
+      bookingRequests = { linked: d.linked ?? [], available: d.available ?? [] };
+    }
+  }
+
   return {
     opportunity,
     colleagues,
@@ -80,6 +90,7 @@ export const load = async ({ locals, cookies, params }: RequestEvent) => {
     allPets,
     roleConfigs,
     flightSummary,
+    bookingRequests,
     apiUrl: PUBLIC_API_URL,
     userRole: locals.user?.role ?? "viewer",
     currentColleagueId: locals.user?.id ?? null,
@@ -210,6 +221,48 @@ export const actions = {
     if (!res.ok) {
       const resBody: unknown = await res.json();
       return failFromApi(resBody, res.status, "Failed to unlink flight");
+    }
+
+    return { success: true };
+  },
+
+  linkBookingRequest: async ({ request, cookies, params }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
+    const form = await request.formData();
+    const sessionToken = cookies.get("humans_session");
+    const id = params.id;
+    const bookingRequestLinkId = form.get("bookingRequestLinkId");
+
+    const res = await fetch(`${PUBLIC_API_URL}/api/opportunities/${id}/booking-requests`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Cookie: `humans_session=${sessionToken ?? ""}`,
+      },
+      body: JSON.stringify({ bookingRequestLinkId }),
+    });
+
+    if (!res.ok) {
+      const resBody: unknown = await res.json();
+      return failFromApi(resBody, res.status, "Failed to link booking request");
+    }
+
+    return { success: true };
+  },
+
+  unlinkBookingRequest: async ({ request, cookies, params }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
+    const form = await request.formData();
+    const sessionToken = cookies.get("humans_session");
+    const id = params.id;
+    const linkId = form.get("linkId");
+
+    const res = await fetch(`${PUBLIC_API_URL}/api/opportunities/${id}/booking-requests/${linkId}`, {
+      method: "DELETE",
+      headers: { Cookie: `humans_session=${sessionToken ?? ""}` },
+    });
+
+    if (!res.ok) {
+      const resBody: unknown = await res.json();
+      return failFromApi(resBody, res.status, "Failed to unlink booking request");
     }
 
     return { success: true };

@@ -16,17 +16,18 @@
   let selectedDate = $state<DateValue | undefined>(undefined);
   let hour = $state(12);
   let minute = $state(0);
+  let lastEmitted = $state("");
 
-  // Reactively parse value prop whenever it changes
+  // Reactively parse value prop whenever it changes — skip if it matches what we last emitted
   $effect(() => {
-    if (value) {
+    if (value && value !== lastEmitted) {
       const d = new Date(value);
       if (!isNaN(d.getTime())) {
         selectedDate = new CalendarDate(d.getFullYear(), d.getMonth() + 1, d.getDate());
         hour = d.getHours();
         minute = d.getMinutes();
       }
-    } else {
+    } else if (!value) {
       selectedDate = undefined;
     }
   });
@@ -56,6 +57,7 @@
   // Notify parent when value changes (guard against feedback loops)
   $effect(() => {
     if (isoString && isoString !== value) {
+      lastEmitted = isoString;
       onchange?.(isoString);
     }
   });

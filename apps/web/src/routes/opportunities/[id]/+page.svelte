@@ -78,6 +78,7 @@
   };
 
   type PetOption = { id: string; displayId?: string; name: string; type: string; humanId: string | null };
+  type BookingRequestLink = { id: string; humanId: string; websiteBookingRequestId: string; opportunityId: string | null; linkedAt: string };
 
   const opportunity = $derived(data.opportunity as Opportunity);
   const colleagues = $derived(data.colleagues as Colleague[]);
@@ -85,6 +86,7 @@
   const allPets = $derived(data.allPets as PetOption[]);
   const roleConfigs = $derived(data.roleConfigs as ConfigItem[]);
   const flightSummary = $derived((data.flightSummary ?? []) as FlightSummary[]);
+  const bookingRequests = $derived(data.bookingRequests as { linked: BookingRequestLink[]; available: BookingRequestLink[] });
   const apiUrl = $derived(data.apiUrl as string);
 
   const linkedFlight = $derived(opportunity.flightId ? flightSummary.find((f) => f.id === opportunity.flightId) ?? null : null);
@@ -123,6 +125,13 @@
         value: p.id,
         label: `${p.displayId ? p.displayId + " — " : ""}${p.name} (${p.type === "cat" ? "Cat" : "Dog"})`,
       }))
+  );
+
+  const availableBookingRequestOptions = $derived(
+    (bookingRequests?.available ?? []).map((br) => ({
+      value: br.id,
+      label: `BR-${br.websiteBookingRequestId}`,
+    }))
   );
 
   // Auto-save state
@@ -365,6 +374,7 @@
     statusOptions={OPPORTUNITY_STAGE_OPTIONS.map((s) => s.value)}
     statusColorMap={opportunityStageColors}
     statusLabels={opportunityStageLabels}
+    statusLabel="Stage"
     onStatusChange={handleStageChange}
   >
     {#snippet actions()}
@@ -604,6 +614,53 @@
     </RelatedListTable>
   </div>
 
+  <!-- Website Booking Requests -->
+  <div class="mt-6">
+    <RelatedListTable
+      title="Website Booking Requests"
+      items={bookingRequests?.linked ?? []}
+      columns={[
+        { key: "bookingId", label: "Booking Request ID" },
+        { key: "linkedAt", label: "Linked Date" },
+        { key: "delete", label: "", headerClass: "w-10" },
+      ]}
+      emptyMessage="No linked booking requests."
+      addLabel="Booking Request"
+    >
+      {#snippet row(link, _searchQuery)}
+        <td class="font-mono text-sm">{link.websiteBookingRequestId}</td>
+        <td class="text-sm text-text-muted">{new Date(link.linkedAt).toLocaleDateString()}</td>
+        <td>
+          <form method="POST" action="?/unlinkBookingRequest">
+            <input type="hidden" name="linkId" value={link.id} />
+            <button type="submit" class="flex items-center justify-center w-7 h-7 rounded-lg text-text-muted hover:text-destructive-foreground hover:bg-destructive transition-colors duration-150" aria-label="Unlink booking request">
+              <Trash2 size={14} />
+            </button>
+          </form>
+        </td>
+      {/snippet}
+      {#snippet addForm()}
+        <form method="POST" action="?/linkBookingRequest" class="space-y-3">
+          <div>
+            <label for="bookingRequestSelect" class="block text-sm font-medium text-text-secondary">Booking Request</label>
+            <SearchableSelect
+              options={availableBookingRequestOptions}
+              name="bookingRequestLinkId"
+              id="bookingRequestSelect"
+              required={true}
+              emptyOption="Select a booking request..."
+              placeholder="Search booking requests..."
+            />
+          </div>
+          {#if availableBookingRequestOptions.length === 0}
+            <p class="text-xs text-text-muted">No available booking requests. Link a human first — their unlinked booking requests will appear here.</p>
+          {/if}
+          <Button type="submit" size="sm">Link Booking Request</Button>
+        </form>
+      {/snippet}
+    </RelatedListTable>
+  </div>
+
   <!-- Activities -->
   <div class="mt-6">
     <RelatedListTable
@@ -692,15 +749,15 @@
 
   <!-- Next Action -->
   {#if !isTerminal}
-    <div class="mt-6 glass-card-accent p-6 space-y-4">
+    <div class="mt-6 glass-card-hero p-8 space-y-4">
       <div class="flex items-center justify-between">
         <div class="flex items-center gap-3">
-          <h2 class="text-lg font-semibold text-text-primary">Next Action</h2>
+          <h2 class="text-lg font-bold text-text-primary">Next Action</h2>
           <SaveIndicator status={naSaveStatus} />
         </div>
         {#if opportunity.nextActionDescription}
-          <Button size="sm" onclick={completeNextAction}>
-            <CheckCircle size={16} class="mr-1" />
+          <Button onclick={completeNextAction} class="bg-emerald-600 hover:bg-emerald-500 text-white">
+            <CheckCircle size={18} class="mr-1.5" />
             Done
           </Button>
         {/if}
@@ -761,13 +818,13 @@
         </div>
         <div class="sm:col-span-2">
           <label for="naDescription" class="block text-sm font-medium text-text-secondary">Description</label>
-          <input
-            id="naDescription" type="text"
+          <textarea
+            id="naDescription" rows="3"
             bind:value={naDescription}
-            oninput={triggerNaSave}
-            class="glass-input mt-1 block w-full"
+            oninput={(e) => { const target = e.currentTarget; target.style.height = "auto"; target.style.height = target.scrollHeight + "px"; triggerNaSave(); }}
+            class="glass-input mt-1 block w-full resize-none"
             placeholder="What needs to happen next?"
-          />
+          ></textarea>
         </div>
       </div>
     </div>
