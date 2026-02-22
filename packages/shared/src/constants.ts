@@ -33,6 +33,8 @@ export const PERMISSIONS = {
   deleteGeoInterests: ["admin"],
   deleteRouteInterests: ["admin"],
   deletePets: ["admin"],
+  manageOpportunities: ["agent", "manager", "admin"],
+  deleteOpportunities: ["admin"],
 } as const satisfies Record<string, readonly Role[]>;
 
 export type Permission = keyof typeof PERMISSIONS;

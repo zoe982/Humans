@@ -103,6 +103,24 @@ export {
 } from "./social-ids";
 
 export {
+  opportunityStageEnum,
+  createOpportunitySchema,
+  updateOpportunitySchema,
+  updateOpportunityStageSchema,
+  updateNextActionSchema,
+  linkOpportunityHumanSchema,
+  updateOpportunityHumanSchema,
+  linkOpportunityPetSchema,
+  type CreateOpportunityInput,
+  type UpdateOpportunityInput,
+  type UpdateOpportunityStageInput,
+  type UpdateNextActionInput,
+  type LinkOpportunityHumanInput,
+  type UpdateOpportunityHumanInput,
+  type LinkOpportunityPetInput,
+} from "./opportunities";
+
+export {
   createAccountSchema,
   updateAccountSchema,
   updateAccountStatusSchema,

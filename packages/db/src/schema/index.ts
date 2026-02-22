@@ -54,3 +54,11 @@ export {
   frontSyncRunStatuses,
   type FrontSyncRunStatus,
 } from "./front-sync-runs";
+export {
+  opportunities,
+  opportunityStages,
+  type OpportunityStage,
+} from "./opportunities";
+export { opportunityHumanRolesConfig } from "./opportunity-human-roles-config";
+export { opportunityHumans } from "./opportunity-humans";
+export { opportunityPets } from "./opportunity-pets";

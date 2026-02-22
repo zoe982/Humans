@@ -15,28 +15,22 @@
 </script>
 
 <Popover.Root bind:open>
-  <Popover.Trigger asChild>
-    {#snippet children({ props })}
-      <button
-        {...props}
-        type="button"
-        class="hidden sm:flex items-center gap-2.5 rounded-xl px-2.5 py-1.5 cursor-pointer
-               transition-colors duration-150 hover:bg-white/[0.08]
-               focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60"
-      >
-        <div class="text-right">
-          <p class="text-sm font-medium leading-snug text-text-primary">{userName}</p>
-          <p class="text-xs leading-snug text-text-muted capitalize">{userRole}</p>
-        </div>
-        {#if avatarUrl}
-          <img
-            src={avatarUrl}
-            alt={userName}
-            class="h-8 w-8 rounded-full object-cover ring-1 ring-glass-border flex-shrink-0"
-          />
-        {/if}
-      </button>
-    {/snippet}
+  <Popover.Trigger
+    class="hidden sm:flex items-center gap-2.5 rounded-xl px-2.5 py-1.5 cursor-pointer
+           transition-colors duration-150 hover:bg-white/[0.08]
+           focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60"
+  >
+    <div class="text-right">
+      <p class="text-sm font-medium leading-snug text-text-primary">{userName}</p>
+      <p class="text-xs leading-snug text-text-muted capitalize">{userRole}</p>
+    </div>
+    {#if avatarUrl}
+      <img
+        src={avatarUrl}
+        alt={userName}
+        class="h-8 w-8 rounded-full object-cover ring-1 ring-glass-border flex-shrink-0"
+      />
+    {/if}
   </Popover.Trigger>
 
   <Popover.Content align="end" sideOffset={8} class="w-60 p-0 overflow-hidden">

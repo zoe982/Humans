@@ -143,6 +143,7 @@ export function buildActivity(overrides: Partial<{
   humanId: string | null;
   accountId: string | null;
   routeSignupId: string | null;
+  opportunityId: string | null;
   gmailId: string | null;
   frontId: string | null;
   syncRunId: string | null;
@@ -162,6 +163,7 @@ export function buildActivity(overrides: Partial<{
     humanId: null,
     accountId: null,
     routeSignupId: null,
+    opportunityId: null,
     gmailId: null,
     frontId: null,
     syncRunId: null,
@@ -288,6 +290,70 @@ export function buildConfigItem(overrides: Partial<{
   return {
     id: createId(),
     name: "Default Label",
+    createdAt: now(),
+    ...overrides,
+  };
+}
+
+export function buildOpportunity(overrides: Partial<{
+  id: string;
+  displayId: string;
+  stage: string;
+  seatsRequested: number;
+  lossReason: string | null;
+  nextActionOwnerId: string | null;
+  nextActionDescription: string | null;
+  nextActionType: string | null;
+  nextActionDueDate: string | null;
+  nextActionCompletedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}> = {}) {
+  const ts = now();
+  return {
+    id: createId(),
+    displayId: nextTestDisplayId("OPP"),
+    stage: "open" as const,
+    seatsRequested: 1,
+    lossReason: null,
+    nextActionOwnerId: null,
+    nextActionDescription: null,
+    nextActionType: null,
+    nextActionDueDate: null,
+    nextActionCompletedAt: null,
+    createdAt: ts,
+    updatedAt: ts,
+    ...overrides,
+  };
+}
+
+export function buildOpportunityHuman(overrides: Partial<{
+  id: string;
+  opportunityId: string;
+  humanId: string;
+  roleId: string | null;
+  createdAt: string;
+}> = {}) {
+  return {
+    id: createId(),
+    opportunityId: createId(),
+    humanId: createId(),
+    roleId: null,
+    createdAt: now(),
+    ...overrides,
+  };
+}
+
+export function buildOpportunityPet(overrides: Partial<{
+  id: string;
+  opportunityId: string;
+  petId: string;
+  createdAt: string;
+}> = {}) {
+  return {
+    id: createId(),
+    opportunityId: createId(),
+    petId: createId(),
     createdAt: now(),
     ...overrides,
   };
