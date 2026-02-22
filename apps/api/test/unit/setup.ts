@@ -236,6 +236,7 @@ const MIGRATION_STATEMENTS = [
     \`front_conversation_id\` text,
     \`sync_run_id\` text REFERENCES \`front_sync_runs\`(\`id\`),
     \`colleague_id\` text REFERENCES \`colleagues\`(\`id\`),
+    \`created_by_user_id\` text REFERENCES \`colleagues\`(\`id\`),
     \`created_at\` text NOT NULL,
     \`updated_at\` text NOT NULL,
     FOREIGN KEY (\`human_id\`) REFERENCES \`humans\`(\`id\`) ON UPDATE no action ON DELETE no action
