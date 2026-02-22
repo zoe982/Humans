@@ -13,6 +13,7 @@ import {
   createGeoInterest,
   deleteGeoInterest,
   listExpressions,
+  getGeoInterestExpressionDetail,
   createExpression,
   updateExpression,
   deleteExpression,
@@ -63,6 +64,12 @@ geoInterestRoutes.get("/api/geo-interest-expressions", requirePermission("viewRe
     geoInterestId: c.req.query("geoInterestId"),
     activityId: c.req.query("activityId"),
   });
+  return c.json({ data });
+});
+
+// Get single expression with parent geo-interest, human, and activity
+geoInterestRoutes.get("/api/geo-interest-expressions/:id", requirePermission("viewRecords"), async (c) => {
+  const data = await getGeoInterestExpressionDetail(c.get("db"), c.req.param("id"));
   return c.json({ data });
 });
 

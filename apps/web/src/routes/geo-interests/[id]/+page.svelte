@@ -15,6 +15,7 @@
 
   type Expression = {
     id: string;
+    displayId: string;
     humanId: string;
     geoInterestId: string;
     activityId: string | null;
@@ -94,6 +95,7 @@
   });
 
   const expressionColumns = [
+    { key: "id", label: "ID", sortable: true, sortValue: (e: Expression) => e.displayId },
     { key: "human", label: "Human", sortable: true, sortValue: (e: Expression) => e.humanName ?? "" },
     { key: "activity", label: "Activity", sortable: true, sortValue: (e: Expression) => e.activitySubject ?? "" },
     { key: "notes", label: "Notes", sortable: true, sortValue: (e: Expression) => e.notes ?? "" },
@@ -144,6 +146,7 @@
     defaultSortKey="date"
     defaultSortDirection="desc"
     searchFilter={(e, q) =>
+      e.displayId.toLowerCase().includes(q) ||
       (e.humanName ?? "").toLowerCase().includes(q) ||
       (e.activitySubject ?? "").toLowerCase().includes(q) ||
       (e.notes ?? "").toLowerCase().includes(q)}
@@ -152,6 +155,9 @@
     onFormToggle={(open) => { if (!open) resetAddForm(); }}
   >
     {#snippet row(expr, _searchQuery)}
+      <td class="font-mono text-sm">
+        <a href="/geo-interests/expressions/{expr.id}" class="text-accent hover:text-[var(--link-hover)]">{expr.displayId}</a>
+      </td>
       <td>
         {#if expr.humanName}
           <a href="/humans/{expr.humanId}" class="text-sm font-medium text-accent hover:text-[var(--link-hover)]">{expr.humanName}</a>

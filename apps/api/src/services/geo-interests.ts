@@ -221,6 +221,31 @@ export async function createExpression(
   return expression;
 }
 
+export async function getGeoInterestExpressionDetail(db: DB, id: string) {
+  const expr = await db.query.geoInterestExpressions.findFirst({
+    where: eq(geoInterestExpressions.id, id),
+  });
+  if (expr == null) {
+    throw notFound(ERROR_CODES.GEO_EXPRESSION_NOT_FOUND, "Geo-interest expression not found");
+  }
+
+  const [gi, human, activity] = await Promise.all([
+    db.query.geoInterests.findFirst({ where: eq(geoInterests.id, expr.geoInterestId) }),
+    db.query.humans.findFirst({ where: eq(humans.id, expr.humanId) }),
+    expr.activityId ? db.query.activities.findFirst({ where: eq(activities.id, expr.activityId) }) : null,
+  ]);
+
+  return {
+    ...expr,
+    humanName: human ? `${human.firstName} ${human.lastName}` : null,
+    humanDisplayId: human?.displayId ?? null,
+    city: gi?.city ?? null,
+    country: gi?.country ?? null,
+    geoDisplayId: gi?.displayId ?? null,
+    activitySubject: activity?.subject ?? null,
+  };
+}
+
 export async function updateExpression(
   db: DB,
   id: string,

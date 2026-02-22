@@ -235,7 +235,11 @@
     {#if expr.activitySubject}
       <div>
         <label class="block text-sm font-medium text-text-secondary mb-1">Linked Activity</label>
-        <p class="text-sm text-text-primary">{expr.activitySubject}</p>
+        {#if expr.activityId}
+          <a href="/activities/{expr.activityId}" class="text-sm text-accent hover:text-[var(--link-hover)]">{expr.activitySubject}</a>
+        {:else}
+          <p class="text-sm text-text-primary">{expr.activitySubject}</p>
+        {/if}
       </div>
     {/if}
   </div>

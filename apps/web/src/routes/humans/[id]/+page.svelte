@@ -748,7 +748,7 @@
     >
       {#snippet row(expr, _searchQuery)}
         <td class="font-mono text-sm whitespace-nowrap">
-          <a href="/geo-interests/{expr.geoInterestId}" class="text-accent hover:text-[var(--link-hover)]">{expr.displayId}</a>
+          <a href="/geo-interests/expressions/{expr.id}" class="text-accent hover:text-[var(--link-hover)]">{expr.displayId}</a>
         </td>
         <td>
           <a href="/geo-interests/{expr.geoInterestId}" class="text-sm font-medium text-accent hover:text-[var(--link-hover)]">
@@ -797,7 +797,7 @@
     >
       {#snippet row(expr, _searchQuery)}
         <td class="font-mono text-sm whitespace-nowrap">
-          <a href="/route-interests/{expr.routeInterestId}" class="text-accent hover:text-[var(--link-hover)]">{expr.displayId}</a>
+          <a href="/route-interests/expressions/{expr.id}" class="text-accent hover:text-[var(--link-hover)]">{expr.displayId}</a>
         </td>
         <td>
           <a href="/route-interests/{expr.routeInterestId}" class="text-sm font-medium text-accent hover:text-[var(--link-hover)]">
