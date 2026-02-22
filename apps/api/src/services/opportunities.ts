@@ -235,7 +235,7 @@ export async function createOpportunity(
 export async function updateOpportunity(
   db: DB,
   id: string,
-  data: { seatsRequested?: number; passengerSeats?: number; petSeats?: number; notes?: string | null; lossReason?: string | null },
+  data: { seatsRequested?: number; passengerSeats?: number; petSeats?: number; notes?: string | null; lossReason?: string | null; flightId?: string | null },
   colleagueId: string,
 ) {
   const existing = await db.query.opportunities.findFirst({
@@ -274,6 +274,11 @@ export async function updateOpportunity(
     oldValues["lossReason"] = existing.lossReason;
     newValues["lossReason"] = data.lossReason;
     updateFields["lossReason"] = data.lossReason;
+  }
+  if (data.flightId !== undefined) {
+    oldValues["flightId"] = existing.flightId;
+    newValues["flightId"] = data.flightId;
+    updateFields["flightId"] = data.flightId;
   }
 
   await db.update(opportunities).set(updateFields).where(eq(opportunities.id, id));
@@ -605,6 +610,66 @@ export async function updateNextAction(
     where: eq(opportunities.id, id),
   });
   return { data: updated, auditEntryId };
+}
+
+// ─── Link/Unlink Flight ─────────────────────────────────────────
+
+export async function linkOpportunityFlight(db: DB, id: string, flightId: string, colleagueId: string) {
+  const existing = await db.query.opportunities.findFirst({
+    where: eq(opportunities.id, id),
+  });
+  if (existing == null) {
+    throw notFound(ERROR_CODES.OPPORTUNITY_NOT_FOUND, "Opportunity not found");
+  }
+
+  const now = new Date().toISOString();
+  await db.update(opportunities).set({ flightId, updatedAt: now }).where(eq(opportunities.id, id));
+
+  const diff = computeDiff({ flightId: existing.flightId }, { flightId });
+  if (diff) {
+    await logAuditEntry({
+      db,
+      colleagueId,
+      action: "UPDATE",
+      entityType: "opportunity",
+      entityId: id,
+      changes: diff,
+    });
+  }
+
+  const updated = await db.query.opportunities.findFirst({
+    where: eq(opportunities.id, id),
+  });
+  return { data: updated };
+}
+
+export async function unlinkOpportunityFlight(db: DB, id: string, colleagueId: string) {
+  const existing = await db.query.opportunities.findFirst({
+    where: eq(opportunities.id, id),
+  });
+  if (existing == null) {
+    throw notFound(ERROR_CODES.OPPORTUNITY_NOT_FOUND, "Opportunity not found");
+  }
+
+  const now = new Date().toISOString();
+  await db.update(opportunities).set({ flightId: null, updatedAt: now }).where(eq(opportunities.id, id));
+
+  const diff = computeDiff({ flightId: existing.flightId }, { flightId: null });
+  if (diff) {
+    await logAuditEntry({
+      db,
+      colleagueId,
+      action: "UPDATE",
+      entityType: "opportunity",
+      entityId: id,
+      changes: diff,
+    });
+  }
+
+  const updated = await db.query.opportunities.findFirst({
+    where: eq(opportunities.id, id),
+  });
+  return { data: updated };
 }
 
 export async function completeNextAction(db: DB, id: string, colleagueId: string) {

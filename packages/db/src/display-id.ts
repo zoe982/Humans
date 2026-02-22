@@ -48,6 +48,7 @@ export const DISPLAY_ID_PREFIXES = [
   "FRY",
   "OPP",
   "LEA",
+  "FLY",
 ] as const;
 
 export type DisplayIdPrefix = (typeof DISPLAY_ID_PREFIXES)[number];

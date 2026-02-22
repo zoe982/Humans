@@ -28,6 +28,7 @@ import { socialIdRoutes } from "./routes/social-ids";
 import { colleagueRoutes } from "./routes/colleagues";
 import { opportunityRoutes } from "./routes/opportunities";
 import { generalLeadRoutes } from "./routes/general-leads";
+import { flightRoutes } from "./routes/flights";
 import type { AppContext } from "./types";
 
 const app = new Hono<AppContext>();
@@ -71,5 +72,6 @@ app.route("/", socialIdRoutes);
 app.route("/", colleagueRoutes);
 app.route("/", opportunityRoutes);
 app.route("/", generalLeadRoutes);
+app.route("/", flightRoutes);
 
 export default app;

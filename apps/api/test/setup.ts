@@ -328,6 +328,7 @@ const MIGRATION_STATEMENTS = [
     \`next_action_type\` text,
     \`next_action_due_date\` text,
     \`next_action_completed_at\` text,
+    \`flight_id\` text,
     \`created_at\` text NOT NULL,
     \`updated_at\` text NOT NULL
   )`,

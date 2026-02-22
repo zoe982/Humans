@@ -31,6 +31,7 @@ export const opportunities = sqliteTable("opportunities", {
   nextActionStartDate: text("next_action_start_date"),
   nextActionDueDate: text("next_action_due_date"),
   nextActionCompletedAt: text("next_action_completed_at"),
+  flightId: text("flight_id"),
   createdAt: text("created_at").notNull(),
   updatedAt: text("updated_at").notNull(),
 });

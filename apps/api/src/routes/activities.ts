@@ -96,8 +96,9 @@ activityRoutes.post("/api/activities", requirePermission("createEditRecords"), a
 // Update activity
 activityRoutes.patch("/api/activities/:id", requirePermission("createEditRecords"), async (c) => {
   const body: unknown = await c.req.json();
-  const data = updateActivitySchema.parse(body);
-  const result = await updateActivity(c.get("db"), c.req.param("id"), data);
+  const { ownerId, ...rest } = updateActivitySchema.parse(body);
+  const serviceData = { ...rest, ...(ownerId !== undefined ? { colleagueId: ownerId } : {}) };
+  const result = await updateActivity(c.get("db"), c.req.param("id"), serviceData);
   return c.json({ data: result });
 });
 

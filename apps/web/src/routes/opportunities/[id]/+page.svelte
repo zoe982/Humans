@@ -45,6 +45,13 @@
     createdAt: string;
     colleagueName: string | null;
   };
+  type FlightSummary = {
+    id: string;
+    crm_display_id: string | null;
+    origin_city: string | null;
+    destination_city: string | null;
+    flight_date: string | null;
+  };
   type Opportunity = {
     id: string;
     displayId: string;
@@ -54,6 +61,7 @@
     petSeats: number;
     notes: string | null;
     lossReason: string | null;
+    flightId: string | null;
     nextActionOwnerId: string | null;
     nextActionOwnerName: string | null;
     nextActionDescription: string | null;
@@ -76,7 +84,16 @@
   const allHumans = $derived(data.allHumans as HumanOption[]);
   const allPets = $derived(data.allPets as PetOption[]);
   const roleConfigs = $derived(data.roleConfigs as ConfigItem[]);
+  const flightSummary = $derived((data.flightSummary ?? []) as FlightSummary[]);
   const apiUrl = $derived(data.apiUrl as string);
+
+  const linkedFlight = $derived(opportunity.flightId ? flightSummary.find((f) => f.id === opportunity.flightId) ?? null : null);
+  const flightOptions = $derived(
+    flightSummary.map((f) => ({
+      value: f.id,
+      label: `${f.crm_display_id ?? "?"} — ${f.origin_city ?? "?"} \u2192 ${f.destination_city ?? "?"} (${f.flight_date ?? "?"})`,
+    }))
+  );
 
   const colleagueOptions = $derived(colleagues.map((c) => ({ value: c.id, label: c.name })));
   const humanOptions = $derived(allHumans.map((h) => ({
@@ -370,7 +387,7 @@
       <SaveIndicator status={saveStatus} />
     </div>
 
-    <div class="grid gap-4 sm:grid-cols-2">
+    <div class="grid gap-4 sm:grid-cols-3">
       <div>
         <label for="passengerSeats" class="block text-sm font-medium text-text-secondary">Passenger (Human) Seats</label>
         <input
@@ -389,8 +406,34 @@
           class="glass-input mt-1 block w-full"
         />
       </div>
+      <div>
+        <label for="linkedFlight" class="block text-sm font-medium text-text-secondary">Linked Flight</label>
+        {#if linkedFlight}
+          <div class="flex items-center gap-2 mt-1 h-10">
+            <a href="/flights/{linkedFlight.id}" class="font-mono text-sm text-accent hover:text-[var(--link-hover)]">{linkedFlight.crm_display_id ?? "Flight"}</a>
+            <span class="text-text-secondary text-sm truncate">{linkedFlight.origin_city ?? "?"} &rarr; {linkedFlight.destination_city ?? "?"}</span>
+            <form method="POST" action="?/unlinkFlight" class="ml-auto shrink-0">
+              <Button type="submit" variant="ghost" size="sm">Unlink</Button>
+            </form>
+          </div>
+        {:else}
+          <form method="POST" action="?/linkFlight" class="flex items-center gap-2 mt-1">
+            <div class="flex-1 min-w-0">
+              <SearchableSelect
+                options={flightOptions}
+                name="flightId"
+                id="flightSelect"
+                required={true}
+                emptyOption="Choose flight..."
+                placeholder="Search flights..."
+              />
+            </div>
+            <Button type="submit" size="sm" class="shrink-0">Link</Button>
+          </form>
+        {/if}
+      </div>
       {#if opportunity.stage === "closed_lost"}
-        <div class="sm:col-span-2">
+        <div class="sm:col-span-3">
           <label for="lossReason" class="block text-sm font-medium text-text-secondary">Loss Reason</label>
           <textarea
             id="lossReason" rows="2"

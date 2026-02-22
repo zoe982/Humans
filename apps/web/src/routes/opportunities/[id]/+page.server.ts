@@ -41,11 +41,12 @@ export const load = async ({ locals, cookies, params }: RequestEvent) => {
   if (opportunity == null) redirect(302, "/opportunities");
 
   const headers = { Cookie: `humans_session=${sessionToken ?? ""}` };
-  const [colleaguesRes, humansRes, roleConfigs, petsRes] = await Promise.all([
+  const [colleaguesRes, humansRes, roleConfigs, petsRes, flightSummaryRes] = await Promise.all([
     fetch(`${PUBLIC_API_URL}/api/colleagues`, { headers }),
     fetch(`${PUBLIC_API_URL}/api/humans?limit=200`, { headers }),
     fetchConfig(sessionToken ?? "", "opportunity-human-roles"),
     fetch(`${PUBLIC_API_URL}/api/pets`, { headers }),
+    fetch(`${PUBLIC_API_URL}/api/flights/summary`, { headers }),
   ]);
 
   let colleagues: unknown[] = [];
@@ -66,12 +67,19 @@ export const load = async ({ locals, cookies, params }: RequestEvent) => {
     allPets = isListData(raw) ? raw.data : [];
   }
 
+  let flightSummary: unknown[] = [];
+  if (flightSummaryRes.ok) {
+    const raw: unknown = await flightSummaryRes.json();
+    flightSummary = isListData(raw) ? raw.data : [];
+  }
+
   return {
     opportunity,
     colleagues,
     allHumans,
     allPets,
     roleConfigs,
+    flightSummary,
     apiUrl: PUBLIC_API_URL,
     userRole: locals.user?.role ?? "viewer",
     currentColleagueId: locals.user?.id ?? null,
@@ -162,6 +170,46 @@ export const actions = {
     if (!res.ok) {
       const resBody: unknown = await res.json();
       return failFromApi(resBody, res.status, "Failed to unlink pet");
+    }
+
+    return { success: true };
+  },
+
+  linkFlight: async ({ request, cookies, params }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
+    const form = await request.formData();
+    const sessionToken = cookies.get("humans_session");
+    const id = params.id;
+    const flightId = form.get("flightId");
+
+    const res = await fetch(`${PUBLIC_API_URL}/api/opportunities/${id}/flight`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        Cookie: `humans_session=${sessionToken ?? ""}`,
+      },
+      body: JSON.stringify({ flightId }),
+    });
+
+    if (!res.ok) {
+      const resBody: unknown = await res.json();
+      return failFromApi(resBody, res.status, "Failed to link flight");
+    }
+
+    return { success: true };
+  },
+
+  unlinkFlight: async ({ cookies, params }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
+    const sessionToken = cookies.get("humans_session");
+    const id = params.id;
+
+    const res = await fetch(`${PUBLIC_API_URL}/api/opportunities/${id}/flight`, {
+      method: "DELETE",
+      headers: { Cookie: `humans_session=${sessionToken ?? ""}` },
+    });
+
+    if (!res.ok) {
+      const resBody: unknown = await res.json();
+      return failFromApi(resBody, res.status, "Failed to unlink flight");
     }
 
     return { success: true };

@@ -18,6 +18,9 @@
     activityDate: string;
     humanName: string | null;
     accountName: string | null;
+    ownerId: string | null;
+    ownerName: string | null;
+    ownerDisplayId: string | null;
   };
 
   const recentActivities = $derived(data.recentActivities as RecentActivity[]);
@@ -109,6 +112,7 @@
       columns={[
         { key: "displayId", label: "ID" },
         { key: "type", label: "Type", sortable: true, sortValue: (a) => activityTypeLabels[a.type] ?? a.type },
+        { key: "owner", label: "Owner", sortable: true, sortValue: (a) => a.ownerName ?? "" },
         { key: "subject", label: "Subject", sortable: true, sortValue: (a) => a.subject },
         { key: "contact", label: "Human / Account", sortable: true, sortValue: (a) => a.humanName ?? a.accountName ?? "" },
         { key: "date", label: "Date", sortable: true, sortValue: (a) => a.activityDate },
@@ -120,6 +124,7 @@
         return (a.displayId ?? "").toLowerCase().includes(q) ||
           a.subject.toLowerCase().includes(q) ||
           typeLabel.includes(q) ||
+          (a.ownerName ?? "").toLowerCase().includes(q) ||
           (a.humanName ?? "").toLowerCase().includes(q) ||
           (a.accountName ?? "").toLowerCase().includes(q);
       }}
@@ -135,6 +140,13 @@
           <span class="glass-badge text-xs {activityTypeColors[activity.type] ?? 'bg-glass text-text-secondary'}">
             <HighlightText text={activityTypeLabels[activity.type] ?? activity.type} query={searchQuery} />
           </span>
+        </td>
+        <td class="text-sm text-text-secondary">
+          {#if activity.ownerName}
+            <HighlightText text={activity.ownerName} query={searchQuery} />
+          {:else}
+            <span class="text-text-muted">&mdash;</span>
+          {/if}
         </td>
         <td class="text-sm font-medium max-w-sm truncate">
           <HighlightText text={activity.subject} query={searchQuery} />

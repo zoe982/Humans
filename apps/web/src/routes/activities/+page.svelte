@@ -24,6 +24,9 @@
     accountName: string | null;
     routeSignupId: string | null;
     websiteBookingRequestId: string | null;
+    ownerId: string | null;
+    ownerName: string | null;
+    ownerDisplayId: string | null;
     createdAt: string;
   };
 
@@ -64,6 +67,7 @@
   columns={[
     { key: "displayId", label: "ID" },
     { key: "type", label: "Type", sortable: true, sortValue: (a) => activityTypeLabels[a.type] ?? a.type },
+    { key: "owner", label: "Owner", sortable: true, sortValue: (a) => a.ownerName ?? "" },
     { key: "subject", label: "Subject", sortable: true, sortValue: (a) => a.subject },
     { key: "notes", label: "Notes" },
     { key: "linkedTo", label: "Linked To", sortable: true, sortValue: (a) => a.humanName ?? a.accountName ?? "" },
@@ -113,6 +117,7 @@
         {activityTypeLabels[activity.type] ?? activity.type}
       </span>
     </td>
+    <td class="text-sm text-text-secondary">{activity.ownerName ?? "\u2014"}</td>
     <td class="font-medium">
       <a href="/activities/{activity.id}" class="text-accent hover:text-[var(--link-hover)]">{activity.subject}</a>
     </td>
@@ -137,6 +142,9 @@
         <span class="text-xs text-text-muted">{new Date(activity.activityDate).toLocaleDateString()}</span>
       </div>
       <p class="font-medium text-text-primary">{activity.subject}</p>
+      {#if activity.ownerName}
+        <p class="text-xs text-text-muted mt-0.5">Owner: {activity.ownerName}</p>
+      {/if}
       {#if linkedEntities(activity).length > 0}
         <p class="text-sm text-accent mt-1">{linkedEntities(activity).map(e => e.label).join(", ")}</p>
       {/if}

@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+import { z } from "zod";
 import {
   createOpportunitySchema,
   updateOpportunitySchema,
@@ -24,6 +25,8 @@ import {
   unlinkOpportunityPet,
   updateNextAction,
   completeNextAction,
+  linkOpportunityFlight,
+  unlinkOpportunityFlight,
 } from "../services/opportunities";
 import type { AppContext } from "../types";
 
@@ -134,6 +137,22 @@ opportunityRoutes.post("/api/opportunities/:id/pets", requirePermission("manageO
 opportunityRoutes.delete("/api/opportunities/:id/pets/:linkId", requirePermission("manageOpportunities"), async (c) => {
   await unlinkOpportunityPet(c.get("db"), c.req.param("linkId"));
   return c.json({ success: true });
+});
+
+// PATCH /api/opportunities/:id/flight
+opportunityRoutes.patch("/api/opportunities/:id/flight", requirePermission("manageOpportunities"), async (c) => {
+  const body: unknown = await c.req.json();
+  const data = z.object({ flightId: z.string().uuid() }).parse(body);
+  const session = c.get("session")!;
+  const result = await linkOpportunityFlight(c.get("db"), c.req.param("id"), data.flightId, session.colleagueId);
+  return c.json(result);
+});
+
+// DELETE /api/opportunities/:id/flight
+opportunityRoutes.delete("/api/opportunities/:id/flight", requirePermission("manageOpportunities"), async (c) => {
+  const session = c.get("session")!;
+  const result = await unlinkOpportunityFlight(c.get("db"), c.req.param("id"), session.colleagueId);
+  return c.json(result);
 });
 
 export { opportunityRoutes };

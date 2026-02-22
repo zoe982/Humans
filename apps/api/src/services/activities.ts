@@ -1,5 +1,5 @@
 import { eq, and, gte, lte, sql, desc, like, or } from "drizzle-orm";
-import { activities, humans, accounts, geoInterestExpressions, geoInterests, routeInterestExpressions, routeInterests } from "@humans/db/schema";
+import { activities, humans, accounts, colleagues, geoInterestExpressions, geoInterests, routeInterestExpressions, routeInterests } from "@humans/db/schema";
 import { createId } from "@humans/db";
 import { ERROR_CODES } from "@humans/shared";
 import { notFound } from "../lib/errors";
@@ -54,17 +54,22 @@ export async function listActivities(db: DB, filters: ActivityFilters) {
     .limit(limit)
     .offset(offset);
 
-  // Attach human names and account names for the dedicated activities page
+  // Attach human names, account names, and owner info
   const allHumans = await db.select().from(humans);
   const allAccounts = await db.select().from(accounts);
+  const allColleagues = await db.select().from(colleagues);
   const data = results.map((a) => {
     const human = a.humanId ? allHumans.find((h) => h.id === a.humanId) : null;
     const account = a.accountId ? allAccounts.find((ac) => ac.id === a.accountId) : null;
+    const owner = a.colleagueId ? allColleagues.find((c) => c.id === a.colleagueId) : null;
     return {
       ...a,
       humanName: human ? `${human.firstName} ${human.lastName}` : null,
       accountId: a.accountId,
       accountName: account?.name ?? null,
+      ownerId: a.colleagueId,
+      ownerName: owner?.name ?? null,
+      ownerDisplayId: owner?.displayId ?? null,
     };
   });
 
@@ -79,12 +84,15 @@ export async function getActivityDetail(db: DB, id: string) {
     throw notFound(ERROR_CODES.ACTIVITY_NOT_FOUND, "Activity not found");
   }
 
-  // Enrich with human name and account name
+  // Enrich with human name, account name, and owner info
   const human = activity.humanId
     ? await db.query.humans.findFirst({ where: eq(humans.id, activity.humanId) })
     : null;
   const account = activity.accountId
     ? await db.query.accounts.findFirst({ where: eq(accounts.id, activity.accountId) })
+    : null;
+  const owner = activity.colleagueId
+    ? await db.query.colleagues.findFirst({ where: eq(colleagues.id, activity.colleagueId) })
     : null;
 
   // Fetch linked geo-interest expressions
@@ -129,6 +137,9 @@ export async function getActivityDetail(db: DB, id: string) {
     ...activity,
     humanName: human ? `${human.firstName} ${human.lastName}` : null,
     accountName: account?.name ?? null,
+    ownerId: activity.colleagueId,
+    ownerName: owner?.name ?? null,
+    ownerDisplayId: owner?.displayId ?? null,
     geoInterestExpressions: geoExpressions,
     routeInterestExpressions: routeExprData,
   };
@@ -199,6 +210,7 @@ export async function updateActivity(
     frontId?: string | null;
     frontConversationId?: string | null;
     syncRunId?: string | null;
+    colleagueId?: string | null;
   },
 ) {
   const existing = await db.query.activities.findFirst({
@@ -225,6 +237,7 @@ export async function updateActivity(
   if (data.frontId !== undefined) updateFields["frontId"] = data.frontId;
   if (data.frontConversationId !== undefined) updateFields["frontConversationId"] = data.frontConversationId;
   if (data.syncRunId !== undefined) updateFields["syncRunId"] = data.syncRunId;
+  if (data.colleagueId !== undefined) updateFields["colleagueId"] = data.colleagueId;
 
   await db.update(activities).set(updateFields).where(eq(activities.id, id));
 

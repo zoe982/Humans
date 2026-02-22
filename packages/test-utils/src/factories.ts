@@ -312,6 +312,7 @@ export function buildOpportunity(overrides: Partial<{
   nextActionType: string | null;
   nextActionDueDate: string | null;
   nextActionCompletedAt: string | null;
+  flightId: string | null;
   createdAt: string;
   updatedAt: string;
 }> = {}) {
@@ -331,6 +332,7 @@ export function buildOpportunity(overrides: Partial<{
     nextActionType: null,
     nextActionDueDate: null,
     nextActionCompletedAt: null,
+    flightId: null,
     createdAt: ts,
     updatedAt: ts,
     ...overrides,

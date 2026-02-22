@@ -55,6 +55,7 @@ export const updateActivitySchema = z.object({
   frontId: z.string().optional(),
   frontConversationId: z.string().optional(),
   syncRunId: z.string().optional(),
+  ownerId: z.string().optional(),
 });
 
 export type CreateActivityInput = z.infer<typeof createActivitySchema>;
