@@ -51,6 +51,9 @@
     notes: string | null;
     body: string | null;
     activityDate: string;
+    ownerId: string | null;
+    ownerName: string | null;
+    ownerDisplayId: string | null;
     createdAt: string;
   };
   type HumanActivity = Activity & { viaHumanName: string };
@@ -681,6 +684,7 @@
       items={account.activities}
       columns={[
         { key: "type", label: "Type", sortable: true, sortValue: (a) => activityTypeLabels[a.type] ?? a.type },
+        { key: "owner", label: "Owner", sortable: true, sortValue: (a) => a.ownerName ?? "" },
         { key: "subject", label: "Subject", sortable: true, sortValue: (a) => a.subject },
         { key: "notes", label: "Notes", sortable: true, sortValue: (a) => a.notes ?? "" },
         { key: "date", label: "Date", sortable: true, sortValue: (a) => a.activityDate },
@@ -703,6 +707,7 @@
             <HighlightText text={activityTypeLabels[activity.type] ?? activity.type} query={searchQuery} />
           </span>
         </td>
+        <td class="text-sm text-text-secondary">{activity.ownerName ?? "\u2014"}</td>
         <td class="text-sm font-medium max-w-sm truncate">
           <HighlightText text={activity.subject} query={searchQuery} />
         </td>
@@ -757,6 +762,7 @@
       items={account.humanActivities}
       columns={[
         { key: "type", label: "Type", sortable: true, sortValue: (a) => activityTypeLabels[a.type] ?? a.type },
+        { key: "owner", label: "Owner", sortable: true, sortValue: (a) => a.ownerName ?? "" },
         { key: "subject", label: "Subject", sortable: true, sortValue: (a) => a.subject },
         { key: "via", label: "Via" },
         { key: "notes", label: "Notes", sortable: true, sortValue: (a) => a.notes ?? "" },
@@ -780,6 +786,7 @@
             <HighlightText text={activityTypeLabels[activity.type] ?? activity.type} query={searchQuery} />
           </span>
         </td>
+        <td class="text-sm text-text-secondary">{activity.ownerName ?? "\u2014"}</td>
         <td class="text-sm font-medium max-w-sm truncate">
           <HighlightText text={activity.subject} query={searchQuery} />
         </td>

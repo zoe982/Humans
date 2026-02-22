@@ -1,8 +1,18 @@
-import { describe, it, expect, vi } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/svelte";
+import { describe, it, expect, vi, afterEach, beforeEach } from "vitest";
+import { render, screen, fireEvent, cleanup } from "@testing-library/svelte";
 import ConfirmDialog from "./ConfirmDialog.svelte";
 
 describe("ConfirmDialog", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    cleanup();
+    vi.runOnlyPendingTimers();
+    vi.useRealTimers();
+  });
+
   it("renders the message text when open", () => {
     render(ConfirmDialog, {
       props: {

@@ -76,6 +76,9 @@
     activityDate: string;
     gmailId: string | null;
     frontId: string | null;
+    ownerId: string | null;
+    ownerName: string | null;
+    ownerDisplayId: string | null;
     createdAt: string;
   };
   type LinkedAccount = {
@@ -868,6 +871,7 @@
       columns={[
         { key: "displayId", label: "ID", sortable: true, sortValue: (a) => a.displayId },
         { key: "type", label: "Type", sortable: true, sortValue: (a) => activityTypeLabels[a.type] ?? a.type },
+        { key: "owner", label: "Owner", sortable: true, sortValue: (a) => a.ownerName ?? "" },
         { key: "subject", label: "Subject", sortable: true, sortValue: (a) => a.subject },
         { key: "notes", label: "Notes", sortable: true, sortValue: (a) => a.notes ?? "" },
         { key: "activityDate", label: "Date", sortable: true, sortValue: (a) => a.activityDate },
@@ -895,6 +899,7 @@
             <HighlightText text={activityTypeLabels[activity.type] ?? activity.type} query={searchQuery} />
           </span>
         </td>
+        <td class="text-sm text-text-secondary">{activity.ownerName ?? "\u2014"}</td>
         <td class="font-medium max-w-sm truncate">
           <a href="/activities/{activity.id}" class="hover:text-accent transition-colors duration-150"><HighlightText text={activity.subject} query={searchQuery} /></a>
         </td>

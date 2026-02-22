@@ -48,6 +48,7 @@
   };
   type Human = { id: string; firstName: string; middleName: string | null; lastName: string };
   type Account = { id: string; name: string };
+  type Colleague = { id: string; name: string; displayId: string };
   type Activity = {
     id: string;
     displayId: string;
@@ -64,7 +65,9 @@
     websiteBookingRequestId: string | null;
     geoInterestExpressions: GeoInterestExpression[];
     routeInterestExpressions: RouteInterestExpression[];
-    colleagueId: string | null;
+    ownerId: string | null;
+    ownerName: string | null;
+    ownerDisplayId: string | null;
     createdAt: string;
     updatedAt: string;
   };
@@ -77,6 +80,7 @@
   const accountsList = $derived(data.accounts as Account[]);
   const routeSignups = $derived((data.routeSignups ?? []) as RouteSignup[]);
   const websiteBookingRequests = $derived((data.websiteBookingRequests ?? []) as WebsiteBookingRequest[]);
+  const colleaguesList = $derived((data.colleagues ?? []) as Colleague[]);
   const apiUrl = $derived(data.apiUrl as string);
 
   const humanOptions = $derived(humans.map((h) => ({ value: h.id, label: displayName(h) })));
@@ -89,6 +93,7 @@
     value: b.id,
     label: `${b.crm_display_id ?? b.id.slice(0, 8)} — ${b.passenger_name ?? "Unknown"} (${b.origin ?? "?"} → ${b.destination ?? "?"})`.trim(),
   })));
+  const colleagueOptions = $derived(colleaguesList.map((c) => ({ value: c.id, label: c.name })));
 
   // Auto-save state
   let type = $state("");
@@ -99,6 +104,7 @@
   let accountId = $state("");
   let routeSignupId = $state("");
   let websiteBookingRequestId = $state("");
+  let ownerId = $state("");
   let saveStatus = $state<SaveStatus>("idle");
   let initialized = $state(false);
 
@@ -124,6 +130,7 @@
     accountId = activity.accountId ?? "";
     routeSignupId = activity.routeSignupId ?? "";
     websiteBookingRequestId = activity.websiteBookingRequestId ?? "";
+    ownerId = activity.ownerId ?? "";
     if (!initialized) initialized = true;
   });
 
@@ -151,6 +158,7 @@
       accountId: accountId || null,
       routeSignupId: routeSignupId || null,
       websiteBookingRequestId: websiteBookingRequestId || null,
+      ownerId: ownerId || null,
     };
   }
 
@@ -170,7 +178,7 @@
   const metadataItems = $derived([
     { id: "created", field: "Created", value: new Date(activity.createdAt).toLocaleString() },
     { id: "updated", field: "Updated", value: new Date(activity.updatedAt).toLocaleString() },
-    { id: "createdBy", field: "Created by", value: activity.colleagueId ?? "—" },
+    { id: "createdBy", field: "Created by", value: activity.ownerName ? `${activity.ownerName} (${activity.ownerDisplayId})` : "—" },
   ]);
 </script>
 
@@ -200,7 +208,7 @@
       <SaveIndicator status={saveStatus} />
     </div>
 
-    <div class="grid gap-4 sm:grid-cols-2">
+    <div class="grid gap-4 sm:grid-cols-3">
       <div>
         <label for="type" class="block text-sm font-medium text-text-secondary">Type</label>
         <SearchableSelect
@@ -210,6 +218,18 @@
           value={type}
           placeholder="Select type..."
           onSelect={(v) => { type = v; triggerSaveImmediate(); }}
+        />
+      </div>
+      <div>
+        <label for="ownerId" class="block text-sm font-medium text-text-secondary">Owner</label>
+        <SearchableSelect
+          options={colleagueOptions}
+          name="ownerId"
+          id="ownerId"
+          value={ownerId}
+          emptyOption="— None —"
+          placeholder="Search colleagues..."
+          onSelect={(v) => { ownerId = v; triggerSaveImmediate(); }}
         />
       </div>
       <div>
