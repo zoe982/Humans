@@ -8,9 +8,10 @@
     name: string;
     id?: string;
     value?: string;
+    onchange?: (value: string) => void;
   };
 
-  let { name, id, value }: Props = $props();
+  let { name, id, value, onchange }: Props = $props();
 
   // Parse initial value or default to now
   let selectedDate = $state<DateValue | undefined>(undefined);
@@ -46,6 +47,13 @@
       hour: "2-digit",
       minute: "2-digit",
     });
+  });
+
+  // Notify parent when value changes
+  $effect(() => {
+    if (isoString) {
+      onchange?.(isoString);
+    }
   });
 
   let popoverOpen = $state(false);

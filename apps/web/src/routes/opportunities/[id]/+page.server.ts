@@ -41,10 +41,11 @@ export const load = async ({ locals, cookies, params }: RequestEvent) => {
   if (opportunity == null) redirect(302, "/opportunities");
 
   const headers = { Cookie: `humans_session=${sessionToken ?? ""}` };
-  const [colleaguesRes, humansRes, roleConfigs] = await Promise.all([
+  const [colleaguesRes, humansRes, roleConfigs, petsRes] = await Promise.all([
     fetch(`${PUBLIC_API_URL}/api/colleagues`, { headers }),
     fetch(`${PUBLIC_API_URL}/api/humans?limit=200`, { headers }),
     fetchConfig(sessionToken ?? "", "opportunity-human-roles"),
+    fetch(`${PUBLIC_API_URL}/api/pets`, { headers }),
   ]);
 
   let colleagues: unknown[] = [];
@@ -59,10 +60,17 @@ export const load = async ({ locals, cookies, params }: RequestEvent) => {
     allHumans = isListData(raw) ? raw.data : [];
   }
 
+  let allPets: unknown[] = [];
+  if (petsRes.ok) {
+    const raw: unknown = await petsRes.json();
+    allPets = isListData(raw) ? raw.data : [];
+  }
+
   return {
     opportunity,
     colleagues,
     allHumans,
+    allPets,
     roleConfigs,
     apiUrl: PUBLIC_API_URL,
     userRole: locals.user?.role ?? "viewer",

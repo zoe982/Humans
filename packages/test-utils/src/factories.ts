@@ -302,6 +302,10 @@ export function buildOpportunity(overrides: Partial<{
   displayId: string;
   stage: string;
   seatsRequested: number;
+  notes: string | null;
+  nextActionStartDate: string | null;
+  passengerSeats: number;
+  petSeats: number;
   lossReason: string | null;
   nextActionOwnerId: string | null;
   nextActionDescription: string | null;
@@ -317,6 +321,10 @@ export function buildOpportunity(overrides: Partial<{
     displayId: nextTestDisplayId("OPP"),
     stage: "open" as const,
     seatsRequested: 1,
+    notes: null,
+    nextActionStartDate: null,
+    passengerSeats: 1,
+    petSeats: 0,
     lossReason: null,
     nextActionOwnerId: null,
     nextActionDescription: null,

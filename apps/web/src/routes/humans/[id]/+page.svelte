@@ -18,8 +18,8 @@
   import TypeTogglePills from "$lib/components/TypeTogglePills.svelte";
   import { createAutoSaver, type SaveStatus } from "$lib/autosave";
   import { api } from "$lib/api";
-  import { statusColors as statusColorMap, humanTypeColors as typeColors, activityTypeColors, labelBadgeColor } from "$lib/constants/colors";
-  import { humanTypeLabels as typeLabels, activityTypeLabels, ACTIVITY_TYPE_OPTIONS } from "$lib/constants/labels";
+  import { statusColors as statusColorMap, humanTypeColors as typeColors, activityTypeColors, labelBadgeColor, opportunityStageColors } from "$lib/constants/colors";
+  import { humanTypeLabels as typeLabels, activityTypeLabels, ACTIVITY_TYPE_OPTIONS, opportunityStageLabels } from "$lib/constants/labels";
   import { formatRelativeTime, summarizeChanges } from "$lib/utils/format";
   import { PET_BREEDS } from "@humans/shared/constants";
   import { onDestroy } from "svelte";
@@ -131,6 +131,11 @@
   const allAccounts = $derived(data.allAccounts as AccountOption[]);
   const accountHumanLabelConfigs = $derived(data.accountHumanLabelConfigs as ConfigItem[]);
   const convertedFromLead = $derived(data.convertedFromLead as { id: string; displayId: string } | null);
+
+  type GeneralLead = { id: string; displayId: string; source: string; status: string; createdAt: string };
+  type HumanOpportunity = { id: string; displayId: string; stage: string; passengerSeats: number; petSeats: number; createdAt: string };
+  const generalLeads = $derived(data.generalLeads as GeneralLead[]);
+  const humanOpportunities = $derived(data.humanOpportunities as HumanOpportunity[]);
 
   const emailLabelOptions = $derived(emailLabelConfigs.map((l) => ({ value: l.id, label: l.name })));
   const phoneLabelOptions = $derived(phoneLabelConfigs.map((l) => ({ value: l.id, label: l.name })));
@@ -369,6 +374,123 @@
         <TypeTogglePills selected={types} onchange={(newTypes) => { types = newTypes; triggerSaveImmediate(); }} />
       </div>
     </div>
+  </div>
+
+  <!-- Linked Accounts -->
+  <div class="mt-6">
+    <RelatedListTable
+      title="Linked Accounts"
+      items={human.linkedAccounts}
+      columns={[
+        { key: "account", label: "Account", sortable: true, sortValue: (a) => a.accountName },
+        { key: "role", label: "Role", sortable: true, sortValue: (a) => a.labelName ?? "" },
+        { key: "unlink", label: "", headerClass: "w-10" },
+      ]}
+      defaultSortKey="account"
+      defaultSortDirection="asc"
+      searchFilter={(a, q) => (a.accountName ?? "").toLowerCase().includes(q) || (a.labelName ?? "").toLowerCase().includes(q)}
+      emptyMessage="No linked accounts."
+      addLabel="Account"
+    >
+      {#snippet row(link, _searchQuery)}
+        <td>
+          <a href="/accounts/{link.accountId}" class="text-sm font-medium text-accent hover:text-[var(--link-hover)]">
+            {link.accountName}
+          </a>
+        </td>
+        <td>
+          {#if link.labelName}
+            <span class="glass-badge inline-flex rounded-full px-2 py-0.5 text-xs font-medium badge-orange">
+              {link.labelName}
+            </span>
+          {:else}
+            <span class="text-text-muted">&mdash;</span>
+          {/if}
+        </td>
+        <td>
+          <form method="POST" action="?/unlinkAccount">
+            <input type="hidden" name="accountId" value={link.accountId} />
+            <input type="hidden" name="linkId" value={link.id} />
+            <button type="submit" class="flex items-center justify-center w-7 h-7 rounded-lg text-text-muted hover:text-destructive-foreground hover:bg-destructive transition-colors duration-150" aria-label="Unlink account">
+              <Trash2 size={14} />
+            </button>
+          </form>
+        </td>
+      {/snippet}
+      {#snippet addForm()}
+        <div class="flex gap-2 mb-3">
+          <Button
+            type="button"
+            size="sm"
+            variant={accountAddMode === 'link' ? 'default' : 'ghost'}
+            onclick={() => { accountAddMode = 'link'; }}
+          >
+            Link Existing
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            variant={accountAddMode === 'create' ? 'default' : 'ghost'}
+            onclick={() => { accountAddMode = 'create'; }}
+          >
+            Create New
+          </Button>
+        </div>
+
+        {#if accountAddMode === 'link'}
+          <form method="POST" action="?/linkAccount" class="space-y-3">
+            <div class="grid gap-3 sm:grid-cols-2">
+              <div>
+                <label for="accountSelect" class="block text-sm font-medium text-text-secondary">Account</label>
+                <SearchableSelect
+                  options={accountOptions}
+                  name="accountId"
+                  id="accountSelect"
+                  required={true}
+                  emptyOption="Select an account..."
+                  placeholder="Search accounts..."
+                />
+              </div>
+              <div>
+                <label for="accountLabel" class="block text-sm font-medium text-text-secondary">Role Label</label>
+                <SearchableSelect
+                  options={accountHumanLabelOptions}
+                  name="labelId"
+                  id="accountLabel"
+                  emptyOption="None"
+                  placeholder="Select role..."
+                />
+              </div>
+            </div>
+            <Button type="submit" size="sm">Link Account</Button>
+          </form>
+        {:else}
+          <form method="POST" action="?/createAndLinkAccount" class="space-y-3">
+            <div class="grid gap-3 sm:grid-cols-2">
+              <div>
+                <label for="newAccountName" class="block text-sm font-medium text-text-secondary">Account Name</label>
+                <input
+                  id="newAccountName" name="accountName" type="text" required
+                  class="glass-input mt-1 block w-full"
+                  placeholder="Account name"
+                />
+              </div>
+              <div>
+                <label for="newAccountLabel" class="block text-sm font-medium text-text-secondary">Role Label</label>
+                <SearchableSelect
+                  options={accountHumanLabelOptions}
+                  name="labelId"
+                  id="newAccountLabel"
+                  emptyOption="None"
+                  placeholder="Select role..."
+                />
+              </div>
+            </div>
+            <Button type="submit" size="sm">Create & Link</Button>
+          </form>
+        {/if}
+      {/snippet}
+    </RelatedListTable>
   </div>
 
   <!-- Emails Section -->
@@ -738,349 +860,6 @@
     </RelatedListTable>
   </div>
 
-  <!-- Geo-Interest Expressions Section -->
-  <div class="mt-6">
-    <RelatedListTable
-      title="Geo-Interest Expressions"
-      items={human.geoInterestExpressions}
-      columns={[
-        { key: "displayId", label: "ID" },
-        { key: "location", label: "Location", sortable: true, sortValue: (e) => `${e.city ?? ""}, ${e.country ?? ""}` },
-        { key: "notes", label: "Notes" },
-        { key: "delete", label: "", headerClass: "w-10" },
-      ]}
-      defaultSortKey="location"
-      defaultSortDirection="asc"
-      searchFilter={(e, q) => (e.city ?? "").toLowerCase().includes(q) || (e.country ?? "").toLowerCase().includes(q) || (e.notes ?? "").toLowerCase().includes(q)}
-      emptyMessage="No geo-interest expressions yet."
-      addLabel="Geo Interest Expression"
-    >
-      {#snippet row(expr, _searchQuery)}
-        <td class="font-mono text-sm whitespace-nowrap">
-          <a href="/geo-interests/expressions/{expr.id}" class="text-accent hover:text-[var(--link-hover)]">{expr.displayId}</a>
-        </td>
-        <td>
-          <a href="/geo-interests/{expr.geoInterestId}" class="text-sm font-medium text-accent hover:text-[var(--link-hover)]">
-            {expr.city ?? "\u2014"}, {expr.country ?? "\u2014"}
-          </a>
-        </td>
-        <td class="text-sm text-text-secondary max-w-xs truncate">{expr.notes ?? "\u2014"}</td>
-        <td>
-          <form method="POST" action="?/deleteGeoInterestExpression">
-            <input type="hidden" name="id" value={expr.id} />
-            <button type="submit" class="flex items-center justify-center w-7 h-7 rounded-lg text-text-muted hover:text-destructive-foreground hover:bg-destructive transition-colors duration-150" aria-label="Delete geo-interest expression">
-              <Trash2 size={14} />
-            </button>
-          </form>
-        </td>
-      {/snippet}
-      {#snippet addForm()}
-        <form method="POST" action="?/addGeoInterestExpression" class="space-y-3">
-          <GeoInterestPicker {apiUrl} />
-          <Button type="submit" size="sm">
-            Add Geo Interest Expression
-          </Button>
-        </form>
-      {/snippet}
-    </RelatedListTable>
-  </div>
-
-  <!-- Route Interest Expressions Section -->
-  <div class="mt-6">
-    <RelatedListTable
-      title="Route Interest Expressions"
-      items={human.routeInterestExpressions}
-      columns={[
-        { key: "displayId", label: "ID" },
-        { key: "route", label: "Route", sortable: true, sortValue: (e) => `${e.originCity ?? ""}, ${e.originCountry ?? ""} → ${e.destinationCity ?? ""}, ${e.destinationCountry ?? ""}` },
-        { key: "frequency", label: "Frequency", sortable: true, sortValue: (e) => e.frequency },
-        { key: "travelDate", label: "Travel Date" },
-        { key: "notes", label: "Notes" },
-        { key: "delete", label: "", headerClass: "w-10" },
-      ]}
-      defaultSortKey="route"
-      defaultSortDirection="asc"
-      searchFilter={(e, q) => (e.originCity ?? "").toLowerCase().includes(q) || (e.originCountry ?? "").toLowerCase().includes(q) || (e.destinationCity ?? "").toLowerCase().includes(q) || (e.destinationCountry ?? "").toLowerCase().includes(q) || (e.notes ?? "").toLowerCase().includes(q)}
-      emptyMessage="No route interest expressions yet."
-      addLabel="Route Interest"
-    >
-      {#snippet row(expr, _searchQuery)}
-        <td class="font-mono text-sm whitespace-nowrap">
-          <a href="/route-interests/expressions/{expr.id}" class="text-accent hover:text-[var(--link-hover)]">{expr.displayId}</a>
-        </td>
-        <td>
-          <a href="/route-interests/{expr.routeInterestId}" class="text-sm font-medium text-accent hover:text-[var(--link-hover)]">
-            {expr.originCity ?? "\u2014"}, {expr.originCountry ?? "\u2014"} &rarr; {expr.destinationCity ?? "\u2014"}, {expr.destinationCountry ?? "\u2014"}
-          </a>
-        </td>
-        <td>
-          <span class="glass-badge inline-flex rounded-full px-2 py-0.5 text-xs font-medium {expr.frequency === 'repeat' ? 'badge-purple' : 'bg-glass text-text-secondary'}">
-            {expr.frequency === "repeat" ? "Repeat" : "One-time"}
-          </span>
-        </td>
-        <td class="text-sm text-text-muted whitespace-nowrap">
-          {#if expr.travelYear}
-            {expr.travelYear}{#if expr.travelMonth}-{String(expr.travelMonth).padStart(2, "0")}{#if expr.travelDay}-{String(expr.travelDay).padStart(2, "0")}{/if}{/if}
-          {:else}
-            &mdash;
-          {/if}
-        </td>
-        <td class="text-sm text-text-secondary max-w-[200px] truncate">{expr.notes ?? "\u2014"}</td>
-        <td>
-          <form method="POST" action="?/deleteRouteInterestExpression">
-            <input type="hidden" name="id" value={expr.id} />
-            <button type="submit" class="flex items-center justify-center w-7 h-7 rounded-lg text-text-muted hover:text-destructive-foreground hover:bg-destructive transition-colors duration-150" aria-label="Delete route interest expression">
-              <Trash2 size={14} />
-            </button>
-          </form>
-        </td>
-      {/snippet}
-      {#snippet addForm()}
-        <form method="POST" action="?/addRouteInterestExpression" class="space-y-3">
-          <RouteInterestPicker {apiUrl} />
-          <Button type="submit" size="sm">
-            Add Route Interest Expression
-          </Button>
-        </form>
-      {/snippet}
-    </RelatedListTable>
-  </div>
-
-  <!-- Linked Accounts -->
-  <div class="mt-6">
-    <RelatedListTable
-      title="Linked Accounts"
-      items={human.linkedAccounts}
-      columns={[
-        { key: "account", label: "Account", sortable: true, sortValue: (a) => a.accountName },
-        { key: "role", label: "Role", sortable: true, sortValue: (a) => a.labelName ?? "" },
-        { key: "unlink", label: "", headerClass: "w-10" },
-      ]}
-      defaultSortKey="account"
-      defaultSortDirection="asc"
-      searchFilter={(a, q) => (a.accountName ?? "").toLowerCase().includes(q) || (a.labelName ?? "").toLowerCase().includes(q)}
-      emptyMessage="No linked accounts."
-      addLabel="Account"
-    >
-      {#snippet row(link, _searchQuery)}
-        <td>
-          <a href="/accounts/{link.accountId}" class="text-sm font-medium text-accent hover:text-[var(--link-hover)]">
-            {link.accountName}
-          </a>
-        </td>
-        <td>
-          {#if link.labelName}
-            <span class="glass-badge inline-flex rounded-full px-2 py-0.5 text-xs font-medium badge-orange">
-              {link.labelName}
-            </span>
-          {:else}
-            <span class="text-text-muted">&mdash;</span>
-          {/if}
-        </td>
-        <td>
-          <form method="POST" action="?/unlinkAccount">
-            <input type="hidden" name="accountId" value={link.accountId} />
-            <input type="hidden" name="linkId" value={link.id} />
-            <button type="submit" class="flex items-center justify-center w-7 h-7 rounded-lg text-text-muted hover:text-destructive-foreground hover:bg-destructive transition-colors duration-150" aria-label="Unlink account">
-              <Trash2 size={14} />
-            </button>
-          </form>
-        </td>
-      {/snippet}
-      {#snippet addForm()}
-        <div class="flex gap-2 mb-3">
-          <Button
-            type="button"
-            size="sm"
-            variant={accountAddMode === 'link' ? 'default' : 'ghost'}
-            onclick={() => { accountAddMode = 'link'; }}
-          >
-            Link Existing
-          </Button>
-          <Button
-            type="button"
-            size="sm"
-            variant={accountAddMode === 'create' ? 'default' : 'ghost'}
-            onclick={() => { accountAddMode = 'create'; }}
-          >
-            Create New
-          </Button>
-        </div>
-
-        {#if accountAddMode === 'link'}
-          <form method="POST" action="?/linkAccount" class="space-y-3">
-            <div class="grid gap-3 sm:grid-cols-2">
-              <div>
-                <label for="accountSelect" class="block text-sm font-medium text-text-secondary">Account</label>
-                <SearchableSelect
-                  options={accountOptions}
-                  name="accountId"
-                  id="accountSelect"
-                  required={true}
-                  emptyOption="Select an account..."
-                  placeholder="Search accounts..."
-                />
-              </div>
-              <div>
-                <label for="accountLabel" class="block text-sm font-medium text-text-secondary">Role Label</label>
-                <SearchableSelect
-                  options={accountHumanLabelOptions}
-                  name="labelId"
-                  id="accountLabel"
-                  emptyOption="None"
-                  placeholder="Select role..."
-                />
-              </div>
-            </div>
-            <Button type="submit" size="sm">Link Account</Button>
-          </form>
-        {:else}
-          <form method="POST" action="?/createAndLinkAccount" class="space-y-3">
-            <div class="grid gap-3 sm:grid-cols-2">
-              <div>
-                <label for="newAccountName" class="block text-sm font-medium text-text-secondary">Account Name</label>
-                <input
-                  id="newAccountName" name="accountName" type="text" required
-                  class="glass-input mt-1 block w-full"
-                  placeholder="Account name"
-                />
-              </div>
-              <div>
-                <label for="newAccountLabel" class="block text-sm font-medium text-text-secondary">Role Label</label>
-                <SearchableSelect
-                  options={accountHumanLabelOptions}
-                  name="labelId"
-                  id="newAccountLabel"
-                  emptyOption="None"
-                  placeholder="Select role..."
-                />
-              </div>
-            </div>
-            <Button type="submit" size="sm">Create & Link</Button>
-          </form>
-        {/if}
-      {/snippet}
-    </RelatedListTable>
-  </div>
-
-  <!-- Linked Route Signups -->
-  <div class="mt-6">
-    <RelatedListTable
-      title="Linked Route Signups"
-      items={human.linkedRouteSignups}
-      columns={[
-        { key: "displayId", label: "ID" },
-        { key: "passenger", label: "Passenger" },
-        { key: "route", label: "Route" },
-        { key: "linkedAt", label: "Linked Date", sortable: true, sortValue: (l) => l.linkedAt },
-        { key: "unlink", label: "", headerClass: "w-10" },
-      ]}
-      defaultSortKey="linkedAt"
-      defaultSortDirection="desc"
-      searchFilter={(l, q) => (l.displayId ?? "").toLowerCase().includes(q) || (l.passengerName ?? "").toLowerCase().includes(q) || (l.origin ?? "").toLowerCase().includes(q) || (l.destination ?? "").toLowerCase().includes(q)}
-      emptyMessage="No linked route signups."
-      addLabel="Route Signup"
-    >
-      {#snippet row(link, _searchQuery)}
-        <td class="font-mono text-sm whitespace-nowrap">
-          <a href="/leads/route-signups/{link.routeSignupId}" class="text-accent hover:text-[var(--link-hover)]">{link.displayId ?? "\u2014"}</a>
-        </td>
-        <td class="text-sm text-text-secondary">{link.passengerName ?? "\u2014"}</td>
-        <td class="text-sm text-text-secondary">
-          {#if link.origin || link.destination}
-            {link.origin ?? "\u2014"} &rarr; {link.destination ?? "\u2014"}
-          {:else}
-            &mdash;
-          {/if}
-        </td>
-        <td class="text-sm text-text-muted">{new Date(link.linkedAt).toLocaleDateString()}</td>
-        <td>
-          <form method="POST" action="?/unlinkSignup">
-            <input type="hidden" name="linkId" value={link.id} />
-            <button type="submit" class="flex items-center justify-center w-7 h-7 rounded-lg text-text-muted hover:text-destructive-foreground hover:bg-destructive transition-colors duration-150" aria-label="Unlink signup">
-              <Trash2 size={14} />
-            </button>
-          </form>
-        </td>
-      {/snippet}
-      {#snippet addForm()}
-        <form method="POST" action="?/linkRouteSignup" class="space-y-3">
-          <div>
-            <label for="routeSignupSelect" class="block text-sm font-medium text-text-secondary">Route Signup</label>
-            <SearchableSelect
-              options={routeSignupOptions}
-              name="routeSignupId"
-              id="routeSignupSelect"
-              required={true}
-              emptyOption="Select a route signup..."
-              placeholder="Search route signups..."
-            />
-          </div>
-          <Button type="submit" size="sm">Link Route Signup</Button>
-        </form>
-      {/snippet}
-    </RelatedListTable>
-  </div>
-
-  <!-- Linked Booking Requests -->
-  <div class="mt-6">
-    <RelatedListTable
-      title="Linked Booking Requests"
-      items={human.linkedWebsiteBookingRequests}
-      columns={[
-        { key: "displayId", label: "ID" },
-        { key: "passenger", label: "Passenger" },
-        { key: "route", label: "Route" },
-        { key: "linkedAt", label: "Linked Date", sortable: true, sortValue: (l) => l.linkedAt },
-        { key: "unlink", label: "", headerClass: "w-10" },
-      ]}
-      defaultSortKey="linkedAt"
-      defaultSortDirection="desc"
-      searchFilter={(l, q) => (l.displayId ?? "").toLowerCase().includes(q) || (l.passengerName ?? "").toLowerCase().includes(q) || (l.originCity ?? "").toLowerCase().includes(q) || (l.destinationCity ?? "").toLowerCase().includes(q)}
-      emptyMessage="No linked booking requests."
-      addLabel="Booking Request"
-    >
-      {#snippet row(link, _searchQuery)}
-        <td class="font-mono text-sm whitespace-nowrap">
-          <a href="/leads/website-booking-requests/{link.websiteBookingRequestId}" class="text-accent hover:text-[var(--link-hover)]">{link.displayId ?? "\u2014"}</a>
-        </td>
-        <td class="text-sm text-text-secondary">{link.passengerName ?? "\u2014"}</td>
-        <td class="text-sm text-text-secondary">
-          {#if link.originCity || link.destinationCity}
-            {link.originCity ?? "\u2014"} &rarr; {link.destinationCity ?? "\u2014"}
-          {:else}
-            &mdash;
-          {/if}
-        </td>
-        <td class="text-sm text-text-muted">{new Date(link.linkedAt).toLocaleDateString()}</td>
-        <td>
-          <form method="POST" action="?/unlinkBookingRequest">
-            <input type="hidden" name="linkId" value={link.id} />
-            <button type="submit" class="flex items-center justify-center w-7 h-7 rounded-lg text-text-muted hover:text-destructive-foreground hover:bg-destructive transition-colors duration-150" aria-label="Unlink booking request">
-              <Trash2 size={14} />
-            </button>
-          </form>
-        </td>
-      {/snippet}
-      {#snippet addForm()}
-        <form method="POST" action="?/linkBookingRequest" class="space-y-3">
-          <div>
-            <label for="bookingRequestSelect" class="block text-sm font-medium text-text-secondary">Booking Request</label>
-            <SearchableSelect
-              options={bookingRequestOptions}
-              name="websiteBookingRequestId"
-              id="bookingRequestSelect"
-              required={true}
-              emptyOption="Select a booking request..."
-              placeholder="Search booking requests..."
-            />
-          </div>
-          <Button type="submit" size="sm">Link Booking Request</Button>
-        </form>
-      {/snippet}
-    </RelatedListTable>
-  </div>
-
   <!-- Activities -->
   <div class="mt-6">
     <RelatedListTable
@@ -1176,7 +955,6 @@
           {#if routeInterests.length > 0}
             <input type="hidden" name="routeInterestsJson" value={JSON.stringify(routeInterests)} />
           {/if}
-          <!-- Linked interests chips -->
           {#if geoInterests.length > 0 || routeInterests.length > 0}
             <div class="flex flex-wrap gap-2">
               {#each geoInterests as geo, i}
@@ -1328,6 +1106,294 @@
       </Dialog.Footer>
     </Dialog.Content>
   </Dialog.Root>
+
+  <!-- Opportunities -->
+  <div class="mt-6">
+    <RelatedListTable
+      title="Opportunities"
+      items={humanOpportunities}
+      columns={[
+        { key: "displayId", label: "ID" },
+        { key: "stage", label: "Stage", sortable: true, sortValue: (o) => o.stage },
+        { key: "seats", label: "Seats" },
+        { key: "createdAt", label: "Created", sortable: true, sortValue: (o) => o.createdAt },
+      ]}
+      defaultSortKey="createdAt"
+      defaultSortDirection="desc"
+      searchFilter={(o, q) => o.displayId.toLowerCase().includes(q) || (opportunityStageLabels[o.stage] ?? o.stage).toLowerCase().includes(q)}
+      emptyMessage="No linked opportunities."
+    >
+      {#snippet row(opp, _searchQuery)}
+        <td class="font-mono text-sm whitespace-nowrap">
+          <a href="/opportunities/{opp.id}" class="text-accent hover:text-[var(--link-hover)]">{opp.displayId}</a>
+        </td>
+        <td>
+          <span class="glass-badge inline-flex rounded-full px-2 py-0.5 text-xs font-medium {opportunityStageColors[opp.stage] ?? 'bg-glass text-text-secondary'}">
+            {opportunityStageLabels[opp.stage] ?? opp.stage}
+          </span>
+        </td>
+        <td class="text-sm text-text-secondary">{opp.passengerSeats + opp.petSeats}</td>
+        <td class="text-sm text-text-muted whitespace-nowrap">{new Date(opp.createdAt).toLocaleDateString()}</td>
+      {/snippet}
+    </RelatedListTable>
+  </div>
+
+  <!-- Geo-Interest Expressions Section -->
+  <div class="mt-6">
+    <RelatedListTable
+      title="Geo-Interest Expressions"
+      items={human.geoInterestExpressions}
+      columns={[
+        { key: "displayId", label: "ID" },
+        { key: "location", label: "Location", sortable: true, sortValue: (e) => `${e.city ?? ""}, ${e.country ?? ""}` },
+        { key: "notes", label: "Notes" },
+        { key: "delete", label: "", headerClass: "w-10" },
+      ]}
+      defaultSortKey="location"
+      defaultSortDirection="asc"
+      searchFilter={(e, q) => (e.city ?? "").toLowerCase().includes(q) || (e.country ?? "").toLowerCase().includes(q) || (e.notes ?? "").toLowerCase().includes(q)}
+      emptyMessage="No geo-interest expressions yet."
+      addLabel="Geo Interest Expression"
+    >
+      {#snippet row(expr, _searchQuery)}
+        <td class="font-mono text-sm whitespace-nowrap">
+          <a href="/geo-interests/expressions/{expr.id}" class="text-accent hover:text-[var(--link-hover)]">{expr.displayId}</a>
+        </td>
+        <td>
+          <a href="/geo-interests/{expr.geoInterestId}" class="text-sm font-medium text-accent hover:text-[var(--link-hover)]">
+            {expr.city ?? "\u2014"}, {expr.country ?? "\u2014"}
+          </a>
+        </td>
+        <td class="text-sm text-text-secondary max-w-xs truncate">{expr.notes ?? "\u2014"}</td>
+        <td>
+          <form method="POST" action="?/deleteGeoInterestExpression">
+            <input type="hidden" name="id" value={expr.id} />
+            <button type="submit" class="flex items-center justify-center w-7 h-7 rounded-lg text-text-muted hover:text-destructive-foreground hover:bg-destructive transition-colors duration-150" aria-label="Delete geo-interest expression">
+              <Trash2 size={14} />
+            </button>
+          </form>
+        </td>
+      {/snippet}
+      {#snippet addForm()}
+        <form method="POST" action="?/addGeoInterestExpression" class="space-y-3">
+          <GeoInterestPicker {apiUrl} />
+          <Button type="submit" size="sm">
+            Add Geo Interest Expression
+          </Button>
+        </form>
+      {/snippet}
+    </RelatedListTable>
+  </div>
+
+  <!-- Route Interest Expressions Section -->
+  <div class="mt-6">
+    <RelatedListTable
+      title="Route Interest Expressions"
+      items={human.routeInterestExpressions}
+      columns={[
+        { key: "displayId", label: "ID" },
+        { key: "route", label: "Route", sortable: true, sortValue: (e) => `${e.originCity ?? ""}, ${e.originCountry ?? ""} → ${e.destinationCity ?? ""}, ${e.destinationCountry ?? ""}` },
+        { key: "frequency", label: "Frequency", sortable: true, sortValue: (e) => e.frequency },
+        { key: "travelDate", label: "Travel Date" },
+        { key: "notes", label: "Notes" },
+        { key: "delete", label: "", headerClass: "w-10" },
+      ]}
+      defaultSortKey="route"
+      defaultSortDirection="asc"
+      searchFilter={(e, q) => (e.originCity ?? "").toLowerCase().includes(q) || (e.originCountry ?? "").toLowerCase().includes(q) || (e.destinationCity ?? "").toLowerCase().includes(q) || (e.destinationCountry ?? "").toLowerCase().includes(q) || (e.notes ?? "").toLowerCase().includes(q)}
+      emptyMessage="No route interest expressions yet."
+      addLabel="Route Interest"
+    >
+      {#snippet row(expr, _searchQuery)}
+        <td class="font-mono text-sm whitespace-nowrap">
+          <a href="/route-interests/expressions/{expr.id}" class="text-accent hover:text-[var(--link-hover)]">{expr.displayId}</a>
+        </td>
+        <td>
+          <a href="/route-interests/{expr.routeInterestId}" class="text-sm font-medium text-accent hover:text-[var(--link-hover)]">
+            {expr.originCity ?? "\u2014"}, {expr.originCountry ?? "\u2014"} &rarr; {expr.destinationCity ?? "\u2014"}, {expr.destinationCountry ?? "\u2014"}
+          </a>
+        </td>
+        <td>
+          <span class="glass-badge inline-flex rounded-full px-2 py-0.5 text-xs font-medium {expr.frequency === 'repeat' ? 'badge-purple' : 'bg-glass text-text-secondary'}">
+            {expr.frequency === "repeat" ? "Repeat" : "One-time"}
+          </span>
+        </td>
+        <td class="text-sm text-text-muted whitespace-nowrap">
+          {#if expr.travelYear}
+            {expr.travelYear}{#if expr.travelMonth}-{String(expr.travelMonth).padStart(2, "0")}{#if expr.travelDay}-{String(expr.travelDay).padStart(2, "0")}{/if}{/if}
+          {:else}
+            &mdash;
+          {/if}
+        </td>
+        <td class="text-sm text-text-secondary max-w-[200px] truncate">{expr.notes ?? "\u2014"}</td>
+        <td>
+          <form method="POST" action="?/deleteRouteInterestExpression">
+            <input type="hidden" name="id" value={expr.id} />
+            <button type="submit" class="flex items-center justify-center w-7 h-7 rounded-lg text-text-muted hover:text-destructive-foreground hover:bg-destructive transition-colors duration-150" aria-label="Delete route interest expression">
+              <Trash2 size={14} />
+            </button>
+          </form>
+        </td>
+      {/snippet}
+      {#snippet addForm()}
+        <form method="POST" action="?/addRouteInterestExpression" class="space-y-3">
+          <RouteInterestPicker {apiUrl} />
+          <Button type="submit" size="sm">
+            Add Route Interest Expression
+          </Button>
+        </form>
+      {/snippet}
+    </RelatedListTable>
+  </div>
+
+  <!-- Linked Route Signups -->
+  <div class="mt-6">
+    <RelatedListTable
+      title="Linked Route Signups"
+      items={human.linkedRouteSignups}
+      columns={[
+        { key: "displayId", label: "ID" },
+        { key: "passenger", label: "Passenger" },
+        { key: "route", label: "Route" },
+        { key: "linkedAt", label: "Linked Date", sortable: true, sortValue: (l) => l.linkedAt },
+        { key: "unlink", label: "", headerClass: "w-10" },
+      ]}
+      defaultSortKey="linkedAt"
+      defaultSortDirection="desc"
+      searchFilter={(l, q) => (l.displayId ?? "").toLowerCase().includes(q) || (l.passengerName ?? "").toLowerCase().includes(q) || (l.origin ?? "").toLowerCase().includes(q) || (l.destination ?? "").toLowerCase().includes(q)}
+      emptyMessage="No linked route signups."
+      addLabel="Route Signup"
+    >
+      {#snippet row(link, _searchQuery)}
+        <td class="font-mono text-sm whitespace-nowrap">
+          <a href="/leads/route-signups/{link.routeSignupId}" class="text-accent hover:text-[var(--link-hover)]">{link.displayId ?? "\u2014"}</a>
+        </td>
+        <td class="text-sm text-text-secondary">{link.passengerName ?? "\u2014"}</td>
+        <td class="text-sm text-text-secondary">
+          {#if link.origin || link.destination}
+            {link.origin ?? "\u2014"} &rarr; {link.destination ?? "\u2014"}
+          {:else}
+            &mdash;
+          {/if}
+        </td>
+        <td class="text-sm text-text-muted">{new Date(link.linkedAt).toLocaleDateString()}</td>
+        <td>
+          <form method="POST" action="?/unlinkSignup">
+            <input type="hidden" name="linkId" value={link.id} />
+            <button type="submit" class="flex items-center justify-center w-7 h-7 rounded-lg text-text-muted hover:text-destructive-foreground hover:bg-destructive transition-colors duration-150" aria-label="Unlink signup">
+              <Trash2 size={14} />
+            </button>
+          </form>
+        </td>
+      {/snippet}
+      {#snippet addForm()}
+        <form method="POST" action="?/linkRouteSignup" class="space-y-3">
+          <div>
+            <label for="routeSignupSelect" class="block text-sm font-medium text-text-secondary">Route Signup</label>
+            <SearchableSelect
+              options={routeSignupOptions}
+              name="routeSignupId"
+              id="routeSignupSelect"
+              required={true}
+              emptyOption="Select a route signup..."
+              placeholder="Search route signups..."
+            />
+          </div>
+          <Button type="submit" size="sm">Link Route Signup</Button>
+        </form>
+      {/snippet}
+    </RelatedListTable>
+  </div>
+
+  <!-- Linked Booking Requests -->
+  <div class="mt-6">
+    <RelatedListTable
+      title="Linked Booking Requests"
+      items={human.linkedWebsiteBookingRequests}
+      columns={[
+        { key: "displayId", label: "ID" },
+        { key: "passenger", label: "Passenger" },
+        { key: "route", label: "Route" },
+        { key: "linkedAt", label: "Linked Date", sortable: true, sortValue: (l) => l.linkedAt },
+        { key: "unlink", label: "", headerClass: "w-10" },
+      ]}
+      defaultSortKey="linkedAt"
+      defaultSortDirection="desc"
+      searchFilter={(l, q) => (l.displayId ?? "").toLowerCase().includes(q) || (l.passengerName ?? "").toLowerCase().includes(q) || (l.originCity ?? "").toLowerCase().includes(q) || (l.destinationCity ?? "").toLowerCase().includes(q)}
+      emptyMessage="No linked booking requests."
+      addLabel="Booking Request"
+    >
+      {#snippet row(link, _searchQuery)}
+        <td class="font-mono text-sm whitespace-nowrap">
+          <a href="/leads/website-booking-requests/{link.websiteBookingRequestId}" class="text-accent hover:text-[var(--link-hover)]">{link.displayId ?? "\u2014"}</a>
+        </td>
+        <td class="text-sm text-text-secondary">{link.passengerName ?? "\u2014"}</td>
+        <td class="text-sm text-text-secondary">
+          {#if link.originCity || link.destinationCity}
+            {link.originCity ?? "\u2014"} &rarr; {link.destinationCity ?? "\u2014"}
+          {:else}
+            &mdash;
+          {/if}
+        </td>
+        <td class="text-sm text-text-muted">{new Date(link.linkedAt).toLocaleDateString()}</td>
+        <td>
+          <form method="POST" action="?/unlinkBookingRequest">
+            <input type="hidden" name="linkId" value={link.id} />
+            <button type="submit" class="flex items-center justify-center w-7 h-7 rounded-lg text-text-muted hover:text-destructive-foreground hover:bg-destructive transition-colors duration-150" aria-label="Unlink booking request">
+              <Trash2 size={14} />
+            </button>
+          </form>
+        </td>
+      {/snippet}
+      {#snippet addForm()}
+        <form method="POST" action="?/linkBookingRequest" class="space-y-3">
+          <div>
+            <label for="bookingRequestSelect" class="block text-sm font-medium text-text-secondary">Booking Request</label>
+            <SearchableSelect
+              options={bookingRequestOptions}
+              name="websiteBookingRequestId"
+              id="bookingRequestSelect"
+              required={true}
+              emptyOption="Select a booking request..."
+              placeholder="Search booking requests..."
+            />
+          </div>
+          <Button type="submit" size="sm">Link Booking Request</Button>
+        </form>
+      {/snippet}
+    </RelatedListTable>
+  </div>
+
+  <!-- General Leads -->
+  <div class="mt-6">
+    <RelatedListTable
+      title="General Leads"
+      items={generalLeads}
+      columns={[
+        { key: "displayId", label: "ID" },
+        { key: "source", label: "Source", sortable: true, sortValue: (l) => l.source },
+        { key: "status", label: "Status", sortable: true, sortValue: (l) => l.status },
+        { key: "createdAt", label: "Created", sortable: true, sortValue: (l) => l.createdAt },
+      ]}
+      defaultSortKey="createdAt"
+      defaultSortDirection="desc"
+      searchFilter={(l, q) => l.displayId.toLowerCase().includes(q) || l.source.toLowerCase().includes(q) || l.status.toLowerCase().includes(q)}
+      emptyMessage="No general leads."
+    >
+      {#snippet row(lead, _searchQuery)}
+        <td class="font-mono text-sm whitespace-nowrap">
+          <a href="/leads/general-leads/{lead.id}" class="text-accent hover:text-[var(--link-hover)]">{lead.displayId}</a>
+        </td>
+        <td class="text-sm text-text-secondary">{lead.source}</td>
+        <td>
+          <span class="glass-badge inline-flex rounded-full px-2 py-0.5 text-xs font-medium bg-glass text-text-secondary">
+            {lead.status}
+          </span>
+        </td>
+        <td class="text-sm text-text-muted whitespace-nowrap">{new Date(lead.createdAt).toLocaleDateString()}</td>
+      {/snippet}
+    </RelatedListTable>
+  </div>
 
   <!-- Change History -->
   <div class="mt-6">

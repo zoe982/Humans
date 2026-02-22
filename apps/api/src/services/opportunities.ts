@@ -24,7 +24,7 @@ export async function listOpportunities(
   db: DB,
   page: number,
   limit: number,
-  filters: { q?: string; stage?: string; ownerId?: string; overdueOnly?: boolean },
+  filters: { q?: string; stage?: string; ownerId?: string; overdueOnly?: boolean; humanId?: string },
 ) {
   const offset = (page - 1) * limit;
   const conditions: ReturnType<typeof eq>[] = [];
@@ -42,6 +42,11 @@ export async function listOpportunities(
         like(opportunities.displayId, `%${filters.q}%`),
         like(opportunities.nextActionDescription, `%${filters.q}%`),
       )!,
+    );
+  }
+  if (filters.humanId) {
+    conditions.push(
+      sql`${opportunities.id} IN (SELECT ${opportunityHumans.opportunityId} FROM ${opportunityHumans} WHERE ${opportunityHumans.humanId} = ${filters.humanId})`,
     );
   }
 
@@ -138,6 +143,7 @@ export async function getOpportunityDetail(db: DB, id: string) {
         createdAt: opportunityPets.createdAt,
         name: pets.name,
         displayId: pets.displayId,
+        type: pets.type,
         humanId: pets.humanId,
       })
       .from(opportunityPets)
@@ -148,12 +154,23 @@ export async function getOpportunityDetail(db: DB, id: string) {
 
   const linkedHumans = linkedHumanRows.map((h) => {
     const role = h.roleId ? roleConfigs.find((r) => r.id === h.roleId) : null;
-    return { ...h, roleName: role?.name ?? null };
+    return {
+      ...h,
+      humanName: `${h.firstName} ${h.lastName}`,
+      humanDisplayId: h.displayId,
+      roleName: role?.name ?? null,
+    };
   });
 
   const linkedPets = linkedPetRows.map((p) => {
     const ownerHuman = linkedHumanRows.find((h) => h.humanId === p.humanId);
-    return { ...p, ownerName: ownerHuman ? `${ownerHuman.firstName} ${ownerHuman.lastName}` : null };
+    return {
+      ...p,
+      petName: p.name,
+      petDisplayId: p.displayId,
+      petType: p.type,
+      ownerName: ownerHuman ? `${ownerHuman.firstName} ${ownerHuman.lastName}` : null,
+    };
   });
 
   // Owner name
@@ -182,7 +199,7 @@ export async function getOpportunityDetail(db: DB, id: string) {
 
 export async function createOpportunity(
   db: DB,
-  data: { stage?: string; seatsRequested?: number; lossReason?: string },
+  data: { stage?: string; seatsRequested?: number; passengerSeats?: number; petSeats?: number; lossReason?: string },
   colleagueId: string,
 ) {
   const now = new Date().toISOString();
@@ -194,6 +211,8 @@ export async function createOpportunity(
     displayId,
     stage: data.stage ?? "open",
     seatsRequested: data.seatsRequested ?? 1,
+    passengerSeats: data.passengerSeats ?? 1,
+    petSeats: data.petSeats ?? 0,
     lossReason: data.lossReason ?? null,
     createdAt: now,
     updatedAt: now,
@@ -216,7 +235,7 @@ export async function createOpportunity(
 export async function updateOpportunity(
   db: DB,
   id: string,
-  data: { seatsRequested?: number; lossReason?: string | null },
+  data: { seatsRequested?: number; passengerSeats?: number; petSeats?: number; notes?: string | null; lossReason?: string | null },
   colleagueId: string,
 ) {
   const existing = await db.query.opportunities.findFirst({
@@ -235,6 +254,21 @@ export async function updateOpportunity(
     oldValues["seatsRequested"] = existing.seatsRequested;
     newValues["seatsRequested"] = data.seatsRequested;
     updateFields["seatsRequested"] = data.seatsRequested;
+  }
+  if (data.passengerSeats !== undefined) {
+    oldValues["passengerSeats"] = existing.passengerSeats;
+    newValues["passengerSeats"] = data.passengerSeats;
+    updateFields["passengerSeats"] = data.passengerSeats;
+  }
+  if (data.petSeats !== undefined) {
+    oldValues["petSeats"] = existing.petSeats;
+    newValues["petSeats"] = data.petSeats;
+    updateFields["petSeats"] = data.petSeats;
+  }
+  if (data.notes !== undefined) {
+    oldValues["notes"] = existing.notes;
+    newValues["notes"] = data.notes;
+    updateFields["notes"] = data.notes;
   }
   if (data.lossReason !== undefined) {
     oldValues["lossReason"] = existing.lossReason;
@@ -307,6 +341,7 @@ export async function updateOpportunityStage(
     updateFields["nextActionOwnerId"] = null;
     updateFields["nextActionDescription"] = null;
     updateFields["nextActionType"] = null;
+    updateFields["nextActionStartDate"] = null;
     updateFields["nextActionDueDate"] = null;
     updateFields["nextActionCompletedAt"] = null;
   } else if (data.stage === "closed_flown") {
@@ -332,6 +367,7 @@ export async function updateOpportunityStage(
     updateFields["nextActionOwnerId"] = null;
     updateFields["nextActionDescription"] = null;
     updateFields["nextActionType"] = null;
+    updateFields["nextActionStartDate"] = null;
     updateFields["nextActionDueDate"] = null;
     updateFields["nextActionCompletedAt"] = null;
   } else {
@@ -528,7 +564,7 @@ export async function unlinkOpportunityPet(db: DB, linkId: string) {
 export async function updateNextAction(
   db: DB,
   id: string,
-  data: { ownerId: string; description: string; type: string; dueDate: string },
+  data: { ownerId: string; description: string; type: string; startDate?: string; dueDate: string },
   colleagueId: string,
 ) {
   const existing = await db.query.opportunities.findFirst({
@@ -543,14 +579,15 @@ export async function updateNextAction(
     nextActionOwnerId: data.ownerId,
     nextActionDescription: data.description,
     nextActionType: data.type,
+    nextActionStartDate: data.startDate ?? null,
     nextActionDueDate: data.dueDate,
     nextActionCompletedAt: null,
     updatedAt: now,
   }).where(eq(opportunities.id, id));
 
   const diff = computeDiff(
-    { nextActionDescription: existing.nextActionDescription, nextActionType: existing.nextActionType, nextActionDueDate: existing.nextActionDueDate },
-    { nextActionDescription: data.description, nextActionType: data.type, nextActionDueDate: data.dueDate },
+    { nextActionDescription: existing.nextActionDescription, nextActionType: existing.nextActionType, nextActionStartDate: existing.nextActionStartDate, nextActionDueDate: existing.nextActionDueDate },
+    { nextActionDescription: data.description, nextActionType: data.type, nextActionStartDate: data.startDate ?? null, nextActionDueDate: data.dueDate },
   );
   let auditEntryId: string | undefined;
   if (diff) {
@@ -603,6 +640,7 @@ export async function completeNextAction(db: DB, id: string, colleagueId: string
     nextActionOwnerId: null,
     nextActionDescription: null,
     nextActionType: null,
+    nextActionStartDate: null,
     nextActionDueDate: null,
     nextActionCompletedAt: null,
     updatedAt: now,

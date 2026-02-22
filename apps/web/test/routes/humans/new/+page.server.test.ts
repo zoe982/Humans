@@ -25,9 +25,11 @@ describe("humans/new load", () => {
     const result = await load(event as any);
     expect(result.prefill).toEqual({
       fromSignup: "signup-1",
+      fromGeneralLead: "",
       firstName: "Jane",
       middleName: "M",
       lastName: "Doe",
+      notes: "",
     });
   });
 
@@ -36,9 +38,11 @@ describe("humans/new load", () => {
     const result = await load(event as any);
     expect(result.prefill).toEqual({
       fromSignup: "",
+      fromGeneralLead: "",
       firstName: "",
       middleName: "",
       lastName: "",
+      notes: "",
     });
   });
 });

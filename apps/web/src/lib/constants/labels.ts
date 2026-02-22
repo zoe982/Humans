@@ -93,8 +93,8 @@ export const opportunityStageLabels: Record<string, string> = {
   paid: "Paid",
   docs_in_progress: "Docs in Progress",
   docs_complete: "Docs Complete",
-  closed_flown: "Closed (Flown)",
-  closed_lost: "Closed (Lost)",
+  closed_flown: "Closed - Flown",
+  closed_lost: "Closed - Lost",
 };
 
 /** Opportunity stage options ordered for pipeline progression */
@@ -108,8 +108,8 @@ export const OPPORTUNITY_STAGE_OPTIONS = [
   { value: "paid", label: "Paid" },
   { value: "docs_in_progress", label: "Docs in Progress" },
   { value: "docs_complete", label: "Docs Complete" },
-  { value: "closed_flown", label: "Closed (Flown)" },
-  { value: "closed_lost", label: "Closed (Lost)" },
+  { value: "closed_flown", label: "Closed - Flown" },
+  { value: "closed_lost", label: "Closed - Lost" },
 ] as const;
 
 /** Terminal opportunity stages */

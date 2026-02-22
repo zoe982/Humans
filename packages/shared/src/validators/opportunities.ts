@@ -18,6 +18,8 @@ export const createOpportunitySchema = z
   .object({
     stage: opportunityStageEnum.default("open"),
     seatsRequested: z.number().int().min(1).default(1),
+    passengerSeats: z.number().int().min(0).default(1),
+    petSeats: z.number().int().min(0).default(0),
     lossReason: z.string().max(2000).optional(),
   })
   .superRefine((data, ctx) => {
@@ -32,6 +34,9 @@ export const createOpportunitySchema = z
 
 export const updateOpportunitySchema = z.object({
   seatsRequested: z.number().int().min(1).optional(),
+  passengerSeats: z.number().int().min(0).optional(),
+  petSeats: z.number().int().min(0).optional(),
+  notes: z.string().max(10000).optional().nullable(),
   lossReason: z.string().max(2000).optional().nullable(),
 });
 
@@ -54,6 +59,7 @@ export const updateNextActionSchema = z.object({
   ownerId: z.string().min(1),
   description: z.string().min(1).max(1000),
   type: z.enum(["email", "whatsapp_message", "online_meeting", "phone_call", "social_message"]),
+  startDate: z.string().optional(),
   dueDate: z.string().min(1),
 });
 
