@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { untrack } from "svelte";
   import * as Popover from "$lib/components/ui/popover";
   import { Calendar } from "$lib/components/ui/calendar";
   import { CalendarDate, type DateValue, today, getLocalTimeZone } from "@internationalized/date";
@@ -16,9 +17,9 @@
   let selectedDate = $state<DateValue | undefined>(undefined);
   let hour = $state(12);
   let minute = $state(0);
-  let lastEmitted = $state("");
+  let lastEmitted = "";
 
-  // Reactively parse value prop whenever it changes — skip if it matches what we last emitted
+  // Reactively parse value prop — untrack lastEmitted so this only re-runs when value changes
   $effect(() => {
     if (value && value !== lastEmitted) {
       const d = new Date(value);

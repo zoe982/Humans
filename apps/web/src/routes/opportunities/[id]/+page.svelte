@@ -296,6 +296,19 @@
   async function completeNextAction() {
     saveStatus = "saving";
     try {
+      // If the server doesn't have the description yet, save first
+      if (!opportunity.nextActionDescription && naDescription) {
+        await api(`/api/opportunities/${opportunity.id}/next-action`, {
+          method: "PATCH",
+          body: JSON.stringify({
+            ownerId: naOwnerId || data.currentColleagueId,
+            description: naDescription,
+            type: naType || "email",
+            startDate: naStartDate || undefined,
+            dueDate: naDueDate ? new Date(naDueDate).toISOString() : new Date().toISOString(),
+          }),
+        });
+      }
       await api(`/api/opportunities/${opportunity.id}/next-action/done`, { method: "POST" });
       saveStatus = "saved";
       showConfetti = true;
@@ -755,7 +768,7 @@
           <h2 class="text-lg font-bold text-text-primary">Next Action</h2>
           <SaveIndicator status={naSaveStatus} />
         </div>
-        {#if opportunity.nextActionDescription}
+        {#if naDescription}
           <Button onclick={completeNextAction} class="bg-emerald-600 hover:bg-emerald-500 text-white">
             <CheckCircle size={18} class="mr-1.5" />
             Done
