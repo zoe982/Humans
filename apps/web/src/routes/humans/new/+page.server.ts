@@ -18,9 +18,11 @@ export const load = async ({ locals, url }: RequestEvent) => {
   return {
     prefill: {
       fromSignup: url.searchParams.get("fromSignup") ?? "",
+      fromGeneralLead: url.searchParams.get("fromGeneralLead") ?? "",
       firstName: url.searchParams.get("firstName") ?? "",
       middleName: url.searchParams.get("middleName") ?? "",
       lastName: url.searchParams.get("lastName") ?? "",
+      notes: url.searchParams.get("notes") ?? "",
     },
   };
 };
@@ -42,6 +44,7 @@ export const actions = {
     };
 
     const fromSignup = form.get("fromSignup") as string;
+    const fromGeneralLead = form.get("fromGeneralLead") as string;
 
     // Create the human
     const res = await fetch(`${PUBLIC_API_URL}/api/humans`, {
@@ -74,6 +77,23 @@ export const actions = {
           Cookie: `humans_session=${sessionToken ?? ""}`,
         },
         body: JSON.stringify({ routeSignupId: fromSignup }),
+      });
+
+      if (!convertRes.ok) {
+        // Human was created but convert failed — redirect to human anyway
+        redirect(302, `/humans/${humanId}`);
+      }
+    }
+
+    // If converting from a general lead, call the convert endpoint
+    if (fromGeneralLead) {
+      const convertRes = await fetch(`${PUBLIC_API_URL}/api/general-leads/${fromGeneralLead}/convert`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Cookie: `humans_session=${sessionToken ?? ""}`,
+        },
+        body: JSON.stringify({ humanId }),
       });
 
       if (!convertRes.ok) {

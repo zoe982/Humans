@@ -121,6 +121,21 @@ export {
 } from "./opportunities";
 
 export {
+  generalLeadStatuses,
+  generalLeadSources,
+  createGeneralLeadSchema,
+  updateGeneralLeadSchema,
+  updateGeneralLeadStatusSchema,
+  convertGeneralLeadSchema,
+  type GeneralLeadStatus,
+  type GeneralLeadSource,
+  type CreateGeneralLeadInput,
+  type UpdateGeneralLeadInput,
+  type UpdateGeneralLeadStatusInput,
+  type ConvertGeneralLeadInput,
+} from "./general-leads";
+
+export {
   createAccountSchema,
   updateAccountSchema,
   updateAccountStatusSchema,

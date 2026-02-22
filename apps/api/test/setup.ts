@@ -216,7 +216,21 @@ const MIGRATION_STATEMENTS = [
     \`created_at\` text NOT NULL
   )`,
 
-  // ── Depend on humans + colleagues + accounts + front_sync_runs ──
+  // ── General Leads (depends on humans + colleagues) ─────────────
+  `CREATE TABLE IF NOT EXISTS \`general_leads\` (
+    \`id\` text PRIMARY KEY NOT NULL,
+    \`display_id\` text NOT NULL UNIQUE,
+    \`status\` text DEFAULT 'open' NOT NULL,
+    \`source\` text NOT NULL,
+    \`notes\` text,
+    \`reject_reason\` text,
+    \`converted_human_id\` text REFERENCES \`humans\`(\`id\`),
+    \`owner_id\` text REFERENCES \`colleagues\`(\`id\`),
+    \`created_at\` text NOT NULL,
+    \`updated_at\` text NOT NULL
+  )`,
+
+  // ── Depend on humans + colleagues + accounts + front_sync_runs + general_leads ──
   `CREATE TABLE IF NOT EXISTS \`activities\` (
     \`id\` text PRIMARY KEY NOT NULL,
     \`display_id\` text NOT NULL UNIQUE,
@@ -230,6 +244,7 @@ const MIGRATION_STATEMENTS = [
     \`route_signup_id\` text,
     \`website_booking_request_id\` text,
     \`opportunity_id\` text REFERENCES \`opportunities\`(\`id\`),
+    \`general_lead_id\` text REFERENCES \`general_leads\`(\`id\`),
     \`gmail_id\` text,
     \`front_id\` text,
     \`front_conversation_id\` text,
@@ -390,6 +405,7 @@ afterEach(async () => {
   await env.DB.exec("DELETE FROM opportunity_pets");
   await env.DB.exec("DELETE FROM opportunity_humans");
   await env.DB.exec("DELETE FROM activities");
+  await env.DB.exec("DELETE FROM general_leads");
   await env.DB.exec("DELETE FROM account_humans");
   await env.DB.exec("DELETE FROM account_types");
   await env.DB.exec("DELETE FROM lead_events");

@@ -11,6 +11,7 @@ interface ActivityFilters {
   accountId?: string;
   routeSignupId?: string;
   websiteBookingRequestId?: string;
+  generalLeadId?: string;
   type?: string;
   dateFrom?: string;
   dateTo?: string;
@@ -28,6 +29,7 @@ export async function listActivities(db: DB, filters: ActivityFilters) {
   if (filters.accountId) conditions.push(eq(activities.accountId, filters.accountId));
   if (filters.routeSignupId) conditions.push(eq(activities.routeSignupId, filters.routeSignupId));
   if (filters.websiteBookingRequestId) conditions.push(eq(activities.websiteBookingRequestId, filters.websiteBookingRequestId));
+  if (filters.generalLeadId) conditions.push(eq(activities.generalLeadId, filters.generalLeadId));
   if (filters.type) conditions.push(eq(activities.type, filters.type as typeof activities.type.enumValues[number]));
   if (filters.dateFrom) conditions.push(gte(activities.activityDate, filters.dateFrom));
   if (filters.dateTo) conditions.push(lte(activities.activityDate, filters.dateTo));
@@ -143,6 +145,7 @@ export async function createActivity(
     accountId?: string | null;
     routeSignupId?: string | null;
     websiteBookingRequestId?: string | null;
+    generalLeadId?: string | null;
     gmailId?: string | null;
     frontId?: string | null;
     frontConversationId?: string | null;
@@ -165,6 +168,7 @@ export async function createActivity(
     accountId: data.accountId ?? null,
     routeSignupId: data.routeSignupId ?? null,
     websiteBookingRequestId: data.websiteBookingRequestId ?? null,
+    generalLeadId: data.generalLeadId ?? null,
     gmailId: data.gmailId ?? null,
     frontId: data.frontId ?? null,
     frontConversationId: data.frontConversationId ?? null,
@@ -190,6 +194,7 @@ export async function updateActivity(
     accountId?: string | null;
     routeSignupId?: string | null;
     websiteBookingRequestId?: string | null;
+    generalLeadId?: string | null;
     gmailId?: string | null;
     frontId?: string | null;
     frontConversationId?: string | null;
@@ -215,6 +220,7 @@ export async function updateActivity(
   if (data.accountId !== undefined) updateFields["accountId"] = data.accountId;
   if (data.routeSignupId !== undefined) updateFields["routeSignupId"] = data.routeSignupId;
   if (data.websiteBookingRequestId !== undefined) updateFields["websiteBookingRequestId"] = data.websiteBookingRequestId;
+  if (data.generalLeadId !== undefined) updateFields["generalLeadId"] = data.generalLeadId;
   if (data.gmailId !== undefined) updateFields["gmailId"] = data.gmailId;
   if (data.frontId !== undefined) updateFields["frontId"] = data.frontId;
   if (data.frontConversationId !== undefined) updateFields["frontConversationId"] = data.frontConversationId;

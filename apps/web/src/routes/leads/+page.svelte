@@ -18,5 +18,9 @@
       <h2 class="text-lg font-semibold text-text-primary">Website Booking Requests</h2>
       <p class="mt-2 text-sm text-text-secondary">View and manage booking requests submitted through the website.</p>
     </a>
+    <a href="/leads/general-leads" class="glass-card p-6 hover:bg-glass-hover transition-colors">
+      <h2 class="text-lg font-semibold text-text-primary">General Leads</h2>
+      <p class="mt-2 text-sm text-text-secondary">Capture and work early enquiries before converting to a verified Human.</p>
+    </a>
   </div>
 </div>

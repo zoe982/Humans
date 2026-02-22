@@ -16,7 +16,7 @@
 
 <div class="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
   <PageHeader
-    title={prefill.fromSignup ? "Convert Signup to Human" : "New Human"}
+    title={prefill.fromSignup ? "Convert Signup to Human" : prefill.fromGeneralLead ? "Convert Lead to Human" : "New Human"}
     breadcrumbs={[{ label: "Humans", href: "/humans" }, { label: "New" }]}
   />
 
@@ -27,6 +27,9 @@
   <form method="POST" action="?/create" class="space-y-6 glass-card p-6">
     {#if prefill.fromSignup}
       <input type="hidden" name="fromSignup" value={prefill.fromSignup} />
+    {/if}
+    {#if prefill.fromGeneralLead}
+      <input type="hidden" name="fromGeneralLead" value={prefill.fromGeneralLead} />
     {/if}
 
     <div class="grid gap-4 sm:grid-cols-3">
@@ -66,9 +69,9 @@
 
     <div class="flex gap-3">
       <Button type="submit">
-        {prefill.fromSignup ? "Create & Convert" : "Create Human"}
+        {prefill.fromSignup || prefill.fromGeneralLead ? "Create & Convert" : "Create Human"}
       </Button>
-      <a href={prefill.fromSignup ? "/leads/route-signups" : "/humans"} class="btn-ghost">
+      <a href={prefill.fromSignup ? "/leads/route-signups" : prefill.fromGeneralLead ? "/leads/general-leads" : "/humans"} class="btn-ghost">
         Cancel
       </a>
     </div>

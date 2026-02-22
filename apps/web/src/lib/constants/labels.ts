@@ -59,3 +59,58 @@ export const balanceStatusLabels: Record<string, string> = {
   paid: "Paid",
   refunded: "Refunded",
 };
+
+/** General lead status display labels */
+export const generalLeadStatusLabels: Record<string, string> = {
+  open: "Open",
+  qualified: "Qualified",
+  closed_converted: "Converted",
+  closed_rejected: "Rejected",
+};
+
+/** General lead source display labels */
+export const generalLeadSourceLabels: Record<string, string> = {
+  whatsapp: "WhatsApp",
+  email: "Email",
+  direct_referral: "Direct Referral",
+};
+
+/** General lead source options for SearchableSelect */
+export const GENERAL_LEAD_SOURCE_OPTIONS = [
+  { value: "whatsapp", label: "WhatsApp" },
+  { value: "email", label: "Email" },
+  { value: "direct_referral", label: "Direct Referral" },
+] as const;
+
+/** Opportunity stage display labels */
+export const opportunityStageLabels: Record<string, string> = {
+  open: "Open",
+  qualified: "Qualified",
+  deposit_request_sent: "Deposit Requested",
+  deposit_received: "Deposit Received",
+  group_forming: "Group Forming",
+  confirmed_to_operate: "Confirmed",
+  paid: "Paid",
+  docs_in_progress: "Docs in Progress",
+  docs_complete: "Docs Complete",
+  closed_flown: "Closed (Flown)",
+  closed_lost: "Closed (Lost)",
+};
+
+/** Opportunity stage options ordered for pipeline progression */
+export const OPPORTUNITY_STAGE_OPTIONS = [
+  { value: "open", label: "Open" },
+  { value: "qualified", label: "Qualified" },
+  { value: "deposit_request_sent", label: "Deposit Requested" },
+  { value: "deposit_received", label: "Deposit Received" },
+  { value: "group_forming", label: "Group Forming" },
+  { value: "confirmed_to_operate", label: "Confirmed" },
+  { value: "paid", label: "Paid" },
+  { value: "docs_in_progress", label: "Docs in Progress" },
+  { value: "docs_complete", label: "Docs Complete" },
+  { value: "closed_flown", label: "Closed (Flown)" },
+  { value: "closed_lost", label: "Closed (Lost)" },
+] as const;
+
+/** Terminal opportunity stages */
+export const TERMINAL_STAGES = new Set(["closed_flown", "closed_lost"]);

@@ -60,5 +60,12 @@ export {
   type OpportunityStage,
 } from "./opportunities";
 export { opportunityHumanRolesConfig } from "./opportunity-human-roles-config";
+export {
+  generalLeads,
+  generalLeadStatuses,
+  generalLeadSources,
+  type GeneralLeadStatus,
+  type GeneralLeadSource,
+} from "./general-leads";
 export { opportunityHumans } from "./opportunity-humans";
 export { opportunityPets } from "./opportunity-pets";

@@ -48,3 +48,33 @@ export const labelBadgeColor = "badge-purple";
 
 /** Role label badge color (orange) */
 export const roleLabelBadgeColor = "badge-orange";
+
+/** General lead status badge colors */
+export const generalLeadStatusColors: Record<string, string> = {
+  open: "badge-blue",
+  qualified: "badge-yellow",
+  closed_converted: "badge-green",
+  closed_rejected: "badge-red",
+};
+
+/** General lead source badge colors */
+export const generalLeadSourceColors: Record<string, string> = {
+  whatsapp: "badge-green",
+  email: "badge-blue",
+  direct_referral: "badge-purple",
+};
+
+/** Opportunity stage badge colors */
+export const opportunityStageColors: Record<string, string> = {
+  open: "badge-blue",
+  qualified: "badge-yellow",
+  deposit_request_sent: "badge-orange",
+  deposit_received: "badge-green",
+  group_forming: "badge-purple",
+  confirmed_to_operate: "badge-green",
+  paid: "badge-green",
+  docs_in_progress: "badge-yellow",
+  docs_complete: "badge-blue",
+  closed_flown: "badge-green",
+  closed_lost: "badge-red",
+};

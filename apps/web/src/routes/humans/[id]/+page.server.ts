@@ -52,6 +52,7 @@ export const load = async ({ locals, cookies, params }: RequestEvent) => {
     bookingRequestsRes,
     accountsRes,
     accountHumanLabelConfigs,
+    convertedFromLeadRes,
   ] = await Promise.all([
     fetch(`${PUBLIC_API_URL}/api/activities?humanId=${id}`, { headers }),
     fetchConfig(sessionToken ?? "", "human-email-labels"),
@@ -61,6 +62,7 @@ export const load = async ({ locals, cookies, params }: RequestEvent) => {
     fetch(`${PUBLIC_API_URL}/api/website-booking-requests?limit=100`, { headers }),
     fetch(`${PUBLIC_API_URL}/api/accounts`, { headers }),
     fetchConfig(sessionToken ?? "", "account-human-labels"),
+    fetch(`${PUBLIC_API_URL}/api/general-leads?convertedHumanId=${id}&limit=1`, { headers }),
   ]);
 
   let activities: unknown[] = [];
@@ -85,6 +87,15 @@ export const load = async ({ locals, cookies, params }: RequestEvent) => {
   if (bookingRequestsRes.ok) {
     const raw: unknown = await bookingRequestsRes.json();
     allBookingRequests = isListData(raw) ? raw.data : [];
+  }
+
+  let convertedFromLead: { id: string; displayId: string } | null = null;
+  if (convertedFromLeadRes.ok) {
+    const raw: unknown = await convertedFromLeadRes.json();
+    if (isListData(raw) && raw.data.length > 0) {
+      const lead = raw.data[0] as { id: string; displayId: string };
+      convertedFromLead = { id: lead.id, displayId: lead.displayId };
+    }
   }
 
   // Enrich linked route signups with Supabase data
@@ -132,6 +143,7 @@ export const load = async ({ locals, cookies, params }: RequestEvent) => {
     allBookingRequests,
     allAccounts,
     accountHumanLabelConfigs,
+    convertedFromLead,
   };
 };
 

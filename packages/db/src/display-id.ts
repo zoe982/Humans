@@ -47,6 +47,7 @@ export const DISPLAY_ID_PREFIXES = [
   "SOC",
   "FRY",
   "OPP",
+  "LEA",
 ] as const;
 
 export type DisplayIdPrefix = (typeof DISPLAY_ID_PREFIXES)[number];

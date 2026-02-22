@@ -144,6 +144,7 @@ export function buildActivity(overrides: Partial<{
   accountId: string | null;
   routeSignupId: string | null;
   opportunityId: string | null;
+  generalLeadId: string | null;
   gmailId: string | null;
   frontId: string | null;
   syncRunId: string | null;
@@ -164,6 +165,7 @@ export function buildActivity(overrides: Partial<{
     accountId: null,
     routeSignupId: null,
     opportunityId: null,
+    generalLeadId: null,
     gmailId: null,
     frontId: null,
     syncRunId: null,
@@ -378,6 +380,34 @@ export function buildLeadEvent(overrides: Partial<{
     metadata: null,
     createdByColleagueId: null,
     createdAt: now(),
+    ...overrides,
+  };
+}
+
+export function buildGeneralLead(overrides: Partial<{
+  id: string;
+  displayId: string;
+  status: string;
+  source: string;
+  notes: string | null;
+  rejectReason: string | null;
+  convertedHumanId: string | null;
+  ownerId: string | null;
+  createdAt: string;
+  updatedAt: string;
+}> = {}) {
+  const ts = now();
+  return {
+    id: createId(),
+    displayId: nextTestDisplayId("LEA"),
+    status: "open" as const,
+    source: "email" as const,
+    notes: null,
+    rejectReason: null,
+    convertedHumanId: null,
+    ownerId: null,
+    createdAt: ts,
+    updatedAt: ts,
     ...overrides,
   };
 }

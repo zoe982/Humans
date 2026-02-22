@@ -23,6 +23,7 @@
       { href: "/pets", label: "Pets" },
       { href: "/accounts", label: "Accounts" },
       { href: "/activities", label: "Activities" },
+      { href: "/opportunities", label: "Opportunities" },
     ];
     if (isManager) links.push({ href: "/reports", label: "Reports" });
     return links;

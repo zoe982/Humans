@@ -130,6 +130,7 @@
   const allBookingRequests = $derived(data.allBookingRequests as BookingRequestOption[]);
   const allAccounts = $derived(data.allAccounts as AccountOption[]);
   const accountHumanLabelConfigs = $derived(data.accountHumanLabelConfigs as ConfigItem[]);
+  const convertedFromLead = $derived(data.convertedFromLead as { id: string; displayId: string } | null);
 
   const emailLabelOptions = $derived(emailLabelConfigs.map((l) => ({ value: l.id, label: l.name })));
   const phoneLabelOptions = $derived(phoneLabelConfigs.map((l) => ({ value: l.id, label: l.name })));
@@ -310,6 +311,14 @@
       </div>
     {/snippet}
   </RecordManagementBar>
+
+  <!-- Converted from lead banner -->
+  {#if convertedFromLead}
+    <div class="mt-4 rounded-xl bg-glass/50 border border-glass-border px-4 py-3 text-sm text-text-muted">
+      Converted from general lead
+      <a href="/leads/general-leads/{convertedFromLead.id}" class="text-accent hover:text-[var(--link-hover)] font-mono ml-1">{convertedFromLead.displayId}</a>
+    </div>
+  {/if}
 
   <!-- Alerts -->
   {#if form?.error}

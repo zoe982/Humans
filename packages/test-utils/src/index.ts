@@ -15,6 +15,7 @@ export {
   buildOpportunity,
   buildOpportunityHuman,
   buildOpportunityPet,
+  buildGeneralLead,
   nextTestDisplayId,
   resetTestDisplayIdCounters,
 } from "./factories";

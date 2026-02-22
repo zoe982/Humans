@@ -4,6 +4,7 @@ import { accounts } from "./accounts";
 import { colleagues } from "./colleagues";
 import { frontSyncRuns } from "./front-sync-runs";
 import { opportunities } from "./opportunities";
+import { generalLeads } from "./general-leads";
 
 export const activityTypeValues = [
   "email",
@@ -27,6 +28,7 @@ export const activities = sqliteTable("activities", {
   routeSignupId: text("route_signup_id"),
   websiteBookingRequestId: text("website_booking_request_id"),
   opportunityId: text("opportunity_id").references(() => opportunities.id),
+  generalLeadId: text("general_lead_id").references(() => generalLeads.id),
   gmailId: text("gmail_id"),
   frontId: text("front_id"),
   frontConversationId: text("front_conversation_id"),
