@@ -114,3 +114,16 @@ export const OPPORTUNITY_STAGE_OPTIONS = [
 
 /** Terminal opportunity stages */
 export const TERMINAL_STAGES = new Set(["closed_flown", "closed_lost"]);
+
+/** Cadence hints per opportunity stage — recommended follow-up intervals */
+export const STAGE_CADENCE_HINTS: Record<string, { text: string; hours: number }> = {
+  open: { text: "Follow up within 24 hours", hours: 24 },
+  qualified: { text: "Follow up within 24 hours", hours: 24 },
+  deposit_request_sent: { text: "Follow up within 48 hours", hours: 48 },
+  deposit_received: { text: "Follow up within 7 days", hours: 168 },
+  group_forming: { text: "Follow up within 7 days", hours: 168 },
+  confirmed_to_operate: { text: "Follow up within 48 hours", hours: 48 },
+  paid: { text: "Follow up within 3–5 days", hours: 96 },
+  docs_in_progress: { text: "Follow up within 3–5 days", hours: 96 },
+  docs_complete: { text: "Follow up within 5 days", hours: 120 },
+};

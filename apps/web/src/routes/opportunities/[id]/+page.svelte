@@ -15,7 +15,7 @@
   import { createAutoSaver, type SaveStatus } from "$lib/autosave";
   import { api } from "$lib/api";
   import { opportunityStageColors } from "$lib/constants/colors";
-  import { opportunityStageLabels, OPPORTUNITY_STAGE_OPTIONS, TERMINAL_STAGES, ACTIVITY_TYPE_OPTIONS, activityTypeLabels } from "$lib/constants/labels";
+  import { opportunityStageLabels, OPPORTUNITY_STAGE_OPTIONS, TERMINAL_STAGES, ACTIVITY_TYPE_OPTIONS, activityTypeLabels, STAGE_CADENCE_HINTS } from "$lib/constants/labels";
   import { formatRelativeTime, summarizeChanges } from "$lib/utils/format";
   import { onDestroy } from "svelte";
   import { Button } from "$lib/components/ui/button";
@@ -79,6 +79,15 @@
   const roleOptions = $derived(roleConfigs.map((r) => ({ value: r.id, label: r.name })));
 
   const isTerminal = $derived(TERMINAL_STAGES.has(opportunity.stage));
+  const cadenceHint = $derived(STAGE_CADENCE_HINTS[opportunity.stage]);
+  const cadenceWarning = $derived(() => {
+    if (!cadenceHint || !naDueDate) return false;
+    const now = Date.now();
+    const due = new Date(naDueDate).getTime();
+    if (isNaN(due)) return false;
+    const spanMs = due - now;
+    return spanMs > cadenceHint.hours * 1.5 * 3600_000;
+  });
 
   // Linked pet options: only from linked humans' pets
   const linkedHumanIds = $derived(new Set(opportunity.linkedHumans.map((h) => h.humanId)));
@@ -417,6 +426,12 @@
             id="naDueDate"
             value={naDueDate}
           />
+          {#if cadenceHint}
+            <p class="mt-1 text-xs text-text-muted">{cadenceHint.text}</p>
+          {/if}
+          {#if cadenceWarning()}
+            <p class="mt-1 text-xs text-amber-500">Due date exceeds the recommended cadence for this stage.</p>
+          {/if}
         </div>
       </div>
       <Button size="sm" onclick={saveNextAction}>
