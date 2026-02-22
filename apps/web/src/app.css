@@ -412,6 +412,21 @@
   }
 }
 
+@utility glass-card-accent {
+  background: linear-gradient(135deg, var(--glass-fill), rgba(6, 182, 212, 0.08), var(--glass-fill));
+  backdrop-filter: blur(16px) saturate(1.4);
+  -webkit-backdrop-filter: blur(16px) saturate(1.4);
+  border: 1px solid rgba(6, 182, 212, 0.18);
+  border-radius: 1rem;
+  box-shadow:
+    0 4px 16px var(--glass-shadow),
+    0 1px 4px var(--glass-shadow-sm),
+    inset 0 1px 0 var(--glass-inset-highlight),
+    inset 1px 0 0 var(--glass-inset-highlight-left);
+  position: relative;
+  overflow: hidden;
+}
+
 @utility glass-dialog {
   background: linear-gradient(135deg, var(--glass-dialog-bg-start), var(--glass-dialog-bg-end), var(--glass-dialog-bg-start));
   backdrop-filter: blur(40px) saturate(1.8);

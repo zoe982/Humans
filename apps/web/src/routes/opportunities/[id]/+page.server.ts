@@ -74,6 +74,7 @@ export const load = async ({ locals, cookies, params }: RequestEvent) => {
     roleConfigs,
     apiUrl: PUBLIC_API_URL,
     userRole: locals.user?.role ?? "viewer",
+    currentColleagueId: locals.user?.id ?? null,
   };
 };
 

@@ -7,6 +7,10 @@ function isObjData(value: unknown): value is { data: Record<string, unknown> } {
   return typeof value === "object" && value !== null && "data" in value;
 }
 
+function isListData(value: unknown): value is { data: unknown[] } {
+  return typeof value === "object" && value !== null && "data" in value && Array.isArray((value as { data: unknown }).data);
+}
+
 function failFromApi(resBody: unknown, status: number, fallback: string): ActionFailure<{ error: string; code?: string; requestId?: string }> {
   const info = extractApiErrorInfo(resBody, fallback);
   return fail(status, { error: info.message, code: info.code, requestId: info.requestId });
@@ -27,7 +31,15 @@ export const load = async ({ locals, cookies, params }: RequestEvent) => {
   const lead = isObjData(leadRaw) ? leadRaw.data : null;
   if (lead == null) redirect(302, "/leads/general-leads");
 
-  return { lead, user: locals.user };
+  const headers = { Cookie: `humans_session=${sessionToken ?? ""}` };
+  const humansRes = await fetch(`${PUBLIC_API_URL}/api/humans?limit=200`, { headers });
+  let allHumans: unknown[] = [];
+  if (humansRes.ok) {
+    const raw: unknown = await humansRes.json();
+    allHumans = isListData(raw) ? raw.data : [];
+  }
+
+  return { lead, user: locals.user, allHumans };
 };
 
 export const actions = {

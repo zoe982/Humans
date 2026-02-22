@@ -6,8 +6,10 @@
   import HighlightText from "$lib/components/HighlightText.svelte";
   import StatusBadge from "$lib/components/StatusBadge.svelte";
   import SearchableSelect from "$lib/components/SearchableSelect.svelte";
+  import * as Dialog from "$lib/components/ui/dialog";
   import { invalidateAll } from "$app/navigation";
   import { api } from "$lib/api";
+  import { toast } from "svelte-sonner";
   import { generalLeadStatusColors, generalLeadSourceColors, activityTypeColors } from "$lib/constants/colors";
   import { generalLeadStatusLabels, generalLeadSourceLabels, activityTypeLabels, ACTIVITY_TYPE_OPTIONS } from "$lib/constants/labels";
   import { Button } from "$lib/components/ui/button";
@@ -41,14 +43,27 @@
     createdAt: string;
   };
 
+  type HumanOption = { id: string; displayId?: string; firstName: string; lastName: string };
+
   const lead = $derived(data.lead as Lead);
   const activities = $derived(lead.activities ?? []);
+  const allHumans = $derived(data.allHumans as HumanOption[]);
   const isAdmin = $derived(data.user?.role === "admin");
   const isClosed = $derived(lead.status === "closed_converted" || lead.status === "closed_rejected");
+
+  const humanOptions = $derived(
+    allHumans.map((h) => ({
+      value: h.id,
+      label: `${h.displayId ? h.displayId + " — " : ""}${h.firstName} ${h.lastName}`,
+    }))
+  );
 
   let showDeleteConfirm = $state(false);
   let showRejectDialog = $state(false);
   let rejectReason = $state("");
+  let showConvertDialog = $state(false);
+  let selectedHumanId = $state("");
+  let converting = $state(false);
 
   function formatDatetime(iso: string): string {
     const d = new Date(iso);
@@ -68,8 +83,7 @@
       return;
     }
     if (newStatus === "closed_converted") {
-      // Redirect to convert flow
-      window.location.href = convertUrl();
+      showConvertDialog = true;
       return;
     }
     try {
@@ -97,6 +111,25 @@
       // Rejection failed
     }
   }
+
+  async function linkExistingHuman() {
+    if (!selectedHumanId) return;
+    converting = true;
+    try {
+      await api(`/api/general-leads/${lead.id}/convert`, {
+        method: "POST",
+        body: JSON.stringify({ humanId: selectedHumanId }),
+      });
+      showConvertDialog = false;
+      selectedHumanId = "";
+      toast("Lead converted successfully");
+      await invalidateAll();
+    } catch (err) {
+      toast(`Conversion failed: ${err instanceof Error ? err.message : "Unknown error"}`);
+    } finally {
+      converting = false;
+    }
+  }
 </script>
 
 <svelte:head>
@@ -119,7 +152,7 @@
         {#if lead.status === "open"}
           <Button size="sm" onclick={() => handleStatusChange("qualified")}>Mark Qualified</Button>
         {/if}
-        <a href={convertUrl()} class="btn-primary text-sm py-1.5">Convert to Human</a>
+        <Button size="sm" onclick={() => { showConvertDialog = true; }}>Convert to Human</Button>
         <Button size="sm" variant="destructive" onclick={() => { showRejectDialog = true; }}>Close Rejected</Button>
       {/if}
     {/snippet}
@@ -291,6 +324,41 @@
     </div>
   {/if}
 </div>
+
+<!-- Convert Dialog -->
+<Dialog.Root bind:open={showConvertDialog}>
+  <Dialog.Content>
+    <Dialog.Header>
+      <Dialog.Title>Convert to Human</Dialog.Title>
+      <Dialog.Description>Choose how to convert this lead into a verified human record.</Dialog.Description>
+    </Dialog.Header>
+    <div class="mt-4 space-y-4">
+      <a href={convertUrl()} class="block glass-card p-4 hover:ring-1 hover:ring-accent/40 transition">
+        <h3 class="text-sm font-semibold text-text-primary">Create New Human</h3>
+        <p class="text-xs text-text-muted mt-1">Create a brand new human record from this lead's data.</p>
+      </a>
+      <div class="glass-card p-4">
+        <h3 class="text-sm font-semibold text-text-primary">Link to Existing Human</h3>
+        <p class="text-xs text-text-muted mt-1">Associate this lead with an existing human record.</p>
+        <div class="mt-3">
+          <SearchableSelect
+            options={humanOptions}
+            name="convertHumanId"
+            id="convertHumanId"
+            emptyOption="Select a human..."
+            placeholder="Search humans..."
+            onSelect={(v) => { selectedHumanId = v; }}
+          />
+        </div>
+        <div class="mt-3 flex justify-end">
+          <Button size="sm" disabled={!selectedHumanId || converting} onclick={linkExistingHuman}>
+            {converting ? "Converting..." : "Link & Convert"}
+          </Button>
+        </div>
+      </div>
+    </div>
+  </Dialog.Content>
+</Dialog.Root>
 
 <!-- Reject Reason Dialog -->
 {#if showRejectDialog}

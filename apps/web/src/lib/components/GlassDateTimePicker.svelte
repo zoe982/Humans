@@ -13,19 +13,23 @@
 
   let { name, id, value, onchange }: Props = $props();
 
-  // Parse initial value or default to now
   let selectedDate = $state<DateValue | undefined>(undefined);
   let hour = $state(12);
   let minute = $state(0);
 
-  if (value) {
-    const d = new Date(value);
-    if (!isNaN(d.getTime())) {
-      selectedDate = new CalendarDate(d.getFullYear(), d.getMonth() + 1, d.getDate());
-      hour = d.getHours();
-      minute = d.getMinutes();
+  // Reactively parse value prop whenever it changes
+  $effect(() => {
+    if (value) {
+      const d = new Date(value);
+      if (!isNaN(d.getTime())) {
+        selectedDate = new CalendarDate(d.getFullYear(), d.getMonth() + 1, d.getDate());
+        hour = d.getHours();
+        minute = d.getMinutes();
+      }
+    } else {
+      selectedDate = undefined;
     }
-  }
+  });
 
   const isoString = $derived.by(() => {
     if (!selectedDate) return "";
@@ -49,9 +53,9 @@
     });
   });
 
-  // Notify parent when value changes
+  // Notify parent when value changes (guard against feedback loops)
   $effect(() => {
-    if (isoString) {
+    if (isoString && isoString !== value) {
       onchange?.(isoString);
     }
   });

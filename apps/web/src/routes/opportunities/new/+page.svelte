@@ -16,7 +16,7 @@
   let selectedHumanId = $state("");
   let selectedPetIds = $state<string[]>([]);
   let passengerSeats = $state(1);
-  let petSeats = $state(0);
+  let petSeats = $state(1);
 
   const humanOptions = $derived(
     allHumans.map((h) => ({
@@ -44,9 +44,12 @@
     })
   );
 
+  let petSelectKey = $state(0);
+
   function addPet(petId: string) {
     if (petId && !selectedPetIds.includes(petId)) {
       selectedPetIds = [...selectedPetIds, petId];
+      petSelectKey++;
     }
   }
 
@@ -110,14 +113,16 @@
           {/each}
         </div>
       {/if}
-      <SearchableSelect
-        options={availablePetOptions}
-        name="_petSelect"
-        id="petSelect"
-        emptyOption="Select a pet..."
-        placeholder="Search pets..."
-        onSelect={(v) => addPet(v)}
-      />
+      {#key petSelectKey}
+        <SearchableSelect
+          options={availablePetOptions}
+          name="_petSelect"
+          id="petSelect"
+          emptyOption="Select a pet..."
+          placeholder="Search pets..."
+          onSelect={(v) => addPet(v)}
+        />
+      {/key}
       {#if !selectedHumanId}
         <p class="text-xs text-text-muted mt-1">Select a passenger first to see their pets.</p>
       {:else if availablePetOptions.length === 0 && selectedPetIds.length === 0}

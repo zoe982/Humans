@@ -2,6 +2,8 @@
   import type { PageData } from "./$types";
   import PageHeader from "$lib/components/PageHeader.svelte";
   import ActivityChart from "$lib/components/ActivityChart.svelte";
+  import RelatedListTable from "$lib/components/RelatedListTable.svelte";
+  import HighlightText from "$lib/components/HighlightText.svelte";
   import { Users, PawPrint, Activity, Globe2, Plus, Search, ClipboardList } from "lucide-svelte";
   import { activityTypeLabels } from "$lib/constants/labels";
   import { activityTypeColors } from "$lib/constants/colors";
@@ -10,6 +12,7 @@
 
   type RecentActivity = {
     id: string;
+    displayId: string;
     type: string;
     subject: string;
     activityDate: string;
@@ -100,27 +103,56 @@
 
   <!-- Recent Activity -->
   <div class="mt-8">
-    <div class="flex items-center justify-between mb-3">
-      <h2 class="text-lg font-semibold text-text-primary">Recent Activity</h2>
-      <a href="/activities" class="text-sm text-accent hover:text-[var(--link-hover)]">View all</a>
-    </div>
-    <div class="glass-card divide-y divide-glass-border">
-      {#each recentActivities as activity (activity.id)}
-        <a href="/activities/{activity.id}" class="flex items-center gap-3 px-4 py-3 hover:bg-glass-hover transition-colors">
+    <RelatedListTable
+      title="Recent Activity"
+      items={recentActivities}
+      columns={[
+        { key: "displayId", label: "ID" },
+        { key: "type", label: "Type", sortable: true, sortValue: (a) => activityTypeLabels[a.type] ?? a.type },
+        { key: "subject", label: "Subject", sortable: true, sortValue: (a) => a.subject },
+        { key: "contact", label: "Human / Account", sortable: true, sortValue: (a) => a.humanName ?? a.accountName ?? "" },
+        { key: "date", label: "Date", sortable: true, sortValue: (a) => a.activityDate },
+      ]}
+      defaultSortKey="date"
+      defaultSortDirection="desc"
+      searchFilter={(a, q) => {
+        const typeLabel = (activityTypeLabels[a.type] ?? a.type).toLowerCase();
+        return (a.displayId ?? "").toLowerCase().includes(q) ||
+          a.subject.toLowerCase().includes(q) ||
+          typeLabel.includes(q) ||
+          (a.humanName ?? "").toLowerCase().includes(q) ||
+          (a.accountName ?? "").toLowerCase().includes(q);
+      }}
+      emptyMessage="No recent activities."
+    >
+      {#snippet row(activity, searchQuery)}
+        <td class="font-mono text-sm whitespace-nowrap">
+          <a href="/activities/{activity.id}" class="text-accent hover:text-[var(--link-hover)]">
+            <HighlightText text={activity.displayId ?? activity.id.slice(0, 8)} query={searchQuery} />
+          </a>
+        </td>
+        <td>
           <span class="glass-badge text-xs {activityTypeColors[activity.type] ?? 'bg-glass text-text-secondary'}">
-            {activityTypeLabels[activity.type] ?? activity.type}
+            <HighlightText text={activityTypeLabels[activity.type] ?? activity.type} query={searchQuery} />
           </span>
-          <span class="flex-1 text-sm text-text-primary truncate">{activity.subject}</span>
+        </td>
+        <td class="text-sm font-medium max-w-sm truncate">
+          <HighlightText text={activity.subject} query={searchQuery} />
+        </td>
+        <td class="text-sm text-text-secondary">
           {#if activity.humanName}
-            <span class="text-xs text-text-muted hidden sm:inline">{activity.humanName}</span>
+            <HighlightText text={activity.humanName} query={searchQuery} />
           {:else if activity.accountName}
-            <span class="text-xs text-text-muted hidden sm:inline">{activity.accountName}</span>
+            <HighlightText text={activity.accountName} query={searchQuery} />
+          {:else}
+            <span class="text-text-muted">&mdash;</span>
           {/if}
-          <span class="text-xs text-text-muted">{new Date(activity.activityDate).toLocaleDateString()}</span>
-        </a>
-      {:else}
-        <div class="px-4 py-6 text-center text-sm text-text-muted">No recent activities.</div>
-      {/each}
+        </td>
+        <td class="text-text-muted whitespace-nowrap">{new Date(activity.activityDate).toLocaleDateString()}</td>
+      {/snippet}
+    </RelatedListTable>
+    <div class="mt-3 text-right">
+      <a href="/activities" class="text-sm text-accent hover:text-[var(--link-hover)]">View all activities</a>
     </div>
   </div>
 </div>

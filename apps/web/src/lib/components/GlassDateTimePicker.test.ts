@@ -55,4 +55,16 @@ describe("GlassDateTimePicker", () => {
     const trigger = container.querySelector("button");
     expect(trigger).not.toBeNull();
   });
+
+  it("updates hidden input when value prop changes via rerender", async () => {
+    const { container, rerender } = render(GlassDateTimePicker, {
+      props: { name: "scheduled_at", value: "2025-06-15T14:30:00" },
+    });
+    let hidden = container.querySelector('input[type="hidden"]') as HTMLInputElement;
+    expect(hidden.value).toBe("2025-06-15T14:30:00");
+
+    await rerender({ name: "scheduled_at", value: "2025-09-01T09:00:00" });
+    hidden = container.querySelector('input[type="hidden"]') as HTMLInputElement;
+    expect(hidden.value).toBe("2025-09-01T09:00:00");
+  });
 });

@@ -141,18 +141,24 @@
   let activities = $state<Activity[]>([]);
   $effect(() => { activities = opportunity.activities; });
 
-  // Initialize from data
+  // Track which opportunity ID we initialized for
+  let initializedForId = $state("");
+
+  // Initialize from data — only once per opportunity
   $effect(() => {
-    passengerSeats = opportunity.passengerSeats ?? 1;
-    petSeats = opportunity.petSeats ?? 0;
-    notes = opportunity.notes ?? "";
-    lossReason = opportunity.lossReason ?? "";
-    naOwnerId = opportunity.nextActionOwnerId ?? "";
-    naDescription = opportunity.nextActionDescription ?? "";
-    naType = opportunity.nextActionType ?? "email";
-    naStartDate = opportunity.nextActionStartDate ?? "";
-    naDueDate = opportunity.nextActionDueDate ?? "";
-    if (!initialized) initialized = true;
+    const opp = opportunity;
+    if (initializedForId === opp.id) return;
+    passengerSeats = opp.passengerSeats ?? 1;
+    petSeats = opp.petSeats ?? 0;
+    notes = opp.notes ?? "";
+    lossReason = opp.lossReason ?? "";
+    naOwnerId = opp.nextActionOwnerId ?? data.currentColleagueId ?? "";
+    naDescription = opp.nextActionDescription ?? "";
+    naType = opp.nextActionType ?? "email";
+    naStartDate = opp.nextActionStartDate ?? "";
+    naDueDate = opp.nextActionDueDate ?? "";
+    initializedForId = opp.id;
+    initialized = true;
   });
 
   const autoSaver = createAutoSaver({
@@ -643,7 +649,7 @@
 
   <!-- Next Action -->
   {#if !isTerminal}
-    <div class="mt-6 glass-card p-6 space-y-4">
+    <div class="mt-6 glass-card-accent p-6 space-y-4">
       <div class="flex items-center justify-between">
         <div class="flex items-center gap-3">
           <h2 class="text-lg font-semibold text-text-primary">Next Action</h2>
