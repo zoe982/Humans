@@ -8,6 +8,7 @@ import {
   humanEmailLabelsConfig,
   humanPhoneLabelsConfig,
   socialIdPlatformsConfig,
+  opportunityHumanRolesConfig,
 } from "@humans/db/schema";
 import { createId } from "@humans/db";
 import { createConfigItemSchema, updateConfigItemSchema } from "@humans/shared";
@@ -25,6 +26,7 @@ const configTableMap = {
   "human-email-labels": humanEmailLabelsConfig,
   "human-phone-labels": humanPhoneLabelsConfig,
   "social-id-platforms": socialIdPlatformsConfig,
+  "opportunity-human-roles": opportunityHumanRolesConfig,
 } as const;
 
 type ConfigType = keyof typeof configTableMap;

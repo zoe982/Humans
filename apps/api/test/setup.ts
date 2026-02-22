@@ -229,6 +229,7 @@ const MIGRATION_STATEMENTS = [
     \`account_id\` text REFERENCES \`accounts\`(\`id\`),
     \`route_signup_id\` text,
     \`website_booking_request_id\` text,
+    \`opportunity_id\` text REFERENCES \`opportunities\`(\`id\`),
     \`gmail_id\` text,
     \`front_id\` text,
     \`front_conversation_id\` text,
@@ -291,6 +292,40 @@ const MIGRATION_STATEMENTS = [
     \`created_at\` text NOT NULL
   )`,
 
+  // ── Opportunities ──────────────────────────────────────────────
+  `CREATE TABLE IF NOT EXISTS \`opportunity_human_roles_config\` (
+    \`id\` text PRIMARY KEY NOT NULL,
+    \`name\` text NOT NULL UNIQUE,
+    \`created_at\` text NOT NULL
+  )`,
+  `CREATE TABLE IF NOT EXISTS \`opportunities\` (
+    \`id\` text PRIMARY KEY NOT NULL,
+    \`display_id\` text NOT NULL UNIQUE,
+    \`stage\` text NOT NULL DEFAULT 'open',
+    \`seats_requested\` integer NOT NULL DEFAULT 1,
+    \`loss_reason\` text,
+    \`next_action_owner_id\` text REFERENCES \`colleagues\`(\`id\`),
+    \`next_action_description\` text,
+    \`next_action_type\` text,
+    \`next_action_due_date\` text,
+    \`next_action_completed_at\` text,
+    \`created_at\` text NOT NULL,
+    \`updated_at\` text NOT NULL
+  )`,
+  `CREATE TABLE IF NOT EXISTS \`opportunity_humans\` (
+    \`id\` text PRIMARY KEY NOT NULL,
+    \`opportunity_id\` text NOT NULL REFERENCES \`opportunities\`(\`id\`),
+    \`human_id\` text NOT NULL REFERENCES \`humans\`(\`id\`),
+    \`role_id\` text REFERENCES \`opportunity_human_roles_config\`(\`id\`),
+    \`created_at\` text NOT NULL
+  )`,
+  `CREATE TABLE IF NOT EXISTS \`opportunity_pets\` (
+    \`id\` text PRIMARY KEY NOT NULL,
+    \`opportunity_id\` text NOT NULL REFERENCES \`opportunities\`(\`id\`),
+    \`pet_id\` text NOT NULL REFERENCES \`pets\`(\`id\`),
+    \`created_at\` text NOT NULL
+  )`,
+
   // ── Additional label configs ────────────────────────────────────
   `CREATE TABLE IF NOT EXISTS \`account_email_labels_config\` (
     \`id\` text PRIMARY KEY NOT NULL,
@@ -335,6 +370,10 @@ const MIGRATION_STATEMENTS = [
   `CREATE INDEX IF NOT EXISTS \`social_ids_account_id_idx\` ON \`social_ids\` (\`account_id\`)`,
   `CREATE UNIQUE INDEX IF NOT EXISTS \`error_log_display_id_idx\` ON \`error_log\` (\`display_id\`)`,
   `CREATE INDEX IF NOT EXISTS \`error_log_resolution_status_idx\` ON \`error_log\` (\`resolution_status\`)`,
+  `CREATE INDEX IF NOT EXISTS \`opportunity_humans_opportunity_id_idx\` ON \`opportunity_humans\` (\`opportunity_id\`)`,
+  `CREATE INDEX IF NOT EXISTS \`opportunity_humans_human_id_idx\` ON \`opportunity_humans\` (\`human_id\`)`,
+  `CREATE INDEX IF NOT EXISTS \`opportunity_pets_opportunity_id_idx\` ON \`opportunity_pets\` (\`opportunity_id\`)`,
+  `CREATE INDEX IF NOT EXISTS \`opportunity_pets_pet_id_idx\` ON \`opportunity_pets\` (\`pet_id\`)`,
 ];
 
 beforeAll(async () => {
@@ -348,6 +387,8 @@ afterEach(async () => {
   await env.DB.exec("DELETE FROM route_interest_expressions");
   await env.DB.exec("DELETE FROM geo_interest_expressions");
   await env.DB.exec("DELETE FROM social_ids");
+  await env.DB.exec("DELETE FROM opportunity_pets");
+  await env.DB.exec("DELETE FROM opportunity_humans");
   await env.DB.exec("DELETE FROM activities");
   await env.DB.exec("DELETE FROM account_humans");
   await env.DB.exec("DELETE FROM account_types");
@@ -372,6 +413,8 @@ afterEach(async () => {
   await env.DB.exec("DELETE FROM account_types_config");
   await env.DB.exec("DELETE FROM email_labels_config");
   await env.DB.exec("DELETE FROM phone_labels_config");
+  await env.DB.exec("DELETE FROM opportunities");
+  await env.DB.exec("DELETE FROM opportunity_human_roles_config");
   await env.DB.exec("DELETE FROM display_id_counters");
   await env.DB.exec("DELETE FROM accounts");
   await env.DB.exec("DELETE FROM lead_sources");

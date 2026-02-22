@@ -12,6 +12,9 @@ export {
   buildConfigItem,
   buildLeadSource,
   buildLeadEvent,
+  buildOpportunity,
+  buildOpportunityHuman,
+  buildOpportunityPet,
   nextTestDisplayId,
   resetTestDisplayIdCounters,
 } from "./factories";

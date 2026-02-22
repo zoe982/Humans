@@ -26,6 +26,7 @@ import { errorLogRoutes } from "./routes/error-log";
 import { frontRoutes } from "./routes/front";
 import { socialIdRoutes } from "./routes/social-ids";
 import { colleagueRoutes } from "./routes/colleagues";
+import { opportunityRoutes } from "./routes/opportunities";
 import type { AppContext } from "./types";
 
 const app = new Hono<AppContext>();
@@ -67,5 +68,6 @@ app.route("/", errorLogRoutes);
 app.route("/", frontRoutes);
 app.route("/", socialIdRoutes);
 app.route("/", colleagueRoutes);
+app.route("/", opportunityRoutes);
 
 export default app;
