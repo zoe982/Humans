@@ -44,7 +44,6 @@ describe("package root exports", () => {
 
   it("exports display ID tables and utilities", () => {
     expect(db.displayIdCounters).toBeDefined();
-    expect(db.GREEK_ALPHABET).toBeDefined();
     expect(db.DISPLAY_ID_PREFIXES).toBeDefined();
     expect(typeof db.formatDisplayId).toBe("function");
     expect(typeof db.parseDisplayId).toBe("function");

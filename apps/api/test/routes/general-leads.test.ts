@@ -517,7 +517,7 @@ describe("Activities linked to general leads", () => {
 // ─── Display ID generation ───────────────────────────────────────
 
 describe("Lead code generation", () => {
-  it("generates LEA-alpha-001 as first code", async () => {
+  it("generates LEA-AAA-001 as first code", async () => {
     await seedDisplayIdCounter();
     const { token } = await createUserAndSession("agent");
     const res = await SELF.fetch(BASE, {
@@ -527,7 +527,7 @@ describe("Lead code generation", () => {
     });
     expect(res.status).toBe(201);
     const body = (await res.json()) as { data: { displayId: string } };
-    expect(body.data.displayId).toBe("LEA-alpha-001");
+    expect(body.data.displayId).toBe("LEA-AAA-001");
   });
 
   it("increments codes correctly", async () => {
@@ -549,6 +549,6 @@ describe("Lead code generation", () => {
     });
     expect(res2.status).toBe(201);
     const body2 = (await res2.json()) as { data: { displayId: string } };
-    expect(body2.data.displayId).toBe("LEA-alpha-002");
+    expect(body2.data.displayId).toBe("LEA-AAA-002");
   });
 });

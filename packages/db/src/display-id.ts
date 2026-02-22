@@ -1,32 +1,3 @@
-export const GREEK_ALPHABET = [
-  "alpha",
-  "beta",
-  "gamma",
-  "delta",
-  "epsilon",
-  "zeta",
-  "eta",
-  "theta",
-  "iota",
-  "kappa",
-  "lambda",
-  "mu",
-  "nu",
-  "xi",
-  "omicron",
-  "pi",
-  "rho",
-  "sigma",
-  "tau",
-  "upsilon",
-  "phi",
-  "chi",
-  "psi",
-  "omega",
-] as const;
-
-export type GreekLetter = (typeof GREEK_ALPHABET)[number];
-
 export const DISPLAY_ID_PREFIXES = [
   "HUM",
   "ACC",
@@ -53,29 +24,50 @@ export const DISPLAY_ID_PREFIXES = [
 
 export type DisplayIdPrefix = (typeof DISPLAY_ID_PREFIXES)[number];
 
-const NUMBERS_PER_LETTER = 999;
+const NUMBERS_PER_BLOCK = 999;
+const TOTAL_LETTER_BLOCKS = 26 ** 3; // 17,576 (AAA-ZZZ)
+const MAX_COUNTER = TOTAL_LETTER_BLOCKS * NUMBERS_PER_BLOCK; // 17,558,424
+
+/**
+ * Converts a block index (0-17575) to a 3-letter string "AAA"-"ZZZ" via base-26.
+ */
+function blockIndexToLetters(index: number): string {
+  const c1 = Math.floor(index / 676); // 26*26
+  const c2 = Math.floor(index / 26) % 26;
+  const c3 = index % 26;
+  return String.fromCharCode(65 + c1, 65 + c2, 65 + c3);
+}
+
+/**
+ * Converts a 3-letter string "AAA"-"ZZZ" back to a block index (0-17575).
+ */
+function lettersToBlockIndex(letters: string): number {
+  const c1 = letters.charCodeAt(0) - 65;
+  const c2 = letters.charCodeAt(1) - 65;
+  const c3 = letters.charCodeAt(2) - 65;
+  return c1 * 676 + c2 * 26 + c3;
+}
 
 /**
  * Converts a sequential counter (1-based) to a display ID.
- * Counter 1 → XXX-alpha-001
- * Counter 999 → XXX-alpha-999
- * Counter 1000 → XXX-beta-001
- * Counter 23976 → XXX-omega-999
+ * Counter 1 → XXX-AAA-001
+ * Counter 999 → XXX-AAA-999
+ * Counter 1000 → XXX-AAB-001
+ * Counter 17558424 → XXX-ZZZ-999
  */
 export function formatDisplayId(prefix: DisplayIdPrefix, counter: number): string {
-  if (counter < 1 || counter > GREEK_ALPHABET.length * NUMBERS_PER_LETTER) {
+  if (counter < 1 || counter > MAX_COUNTER) {
     throw new Error(
-      `Counter ${String(counter)} out of range (1-${String(GREEK_ALPHABET.length * NUMBERS_PER_LETTER)})`,
+      `Counter ${String(counter)} out of range (1-${String(MAX_COUNTER)})`,
     );
   }
 
-  const letterIndex = Math.floor((counter - 1) / NUMBERS_PER_LETTER);
-  const number = ((counter - 1) % NUMBERS_PER_LETTER) + 1;
-  // eslint-disable-next-line security/detect-object-injection, @typescript-eslint/no-non-null-assertion -- constant tuple indexed by validated range
-  const letter = GREEK_ALPHABET[letterIndex]!;
+  const blockIndex = Math.floor((counter - 1) / NUMBERS_PER_BLOCK);
+  const number = ((counter - 1) % NUMBERS_PER_BLOCK) + 1;
+  const letters = blockIndexToLetters(blockIndex);
   const paddedNumber = String(number).padStart(3, "0");
 
-  return `${prefix}-${letter}-${paddedNumber}`;
+  return `${prefix}-${letters}-${paddedNumber}`;
 }
 
 /**
@@ -83,7 +75,7 @@ export function formatDisplayId(prefix: DisplayIdPrefix, counter: number): strin
  */
 export function parseDisplayId(displayId: string): {
   prefix: DisplayIdPrefix;
-  letter: GreekLetter;
+  letters: string;
   number: number;
   counter: number;
 } {
@@ -92,28 +84,27 @@ export function parseDisplayId(displayId: string): {
     throw new Error(`Invalid display ID format: ${displayId}`);
   }
 
-  const [prefix, letter, numberStr] = parts;
-  if (prefix === undefined || letter === undefined || numberStr === undefined) {
+  const [prefix, letters, numberStr] = parts;
+  if (prefix === undefined || letters === undefined || numberStr === undefined) {
     throw new Error(`Invalid display ID format: ${displayId}`);
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- validated by indexOf check below
-  const letterIndex = GREEK_ALPHABET.indexOf(letter as GreekLetter);
-  if (letterIndex === -1) {
-    throw new Error(`Invalid Greek letter in display ID: ${letter}`);
+  if (!/^[A-Z]{3}$/.test(letters)) {
+    throw new Error(`Invalid letter block in display ID: ${letters}`);
   }
 
+  const blockIndex = lettersToBlockIndex(letters);
+
   const number = parseInt(numberStr, 10);
-  if (isNaN(number) || number < 1 || number > NUMBERS_PER_LETTER) {
+  if (isNaN(number) || number < 1 || number > NUMBERS_PER_BLOCK) {
     throw new Error(`Invalid number in display ID: ${numberStr}`);
   }
 
   return {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- validated by format check
     prefix: prefix as DisplayIdPrefix,
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- validated by indexOf check
-    letter: letter as GreekLetter,
+    letters,
     number,
-    counter: letterIndex * NUMBERS_PER_LETTER + number,
+    counter: blockIndex * NUMBERS_PER_BLOCK + number,
   };
 }
