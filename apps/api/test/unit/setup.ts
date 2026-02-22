@@ -122,6 +122,13 @@ const MIGRATION_STATEMENTS = [
     \`linked_at\` text NOT NULL,
     FOREIGN KEY (\`human_id\`) REFERENCES \`humans\`(\`id\`) ON UPDATE no action ON DELETE no action
   )`,
+  `CREATE TABLE IF NOT EXISTS \`human_website_booking_requests\` (
+    \`id\` text PRIMARY KEY NOT NULL,
+    \`human_id\` text NOT NULL,
+    \`website_booking_request_id\` text NOT NULL,
+    \`linked_at\` text NOT NULL,
+    FOREIGN KEY (\`human_id\`) REFERENCES \`humans\`(\`id\`) ON UPDATE no action ON DELETE no action
+  )`,
   `CREATE TABLE IF NOT EXISTS \`phones\` (
     \`id\` text PRIMARY KEY NOT NULL,
     \`display_id\` text NOT NULL UNIQUE,
@@ -344,6 +351,7 @@ const CLEANUP_TABLES = [
   "lead_events",
   "pets",
   "human_route_signups",
+  "human_website_booking_requests",
   "phones",
   "human_types",
   "emails",

@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { eq } from "drizzle-orm";
 import { activities, humanRouteSignups } from "@humans/db/schema";
-import { createHumanSchema, updateHumanSchema, updateHumanStatusSchema, linkRouteSignupSchema } from "@humans/shared";
+import { createHumanSchema, updateHumanSchema, updateHumanStatusSchema, linkRouteSignupSchema, linkWebsiteBookingRequestSchema } from "@humans/shared";
 import { ERROR_CODES } from "@humans/shared";
 import { authMiddleware } from "../middleware/auth";
 import { requirePermission } from "../middleware/rbac";
@@ -17,6 +17,8 @@ import {
   deleteHuman,
   linkRouteSignup,
   unlinkRouteSignup,
+  linkWebsiteBookingRequest,
+  unlinkWebsiteBookingRequest,
 } from "../services/humans";
 import type { AppContext } from "../types";
 
@@ -75,6 +77,18 @@ humanRoutes.post("/api/humans/:id/route-signups", requirePermission("manageHuman
 
 humanRoutes.delete("/api/humans/:id/route-signups/:linkId", requirePermission("manageHumans"), async (c) => {
   await unlinkRouteSignup(c.get("db"), c.req.param("linkId"));
+  return c.json({ success: true });
+});
+
+humanRoutes.post("/api/humans/:id/website-booking-requests", requirePermission("manageHumans"), async (c) => {
+  const body: unknown = await c.req.json();
+  const data = linkWebsiteBookingRequestSchema.parse(body);
+  const link = await linkWebsiteBookingRequest(c.get("db"), c.req.param("id"), data.websiteBookingRequestId);
+  return c.json({ data: link }, 201);
+});
+
+humanRoutes.delete("/api/humans/:id/website-booking-requests/:linkId", requirePermission("manageHumans"), async (c) => {
+  await unlinkWebsiteBookingRequest(c.get("db"), c.req.param("linkId"));
   return c.json({ success: true });
 });
 

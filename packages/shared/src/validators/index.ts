@@ -25,6 +25,7 @@ export {
   updateHumanSchema,
   updateHumanStatusSchema,
   linkRouteSignupSchema,
+  linkWebsiteBookingRequestSchema,
   humanTypeEnum,
   humanStatusEnum,
   type CreateHumanInput,

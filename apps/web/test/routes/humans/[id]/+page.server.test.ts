@@ -10,6 +10,8 @@ const sampleHuman = {
   emails: [],
   phoneNumbers: [],
   pets: [],
+  linkedRouteSignups: [],
+  linkedWebsiteBookingRequests: [],
 };
 
 function makeEvent(overrides: Parameters<typeof mockEvent>[0] = {}) {
@@ -23,10 +25,14 @@ describe("humans/[id] load", () => {
 
   beforeEach(() => {
     mockFetch = createMockFetch({
-      "/api/humans/h-1": { body: { data: sampleHuman } },
-      "/api/activities?humanId=h-1": { body: { data: [{ id: "a-1", type: "email" }] } },
+      "/api/route-signups": { body: { data: [] } },
+      "/api/website-booking-requests": { body: { data: [] } },
+      "/api/admin/account-config/account-human-labels": { body: { data: [] } },
       "/api/admin/account-config/human-email-labels": { body: { data: [mockConfigItem({ id: "lbl-1", name: "Work" })] } },
       "/api/admin/account-config/human-phone-labels": { body: { data: [mockConfigItem({ id: "plbl-1", name: "Mobile" })] } },
+      "/api/accounts": { body: { data: [] } },
+      "/api/humans/h-1": { body: { data: sampleHuman } },
+      "/api/activities?humanId=h-1": { body: { data: [{ id: "a-1", type: "email" }] } },
     });
     vi.stubGlobal("fetch", mockFetch);
   });
@@ -52,6 +58,10 @@ describe("humans/[id] load", () => {
     expect(result.activities).toEqual([{ id: "a-1", type: "email" }]);
     expect(result.emailLabelConfigs).toEqual([expect.objectContaining({ id: "lbl-1", name: "Work" })]);
     expect(result.phoneLabelConfigs).toEqual([expect.objectContaining({ id: "plbl-1", name: "Mobile" })]);
+    expect(result.allRouteSignups).toEqual([]);
+    expect(result.allBookingRequests).toEqual([]);
+    expect(result.allAccounts).toEqual([]);
+    expect(result.accountHumanLabelConfigs).toEqual([]);
   });
 
   it("redirects to /humans when human API returns error", async () => {
@@ -672,5 +682,174 @@ describe("humans/[id] addActivity with route interests", () => {
     });
     const result = await actions.addActivity(event as any);
     expect(result).toEqual({ success: true });
+  });
+});
+
+describe("humans/[id] linkRouteSignup action", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("returns success on link", async () => {
+    const mockFetch = createMockFetch({
+      "/api/humans/h-1/route-signups": { body: { data: {} } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent({ formData: { routeSignupId: "rs-1" } });
+    const result = await actions.linkRouteSignup(event as any);
+    expect(result).toEqual({ success: true });
+  });
+
+  it("returns failure when API errors", async () => {
+    const mockFetch = createMockFetch({
+      "/api/humans/h-1/route-signups": { status: 400, body: { error: "Bad request" } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent({ formData: { routeSignupId: "rs-1" } });
+    const result = await actions.linkRouteSignup(event as any);
+    expect(isActionFailure(result)).toBe(true);
+  });
+});
+
+describe("humans/[id] linkBookingRequest action", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("returns success on link", async () => {
+    const mockFetch = createMockFetch({
+      "/api/humans/h-1/website-booking-requests": { body: { data: {} } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent({ formData: { websiteBookingRequestId: "wbr-1" } });
+    const result = await actions.linkBookingRequest(event as any);
+    expect(result).toEqual({ success: true });
+  });
+
+  it("returns failure when API errors", async () => {
+    const mockFetch = createMockFetch({
+      "/api/humans/h-1/website-booking-requests": { status: 400, body: { error: "Bad request" } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent({ formData: { websiteBookingRequestId: "wbr-1" } });
+    const result = await actions.linkBookingRequest(event as any);
+    expect(isActionFailure(result)).toBe(true);
+  });
+});
+
+describe("humans/[id] unlinkBookingRequest action", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("returns success on unlink", async () => {
+    const mockFetch = createMockFetch({
+      "/api/humans/h-1/website-booking-requests/link-1": { body: {} },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent({ formData: { linkId: "link-1" } });
+    const result = await actions.unlinkBookingRequest(event as any);
+    expect(result).toEqual({ success: true });
+  });
+
+  it("returns failure when API errors", async () => {
+    const mockFetch = createMockFetch({
+      "/api/humans/h-1/website-booking-requests/link-1": { status: 404, body: { error: "Not found" } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent({ formData: { linkId: "link-1" } });
+    const result = await actions.unlinkBookingRequest(event as any);
+    expect(isActionFailure(result)).toBe(true);
+  });
+});
+
+describe("humans/[id] linkAccount action", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("returns success on link", async () => {
+    const mockFetch = createMockFetch({
+      "/api/accounts/acc-1/humans": { body: { data: {} } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent({ formData: { accountId: "acc-1", labelId: "lbl-1" } });
+    const result = await actions.linkAccount(event as any);
+    expect(result).toEqual({ success: true });
+  });
+
+  it("returns failure when API errors", async () => {
+    const mockFetch = createMockFetch({
+      "/api/accounts/acc-1/humans": { status: 400, body: { error: "Bad request" } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent({ formData: { accountId: "acc-1", labelId: "lbl-1" } });
+    const result = await actions.linkAccount(event as any);
+    expect(isActionFailure(result)).toBe(true);
+  });
+});
+
+describe("humans/[id] createAndLinkAccount action", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("returns success when account is created and linked", async () => {
+    const mockFetch = createMockFetch({
+      "/api/accounts/acc-new/humans": { body: { data: {} } },
+      "/api/accounts": { body: { data: { id: "acc-new" } } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent({ formData: { accountName: "Acme Corp", labelId: "lbl-1" } });
+    const result = await actions.createAndLinkAccount(event as any);
+    expect(result).toEqual({ success: true });
+  });
+
+  it("returns failure when account creation fails", async () => {
+    const mockFetch = createMockFetch({
+      "/api/accounts": { status: 400, body: { error: "Bad request" } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent({ formData: { accountName: "Acme Corp", labelId: "lbl-1" } });
+    const result = await actions.createAndLinkAccount(event as any);
+    expect(isActionFailure(result)).toBe(true);
+  });
+});
+
+describe("humans/[id] unlinkAccount action", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("returns success on unlink", async () => {
+    const mockFetch = createMockFetch({
+      "/api/accounts/acc-1/humans/link-1": { body: {} },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent({ formData: { accountId: "acc-1", linkId: "link-1" } });
+    const result = await actions.unlinkAccount(event as any);
+    expect(result).toEqual({ success: true });
+  });
+
+  it("returns failure when API errors", async () => {
+    const mockFetch = createMockFetch({
+      "/api/accounts/acc-1/humans/link-1": { status: 500, body: { error: "Server error" } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent({ formData: { accountId: "acc-1", linkId: "link-1" } });
+    const result = await actions.unlinkAccount(event as any);
+    expect(isActionFailure(result)).toBe(true);
   });
 });

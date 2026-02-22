@@ -120,6 +120,13 @@ const MIGRATION_STATEMENTS = [
     \`linked_at\` text NOT NULL,
     FOREIGN KEY (\`human_id\`) REFERENCES \`humans\`(\`id\`) ON UPDATE no action ON DELETE no action
   )`,
+  `CREATE TABLE IF NOT EXISTS \`human_website_booking_requests\` (
+    \`id\` text PRIMARY KEY NOT NULL,
+    \`human_id\` text NOT NULL,
+    \`website_booking_request_id\` text NOT NULL,
+    \`linked_at\` text NOT NULL,
+    FOREIGN KEY (\`human_id\`) REFERENCES \`humans\`(\`id\`) ON UPDATE no action ON DELETE no action
+  )`,
   `CREATE TABLE IF NOT EXISTS \`phones\` (
     \`id\` text PRIMARY KEY NOT NULL,
     \`display_id\` text NOT NULL UNIQUE,
@@ -347,6 +354,7 @@ afterEach(async () => {
   await env.DB.exec("DELETE FROM lead_events");
   await env.DB.exec("DELETE FROM pets");
   await env.DB.exec("DELETE FROM human_route_signups");
+  await env.DB.exec("DELETE FROM human_website_booking_requests");
   await env.DB.exec("DELETE FROM phones");
   await env.DB.exec("DELETE FROM human_types");
   await env.DB.exec("DELETE FROM emails");

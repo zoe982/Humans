@@ -36,6 +36,7 @@
     id: string;
     accountId: string;
     humanId: string;
+    humanDisplayId: string | null;
     labelId: string | null;
     humanName: string;
     humanStatus: string | null;
@@ -531,6 +532,7 @@
       title="Linked Humans"
       items={account.linkedHumans}
       columns={[
+        { key: "displayId", label: "ID" },
         { key: "name", label: "Name", sortable: true, sortValue: (l) => l.humanName },
         { key: "role", label: "Role", sortable: true, sortValue: (l) => l.labelName ?? "" },
         { key: "emails", label: "Emails" },
@@ -541,12 +543,16 @@
       defaultSortDirection="asc"
       searchFilter={(l, q) =>
         l.humanName.toLowerCase().includes(q) ||
-        (l.labelName ?? "").toLowerCase().includes(q)}
+        (l.labelName ?? "").toLowerCase().includes(q) ||
+        (l.humanDisplayId ?? "").toLowerCase().includes(q)}
       emptyMessage="No humans linked yet."
       searchEmptyMessage="No linked humans match your search."
       addLabel="Human"
     >
       {#snippet row(link, _searchQuery)}
+        <td class="font-mono text-sm whitespace-nowrap">
+          <a href="/humans/{link.humanId}" class="text-accent hover:text-[var(--link-hover)]">{link.humanDisplayId ?? "\u2014"}</a>
+        </td>
         <td>
           <a href="/humans/{link.humanId}" class="text-sm font-medium text-accent hover:text-[var(--link-hover)]">
             {link.humanName}

@@ -18,6 +18,7 @@ export {
   type HumanType,
 } from "./human-types";
 export { humanRouteSignups } from "./human-route-signups";
+export { humanWebsiteBookingRequests } from "./human-website-booking-requests";
 export {
   activities,
   activityTypeValues,

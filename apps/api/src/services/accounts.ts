@@ -104,6 +104,7 @@ export async function getAccountDetail(db: DB, id: string) {
     const label = lh.labelId ? humanLabelConfigs.find((l) => l.id === lh.labelId) : null;
     return {
       ...lh,
+      humanDisplayId: human?.displayId ?? null,
       humanName: human ? `${human.firstName} ${human.lastName}` : "Unknown",
       humanStatus: human?.status ?? null,
       labelName: label?.name ?? null,

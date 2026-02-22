@@ -4,6 +4,7 @@ import {
   emails,
   humanTypes,
   humanRouteSignups,
+  humanWebsiteBookingRequests,
   phones,
   pets,
   geoInterestExpressions,
@@ -73,10 +74,11 @@ export async function getHumanDetail(db: DB, humanId: string) {
     throw notFound(ERROR_CODES.HUMAN_NOT_FOUND, "Human not found");
   }
 
-  const [humanEmails, types, linkedSignups, humanPhones, humanPets, geoExpressions, routeExpressions, linkedAccountRows, emailLabelConfigs, phoneLabelConfigs, humanSocialIds, allPlatforms] = await Promise.all([
+  const [humanEmails, types, linkedSignups, linkedBookingRequests, humanPhones, humanPets, geoExpressions, routeExpressions, linkedAccountRows, emailLabelConfigs, phoneLabelConfigs, humanSocialIds, allPlatforms] = await Promise.all([
     db.select().from(emails).where(eq(emails.ownerId, human.id)),
     db.select().from(humanTypes).where(eq(humanTypes.humanId, human.id)),
     db.select().from(humanRouteSignups).where(eq(humanRouteSignups.humanId, human.id)),
+    db.select().from(humanWebsiteBookingRequests).where(eq(humanWebsiteBookingRequests.humanId, human.id)),
     db.select().from(phones).where(eq(phones.ownerId, human.id)),
     db.select().from(pets).where(eq(pets.humanId, human.id)),
     db.select().from(geoInterestExpressions).where(eq(geoInterestExpressions.humanId, human.id)),
@@ -116,7 +118,7 @@ export async function getHumanDetail(db: DB, humanId: string) {
     };
   });
 
-  let linkedAccounts: { id: string; accountId: string; accountName: string; labelName: string | null }[] = [];
+  let linkedAccounts: { id: string; accountId: string; accountName: string; labelId: string | null; labelName: string | null }[] = [];
   if (linkedAccountRows.length > 0) {
     const [allAccounts, allLabels] = await Promise.all([
       db.select().from(accounts),
@@ -129,6 +131,7 @@ export async function getHumanDetail(db: DB, humanId: string) {
         id: row.id,
         accountId: row.accountId,
         accountName: account?.name ?? "Unknown",
+        labelId: row.labelId,
         labelName: label?.name ?? null,
       };
     });
@@ -157,6 +160,7 @@ export async function getHumanDetail(db: DB, humanId: string) {
     emails: emailsWithLabels,
     types: types.map((t) => t.type),
     linkedRouteSignups: linkedSignups,
+    linkedWebsiteBookingRequests: linkedBookingRequests,
     phoneNumbers: phoneNumbersWithLabels,
     pets: humanPets,
     geoInterestExpressions: geoInterestExpressionsWithDetails,
@@ -341,6 +345,7 @@ export async function deleteHuman(db: DB, id: string) {
   await db.delete(emails).where(eq(emails.ownerId, id));
   await db.delete(humanTypes).where(eq(humanTypes.humanId, id));
   await db.delete(humanRouteSignups).where(eq(humanRouteSignups.humanId, id));
+  await db.delete(humanWebsiteBookingRequests).where(eq(humanWebsiteBookingRequests.humanId, id));
   await db.delete(phones).where(eq(phones.ownerId, id));
   await db.delete(pets).where(eq(pets.humanId, id));
   await db.delete(geoInterestExpressions).where(eq(geoInterestExpressions.humanId, id));
@@ -370,4 +375,26 @@ export async function linkRouteSignup(db: DB, humanId: string, routeSignupId: st
 
 export async function unlinkRouteSignup(db: DB, linkId: string) {
   await db.delete(humanRouteSignups).where(eq(humanRouteSignups.id, linkId));
+}
+
+export async function linkWebsiteBookingRequest(db: DB, humanId: string, websiteBookingRequestId: string) {
+  const existing = await db.query.humans.findFirst({
+    where: eq(humans.id, humanId),
+  });
+  if (existing == null) {
+    throw notFound(ERROR_CODES.HUMAN_NOT_FOUND, "Human not found");
+  }
+
+  const link = {
+    id: createId(),
+    humanId,
+    websiteBookingRequestId,
+    linkedAt: new Date().toISOString(),
+  };
+  await db.insert(humanWebsiteBookingRequests).values(link);
+  return link;
+}
+
+export async function unlinkWebsiteBookingRequest(db: DB, linkId: string) {
+  await db.delete(humanWebsiteBookingRequests).where(eq(humanWebsiteBookingRequests.id, linkId));
 }

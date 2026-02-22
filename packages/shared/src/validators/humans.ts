@@ -36,6 +36,10 @@ export const linkRouteSignupSchema = z.object({
   routeSignupId: z.string().uuid(),
 });
 
+export const linkWebsiteBookingRequestSchema = z.object({
+  websiteBookingRequestId: z.string().uuid(),
+});
+
 export type CreateHumanInput = z.infer<typeof createHumanSchema>;
 export type UpdateHumanInput = z.infer<typeof updateHumanSchema>;
 export type UpdateHumanStatusInput = z.infer<typeof updateHumanStatusSchema>;

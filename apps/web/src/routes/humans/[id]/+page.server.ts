@@ -41,14 +41,26 @@ export const load = async ({ locals, cookies, params }: RequestEvent) => {
   const human = isObjData(humanRaw) ? humanRaw.data : null;
   if (human == null) redirect(302, "/humans");
 
-  // Fetch activities and label configs in parallel
-  const [activitiesRes, emailLabelConfigs, phoneLabelConfigs, socialIdPlatformConfigs] = await Promise.all([
-    fetch(`${PUBLIC_API_URL}/api/activities?humanId=${id}`, {
-      headers: { Cookie: `humans_session=${sessionToken ?? ""}` },
-    }),
+  // Fetch activities, label configs, route signups, booking requests, accounts in parallel
+  const headers = { Cookie: `humans_session=${sessionToken ?? ""}` };
+  const [
+    activitiesRes,
+    emailLabelConfigs,
+    phoneLabelConfigs,
+    socialIdPlatformConfigs,
+    routeSignupsRes,
+    bookingRequestsRes,
+    accountsRes,
+    accountHumanLabelConfigs,
+  ] = await Promise.all([
+    fetch(`${PUBLIC_API_URL}/api/activities?humanId=${id}`, { headers }),
     fetchConfig(sessionToken ?? "", "human-email-labels"),
     fetchConfig(sessionToken ?? "", "human-phone-labels"),
     fetchConfig(sessionToken ?? "", "social-id-platforms"),
+    fetch(`${PUBLIC_API_URL}/api/route-signups?limit=100`, { headers }),
+    fetch(`${PUBLIC_API_URL}/api/website-booking-requests?limit=100`, { headers }),
+    fetch(`${PUBLIC_API_URL}/api/accounts`, { headers }),
+    fetchConfig(sessionToken ?? "", "account-human-labels"),
   ]);
 
   let activities: unknown[] = [];
@@ -57,7 +69,70 @@ export const load = async ({ locals, cookies, params }: RequestEvent) => {
     activities = isListData(activitiesRaw) ? activitiesRaw.data : [];
   }
 
-  return { human, activities, apiUrl: PUBLIC_API_URL, emailLabelConfigs, phoneLabelConfigs, socialIdPlatformConfigs };
+  let allRouteSignups: unknown[] = [];
+  if (routeSignupsRes.ok) {
+    const raw: unknown = await routeSignupsRes.json();
+    allRouteSignups = isListData(raw) ? raw.data : [];
+  }
+
+  let allAccounts: unknown[] = [];
+  if (accountsRes.ok) {
+    const raw: unknown = await accountsRes.json();
+    allAccounts = isListData(raw) ? raw.data : [];
+  }
+
+  let allBookingRequests: unknown[] = [];
+  if (bookingRequestsRes.ok) {
+    const raw: unknown = await bookingRequestsRes.json();
+    allBookingRequests = isListData(raw) ? raw.data : [];
+  }
+
+  // Enrich linked route signups with Supabase data
+  type SupabaseSignup = { id: string; display_id?: string | null; first_name?: string | null; last_name?: string | null; origin?: string | null; destination?: string | null };
+  const humanData = human as {
+    linkedRouteSignups?: Array<{ id: string; routeSignupId: string; linkedAt: string }>;
+    linkedWebsiteBookingRequests?: Array<{ id: string; websiteBookingRequestId: string; linkedAt: string }>;
+  };
+  const enrichedLinkedSignups = (humanData.linkedRouteSignups ?? []).map((link) => {
+    const signup = (allRouteSignups as SupabaseSignup[]).find((s) => s.id === link.routeSignupId);
+    return {
+      ...link,
+      displayId: signup?.display_id ?? null,
+      passengerName: signup ? [signup.first_name, signup.last_name].filter(Boolean).join(" ") || null : null,
+      origin: signup?.origin ?? null,
+      destination: signup?.destination ?? null,
+    };
+  });
+
+  // Enrich linked booking requests with Supabase data
+  type SupabaseBooking = { id: string; crm_display_id?: string | null; first_name?: string | null; last_name?: string | null; origin_city?: string | null; destination_city?: string | null };
+  const enrichedLinkedBookingRequests = (humanData.linkedWebsiteBookingRequests ?? []).map((link) => {
+    const booking = (allBookingRequests as SupabaseBooking[]).find((b) => b.id === link.websiteBookingRequestId);
+    return {
+      ...link,
+      displayId: booking?.crm_display_id ?? null,
+      passengerName: booking ? [booking.first_name, booking.last_name].filter(Boolean).join(" ") || null : null,
+      originCity: booking?.origin_city ?? null,
+      destinationCity: booking?.destination_city ?? null,
+    };
+  });
+
+  return {
+    human: {
+      ...(human as Record<string, unknown>),
+      linkedRouteSignups: enrichedLinkedSignups,
+      linkedWebsiteBookingRequests: enrichedLinkedBookingRequests,
+    },
+    activities,
+    apiUrl: PUBLIC_API_URL,
+    emailLabelConfigs,
+    phoneLabelConfigs,
+    socialIdPlatformConfigs,
+    allRouteSignups,
+    allBookingRequests,
+    allAccounts,
+    accountHumanLabelConfigs,
+  };
 };
 
 export const actions = {
@@ -159,6 +234,29 @@ export const actions = {
           });
         }
       } catch { /* ignore malformed JSON */ }
+    }
+
+    return { success: true };
+  },
+
+  linkRouteSignup: async ({ request, cookies, params }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
+    const form = await request.formData();
+    const sessionToken = cookies.get("humans_session");
+    const routeSignupId = form.get("routeSignupId");
+    const id = params.id;
+
+    const res = await fetch(`${PUBLIC_API_URL}/api/humans/${id}/route-signups`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Cookie: `humans_session=${sessionToken ?? ""}`,
+      },
+      body: JSON.stringify({ routeSignupId }),
+    });
+
+    if (!res.ok) {
+      const resBody: unknown = await res.json();
+      return failFromApi(resBody, res.status, "Failed to link route signup");
     }
 
     return { success: true };
@@ -500,6 +598,140 @@ export const actions = {
     if (!res.ok) {
       const resBody: unknown = await res.json();
       return failFromApi(resBody, res.status, "Failed to add pet");
+    }
+
+    return { success: true };
+  },
+
+  linkAccount: async ({ request, cookies, params }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
+    const form = await request.formData();
+    const sessionToken = cookies.get("humans_session");
+    const accountId = form.get("accountId") as string;
+    const labelId = (form.get("labelId") as string) || undefined;
+
+    const res = await fetch(`${PUBLIC_API_URL}/api/accounts/${accountId}/humans`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Cookie: `humans_session=${sessionToken ?? ""}`,
+      },
+      body: JSON.stringify({ humanId: params.id, labelId }),
+    });
+
+    if (!res.ok) {
+      const resBody: unknown = await res.json();
+      return failFromApi(resBody, res.status, "Failed to link account");
+    }
+
+    return { success: true };
+  },
+
+  createAndLinkAccount: async ({ request, cookies, params }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
+    const form = await request.formData();
+    const sessionToken = cookies.get("humans_session");
+    const accountName = form.get("accountName") as string;
+    const labelId = (form.get("labelId") as string) || undefined;
+
+    // Create account
+    const createRes = await fetch(`${PUBLIC_API_URL}/api/accounts`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Cookie: `humans_session=${sessionToken ?? ""}`,
+      },
+      body: JSON.stringify({ name: accountName }),
+    });
+
+    if (!createRes.ok) {
+      const resBody: unknown = await createRes.json();
+      return failFromApi(resBody, createRes.status, "Failed to create account");
+    }
+
+    const createBody: unknown = await createRes.json();
+    const newAccountId = isObjData(createBody) ? (createBody.data as { id?: string }).id : undefined;
+
+    if (!newAccountId) {
+      return fail(500, { error: "Failed to get new account ID" });
+    }
+
+    // Link human to new account
+    const linkRes = await fetch(`${PUBLIC_API_URL}/api/accounts/${newAccountId}/humans`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Cookie: `humans_session=${sessionToken ?? ""}`,
+      },
+      body: JSON.stringify({ humanId: params.id, labelId }),
+    });
+
+    if (!linkRes.ok) {
+      const resBody: unknown = await linkRes.json();
+      return failFromApi(resBody, linkRes.status, "Failed to link account");
+    }
+
+    return { success: true };
+  },
+
+  linkBookingRequest: async ({ request, cookies, params }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
+    const form = await request.formData();
+    const sessionToken = cookies.get("humans_session");
+    const websiteBookingRequestId = form.get("websiteBookingRequestId");
+    const id = params.id;
+
+    const res = await fetch(`${PUBLIC_API_URL}/api/humans/${id}/website-booking-requests`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Cookie: `humans_session=${sessionToken ?? ""}`,
+      },
+      body: JSON.stringify({ websiteBookingRequestId }),
+    });
+
+    if (!res.ok) {
+      const resBody: unknown = await res.json();
+      return failFromApi(resBody, res.status, "Failed to link booking request");
+    }
+
+    return { success: true };
+  },
+
+  unlinkBookingRequest: async ({ request, cookies, params }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
+    const form = await request.formData();
+    const sessionToken = cookies.get("humans_session");
+    const linkId = form.get("linkId");
+    const id = params.id;
+
+    const res = await fetch(`${PUBLIC_API_URL}/api/humans/${id}/website-booking-requests/${linkId}`, {
+      method: "DELETE",
+      headers: {
+        Cookie: `humans_session=${sessionToken ?? ""}`,
+      },
+    });
+
+    if (!res.ok) {
+      const resBody: unknown = await res.json();
+      return failFromApi(resBody, res.status, "Failed to unlink booking request");
+    }
+
+    return { success: true };
+  },
+
+  unlinkAccount: async ({ request, cookies }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
+    const form = await request.formData();
+    const sessionToken = cookies.get("humans_session");
+    const accountId = form.get("accountId") as string;
+    const linkId = form.get("linkId") as string;
+
+    const res = await fetch(`${PUBLIC_API_URL}/api/accounts/${accountId}/humans/${linkId}`, {
+      method: "DELETE",
+      headers: {
+        Cookie: `humans_session=${sessionToken ?? ""}`,
+      },
+    });
+
+    if (!res.ok) {
+      const resBody: unknown = await res.json();
+      return failFromApi(resBody, res.status, "Failed to unlink account");
     }
 
     return { success: true };
