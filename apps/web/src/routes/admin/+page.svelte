@@ -12,14 +12,14 @@
   <p class="mt-1 text-sm text-text-secondary">Manage colleagues, roles, and system activity.</p>
 
   <div class="mt-8 grid gap-6 sm:grid-cols-2">
-    <a href="/admin/colleagues" class="glass-card p-6 hover:bg-glass-hover transition-colors group">
+    <a href="/admin/colleague-user-accounts" class="glass-card p-6 hover:bg-glass-hover transition-colors group">
       <div class="flex items-start gap-4">
         <div class="rounded-lg bg-accent-dim p-3 text-accent">
           <Users size={24} />
         </div>
         <div>
-          <h2 class="text-lg font-semibold text-text-primary">Colleague Management</h2>
-          <p class="mt-1 text-sm text-text-secondary">Invite team members, assign roles, activate or deactivate accounts.</p>
+          <h2 class="text-lg font-semibold text-text-primary">Colleague User Accounts</h2>
+          <p class="mt-1 text-sm text-text-secondary">Manage user accounts, assign roles, and control access rights.</p>
         </div>
       </div>
     </a>

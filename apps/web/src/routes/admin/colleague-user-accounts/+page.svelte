@@ -35,13 +35,13 @@
 </script>
 
 <svelte:head>
-  <title>Colleagues - Admin - Humans</title>
+  <title>Colleague User Accounts - Admin - Humans</title>
 </svelte:head>
 
 <div class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
   <PageHeader
-    title="Colleague Management"
-    breadcrumbs={[{ label: "Admin", href: "/admin" }, { label: "Colleagues" }]}
+    title="Colleague User Accounts"
+    breadcrumbs={[{ label: "Admin", href: "/admin" }, { label: "Colleague User Accounts" }]}
   >
     {#snippet action()}
       <Button

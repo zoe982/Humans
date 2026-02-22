@@ -26,9 +26,13 @@
       <h2 class="text-lg font-semibold text-text-primary">Geo-Interests</h2>
       <p class="mt-2 text-sm text-text-secondary">View and manage geographic interest locations.</p>
     </a>
-    <a href="/admin/colleagues" class="glass-card p-6 hover:bg-glass-hover transition-colors">
+    <a href="/route-interests" class="glass-card p-6 hover:bg-glass-hover transition-colors">
+      <h2 class="text-lg font-semibold text-text-primary">Route Interests</h2>
+      <p class="mt-2 text-sm text-text-secondary">View and manage route interest expressions.</p>
+    </a>
+    <a href="/colleagues" class="glass-card p-6 hover:bg-glass-hover transition-colors">
       <h2 class="text-lg font-semibold text-text-primary">Colleagues</h2>
-      <p class="mt-2 text-sm text-text-secondary">View and manage team members, roles, and access.</p>
+      <p class="mt-2 text-sm text-text-secondary">View team members and their roles.</p>
     </a>
   </div>
 </div>

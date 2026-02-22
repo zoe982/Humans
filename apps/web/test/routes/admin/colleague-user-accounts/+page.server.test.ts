@@ -1,9 +1,9 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { isRedirect, Redirect, isActionFailure } from "@sveltejs/kit";
 import { mockEvent, createMockFetch } from "../../../helpers";
-import { load, actions } from "../../../../src/routes/admin/colleagues/+page.server";
+import { load, actions } from "../../../../src/routes/admin/colleague-user-accounts/+page.server";
 
-describe("admin/colleagues +page.server", () => {
+describe("admin/colleague-user-accounts +page.server", () => {
   let mockFetch: ReturnType<typeof vi.fn>;
 
   afterEach(() => {

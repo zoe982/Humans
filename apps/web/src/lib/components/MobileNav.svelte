@@ -1,6 +1,6 @@
 <script lang="ts">
   import { page } from "$app/stores";
-  import { Menu } from "lucide-svelte";
+  import { Menu, Shield } from "lucide-svelte";
   import * as Sheet from "$lib/components/ui/sheet/index.js";
   import ThemeToggle from "$lib/components/ThemeToggle.svelte";
 
@@ -14,9 +14,10 @@
     userName: string;
     userRole: string;
     avatarUrl?: string | null;
+    isAdmin?: boolean;
   };
 
-  let { links, userName, userRole, avatarUrl }: Props = $props();
+  let { links, userName, userRole, avatarUrl, isAdmin = false }: Props = $props();
 
   let open = $state(false);
 
@@ -54,6 +55,16 @@
             <p class="text-sm font-medium text-text-primary">{userName}</p>
             <p class="text-xs text-text-muted">{userRole}</p>
           </div>
+          {#if isAdmin}
+            <a
+              href="/admin"
+              onclick={close}
+              class="rounded-lg p-2 text-text-muted hover:bg-glass-hover hover:text-text-primary transition-colors"
+              aria-label="Admin"
+            >
+              <Shield size={18} />
+            </a>
+          {/if}
           <ThemeToggle />
         </div>
 

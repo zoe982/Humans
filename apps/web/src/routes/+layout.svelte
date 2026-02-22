@@ -5,7 +5,7 @@
   import { Search, Users } from "lucide-svelte";
   import MobileNav from "$lib/components/MobileNav.svelte";
   import CommandPalette from "$lib/components/CommandPalette.svelte";
-  import ThemeToggle from "$lib/components/ThemeToggle.svelte";
+  import AccountDropdown from "$lib/components/AccountDropdown.svelte";
   import { Toaster } from "svelte-sonner";
 
   let commandPaletteOpen = $state(false);
@@ -23,10 +23,8 @@
       { href: "/pets", label: "Pets" },
       { href: "/accounts", label: "Accounts" },
       { href: "/activities", label: "Activities" },
-      { href: "/route-interests", label: "Routes" },
     ];
     if (isManager) links.push({ href: "/reports", label: "Reports" });
-    if (isAdmin) links.push({ href: "/admin", label: "Admin" });
     return links;
   });
 
@@ -79,24 +77,18 @@
               <Search size={20} />
               <kbd class="hidden sm:inline-flex text-xs text-text-muted border border-glass-border rounded px-1.5 py-0.5">⌘K</kbd>
             </button>
-            <ThemeToggle />
-            <div class="hidden sm:block text-right">
-              <p class="text-sm font-medium text-text-primary">{data.user.name}</p>
-              <p class="text-xs text-text-muted">{data.user.role}</p>
-            </div>
-            {#if data.user.avatarUrl}
-              <img src={data.user.avatarUrl} alt={data.user.name} class="hidden sm:block h-8 w-8 rounded-full ring-1 ring-glass-border" />
-            {/if}
-            <form method="POST" action="/logout" class="hidden sm:block">
-              <button type="submit" class="rounded-lg px-3 py-2 text-sm font-medium text-text-muted hover:bg-glass-hover hover:text-text-primary">
-                Sign out
-              </button>
-            </form>
+            <AccountDropdown
+              userName={data.user.name}
+              userRole={data.user.role}
+              avatarUrl={data.user.avatarUrl}
+              {isAdmin}
+            />
             <MobileNav
               links={navLinks}
               userName={data.user.name}
               userRole={data.user.role}
               avatarUrl={data.user.avatarUrl}
+              {isAdmin}
             />
           </div>
         </div>
