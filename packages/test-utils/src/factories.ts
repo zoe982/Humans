@@ -62,6 +62,7 @@ export function buildPet(overrides: Partial<{
   breed: string | null;
   weight: number | null;
   age: number | null;
+  notes: string | null;
   specialNeeds: string | null;
   healthCertR2Key: string | null;
   vaccinationR2Key: string | null;
@@ -77,6 +78,7 @@ export function buildPet(overrides: Partial<{
     name: "Buddy",
     breed: "Golden Retriever",
     weight: 30,
+    notes: null,
     age: 3,
     specialNeeds: null,
     healthCertR2Key: null,

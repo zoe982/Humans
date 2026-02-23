@@ -162,6 +162,7 @@ const MIGRATION_STATEMENTS = [
     \`name\` text NOT NULL,
     \`breed\` text,
     \`weight\` real,
+    \`notes\` text,
     \`is_active\` integer DEFAULT true NOT NULL,
     \`created_at\` text NOT NULL,
     \`updated_at\` text NOT NULL,

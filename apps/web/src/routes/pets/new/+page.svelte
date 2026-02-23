@@ -95,6 +95,15 @@
       />
     </div>
 
+    <div>
+      <label for="petNotes" class="block text-sm font-medium text-text-secondary mb-1">Notes</label>
+      <textarea
+        id="petNotes" name="notes" rows="3"
+        class="glass-input block w-full px-3 py-2 text-sm"
+        placeholder="Add notes about this pet..."
+      ></textarea>
+    </div>
+
     <div class="flex gap-3">
       <Button type="submit">Create Pet</Button>
       <a href="/pets" class="btn-ghost">Cancel</a>

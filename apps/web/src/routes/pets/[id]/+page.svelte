@@ -22,6 +22,7 @@
     name: string;
     breed: string | null;
     weight: number | null;
+    notes: string | null;
     ownerName: string | null;
     ownerDisplayId: string | null;
   };
@@ -34,6 +35,7 @@
   let petType = $state("dog");
   let petBreed = $state("");
   let petWeight = $state("");
+  let petNotes = $state("");
   let ownerId = $state("");
   let saveStatus = $state<SaveStatus>("idle");
   let initialized = $state(false);
@@ -54,6 +56,7 @@
     petType = pet.type;
     petBreed = pet.breed ?? "";
     petWeight = pet.weight != null ? String(pet.weight) : "";
+    petNotes = pet.notes ?? "";
     ownerId = pet.humanId ?? "";
     if (!initialized) initialized = true;
   });
@@ -82,6 +85,7 @@
       type: petType,
       breed: petType === "dog" && petBreed ? petBreed : null,
       weight: petWeight ? parseFloat(petWeight) : null,
+      notes: petNotes || null,
       humanId: ownerId || undefined,
     };
     return payload;
@@ -207,6 +211,17 @@
           View {pet.ownerName}
         </a>
       {/if}
+    </div>
+
+    <div>
+      <label for="petNotes" class="block text-sm font-medium text-text-secondary">Notes</label>
+      <textarea
+        id="petNotes" rows="3"
+        bind:value={petNotes}
+        oninput={triggerSave}
+        class="glass-input mt-1 block w-full"
+        placeholder="Add notes about this pet..."
+      ></textarea>
     </div>
   </div>
 

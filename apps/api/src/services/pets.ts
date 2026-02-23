@@ -22,6 +22,7 @@ export async function listPets(db: DB) {
       name: pets.name,
       breed: pets.breed,
       weight: pets.weight,
+      notes: pets.notes,
       isActive: pets.isActive,
       createdAt: pets.createdAt,
       updatedAt: pets.updatedAt,
@@ -40,6 +41,7 @@ export async function listPets(db: DB) {
     name: r.name,
     breed: r.breed,
     weight: r.weight,
+    notes: r.notes,
     isActive: r.isActive,
     createdAt: r.createdAt,
     updatedAt: r.updatedAt,
@@ -68,6 +70,7 @@ export async function getPet(db: DB, id: string) {
       name: pets.name,
       breed: pets.breed,
       weight: pets.weight,
+      notes: pets.notes,
       isActive: pets.isActive,
       createdAt: pets.createdAt,
       updatedAt: pets.updatedAt,
@@ -92,6 +95,7 @@ export async function getPet(db: DB, id: string) {
     name: row.name,
     breed: row.breed,
     weight: row.weight,
+    notes: row.notes,
     isActive: row.isActive,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
@@ -110,6 +114,7 @@ export async function createPet(
     name: string;
     breed?: string | null | undefined;
     weight?: number | null | undefined;
+    notes?: string | null | undefined;
   },
 ) {
   const now = new Date().toISOString();
@@ -123,6 +128,7 @@ export async function createPet(
     name: data.name,
     breed: data.breed ?? null,
     weight: data.weight ?? null,
+    notes: data.notes ?? null,
     isActive: true,
     createdAt: now,
     updatedAt: now,

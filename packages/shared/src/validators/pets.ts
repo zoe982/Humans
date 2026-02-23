@@ -10,6 +10,7 @@ export const createPetSchema = z.object({
   name: z.string().min(1).max(100),
   breed: petBreedSchema.nullable().optional(),
   weight: z.number().positive().nullable().optional(),
+  notes: z.string().max(5000).nullable().optional(),
 }).refine(
   (data) => data.type !== "cat" || data.breed == null,
   { message: "Cats should not have a breed", path: ["breed"] },
@@ -21,6 +22,7 @@ export const updatePetSchema = z.object({
   name: z.string().min(1).max(100).optional(),
   breed: petBreedSchema.nullable().optional(),
   weight: z.number().positive().nullable().optional(),
+  notes: z.string().max(5000).nullable().optional(),
 });
 
 export type CreatePetInput = z.infer<typeof createPetSchema>;

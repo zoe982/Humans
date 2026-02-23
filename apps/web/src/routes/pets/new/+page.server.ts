@@ -44,6 +44,7 @@ export const actions = {
       type: form.get("type") || "dog",
       breed: form.get("breed") || null,
       weight: form.get("weight") ? parseFloat(form.get("weight") as string) : null,
+      notes: form.get("notes") || null,
     };
 
     const res = await fetch(`${PUBLIC_API_URL}/api/pets`, {

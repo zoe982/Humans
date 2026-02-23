@@ -10,6 +10,7 @@ export const pets = sqliteTable("pets", {
   name: text("name").notNull(),
   breed: text("breed"),
   weight: real("weight"),
+  notes: text("notes"),
   isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),
   createdAt: text("created_at").notNull(),
   updatedAt: text("updated_at").notNull(),
