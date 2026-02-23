@@ -9,6 +9,8 @@
   import { Toaster } from "svelte-sonner";
   import { onMount, onDestroy } from "svelte";
   import { initRealtime, destroyRealtime } from "$lib/realtime";
+  import UpdateBanner from "$lib/components/UpdateBanner.svelte";
+  import InstallPrompt from "$lib/components/InstallPrompt.svelte";
 
   let commandPaletteOpen = $state(false);
 
@@ -108,6 +110,8 @@
         </div>
       </div>
     </nav>
+    <UpdateBanner />
+    <InstallPrompt />
   {/if}
 
   <main id="main-content">
