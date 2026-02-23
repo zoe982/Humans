@@ -61,7 +61,6 @@ export const updateNextActionSchema = z.object({
   ownerId: z.string().min(1),
   description: z.string().min(1).max(1000),
   type: z.enum(["email", "whatsapp_message", "online_meeting", "phone_call", "social_message"]),
-  startDate: z.string().optional(),
   dueDate: z.string().min(1),
 });
 

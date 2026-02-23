@@ -30,6 +30,7 @@ import { opportunityRoutes } from "./routes/opportunities";
 import { generalLeadRoutes } from "./routes/general-leads";
 import { flightRoutes } from "./routes/flights";
 import { referralCodeRoutes } from "./routes/referral-codes";
+import { opportunityCadenceRoutes } from "./routes/opportunity-cadence";
 import type { AppContext } from "./types";
 
 const app = new Hono<AppContext>();
@@ -75,5 +76,6 @@ app.route("/", opportunityRoutes);
 app.route("/", generalLeadRoutes);
 app.route("/", flightRoutes);
 app.route("/", referralCodeRoutes);
+app.route("/", opportunityCadenceRoutes);
 
 export default app;

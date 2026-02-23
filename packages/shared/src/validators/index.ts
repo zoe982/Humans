@@ -130,6 +130,11 @@ export {
 } from "./opportunities";
 
 export {
+  updateCadenceConfigSchema,
+  type UpdateCadenceConfigInput,
+} from "./opportunity-cadence";
+
+export {
   generalLeadStatuses,
   generalLeadSources,
   createGeneralLeadSchema,

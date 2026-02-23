@@ -8,14 +8,14 @@
   import SaveIndicator from "$lib/components/SaveIndicator.svelte";
   import ConfettiOverlay from "$lib/components/ConfettiOverlay.svelte";
   import { toast } from "svelte-sonner";
-  import { Trash2, CheckCircle } from "lucide-svelte";
+  import { Trash2, CheckCircle, Check, Pencil } from "lucide-svelte";
   import * as Select from "$lib/components/ui/select";
   import * as Dialog from "$lib/components/ui/dialog";
   import GlassDateTimePicker from "$lib/components/GlassDateTimePicker.svelte";
   import { createAutoSaver, type SaveStatus } from "$lib/autosave";
   import { api } from "$lib/api";
   import { opportunityStageColors } from "$lib/constants/colors";
-  import { opportunityStageLabels, OPPORTUNITY_STAGE_OPTIONS, TERMINAL_STAGES, ACTIVITY_TYPE_OPTIONS, activityTypeLabels, STAGE_CADENCE_HINTS } from "$lib/constants/labels";
+  import { opportunityStageLabels, OPPORTUNITY_STAGE_OPTIONS, TERMINAL_STAGES, ACTIVITY_TYPE_OPTIONS, activityTypeLabels } from "$lib/constants/labels";
   import { formatRelativeTime, summarizeChanges } from "$lib/utils/format";
   import { onDestroy } from "svelte";
   import { Button } from "$lib/components/ui/button";
@@ -82,6 +82,7 @@
 
   type PetOption = { id: string; displayId?: string; name: string; type: string; humanId: string | null };
   type BookingRequestLink = { id: string; humanId: string; websiteBookingRequestId: string; opportunityId: string | null; linkedAt: string };
+  type CadenceConfig = { id: string; stage: string; cadenceHours: number; displayText: string };
 
   const opportunity = $derived(data.opportunity as Opportunity);
   const colleagues = $derived(data.colleagues as Colleague[]);
@@ -107,15 +108,18 @@
   })));
   const roleOptions = $derived(roleConfigs.map((r) => ({ value: r.id, label: r.name })));
 
+  const cadenceConfigs = $derived((data.cadenceConfigs ?? []) as CadenceConfig[]);
+  const cadenceMap = $derived(new Map(cadenceConfigs.map((c) => [c.stage, c])));
+
   const isTerminal = $derived(TERMINAL_STAGES.has(opportunity.stage));
-  const cadenceHint = $derived(STAGE_CADENCE_HINTS[opportunity.stage]);
+  const cadenceHint = $derived(cadenceMap.get(opportunity.stage) ?? null);
   const cadenceWarning = $derived(() => {
     if (!cadenceHint || !naDueDate) return false;
     const now = Date.now();
     const due = new Date(naDueDate).getTime();
     if (isNaN(due)) return false;
     const spanMs = due - now;
-    return spanMs > cadenceHint.hours * 1.5 * 3600_000;
+    return spanMs > cadenceHint.cadenceHours * 1.5 * 3600_000;
   });
 
   // Linked pet options: only from linked humans' pets, excluding already-linked
@@ -150,9 +154,10 @@
   let naOwnerId = $state("");
   let naDescription = $state("");
   let naType = $state("email");
-  let naStartDate = $state("");
   let naDueDate = $state("");
   let naSaveStatus = $state<SaveStatus>("idle");
+  let naLocked = $state(false);
+  const naAllFilled = $derived(Boolean(naOwnerId && naDescription && naType && naDueDate));
 
   // Confetti
   let showConfetti = $state(false);
@@ -186,8 +191,8 @@
     naOwnerId = opp.nextActionOwnerId ?? data.currentColleagueId ?? "";
     naDescription = opp.nextActionDescription ?? "";
     naType = opp.nextActionType ?? "email";
-    naStartDate = opp.nextActionStartDate ?? "";
     naDueDate = opp.nextActionDueDate ?? "";
+    naLocked = Boolean(opp.nextActionDescription && opp.nextActionDueDate);
     initializedForId = opp.id;
     initialized = true;
   });
@@ -207,6 +212,7 @@
     onStatusChange: (s) => { naSaveStatus = s; },
     onSaved: () => {
       toast("Next action saved");
+      naLocked = true;
       historyLoaded = false;
     },
     onError: (err) => { toast(`Next action save failed: ${err}`); },
@@ -227,7 +233,6 @@
       ownerId: naOwnerId,
       description: naDescription,
       type: naType,
-      startDate: naStartDate || undefined,
       dueDate: new Date(naDueDate).toISOString(),
     });
   }
@@ -305,13 +310,17 @@
     naOwnerId = data.currentColleagueId ?? "";
     naDescription = "";
     naType = "email";
-    naStartDate = "";
     naDueDate = "";
     naSaveStatus = "idle";
+    naLocked = false;
     // Clear server-side next action data
     try {
       await api(`/api/opportunities/${opportunity.id}/next-action/done`, { method: "POST" });
     } catch { /* fields already cleared locally */ }
+  }
+
+  function unlockNextAction() {
+    naLocked = false;
   }
 
   async function setPrimaryHuman(linkId: string) {
@@ -768,84 +777,136 @@
 
   <!-- Next Action -->
   {#if !isTerminal}
-    <div class="mt-6 glass-card-hero p-8 space-y-4">
+    <div class="mt-6 {naLocked ? 'glass-card-locked' : 'glass-card-hero'} p-8 space-y-4 transition-all duration-300">
       <div class="flex items-center justify-between">
         <div class="flex items-center gap-3">
           <h2 class="text-lg font-bold text-text-primary">Next Action</h2>
-          <SaveIndicator status={naSaveStatus} />
-        </div>
-        {#if naDescription}
-          <Button onclick={completeNextAction} class="bg-emerald-600 hover:bg-emerald-500 text-white">
-            <CheckCircle size={18} class="mr-1.5" />
-            Done
-          </Button>
-        {/if}
-      </div>
-      <p class="text-sm text-text-muted">
-        A next action is the single most important step to move this opportunity forward.
-      </p>
-      <div class="grid gap-4 sm:grid-cols-2">
-        <div>
-          <label for="naOwner" class="block text-sm font-medium text-text-secondary">Owner</label>
-          <SearchableSelect
-            options={colleagueOptions}
-            name="naOwner"
-            id="naOwner"
-            value={naOwnerId}
-            emptyOption="Select owner..."
-            placeholder="Search colleagues..."
-            onSelect={(value) => { naOwnerId = value; triggerNaSave(); }}
-          />
-        </div>
-        <div>
-          <label for="naType" class="block text-sm font-medium text-text-secondary">Type</label>
-          <input type="hidden" name="naType" value={naType} />
-          <Select.Root type="single" value={naType} onValueChange={(v) => { if (v) { naType = v; triggerNaSave(); } }}>
-            <Select.Trigger>
-              {activityTypeLabels[naType] ?? "Select type..."}
-            </Select.Trigger>
-            <Select.Content>
-              {#each ACTIVITY_TYPE_OPTIONS as opt}
-                <Select.Item value={opt.value}>{opt.label}</Select.Item>
-              {/each}
-            </Select.Content>
-          </Select.Root>
-        </div>
-        <div>
-          <label for="naStartDate" class="block text-sm font-medium text-text-secondary">Start Date</label>
-          <GlassDateTimePicker
-            name="naStartDate"
-            id="naStartDate"
-            value={naStartDate}
-            onchange={(v) => { naStartDate = v; triggerNaSave(); }}
-          />
-        </div>
-        <div>
-          <label for="naDueDate" class="block text-sm font-medium text-text-secondary">Due Date</label>
-          <GlassDateTimePicker
-            name="naDueDate"
-            id="naDueDate"
-            value={naDueDate}
-            onchange={(v) => { naDueDate = v; triggerNaSave(); }}
-          />
-          {#if cadenceHint}
-            <p class="mt-1 text-xs text-text-muted">{cadenceHint.text}</p>
-          {/if}
-          {#if cadenceWarning()}
-            <p class="mt-1 text-xs text-amber-500">Due date exceeds the recommended cadence for this stage.</p>
+          {#if !naLocked}
+            <SaveIndicator status={naSaveStatus} />
           {/if}
         </div>
-        <div class="sm:col-span-2">
-          <label for="naDescription" class="block text-sm font-medium text-text-secondary">Description</label>
-          <textarea
-            id="naDescription" rows="3"
-            bind:value={naDescription}
-            oninput={(e) => { const target = e.currentTarget; target.style.height = "auto"; target.style.height = target.scrollHeight + "px"; triggerNaSave(); }}
-            class="glass-input mt-1 block w-full resize-none"
-            placeholder="What needs to happen next?"
-          ></textarea>
+        <div class="flex items-center gap-2">
+          {#if naLocked}
+            <Button onclick={unlockNextAction} variant="outline" size="sm">
+              <Pencil size={14} class="mr-1.5" />
+              Edit
+            </Button>
+            <Button onclick={completeNextAction} class="bg-emerald-600 hover:bg-emerald-500 text-white">
+              <CheckCircle size={18} class="mr-1.5" />
+              Done
+            </Button>
+          {:else if naDescription}
+            <Button onclick={completeNextAction} class="bg-emerald-600 hover:bg-emerald-500 text-white" size="sm">
+              <CheckCircle size={18} class="mr-1.5" />
+              Done
+            </Button>
+          {/if}
         </div>
       </div>
+
+      {#if cadenceHint}
+        <p class="text-sm text-text-muted">
+          Recommended for <span class="font-medium text-text-secondary">{opportunityStageLabels[opportunity.stage] ?? opportunity.stage}</span> stage: {cadenceHint.displayText}
+        </p>
+      {:else}
+        <p class="text-sm text-text-muted">
+          A next action is the single most important step to move this opportunity forward.
+        </p>
+      {/if}
+
+      {#if naLocked}
+        <!-- Locked: read-only display -->
+        <div class="grid gap-4 sm:grid-cols-3">
+          <div>
+            <span class="block text-xs font-medium text-text-muted uppercase tracking-wide">Owner</span>
+            <p class="mt-1 text-sm text-text-primary">{colleagueOptions.find((c) => c.value === naOwnerId)?.label ?? "—"}</p>
+          </div>
+          <div>
+            <span class="block text-xs font-medium text-text-muted uppercase tracking-wide">Type</span>
+            <p class="mt-1 text-sm text-text-primary">{activityTypeLabels[naType] ?? naType}</p>
+          </div>
+          <div>
+            <span class="block text-xs font-medium text-text-muted uppercase tracking-wide">Due Date</span>
+            <p class="mt-1 text-sm text-text-primary">{naDueDate ? new Date(naDueDate).toLocaleString(undefined, { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "—"}</p>
+          </div>
+          <div class="sm:col-span-3">
+            <span class="block text-xs font-medium text-text-muted uppercase tracking-wide">Description</span>
+            <p class="mt-1 text-sm text-text-primary whitespace-pre-wrap">{naDescription}</p>
+          </div>
+        </div>
+      {:else}
+        <!-- Unlocked: editable form -->
+        <div class="grid gap-4 sm:grid-cols-3">
+          <div>
+            <label for="naOwner" class="flex items-center gap-1.5 text-sm font-medium text-text-secondary">
+              Owner
+              {#if naOwnerId}
+                <Check size={14} class="text-emerald-500" />
+              {/if}
+            </label>
+            <SearchableSelect
+              options={colleagueOptions}
+              name="naOwner"
+              id="naOwner"
+              value={naOwnerId}
+              emptyOption="Select owner..."
+              placeholder="Search colleagues..."
+              onSelect={(value) => { naOwnerId = value; triggerNaSave(); }}
+            />
+          </div>
+          <div>
+            <label for="naType" class="flex items-center gap-1.5 text-sm font-medium text-text-secondary">
+              Type
+              {#if naType}
+                <Check size={14} class="text-emerald-500" />
+              {/if}
+            </label>
+            <input type="hidden" name="naType" value={naType} />
+            <Select.Root type="single" value={naType} onValueChange={(v) => { if (v) { naType = v; triggerNaSave(); } }}>
+              <Select.Trigger>
+                {activityTypeLabels[naType] ?? "Select type..."}
+              </Select.Trigger>
+              <Select.Content>
+                {#each ACTIVITY_TYPE_OPTIONS as opt}
+                  <Select.Item value={opt.value}>{opt.label}</Select.Item>
+                {/each}
+              </Select.Content>
+            </Select.Root>
+          </div>
+          <div>
+            <label for="naDueDate" class="flex items-center gap-1.5 text-sm font-medium text-text-secondary">
+              Due Date <span class="text-red-400">*</span>
+              {#if naDueDate}
+                <Check size={14} class="text-emerald-500" />
+              {/if}
+            </label>
+            <GlassDateTimePicker
+              name="naDueDate"
+              id="naDueDate"
+              value={naDueDate}
+              onchange={(v) => { naDueDate = v; triggerNaSave(); }}
+            />
+            {#if cadenceWarning()}
+              <p class="mt-1 text-xs text-amber-500">Due date exceeds the recommended cadence for this stage.</p>
+            {/if}
+          </div>
+          <div class="sm:col-span-3">
+            <label for="naDescription" class="flex items-center gap-1.5 text-sm font-medium text-text-secondary">
+              Description <span class="text-red-400">*</span>
+              {#if naDescription}
+                <Check size={14} class="text-emerald-500" />
+              {/if}
+            </label>
+            <textarea
+              id="naDescription" rows="3"
+              bind:value={naDescription}
+              oninput={(e) => { const target = e.currentTarget; target.style.height = "auto"; target.style.height = target.scrollHeight + "px"; triggerNaSave(); }}
+              class="glass-input mt-1 block w-full resize-none {naDescription ? 'ring-1 ring-emerald-500/30 border-emerald-500/30' : ''}"
+              placeholder="What needs to happen next?"
+            ></textarea>
+          </div>
+        </div>
+      {/if}
     </div>
   {/if}
 

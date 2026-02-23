@@ -41,13 +41,14 @@ export const load = async ({ locals, cookies, params }: RequestEvent) => {
   if (opportunity == null) redirect(302, "/opportunities");
 
   const headers = { Cookie: `humans_session=${sessionToken ?? ""}` };
-  const [colleaguesRes, humansRes, roleConfigs, petsRes, flightSummaryRes, bookingRequestsRes] = await Promise.all([
+  const [colleaguesRes, humansRes, roleConfigs, petsRes, flightSummaryRes, bookingRequestsRes, cadenceRes] = await Promise.all([
     fetch(`${PUBLIC_API_URL}/api/colleagues`, { headers }),
     fetch(`${PUBLIC_API_URL}/api/humans?limit=200`, { headers }),
     fetchConfig(sessionToken ?? "", "opportunity-human-roles"),
     fetch(`${PUBLIC_API_URL}/api/pets`, { headers }),
     fetch(`${PUBLIC_API_URL}/api/flights/summary`, { headers }),
     fetch(`${PUBLIC_API_URL}/api/opportunities/${id}/booking-requests`, { headers }),
+    fetch(`${PUBLIC_API_URL}/api/opportunity-cadence`, { headers }),
   ]);
 
   let colleagues: unknown[] = [];
@@ -83,6 +84,12 @@ export const load = async ({ locals, cookies, params }: RequestEvent) => {
     }
   }
 
+  let cadenceConfigs: unknown[] = [];
+  if (cadenceRes.ok) {
+    const raw: unknown = await cadenceRes.json();
+    cadenceConfigs = isListData(raw) ? raw.data : [];
+  }
+
   return {
     opportunity,
     colleagues,
@@ -91,6 +98,7 @@ export const load = async ({ locals, cookies, params }: RequestEvent) => {
     roleConfigs,
     flightSummary,
     bookingRequests,
+    cadenceConfigs,
     apiUrl: PUBLIC_API_URL,
     userRole: locals.user?.role ?? "viewer",
     currentColleagueId: locals.user?.id ?? null,

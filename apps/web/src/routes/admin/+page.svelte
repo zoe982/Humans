@@ -1,6 +1,6 @@
 <script lang="ts">
   import PageHeader from "$lib/components/PageHeader.svelte";
-  import { Users, Building2, ClipboardList, AlertTriangle, RefreshCw } from "lucide-svelte";
+  import { Users, Building2, ClipboardList, AlertTriangle, RefreshCw, Clock } from "lucide-svelte";
 </script>
 
 <svelte:head>
@@ -56,6 +56,18 @@
         <div>
           <h2 class="text-lg font-semibold text-text-primary">Error Log</h2>
           <p class="mt-1 text-sm text-text-secondary">View recent API errors with codes, request IDs, and stack traces.</p>
+        </div>
+      </div>
+    </a>
+
+    <a href="/admin/opportunity-cadence" class="glass-card p-6 hover:bg-glass-hover transition-colors group">
+      <div class="flex items-start gap-4">
+        <div class="rounded-lg bg-accent-dim p-3 text-accent">
+          <Clock size={24} />
+        </div>
+        <div>
+          <h2 class="text-lg font-semibold text-text-primary">Opportunity Cadence</h2>
+          <p class="mt-1 text-sm text-text-secondary">Configure follow-up cadence guidelines per opportunity stage.</p>
         </div>
       </div>
     </a>

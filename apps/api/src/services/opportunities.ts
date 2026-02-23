@@ -608,7 +608,7 @@ export async function unlinkOpportunityPet(db: DB, linkId: string) {
 export async function updateNextAction(
   db: DB,
   id: string,
-  data: { ownerId: string; description: string; type: string; startDate?: string; dueDate: string },
+  data: { ownerId: string; description: string; type: string; dueDate: string },
   colleagueId: string,
 ) {
   const existing = await db.query.opportunities.findFirst({
@@ -623,15 +623,14 @@ export async function updateNextAction(
     nextActionOwnerId: data.ownerId,
     nextActionDescription: data.description,
     nextActionType: data.type,
-    nextActionStartDate: data.startDate ?? null,
     nextActionDueDate: data.dueDate,
     nextActionCompletedAt: null,
     updatedAt: now,
   }).where(eq(opportunities.id, id));
 
   const diff = computeDiff(
-    { nextActionDescription: existing.nextActionDescription, nextActionType: existing.nextActionType, nextActionStartDate: existing.nextActionStartDate, nextActionDueDate: existing.nextActionDueDate },
-    { nextActionDescription: data.description, nextActionType: data.type, nextActionStartDate: data.startDate ?? null, nextActionDueDate: data.dueDate },
+    { nextActionDescription: existing.nextActionDescription, nextActionType: existing.nextActionType, nextActionDueDate: existing.nextActionDueDate },
+    { nextActionDescription: data.description, nextActionType: data.type, nextActionDueDate: data.dueDate },
   );
   let auditEntryId: string | undefined;
   if (diff) {
