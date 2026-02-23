@@ -230,6 +230,7 @@ describe("Detail page smoke tests", () => {
             emails: [],
             phoneNumbers: [],
             socialIds: [],
+            referralCodes: [],
             linkedHumans: [],
             activities: [],
             humanActivities: [],
@@ -263,7 +264,7 @@ describe("Detail page structure enforcement", () => {
         data: {
           account: {
             id: "acc-1", displayId: "ACC-001", name: "Acme Corp", status: "active",
-            types: [], emails: [], phoneNumbers: [], socialIds: [],
+            types: [], emails: [], phoneNumbers: [], socialIds: [], referralCodes: [],
             linkedHumans: [], activities: [], humanActivities: [],
             createdAt: "2025-01-15T10:00:00.000Z", updatedAt: "2025-01-15T10:00:00.000Z",
           },

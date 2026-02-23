@@ -339,6 +339,51 @@ export const actions = {
     return { success: true };
   },
 
+  addReferralCode: async ({ request, cookies, params }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
+    const form = await request.formData();
+    const sessionToken = cookies.get("humans_session") ?? "";
+
+    const payload = {
+      code: form.get("code"),
+      description: form.get("description") || undefined,
+      accountId: params.id,
+    };
+
+    const res = await fetch(`${PUBLIC_API_URL}/api/referral-codes`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Cookie: `humans_session=${sessionToken}`,
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!res.ok) {
+      const resBody: unknown = await res.json().catch(() => ({}));
+      return failFromApi(resBody, res.status, "Failed to add referral code");
+    }
+
+    return { success: true };
+  },
+
+  deleteReferralCode: async ({ request, cookies }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
+    const form = await request.formData();
+    const sessionToken = cookies.get("humans_session") ?? "";
+    const referralCodeId = form.get("id");
+
+    const res = await fetch(`${PUBLIC_API_URL}/api/referral-codes/${referralCodeId}`, {
+      method: "DELETE",
+      headers: { Cookie: `humans_session=${sessionToken}` },
+    });
+
+    if (!res.ok) {
+      const resBody: unknown = await res.json().catch(() => ({}));
+      return failFromApi(resBody, res.status, "Failed to delete referral code");
+    }
+
+    return { success: true };
+  },
+
   addActivity: async ({ request, cookies, params }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
     const form = await request.formData();
     const sessionToken = cookies.get("humans_session") ?? "";

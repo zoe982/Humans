@@ -36,6 +36,7 @@
   type LinkedSignup = { id: string; routeSignupId: string; linkedAt: string; displayId: string | null; passengerName: string | null; origin: string | null; destination: string | null };
   type PhoneNumber = { id: string; displayId: string; phoneNumber: string; labelId: string | null; labelName: string | null; hasWhatsapp: boolean; isPrimary: boolean };
   type SocialIdItem = { id: string; displayId: string; handle: string; platformId: string | null; platformName: string | null };
+  type ReferralCodeItem = { id: string; displayId: string; code: string; description: string | null; isActive: boolean };
   type ConfigItem = { id: string; name: string; createdAt: string };
   type Pet = { id: string; displayId: string; name: string; type: string; breed: string | null; weight: number | null };
   type GeoInterestExpression = {
@@ -108,6 +109,7 @@
     routeInterestExpressions: RouteInterestExpression[];
     linkedAccounts: LinkedAccount[];
     socialIds: SocialIdItem[];
+    referralCodes: ReferralCodeItem[];
     createdAt: string;
     updatedAt: string;
   };
@@ -757,6 +759,76 @@
           </div>
           <Button type="submit" size="sm">
             Add Social ID
+          </Button>
+        </form>
+      {/snippet}
+    </RelatedListTable>
+  </div>
+
+  <!-- Referral Codes Section -->
+  <div class="mt-6">
+    <RelatedListTable
+      title="Referral Codes"
+      items={human.referralCodes}
+      columns={[
+        { key: "displayId", label: "ID" },
+        { key: "code", label: "Code", sortable: true, sortValue: (rc) => rc.code },
+        { key: "description", label: "Description" },
+        { key: "active", label: "Active" },
+        { key: "delete", label: "", headerClass: "w-10" },
+      ]}
+      defaultSortKey="code"
+      defaultSortDirection="asc"
+      searchFilter={(rc, q) => rc.code.toLowerCase().includes(q) || (rc.description ?? "").toLowerCase().includes(q)}
+      emptyMessage="No referral codes yet."
+      addLabel="Referral Code"
+    >
+      {#snippet row(rc, _searchQuery)}
+        <td class="font-mono text-sm whitespace-nowrap">
+          <a href="/referral-codes/{rc.id}" class="text-accent hover:text-[var(--link-hover)]">{rc.displayId}</a>
+        </td>
+        <td>
+          <a href="/referral-codes/{rc.id}" class="text-sm font-medium text-accent hover:text-[var(--link-hover)]">{rc.code}</a>
+        </td>
+        <td class="text-sm text-text-secondary max-w-xs truncate">{rc.description ?? "\u2014"}</td>
+        <td>
+          {#if rc.isActive}
+            <span class="glass-badge inline-flex rounded-full px-2 py-0.5 text-xs font-medium badge-green">Active</span>
+          {:else}
+            <span class="glass-badge inline-flex rounded-full px-2 py-0.5 text-xs font-medium bg-glass text-text-muted">Inactive</span>
+          {/if}
+        </td>
+        <td>
+          <form method="POST" action="?/deleteReferralCode">
+            <input type="hidden" name="id" value={rc.id} />
+            <button type="submit" class="flex items-center justify-center w-7 h-7 rounded-lg text-text-muted hover:text-destructive-foreground hover:bg-destructive transition-colors duration-150" aria-label="Delete referral code">
+              <Trash2 size={14} />
+            </button>
+          </form>
+        </td>
+      {/snippet}
+      {#snippet addForm()}
+        <form method="POST" action="?/addReferralCode" class="space-y-3">
+          <div class="grid gap-3 sm:grid-cols-2">
+            <div>
+              <label for="referralCode" class="block text-sm font-medium text-text-secondary">Code</label>
+              <input
+                id="referralCode" name="code" type="text" required
+                class="glass-input mt-1 block w-full"
+                placeholder="REFERRAL123"
+              />
+            </div>
+            <div>
+              <label for="referralDescription" class="block text-sm font-medium text-text-secondary">Description</label>
+              <input
+                id="referralDescription" name="description" type="text"
+                class="glass-input mt-1 block w-full"
+                placeholder="Optional description"
+              />
+            </div>
+          </div>
+          <Button type="submit" size="sm">
+            Add Referral Code
           </Button>
         </form>
       {/snippet}

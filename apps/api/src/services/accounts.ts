@@ -13,6 +13,7 @@ import {
   humans,
   socialIds,
   socialIdPlatformsConfig,
+  referralCodes,
 } from "@humans/db/schema";
 import { createId } from "@humans/db";
 import { ERROR_CODES } from "@humans/shared";
@@ -59,6 +60,7 @@ export async function getAccountDetail(db: DB, id: string) {
     directActivities,
     accountSocialIds,
     allPlatforms,
+    accountReferralCodes,
   ] = await Promise.all([
     db.select().from(accountTypes).where(eq(accountTypes.accountId, id)),
     db.select().from(accountTypesConfig),
@@ -71,6 +73,7 @@ export async function getAccountDetail(db: DB, id: string) {
     db.select().from(activities).where(eq(activities.accountId, id)),
     db.select().from(socialIds).where(eq(socialIds.accountId, id)),
     db.select().from(socialIdPlatformsConfig),
+    db.select().from(referralCodes).where(eq(referralCodes.accountId, id)),
   ]);
 
   // Resolve linked humans with their details
@@ -150,6 +153,7 @@ export async function getAccountDetail(db: DB, id: string) {
     activities: directActivities,
     humanActivities: humanActivitiesWithNames,
     socialIds: socialIdsWithPlatforms,
+    referralCodes: accountReferralCodes,
   };
 }
 
@@ -301,6 +305,7 @@ export async function deleteAccount(db: DB, id: string) {
   await db.delete(emails).where(eq(emails.ownerId, id));
   await db.delete(phones).where(eq(phones.ownerId, id));
   await db.update(socialIds).set({ accountId: null }).where(eq(socialIds.accountId, id));
+  await db.update(referralCodes).set({ accountId: null }).where(eq(referralCodes.accountId, id));
   await db.delete(accounts).where(eq(accounts.id, id));
 }
 

@@ -34,5 +34,9 @@
       <h2 class="text-lg font-semibold text-text-primary">Colleagues</h2>
       <p class="mt-2 text-sm text-text-secondary">View team members and their roles.</p>
     </a>
+    <a href="/referral-codes" class="glass-card p-6 hover:bg-glass-hover transition-colors">
+      <h2 class="text-lg font-semibold text-text-primary">Referral Codes</h2>
+      <p class="mt-2 text-sm text-text-secondary">View and manage referral codes linked to humans and accounts.</p>
+    </a>
   </div>
 </div>

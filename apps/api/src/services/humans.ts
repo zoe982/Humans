@@ -18,6 +18,7 @@ import {
   humanPhoneLabelsConfig,
   socialIds,
   socialIdPlatformsConfig,
+  referralCodes,
 } from "@humans/db/schema";
 import { createId } from "@humans/db";
 import { ERROR_CODES } from "@humans/shared";
@@ -74,7 +75,7 @@ export async function getHumanDetail(db: DB, humanId: string) {
     throw notFound(ERROR_CODES.HUMAN_NOT_FOUND, "Human not found");
   }
 
-  const [humanEmails, types, linkedSignups, linkedBookingRequests, humanPhones, humanPets, geoExpressions, routeExpressions, linkedAccountRows, emailLabelConfigs, phoneLabelConfigs, humanSocialIds, allPlatforms] = await Promise.all([
+  const [humanEmails, types, linkedSignups, linkedBookingRequests, humanPhones, humanPets, geoExpressions, routeExpressions, linkedAccountRows, emailLabelConfigs, phoneLabelConfigs, humanSocialIds, allPlatforms, humanReferralCodes] = await Promise.all([
     db.select().from(emails).where(eq(emails.ownerId, human.id)),
     db.select().from(humanTypes).where(eq(humanTypes.humanId, human.id)),
     db.select().from(humanRouteSignups).where(eq(humanRouteSignups.humanId, human.id)),
@@ -88,6 +89,7 @@ export async function getHumanDetail(db: DB, humanId: string) {
     db.select().from(humanPhoneLabelsConfig),
     db.select().from(socialIds).where(eq(socialIds.humanId, human.id)),
     db.select().from(socialIdPlatformsConfig),
+    db.select().from(referralCodes).where(eq(referralCodes.humanId, human.id)),
   ]);
 
   const allGeoInterests = geoExpressions.length > 0
@@ -167,6 +169,7 @@ export async function getHumanDetail(db: DB, humanId: string) {
     routeInterestExpressions: routeInterestExpressionsWithDetails,
     linkedAccounts,
     socialIds: socialIdsWithPlatforms,
+    referralCodes: humanReferralCodes,
   };
 }
 
@@ -352,6 +355,7 @@ export async function deleteHuman(db: DB, id: string) {
   await db.delete(routeInterestExpressions).where(eq(routeInterestExpressions.humanId, id));
   await db.delete(accountHumans).where(eq(accountHumans.humanId, id));
   await db.update(socialIds).set({ humanId: null }).where(eq(socialIds.humanId, id));
+  await db.update(referralCodes).set({ humanId: null }).where(eq(referralCodes.humanId, id));
   await db.delete(humans).where(eq(humans.id, id));
 }
 
