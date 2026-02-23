@@ -9,6 +9,7 @@ import {
   listSyncRuns,
   getSyncRun,
   revertSyncRun,
+  debugUnmatchedContact,
 } from "../services/front-sync";
 import type { AppContext } from "../types";
 
@@ -88,6 +89,41 @@ frontRoutes.post(
       return c.json({ error: result.error }, 400);
     }
     return c.json({ data: result });
+  },
+);
+
+// Debug an unmatched conversation
+frontRoutes.get(
+  "/api/admin/front/conversations/:conversationId/debug",
+  requirePermission("manageColleagues"),
+  async (c) => {
+    const db = c.get("db");
+    const supabase = c.get("supabase");
+    const frontToken = c.env.FRONT_API_TOKEN;
+
+    if (!frontToken) {
+      throw internal(
+        ERROR_CODES.FRONT_SYNC_FAILED,
+        "FRONT_API_TOKEN not configured",
+      );
+    }
+
+    const conversationId = c.req.param("conversationId");
+    const handle = c.req.query("handle") ?? "";
+
+    try {
+      const result = await debugUnmatchedContact(
+        db,
+        supabase,
+        frontToken,
+        conversationId,
+        handle,
+      );
+      return c.json({ data: result });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      throw internal(ERROR_CODES.FRONT_SYNC_FAILED, `Debug failed: ${msg}`);
+    }
   },
 );
 

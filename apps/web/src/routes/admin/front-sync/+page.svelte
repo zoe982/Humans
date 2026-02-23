@@ -2,9 +2,10 @@
   import PageHeader from "$lib/components/PageHeader.svelte";
   import AlertBanner from "$lib/components/AlertBanner.svelte";
   import ConfirmDialog from "$lib/components/ConfirmDialog.svelte";
+  import * as Sheet from "$lib/components/ui/sheet";
   import { api } from "$lib/api";
   import { invalidateAll } from "$app/navigation";
-  import { Loader2 } from "lucide-svelte";
+  import { Loader2, CheckCircle2, XCircle, ChevronDown, ChevronRight } from "lucide-svelte";
 
   interface UnmatchedContact {
     handle: string;
@@ -68,6 +69,56 @@
 
   // Expanded unmatched contacts row in history table
   let expandedRunId = $state<string | null>(null);
+
+  // Debug sheet state
+  interface MatchAttempt {
+    source: string;
+    searchedFor: string;
+    found: boolean;
+    detail?: string;
+  }
+
+  interface DebugResult {
+    conversation: Record<string, unknown>;
+    messages: Record<string, unknown>[];
+    matchAttempts: MatchAttempt[];
+  }
+
+  let sheetOpen = $state(false);
+  let sheetContact = $state<UnmatchedContact | null>(null);
+  let sheetLoading = $state(false);
+  let sheetError = $state("");
+  let sheetDebug = $state<DebugResult | null>(null);
+  let showRawConversation = $state(false);
+  let showRawMessages = $state(false);
+
+  // Derive unmatched contacts from the latest completed sync run
+  const latestCompletedRun = $derived(syncRuns.find((r) => r.status === "completed"));
+  const lastRunUnmatched = $derived(
+    latestCompletedRun ? parseUnmatchedContacts(latestCompletedRun.unmatchedContacts) : [],
+  );
+
+  async function openDebugSheet(contact: UnmatchedContact) {
+    sheetContact = contact;
+    sheetDebug = null;
+    sheetError = "";
+    sheetLoading = true;
+    showRawConversation = false;
+    showRawMessages = false;
+    sheetOpen = true;
+
+    try {
+      const params = new URLSearchParams({ handle: contact.handle });
+      const res = (await api(
+        `/api/admin/front/conversations/${contact.conversationId}/debug?${params.toString()}`,
+      )) as { data: DebugResult };
+      sheetDebug = res.data;
+    } catch (err) {
+      sheetError = err instanceof Error ? err.message : "Failed to load debug info";
+    } finally {
+      sheetLoading = false;
+    }
+  }
 
   function addBatch(result: SyncResult) {
     batchCount++;
@@ -191,6 +242,61 @@
     <AlertBanner type="success" message="Revert complete! Deleted {form.revertResult.deleted} activities, skipped {form.revertResult.skipped} modified." />
   {/if}
 
+  <!-- Standing Unmatched Contacts from Last Sync -->
+  {#if latestCompletedRun}
+    <div class="glass-card overflow-hidden mb-6">
+      <div class="p-4 border-b border-glass-border flex items-center justify-between">
+        <h2 class="text-lg font-semibold text-text-primary">
+          Unmatched Contacts
+          <span class="text-sm font-normal text-text-muted ml-2">
+            from last sync (Run {latestCompletedRun.displayId})
+          </span>
+        </h2>
+        {#if lastRunUnmatched.length > 0}
+          <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium badge-yellow">
+            {lastRunUnmatched.length}
+          </span>
+        {/if}
+      </div>
+      {#if lastRunUnmatched.length === 0}
+        <div class="p-4">
+          <p class="text-sm text-text-muted">No unmatched contacts from the last sync.</p>
+        </div>
+      {:else}
+        <div class="overflow-x-auto">
+          <table class="min-w-full text-sm">
+            <thead class="glass-thead">
+              <tr>
+                <th>Handle</th>
+                <th>Name</th>
+                <th>Type</th>
+                <th>Subject</th>
+                <th class="text-right">Messages</th>
+              </tr>
+            </thead>
+            <tbody>
+              {#each lastRunUnmatched as contact}
+                <tr
+                  class="glass-row-hover cursor-pointer"
+                  onclick={() => openDebugSheet(contact)}
+                >
+                  <td class="font-mono text-xs">{contact.handle}</td>
+                  <td class="text-text-secondary text-xs">{contact.name ?? "—"}</td>
+                  <td class="text-text-muted text-xs">{contact.type}</td>
+                  <td class="text-text-secondary text-xs max-w-xs truncate">{contact.conversationSubject}</td>
+                  <td class="text-right text-xs">{contact.messageCount}</td>
+                </tr>
+              {/each}
+            </tbody>
+          </table>
+        </div>
+        <div class="p-3 border-t border-glass-border">
+          <p class="text-xs text-text-muted">Click a row to view matching debug info and raw Front data.</p>
+        </div>
+      {/if}
+    </div>
+  {/if}
+
   <!-- Sync History -->
   {#if syncRuns.length > 0}
     <div class="glass-card overflow-hidden mb-6">
@@ -285,7 +391,10 @@
                         </thead>
                         <tbody>
                           {#each runUnmatched as contact}
-                            <tr class="border-t border-yellow-500/10">
+                            <tr
+                              class="border-t border-yellow-500/10 hover:bg-yellow-500/10 cursor-pointer transition-colors"
+                              onclick={() => openDebugSheet(contact)}
+                            >
                               <td class="py-1 pr-3 font-mono">{contact.handle}</td>
                               <td class="py-1 pr-3 text-text-secondary">{contact.name ?? "—"}</td>
                               <td class="py-1 pr-3 text-text-muted">{contact.type}</td>
@@ -450,3 +559,126 @@
   }}
   onCancel={() => { showRevertConfirm = false; }}
 />
+
+<!-- Debug Sheet -->
+<Sheet.Root bind:open={sheetOpen}>
+  <Sheet.Content side="right" class="sm:max-w-2xl overflow-y-auto">
+    <Sheet.Header>
+      <Sheet.Title>Unmatched Contact Debug</Sheet.Title>
+      <Sheet.Description>
+        {#if sheetContact}
+          Investigating why <span class="font-mono">{sheetContact.handle}</span> couldn't be matched
+        {/if}
+      </Sheet.Description>
+    </Sheet.Header>
+
+    {#if sheetContact}
+      <!-- Contact Info -->
+      <div class="mt-4 space-y-3">
+        <h3 class="text-sm font-semibold text-text-primary">Contact Info</h3>
+        <div class="grid grid-cols-2 gap-2 text-xs">
+          <div>
+            <span class="text-text-muted">Handle:</span>
+            <span class="font-mono ml-1">{sheetContact.handle}</span>
+          </div>
+          <div>
+            <span class="text-text-muted">Name:</span>
+            <span class="ml-1">{sheetContact.name ?? "—"}</span>
+          </div>
+          <div>
+            <span class="text-text-muted">Type:</span>
+            <span class="ml-1">{sheetContact.type}</span>
+          </div>
+          <div>
+            <span class="text-text-muted">Messages:</span>
+            <span class="ml-1">{sheetContact.messageCount}</span>
+          </div>
+          <div class="col-span-2">
+            <span class="text-text-muted">Subject:</span>
+            <span class="ml-1">{sheetContact.conversationSubject}</span>
+          </div>
+          <div class="col-span-2">
+            <span class="text-text-muted">Conversation ID:</span>
+            <span class="font-mono ml-1 text-accent">{sheetContact.conversationId}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Loading / Error -->
+      {#if sheetLoading}
+        <div class="mt-6 flex items-center justify-center gap-2 py-8">
+          <Loader2 size={20} class="animate-spin text-text-muted" />
+          <span class="text-sm text-text-muted">Loading debug info from Front API...</span>
+        </div>
+      {:else if sheetError}
+        <div class="mt-6 rounded-lg border border-red-500/30 bg-red-500/10 p-4">
+          <p class="text-sm text-destructive-foreground">{sheetError}</p>
+        </div>
+      {:else if sheetDebug}
+        <!-- Matching Attempts -->
+        <div class="mt-6 space-y-3">
+          <h3 class="text-sm font-semibold text-text-primary">Matching Attempts</h3>
+          <div class="space-y-2">
+            {#each sheetDebug.matchAttempts as attempt}
+              <div class="flex items-start gap-2 rounded-lg border border-glass-border p-2.5">
+                {#if attempt.found}
+                  <CheckCircle2 size={16} class="text-[var(--badge-green-text)] mt-0.5 shrink-0" />
+                {:else}
+                  <XCircle size={16} class="text-text-muted mt-0.5 shrink-0" />
+                {/if}
+                <div class="text-xs">
+                  <p class="font-medium text-text-primary">{attempt.source}</p>
+                  <p class="text-text-muted">
+                    Searched for: <span class="font-mono">{attempt.searchedFor}</span>
+                    — {attempt.found ? "Match found" : "No match"}
+                  </p>
+                  {#if attempt.detail}
+                    <p class="text-accent font-mono">{attempt.detail}</p>
+                  {/if}
+                </div>
+              </div>
+            {/each}
+          </div>
+        </div>
+
+        <!-- Raw Conversation -->
+        <div class="mt-6">
+          <button
+            type="button"
+            class="flex items-center gap-1 text-sm font-semibold text-text-primary hover:text-accent transition-colors"
+            onclick={() => { showRawConversation = !showRawConversation; }}
+          >
+            {#if showRawConversation}
+              <ChevronDown size={16} />
+            {:else}
+              <ChevronRight size={16} />
+            {/if}
+            Raw Conversation
+          </button>
+          {#if showRawConversation}
+            <pre class="mt-2 rounded-lg border border-glass-border bg-glass-bg p-3 text-xs font-mono overflow-x-auto max-h-96 overflow-y-auto">{JSON.stringify(sheetDebug.conversation, null, 2)}</pre>
+          {/if}
+        </div>
+
+        <!-- Raw Messages -->
+        <div class="mt-4">
+          <button
+            type="button"
+            class="flex items-center gap-1 text-sm font-semibold text-text-primary hover:text-accent transition-colors"
+            onclick={() => { showRawMessages = !showRawMessages; }}
+          >
+            {#if showRawMessages}
+              <ChevronDown size={16} />
+            {:else}
+              <ChevronRight size={16} />
+            {/if}
+            Raw Messages ({sheetDebug.messages.length})
+          </button>
+          {#if showRawMessages}
+            <pre class="mt-2 rounded-lg border border-glass-border bg-glass-bg p-3 text-xs font-mono overflow-x-auto max-h-96 overflow-y-auto">{JSON.stringify(sheetDebug.messages, null, 2)}</pre>
+          {/if}
+        </div>
+      {/if}
+    {/if}
+  </Sheet.Content>
+</Sheet.Root>

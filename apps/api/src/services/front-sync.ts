@@ -782,6 +782,202 @@ export async function syncFrontConversationsIncremental(
   return result;
 }
 
+// --- Debug helpers for unmatched contacts ---
+
+export interface MatchAttempt {
+  source: string;
+  searchedFor: string;
+  found: boolean;
+  detail?: string;
+}
+
+function debugMatchByEmail(cache: CachedReferenceData, emailHandle: string): MatchAttempt[] {
+  const lowerEmail = emailHandle.toLowerCase();
+  const attempts: MatchAttempt[] = [];
+
+  // 1. emails table (humans)
+  const emailMatch = cache.allEmails.find(
+    (e) => e.email.toLowerCase() === lowerEmail && e.ownerType === "human",
+  );
+  attempts.push({
+    source: "Emails table (humans)",
+    searchedFor: lowerEmail,
+    found: !!emailMatch,
+    detail: emailMatch ? `human:${emailMatch.ownerId}` : undefined,
+  });
+  if (emailMatch) return attempts;
+
+  // 2. announcement_signups
+  const signup = cache.allSignups.find(
+    (s) => s.email && s.email.toLowerCase() === lowerEmail,
+  );
+  attempts.push({
+    source: "Announcement signups",
+    searchedFor: lowerEmail,
+    found: !!signup,
+    detail: signup ? `signup:${signup.id}` : undefined,
+  });
+  if (signup) return attempts;
+
+  // 3. general_leads
+  const lead = cache.allLeads.find(
+    (l) => l.email && l.email.toLowerCase() === lowerEmail,
+  );
+  attempts.push({
+    source: "General leads",
+    searchedFor: lowerEmail,
+    found: !!lead,
+    detail: lead ? `general_lead:${lead.id}` : undefined,
+  });
+  if (lead) return attempts;
+
+  // 4. bookings
+  const booking = cache.allBookings.find(
+    (b) =>
+      (b.client_email && b.client_email.toLowerCase() === lowerEmail) ||
+      (b.email_for_notifications && b.email_for_notifications.toLowerCase() === lowerEmail),
+  );
+  attempts.push({
+    source: "Bookings",
+    searchedFor: lowerEmail,
+    found: !!booking,
+    detail: booking ? `booking:${booking.id}` : undefined,
+  });
+
+  // 5. colleagues
+  const colleague = cache.allColleagues.find(
+    (c) => c.email.toLowerCase() === lowerEmail,
+  );
+  attempts.push({
+    source: "Colleagues",
+    searchedFor: lowerEmail,
+    found: !!colleague,
+    detail: colleague ? `colleague:${colleague.id}` : undefined,
+  });
+
+  return attempts;
+}
+
+function debugMatchByPhone(cache: CachedReferenceData, phoneHandle: string): MatchAttempt[] {
+  const normalized = normalizePhone(phoneHandle);
+  const suffix = normalized.slice(-9);
+  const attempts: MatchAttempt[] = [];
+
+  // 1. phones table (humans)
+  const phoneMatch = cache.allPhones.find(
+    (p) => p.ownerType === "human" && phonesMatch(p.phoneNumber, phoneHandle),
+  );
+  attempts.push({
+    source: "Phones table (humans)",
+    searchedFor: `${phoneHandle} (normalized suffix: ${suffix})`,
+    found: !!phoneMatch,
+    detail: phoneMatch ? `human:${phoneMatch.ownerId}` : undefined,
+  });
+  if (phoneMatch) return attempts;
+
+  // 2. announcement_signups
+  const signup = cache.allSignups.find((s) => {
+    const phone = s.phone;
+    const wp = s.whatsapp_phone;
+    return (
+      (phone && normalizePhone(phone).slice(-9) === suffix) ||
+      (wp && normalizePhone(wp).slice(-9) === suffix)
+    );
+  });
+  attempts.push({
+    source: "Announcement signups (phone/whatsapp)",
+    searchedFor: `suffix ${suffix}`,
+    found: !!signup,
+    detail: signup ? `signup:${signup.id}` : undefined,
+  });
+  if (signup) return attempts;
+
+  // 3. general_leads
+  const lead = cache.allLeads.find(
+    (l) => l.phone && phonesMatch(l.phone, phoneHandle),
+  );
+  attempts.push({
+    source: "General leads (phone)",
+    searchedFor: `${phoneHandle}`,
+    found: !!lead,
+    detail: lead ? `general_lead:${lead.id}` : undefined,
+  });
+  if (lead) return attempts;
+
+  // 4. bookings
+  const booking = cache.allBookings.find((b) => {
+    const phone = b.phone_number;
+    const alt = b.alt_whatsapp_phone_number;
+    return (
+      (phone && normalizePhone(phone).slice(-9) === suffix) ||
+      (alt && normalizePhone(alt).slice(-9) === suffix)
+    );
+  });
+  attempts.push({
+    source: "Bookings (phone)",
+    searchedFor: `suffix ${suffix}`,
+    found: !!booking,
+    detail: booking ? `booking:${booking.id}` : undefined,
+  });
+
+  return attempts;
+}
+
+export function debugMatchContact(
+  cache: CachedReferenceData,
+  handle: string,
+  type: ActivityType,
+): MatchAttempt[] {
+  if (type === "email") {
+    return debugMatchByEmail(cache, handle);
+  }
+  if (type === "whatsapp_message") {
+    return debugMatchByPhone(cache, handle);
+  }
+  // social_message — try email first, then phone
+  if (handle.includes("@")) {
+    return debugMatchByEmail(cache, handle);
+  }
+  if (/\d/.test(handle)) {
+    return debugMatchByPhone(cache, handle);
+  }
+  return [{ source: "No matching strategy", searchedFor: handle, found: false, detail: "Handle is not an email or phone number" }];
+}
+
+export async function debugUnmatchedContact(
+  db: DB,
+  supabase: SupabaseClient,
+  frontToken: string,
+  conversationId: string,
+  contactHandle: string,
+) {
+  const cache = await preloadReferenceData(db, supabase);
+  const activityType = classifyChannel(undefined, contactHandle);
+  const matchAttempts = debugMatchContact(cache, contactHandle, activityType);
+
+  const conversation = await frontFetch<Record<string, unknown>>(
+    `https://api2.frontapp.com/conversations/${conversationId}`,
+    frontToken,
+  );
+
+  // Fetch messages via the conversation's messages link
+  const messagesHref =
+    (conversation as { _links?: { related?: { messages?: { href?: string } } } })
+      ._links?.related?.messages?.href
+    ?? `https://api2.frontapp.com/conversations/${conversationId}/messages`;
+
+  const messagesResponse = await frontFetch<{ _results: Record<string, unknown>[] }>(
+    messagesHref,
+    frontToken,
+  );
+
+  return {
+    conversation,
+    messages: messagesResponse._results,
+    matchAttempts,
+  };
+}
+
 // --- Sync run management ---
 
 export async function listSyncRuns(db: DB) {
