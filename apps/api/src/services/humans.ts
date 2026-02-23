@@ -1,4 +1,4 @@
-import { eq, sql, inArray, desc, like, or } from "drizzle-orm";
+import { and, eq, ne, sql, inArray, desc, like, or } from "drizzle-orm";
 import {
   humans,
   emails,
@@ -23,7 +23,7 @@ import {
 import { createId } from "@humans/db";
 import { ERROR_CODES } from "@humans/shared";
 import { computeDiff, logAuditEntry } from "../lib/audit";
-import { notFound } from "../lib/errors";
+import { notFound, conflict } from "../lib/errors";
 import { nextDisplayId } from "../lib/display-id";
 import { rematchActivitiesByEmail, rematchActivitiesByPhone } from "./activity-rematch";
 import type { DB } from "./types";
@@ -174,6 +174,30 @@ export async function getHumanDetail(db: DB, humanId: string) {
   };
 }
 
+async function assertNoDuplicateName(
+  db: DB,
+  firstName: string,
+  lastName: string,
+  excludeId?: string,
+) {
+  const conditions = [
+    sql`lower(${humans.firstName}) = lower(${firstName})`,
+    sql`lower(${humans.lastName}) = lower(${lastName})`,
+  ];
+  if (excludeId) {
+    conditions.push(ne(humans.id, excludeId));
+  }
+  const existing = await db.query.humans.findFirst({
+    where: and(...conditions),
+  });
+  if (existing != null) {
+    throw conflict(
+      ERROR_CODES.HUMAN_DUPLICATE_NAME,
+      `A human named "${firstName} ${lastName}" already exists`,
+    );
+  }
+}
+
 export async function createHuman(
   db: DB,
   data: { firstName: string; middleName?: string | null; lastName: string; status?: string; emails: { email: string; labelId?: string | null; isPrimary?: boolean }[]; types: string[] },
@@ -181,6 +205,8 @@ export async function createHuman(
   const now = new Date().toISOString();
   const humanId = createId();
   const displayId = await nextDisplayId(db, "HUM");
+
+  await assertNoDuplicateName(db, data.firstName, data.lastName);
 
   await db.insert(humans).values({
     id: humanId,
@@ -237,6 +263,12 @@ export async function updateHuman(
   });
   if (existing == null) {
     throw notFound(ERROR_CODES.HUMAN_NOT_FOUND, "Human not found");
+  }
+
+  const effectiveFirst = data.firstName ?? existing.firstName;
+  const effectiveLast = data.lastName ?? existing.lastName;
+  if (data.firstName !== undefined || data.lastName !== undefined) {
+    await assertNoDuplicateName(db, effectiveFirst, effectiveLast, id);
   }
 
   const existingTypes = await db.select().from(humanTypes).where(eq(humanTypes.humanId, id));

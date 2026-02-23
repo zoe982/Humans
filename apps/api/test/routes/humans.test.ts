@@ -116,6 +116,48 @@ describe("POST /api/humans", () => {
   });
 });
 
+describe("POST /api/humans — duplicate name", () => {
+  it("returns 409 with HUMAN_DUPLICATE_NAME code", async () => {
+    const db = getDb();
+    const existing = buildHuman({ firstName: "Jane", lastName: "Doe" });
+    await db.insert(schema.humans).values(existing);
+
+    const { token } = await createUserAndSession("agent");
+    const res = await SELF.fetch("http://localhost/api/humans", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Cookie: sessionCookie(token) },
+      body: JSON.stringify({
+        firstName: "Jane",
+        lastName: "Doe",
+        emails: [{ email: "jane-dup@test.com" }],
+        types: ["client"],
+      }),
+    });
+    expect(res.status).toBe(409);
+    const body = (await res.json()) as { code: string };
+    expect(body.code).toBe("HUMAN_DUPLICATE_NAME");
+  });
+});
+
+describe("PATCH /api/humans/:id — duplicate name", () => {
+  it("returns 409 with HUMAN_DUPLICATE_NAME code", async () => {
+    const db = getDb();
+    const h1 = buildHuman({ firstName: "Alice", lastName: "Smith" });
+    const h2 = buildHuman({ firstName: "Bob", lastName: "Jones" });
+    await db.insert(schema.humans).values([h1, h2]);
+
+    const { token } = await createUserAndSession("agent");
+    const res = await SELF.fetch(`http://localhost/api/humans/${h2.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", Cookie: sessionCookie(token) },
+      body: JSON.stringify({ firstName: "Alice", lastName: "Smith" }),
+    });
+    expect(res.status).toBe(409);
+    const body = (await res.json()) as { code: string };
+    expect(body.code).toBe("HUMAN_DUPLICATE_NAME");
+  });
+});
+
 describe("PATCH /api/humans/:id", () => {
   it("returns 404 for non-existent human", async () => {
     const { token } = await createUserAndSession("agent");

@@ -274,6 +274,78 @@ describe("createHuman", () => {
   });
 });
 
+describe("createHuman — duplicate name", () => {
+  it("blocks exact-case duplicate", async () => {
+    const db = getTestDb();
+    await seedHuman(db, "h-1", "John", "Doe");
+
+    await expect(
+      createHuman(db, { firstName: "John", lastName: "Doe", emails: [{ email: "j@test.com" }], types: [] }),
+    ).rejects.toThrowError(/already exists/);
+  });
+
+  it("blocks case-insensitive duplicate", async () => {
+    const db = getTestDb();
+    await seedHuman(db, "h-1", "John", "Doe");
+
+    await expect(
+      createHuman(db, { firstName: "john", lastName: "doe", emails: [{ email: "j@test.com" }], types: [] }),
+    ).rejects.toThrowError(/already exists/);
+  });
+
+  it("allows when only first OR last name matches", async () => {
+    const db = getTestDb();
+    await seedHuman(db, "h-1", "John", "Doe");
+
+    const result = await createHuman(db, { firstName: "John", lastName: "Smith", emails: [{ email: "j@test.com" }], types: [] });
+    expect(result.id).toBeDefined();
+  });
+});
+
+describe("updateHuman — duplicate name", () => {
+  it("blocks rename that creates duplicate", async () => {
+    const db = getTestDb();
+    await seedColleague(db);
+    await seedHuman(db, "h-1", "John", "Doe");
+    await seedHuman(db, "h-2", "Jane", "Smith");
+
+    await expect(
+      updateHuman(db, "h-2", { firstName: "John", lastName: "Doe" }, "col-1"),
+    ).rejects.toThrowError(/already exists/);
+  });
+
+  it("allows keeping own name (self-exclusion)", async () => {
+    const db = getTestDb();
+    await seedColleague(db);
+    await seedHuman(db, "h-1", "John", "Doe");
+
+    const result = await updateHuman(db, "h-1", { firstName: "John" }, "col-1");
+    expect(result.data?.firstName).toBe("John");
+  });
+
+  it("blocks changing only lastName to match", async () => {
+    const db = getTestDb();
+    await seedColleague(db);
+    await seedHuman(db, "h-1", "John", "Doe");
+    await seedHuman(db, "h-2", "John", "Smith");
+
+    await expect(
+      updateHuman(db, "h-2", { lastName: "Doe" }, "col-1"),
+    ).rejects.toThrowError(/already exists/);
+  });
+
+  it("blocks case-insensitive duplicate on update", async () => {
+    const db = getTestDb();
+    await seedColleague(db);
+    await seedHuman(db, "h-1", "John", "Doe");
+    await seedHuman(db, "h-2", "Jane", "Smith");
+
+    await expect(
+      updateHuman(db, "h-2", { firstName: "JOHN", lastName: "DOE" }, "col-1"),
+    ).rejects.toThrowError(/already exists/);
+  });
+});
+
 describe("updateHuman", () => {
   it("throws notFound for missing human", async () => {
     const db = getTestDb();
