@@ -57,20 +57,25 @@
 </script>
 
 {#if visible}
-  <div class="fixed bottom-4 left-4 z-50 glass-card-strong p-4 shadow-xl flex items-center gap-3">
-    <Download size={18} class="text-accent shrink-0" />
-    <span class="text-sm text-text-primary">Install Humans as a desktop app</span>
-    <button
-      type="button"
-      onclick={install}
-      class="text-sm font-medium text-accent hover:text-[var(--link-hover)] whitespace-nowrap"
-    >
-      Install
-    </button>
+  <div class="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 glass-card-strong p-4 shadow-xl rounded-xl max-w-md w-[calc(100%-2rem)] flex items-start gap-3">
+    <div class="rounded-lg bg-accent/10 p-2 shrink-0">
+      <Download size={20} class="text-accent" />
+    </div>
+    <div class="flex-1 min-w-0">
+      <p class="text-sm font-medium text-text-primary">Get the Humans desktop app</p>
+      <p class="text-xs text-text-muted mt-0.5">Quick access from your dock — no browser tab needed.</p>
+      <button
+        type="button"
+        onclick={install}
+        class="mt-2 px-3 py-1.5 text-xs font-medium rounded-md bg-accent text-white hover:bg-accent/90 transition-colors"
+      >
+        Install app
+      </button>
+    </div>
     <button
       type="button"
       onclick={dismiss}
-      class="text-text-muted hover:text-text-primary"
+      class="text-text-muted hover:text-text-primary shrink-0"
       aria-label="Dismiss install prompt"
     >
       <X size={16} />
