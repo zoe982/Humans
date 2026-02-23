@@ -252,12 +252,6 @@
       } catch { /* proceed anyway */ }
     }
 
-    // Non-terminal: check next action is set
-    if (!TERMINAL_STAGES.has(newStage) && !opportunity.nextActionDescription && newStage !== "open") {
-      toast("Please set a next action before advancing the stage.");
-      return;
-    }
-
     saveStatus = "saving";
     try {
       await api(`/api/opportunities/${opportunity.id}/stage`, {
@@ -812,6 +806,9 @@
         <p class="text-sm text-text-muted">
           A next action is the single most important step to move this opportunity forward.
         </p>
+      {/if}
+      {#if !naLocked && !naAllFilled && opportunity.stage !== "open"}
+        <p class="text-sm text-amber-400 font-medium">Please set a next action so you don't lose track of this opportunity.</p>
       {/if}
 
       {#if naLocked}

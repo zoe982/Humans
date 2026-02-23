@@ -414,14 +414,6 @@ export async function updateOpportunityStage(
     updateFields["nextActionStartDate"] = null;
     updateFields["nextActionDueDate"] = null;
     updateFields["nextActionCompletedAt"] = null;
-  } else {
-    // Non-terminal: require next action populated
-    const hasNextAction = existing.nextActionDescription || (
-      updateFields["nextActionDescription"] as string | undefined
-    );
-    if (!hasNextAction && !existing.nextActionDescription) {
-      throw badRequest(ERROR_CODES.OPPORTUNITY_NEXT_ACTION_REQUIRED, "A next action is required before moving to a non-terminal stage");
-    }
   }
 
   await db.update(opportunities).set(updateFields).where(eq(opportunities.id, id));
