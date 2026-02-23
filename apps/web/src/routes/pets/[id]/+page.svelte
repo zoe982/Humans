@@ -19,7 +19,7 @@
     displayId: string;
     humanId: string | null;
     type: string;
-    name: string;
+    name: string | null;
     breed: string | null;
     weight: number | null;
     notes: string | null;
@@ -52,7 +52,7 @@
 
   // Initialize state from data
   $effect(() => {
-    petName = pet.name;
+    petName = pet.name ?? "";
     petType = pet.type;
     petBreed = pet.breed ?? "";
     petWeight = pet.weight != null ? String(pet.weight) : "";
@@ -81,7 +81,7 @@
 
   function buildPayload() {
     const payload: Record<string, unknown> = {
-      name: petName,
+      name: petName.trim() || null,
       type: petType,
       breed: petType === "dog" && petBreed ? petBreed : null,
       weight: petWeight ? parseFloat(petWeight) : null,
@@ -121,14 +121,14 @@
 </script>
 
 <svelte:head>
-  <title>{pet.displayId} — {pet.name} - Humans</title>
+  <title>{pet.displayId} — {pet.name ?? pet.displayId} - Humans</title>
 </svelte:head>
 
 <div class="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
   <RecordManagementBar
     backHref="/pets"
     backLabel="Pets"
-    title="{pet.displayId} — {pet.name}"
+    title="{pet.displayId} — {pet.name ?? pet.displayId}"
   />
 
   <div class="glass-card p-6 space-y-6">

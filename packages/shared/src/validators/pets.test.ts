@@ -38,8 +38,20 @@ describe("createPetSchema", () => {
     expect(() => createPetSchema.parse({ ...validInput, humanId: "" })).toThrowError();
   });
 
-  it("rejects empty name", () => {
-    expect(() => createPetSchema.parse({ ...validInput, name: "" })).toThrowError();
+  it("accepts empty name", () => {
+    const result = createPetSchema.parse({ ...validInput, name: "" });
+    expect(result.name).toBe("");
+  });
+
+  it("accepts null name", () => {
+    const result = createPetSchema.parse({ ...validInput, name: null });
+    expect(result.name).toBeNull();
+  });
+
+  it("accepts missing name", () => {
+    const { name: _name, ...inputWithoutName } = validInput;
+    const result = createPetSchema.parse(inputWithoutName);
+    expect(result.name).toBeUndefined();
   });
 
   it("rejects name over 100 chars", () => {

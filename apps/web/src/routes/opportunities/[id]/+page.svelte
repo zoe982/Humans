@@ -82,7 +82,7 @@
     updatedAt: string;
   };
 
-  type PetOption = { id: string; displayId?: string; name: string; type: string; humanId: string | null };
+  type PetOption = { id: string; displayId?: string; name: string | null; type: string; humanId: string | null };
   type BookingRequestLink = { id: string; humanId: string; websiteBookingRequestId: string; opportunityId: string | null; linkedAt: string };
   type CadenceConfig = { id: string; stage: string; cadenceHours: number; displayText: string };
 
@@ -132,7 +132,7 @@
       .filter((p) => p.humanId && linkedHumanIds.has(p.humanId) && !linkedPetIds.has(p.id))
       .map((p) => ({
         value: p.id,
-        label: `${p.displayId ? p.displayId + " — " : ""}${p.name} (${p.type === "cat" ? "Cat" : "Dog"})`,
+        label: `${p.displayId ? p.displayId + " — " : ""}${p.name ?? p.displayId ?? "Unnamed"} (${p.type === "cat" ? "Cat" : "Dog"})`,
       }))
   );
 

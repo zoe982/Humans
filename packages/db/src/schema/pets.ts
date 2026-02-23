@@ -7,7 +7,7 @@ export const pets = sqliteTable("pets", {
   humanId: text("human_id")
     .references(() => humans.id),
   type: text("type").notNull().default("dog"),
-  name: text("name").notNull(),
+  name: text("name"),
   breed: text("breed"),
   weight: real("weight"),
   notes: text("notes"),

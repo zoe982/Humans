@@ -9,7 +9,7 @@
     displayId: string;
     humanId: string | null;
     type: string;
-    name: string;
+    name: string | null;
     breed: string | null;
     weight: number | null;
     ownerName: string | null;
@@ -40,7 +40,7 @@
     { key: "weight", label: "Weight" },
   ]}
   searchFilter={(p, q) =>
-    p.name.toLowerCase().includes(q) ||
+    (p.name ?? "").toLowerCase().includes(q) ||
     (p.ownerName?.toLowerCase().includes(q) ?? false) ||
     (p.ownerDisplayId?.toLowerCase().includes(q) ?? false) ||
     (p.breed?.toLowerCase().includes(q) ?? false) ||
@@ -65,7 +65,7 @@
         <span class="text-text-muted">\u2014</span>
       {/if}
     </td>
-    <td>{pet.name}</td>
+    <td>{pet.name ?? pet.displayId}</td>
     <td>
       <span class="glass-badge {typeColors[pet.type] ?? 'bg-glass text-text-secondary'}">{pet.type === "dog" ? "Dog" : "Cat"}</span>
     </td>
@@ -75,7 +75,7 @@
   {#snippet mobileCard(pet)}
     <a href="/pets/{pet.id}" class="glass-card p-4 block hover:ring-1 hover:ring-accent/40 transition">
       <span class="font-mono text-xs text-text-muted">{pet.displayId}</span>
-      <div class="font-medium text-accent">{pet.name}</div>
+      <div class="font-medium text-accent">{pet.name ?? pet.displayId}</div>
       <div class="text-sm text-text-secondary">
         <span class="glass-badge text-xs {typeColors[pet.type] ?? 'bg-glass text-text-secondary'}">{pet.type === "dog" ? "Dog" : "Cat"}</span>
         {#if pet.ownerName}

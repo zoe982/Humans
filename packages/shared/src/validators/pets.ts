@@ -7,7 +7,7 @@ export const petTypeSchema = z.enum(PET_TYPES);
 export const createPetSchema = z.object({
   humanId: z.string().min(1),
   type: petTypeSchema.default("dog"),
-  name: z.string().min(1).max(100),
+  name: z.string().max(100).nullable().optional(),
   breed: petBreedSchema.nullable().optional(),
   weight: z.number().positive().nullable().optional(),
   notes: z.string().max(5000).nullable().optional(),
@@ -19,7 +19,7 @@ export const createPetSchema = z.object({
 export const updatePetSchema = z.object({
   humanId: z.string().min(1).optional(),
   type: petTypeSchema.optional(),
-  name: z.string().min(1).max(100).optional(),
+  name: z.string().max(100).nullable().optional(),
   breed: petBreedSchema.nullable().optional(),
   weight: z.number().positive().nullable().optional(),
   notes: z.string().max(5000).nullable().optional(),

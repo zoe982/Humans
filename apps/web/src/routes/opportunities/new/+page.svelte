@@ -8,7 +8,7 @@
   let { data, form }: { data: PageData; form: ActionData } = $props();
 
   type HumanOption = { id: string; displayId?: string; firstName: string; lastName: string };
-  type PetOption = { id: string; displayId?: string; name: string; type: string; humanId: string | null };
+  type PetOption = { id: string; displayId?: string; name: string | null; type: string; humanId: string | null };
 
   const allHumans = $derived(data.allHumans as HumanOption[]);
   const allPets = $derived(data.allPets as PetOption[]);
@@ -32,7 +32,7 @@
           .filter((p) => p.humanId === selectedHumanId && !selectedPetIds.includes(p.id))
           .map((p) => ({
             value: p.id,
-            label: `${p.displayId ? p.displayId + " — " : ""}${p.name} (${p.type === "cat" ? "Cat" : "Dog"})`,
+            label: `${p.displayId ? p.displayId + " — " : ""}${p.name ?? p.displayId ?? "Unnamed"} (${p.type === "cat" ? "Cat" : "Dog"})`,
           }))
       : []
   );
@@ -40,7 +40,7 @@
   const selectedPetLabels = $derived(
     selectedPetIds.map((id) => {
       const pet = allPets.find((p) => p.id === id);
-      return pet ? `${pet.name} (${pet.type === "cat" ? "Cat" : "Dog"})` : id;
+      return pet ? `${pet.name ?? pet.displayId ?? "Unnamed"} (${pet.type === "cat" ? "Cat" : "Dog"})` : id;
     })
   );
 

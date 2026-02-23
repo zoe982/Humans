@@ -178,7 +178,7 @@ export async function getOpportunityDetail(db: DB, id: string) {
     const ownerHuman = linkedHumanRows.find((h) => h.humanId === p.humanId);
     return {
       ...p,
-      petName: p.name,
+      petName: p.name ?? p.displayId,
       petDisplayId: p.displayId,
       petType: p.type,
       ownerName: ownerHuman ? `${ownerHuman.firstName} ${ownerHuman.lastName}` : null,
