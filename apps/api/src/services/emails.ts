@@ -4,6 +4,7 @@ import { createId } from "@humans/db";
 import { ERROR_CODES } from "@humans/shared";
 import { notFound } from "../lib/errors";
 import { nextDisplayId } from "../lib/display-id";
+import { rematchActivitiesByEmail } from "./activity-rematch";
 import type { DB } from "./types";
 
 export async function listEmails(db: DB) {
@@ -119,6 +120,10 @@ export async function createEmail(
   };
 
   await db.insert(emails).values(email);
+
+  // Rematch unlinked activities by this email address
+  await rematchActivitiesByEmail(db, data.humanId, data.email);
+
   return email;
 }
 

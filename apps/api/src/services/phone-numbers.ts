@@ -4,6 +4,7 @@ import { createId } from "@humans/db";
 import { ERROR_CODES } from "@humans/shared";
 import { notFound } from "../lib/errors";
 import { nextDisplayId } from "../lib/display-id";
+import { rematchActivitiesByPhone } from "./activity-rematch";
 import type { DB } from "./types";
 
 export async function listPhoneNumbers(db: DB) {
@@ -106,6 +107,10 @@ export async function createPhoneNumber(
   };
 
   await db.insert(phones).values(phone);
+
+  // Rematch unlinked activities by this phone number
+  await rematchActivitiesByPhone(db, data.humanId, data.phoneNumber);
+
   return phone;
 }
 

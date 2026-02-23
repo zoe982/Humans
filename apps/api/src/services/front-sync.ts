@@ -6,12 +6,14 @@ import {
   colleagues,
   accountHumans,
   frontSyncRuns,
+  generalLeads,
   geoInterestExpressions,
   routeInterestExpressions,
 } from "@humans/db/schema";
 import { createId } from "@humans/db";
-import { eq, sql } from "drizzle-orm";
+import { eq, sql, and } from "drizzle-orm";
 import { nextDisplayId } from "../lib/display-id";
+import { normalizePhone, phonesMatch } from "../lib/phone-utils";
 import type { DB } from "./types";
 
 // --- Channel classification ---
@@ -44,19 +46,6 @@ function classifyChannel(
   return "social_message";
 }
 
-// --- Phone normalization ---
-
-function normalizePhone(phone: string): string {
-  return phone.replace(/\D/g, "");
-}
-
-function phonesMatch(a: string, b: string): boolean {
-  const normA = normalizePhone(a);
-  const normB = normalizePhone(b);
-  if (normA.length < 9 || normB.length < 9) return false;
-  return normA.slice(-9) === normB.slice(-9);
-}
-
 // --- Contact matching ---
 
 interface MatchResult {
@@ -64,6 +53,7 @@ interface MatchResult {
   accountId: string | null;
   routeSignupId: string | null;
   websiteBookingRequestId: string | null;
+  generalLeadId: string | null;
   matchedEntity: string | null; // description for logging
 }
 
@@ -77,6 +67,7 @@ async function matchByEmail(
     accountId: null,
     routeSignupId: null,
     websiteBookingRequestId: null,
+    generalLeadId: null,
     matchedEntity: null,
   };
   const lowerEmail = emailHandle.toLowerCase();
@@ -87,7 +78,6 @@ async function matchByEmail(
     (e) => e.email.toLowerCase() === lowerEmail && e.ownerType === "human",
   );
   if (matched) {
-    // Auto-link account via account_humans junction
     const accountId = await findAccountForHuman(db, matched.ownerId);
     return {
       ...noMatch,
@@ -113,7 +103,20 @@ async function matchByEmail(
     };
   }
 
-  // 3. Check Supabase bookings
+  // 3. Check D1 general_leads by email
+  const allLeads = await db.select({ id: generalLeads.id, email: generalLeads.email }).from(generalLeads);
+  const matchedLead = allLeads.find(
+    (l) => l.email && l.email.toLowerCase() === lowerEmail,
+  );
+  if (matchedLead) {
+    return {
+      ...noMatch,
+      generalLeadId: matchedLead.id,
+      matchedEntity: `general_lead:${matchedLead.id}`,
+    };
+  }
+
+  // 4. Check Supabase bookings
   const { data: bookings } = await supabase
     .from("bookings")
     .select("id")
@@ -144,8 +147,12 @@ async function matchByPhone(
     accountId: null,
     routeSignupId: null,
     websiteBookingRequestId: null,
+    generalLeadId: null,
     matchedEntity: null,
   };
+
+  const normalized = normalizePhone(phoneHandle);
+  const suffix = normalized.slice(-9);
 
   // 1. Check D1 phones table (humans)
   const allPhones = await db.select().from(phones);
@@ -162,14 +169,48 @@ async function matchByPhone(
     };
   }
 
-  // 2. Check Supabase bookings by phone
-  const normalized = normalizePhone(phoneHandle);
-  const suffix = normalized.slice(-9);
+  // 2. Check Supabase announcement_signups by phone/whatsapp_phone
+  const { data: signups } = await supabase
+    .from("announcement_signups")
+    .select("id, phone, whatsapp_phone");
+  if (signups) {
+    const matchedSignup = signups.find((s) => {
+      const phone = s["phone"] as string | null;
+      const wp = s["whatsapp_phone"] as string | null;
+      return (
+        (phone && normalizePhone(phone).slice(-9) === suffix) ||
+        (wp && normalizePhone(wp).slice(-9) === suffix)
+      );
+    });
+    if (matchedSignup) {
+      const sid = matchedSignup["id"] as string;
+      return {
+        ...noMatch,
+        routeSignupId: sid,
+        matchedEntity: `signup:${sid}`,
+      };
+    }
+  }
+
+  // 3. Check D1 general_leads by phone
+  const allLeads = await db.select({ id: generalLeads.id, phone: generalLeads.phone }).from(generalLeads);
+  const matchedLead = allLeads.find(
+    (l) => l.phone && phonesMatch(l.phone, phoneHandle),
+  );
+  if (matchedLead) {
+    return {
+      ...noMatch,
+      generalLeadId: matchedLead.id,
+      matchedEntity: `general_lead:${matchedLead.id}`,
+    };
+  }
+
+  // 4. Check Supabase bookings by phone
   const { data: bookings } = await supabase
     .from("bookings")
     .select("id, phone_number, alt_whatsapp_phone_number");
   if (bookings) {
-    const matched = bookings.find((b) => {
+    const matchedBooking = bookings.find((b) => {
       const phone = b["phone_number"] as string | null;
       const alt = b["alt_whatsapp_phone_number"] as string | null;
       return (
@@ -177,8 +218,8 @@ async function matchByPhone(
         (alt && normalizePhone(alt).slice(-9) === suffix)
       );
     });
-    if (matched) {
-      const bid = matched["id"] as string;
+    if (matchedBooking) {
+      const bid = matchedBooking["id"] as string;
       return {
         ...noMatch,
         websiteBookingRequestId: bid,
@@ -214,6 +255,7 @@ async function matchContact(
     accountId: null,
     routeSignupId: null,
     websiteBookingRequestId: null,
+    generalLeadId: null,
     matchedEntity: null,
   };
 }
@@ -288,21 +330,227 @@ async function frontFetch<T>(url: string, token: string): Promise<T> {
 
 // --- Sync logic ---
 
-export interface SyncResult {
+export interface SyncStats {
   total: number;
   imported: number;
   skipped: number;
   unmatched: number;
   errors: string[];
-  nextCursor: string | null;
-  syncRunId: string;
   linkedToHumans: number;
   linkedToAccounts: number;
   linkedToRouteSignups: number;
   linkedToBookings: number;
   linkedToColleagues: number;
+  linkedToGeneralLeads: number;
 }
 
+export interface SyncResult extends SyncStats {
+  nextCursor: string | null;
+  syncRunId: string;
+}
+
+function emptySyncStats(): SyncStats {
+  return {
+    total: 0,
+    imported: 0,
+    skipped: 0,
+    unmatched: 0,
+    errors: [],
+    linkedToHumans: 0,
+    linkedToAccounts: 0,
+    linkedToRouteSignups: 0,
+    linkedToBookings: 0,
+    linkedToColleagues: 0,
+    linkedToGeneralLeads: 0,
+  };
+}
+
+function mergeStats(target: SyncStats, source: SyncStats) {
+  target.total += source.total;
+  target.imported += source.imported;
+  target.skipped += source.skipped;
+  target.unmatched += source.unmatched;
+  target.errors.push(...source.errors);
+  target.linkedToHumans += source.linkedToHumans;
+  target.linkedToAccounts += source.linkedToAccounts;
+  target.linkedToRouteSignups += source.linkedToRouteSignups;
+  target.linkedToBookings += source.linkedToBookings;
+  target.linkedToColleagues += source.linkedToColleagues;
+  target.linkedToGeneralLeads += source.linkedToGeneralLeads;
+}
+
+/** Process a single conversation and its messages, creating activities. */
+async function processConversation(
+  db: DB,
+  supabase: SupabaseClient,
+  frontToken: string,
+  conversation: FrontConversation,
+  syncRunId: string,
+  existingFrontIds: Set<string>,
+): Promise<SyncStats> {
+  const stats = emptySyncStats();
+
+  // Fetch all messages for this conversation
+  const messagesUrl = `https://api2.frontapp.com/conversations/${conversation.id}/messages`;
+  const msgResponse = await frontFetch<{
+    _results: FrontMessage[];
+    _pagination: FrontPagination;
+  }>(messagesUrl, frontToken);
+
+  // Determine the contact handle from the conversation
+  const contactHandle = conversation.recipient?.handle ?? "";
+
+  // Classify by handle pattern
+  const activityType = classifyChannel(undefined, contactHandle);
+
+  // Match contact
+  const match = await matchContact(db, supabase, contactHandle, activityType);
+
+  for (const message of msgResponse._results) {
+    stats.total++;
+
+    // Skip drafts
+    if (message.is_draft) {
+      stats.skipped++;
+      continue;
+    }
+
+    // Idempotency: skip if this message ID already exists
+    if (existingFrontIds.has(message.id)) {
+      stats.skipped++;
+      continue;
+    }
+
+    // Auto-link colleague based on message author
+    let colleagueId: string | null = null;
+    if (!message.is_inbound && message.author?.handle) {
+      colleagueId = await findColleagueByEmail(db, message.author.handle);
+    } else if (message.is_inbound) {
+      for (const recipient of message.recipients) {
+        if (recipient.role === "to" || recipient.role === "cc") {
+          const cid = await findColleagueByEmail(db, recipient.handle);
+          if (cid) {
+            colleagueId = cid;
+            break;
+          }
+        }
+      }
+    }
+
+    // Build notes with metadata
+    const direction = message.is_inbound ? "Inbound" : "Outbound";
+    const authorInfo = message.author?.name ?? message.author?.handle ?? "Unknown";
+    const contactName = conversation.recipient?.name ?? contactHandle;
+    const noteLines: string[] = [];
+
+    if (!match.matchedEntity) {
+      noteLines.push(`[UNMATCHED] Contact: ${contactName} (${contactHandle})`);
+      stats.unmatched++;
+    }
+
+    noteLines.push(`${direction} from ${authorInfo}`);
+    if (message.text) {
+      noteLines.push(message.text);
+    } else if (message.blurb) {
+      noteLines.push(message.blurb);
+    }
+
+    const subject =
+      conversation.subject ||
+      `${activityType === "email" ? "Email" : activityType === "whatsapp_message" ? "WhatsApp" : "Social"} conversation`;
+    const activityDate = new Date(message.created_at * 1000).toISOString();
+    const displayId = await nextDisplayId(db, "ACT");
+
+    const activity = {
+      id: createId(),
+      displayId,
+      type: activityType,
+      subject: subject.slice(0, 500),
+      body: message.text || message.blurb || null,
+      notes: noteLines.join("\n"),
+      activityDate,
+      humanId: match.humanId,
+      accountId: match.accountId,
+      routeSignupId: match.routeSignupId,
+      websiteBookingRequestId: match.websiteBookingRequestId,
+      generalLeadId: match.generalLeadId,
+      gmailId: null,
+      frontId: message.id,
+      frontConversationId: conversation.id,
+      frontContactHandle: contactHandle || null,
+      syncRunId,
+      colleagueId,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    await db.insert(activities).values(activity);
+    existingFrontIds.add(message.id);
+    stats.imported++;
+
+    // Track linking stats
+    if (match.humanId) stats.linkedToHumans++;
+    if (match.accountId) stats.linkedToAccounts++;
+    if (match.routeSignupId) stats.linkedToRouteSignups++;
+    if (match.websiteBookingRequestId) stats.linkedToBookings++;
+    if (match.generalLeadId) stats.linkedToGeneralLeads++;
+    if (colleagueId) stats.linkedToColleagues++;
+  }
+
+  return stats;
+}
+
+/** Flush accumulated stats to the sync run record in D1. */
+async function updateSyncRunStats(
+  db: DB,
+  syncRunId: string,
+  stats: SyncStats,
+  markComplete: boolean,
+) {
+  await db
+    .update(frontSyncRuns)
+    .set({
+      ...(markComplete
+        ? { status: "completed" as const, completedAt: new Date().toISOString() }
+        : {}),
+      totalMessages: sql`${frontSyncRuns.totalMessages} + ${stats.total}`,
+      imported: sql`${frontSyncRuns.imported} + ${stats.imported}`,
+      skipped: sql`${frontSyncRuns.skipped} + ${stats.skipped}`,
+      unmatched: sql`${frontSyncRuns.unmatched} + ${stats.unmatched}`,
+      errorCount: sql`${frontSyncRuns.errorCount} + ${stats.errors.length}`,
+      errorMessages:
+        stats.errors.length > 0
+          ? JSON.stringify(stats.errors)
+          : undefined,
+      linkedToHumans: sql`${frontSyncRuns.linkedToHumans} + ${stats.linkedToHumans}`,
+      linkedToAccounts: sql`${frontSyncRuns.linkedToAccounts} + ${stats.linkedToAccounts}`,
+      linkedToRouteSignups: sql`${frontSyncRuns.linkedToRouteSignups} + ${stats.linkedToRouteSignups}`,
+      linkedToBookings: sql`${frontSyncRuns.linkedToBookings} + ${stats.linkedToBookings}`,
+      linkedToColleagues: sql`${frontSyncRuns.linkedToColleagues} + ${stats.linkedToColleagues}`,
+      linkedToGeneralLeads: sql`${frontSyncRuns.linkedToGeneralLeads} + ${stats.linkedToGeneralLeads}`,
+    })
+    .where(eq(frontSyncRuns.id, syncRunId));
+}
+
+/** Create a new sync run record and return its ID. */
+export async function createSyncRun(
+  db: DB,
+  initiatedByColleagueId: string | null,
+): Promise<string> {
+  const syncRunId = createId();
+  const displayId = await nextDisplayId(db, "FRY");
+  await db.insert(frontSyncRuns).values({
+    id: syncRunId,
+    displayId,
+    status: "running",
+    startedAt: new Date().toISOString(),
+    initiatedByColleagueId,
+    createdAt: new Date().toISOString(),
+  });
+  return syncRunId;
+}
+
+/** Manual sync: processes one page of conversations (called by admin UI). */
 export async function syncFrontConversations(
   db: DB,
   supabase: SupabaseClient,
@@ -312,41 +560,15 @@ export async function syncFrontConversations(
   limit = 20,
   existingSyncRunId?: string,
 ): Promise<SyncResult> {
-  // Create or fetch sync run
-  let syncRunId: string;
-
-  if (existingSyncRunId) {
-    syncRunId = existingSyncRunId;
-  } else {
-    syncRunId = createId();
-    const displayId = await nextDisplayId(db, "FRY");
-    await db.insert(frontSyncRuns).values({
-      id: syncRunId,
-      displayId,
-      status: "running",
-      startedAt: new Date().toISOString(),
-      initiatedByColleagueId,
-      createdAt: new Date().toISOString(),
-    });
-  }
+  const syncRunId = existingSyncRunId ?? await createSyncRun(db, initiatedByColleagueId);
 
   const result: SyncResult = {
-    total: 0,
-    imported: 0,
-    skipped: 0,
-    unmatched: 0,
-    errors: [],
+    ...emptySyncStats(),
     nextCursor: null,
     syncRunId,
-    linkedToHumans: 0,
-    linkedToAccounts: 0,
-    linkedToRouteSignups: 0,
-    linkedToBookings: 0,
-    linkedToColleagues: 0,
   };
 
   try {
-    // Fetch one page of conversations
     const conversationsUrl =
       cursor ?? `https://api2.frontapp.com/conversations?limit=${limit}`;
     const convResponse = await frontFetch<{
@@ -366,152 +588,19 @@ export async function syncFrontConversations(
 
     for (const conversation of convResponse._results) {
       try {
-        // Fetch all messages for this conversation
-        const messagesUrl = `https://api2.frontapp.com/conversations/${conversation.id}/messages`;
-        const msgResponse = await frontFetch<{
-          _results: FrontMessage[];
-          _pagination: FrontPagination;
-        }>(messagesUrl, frontToken);
-
-        // Determine the contact handle from the conversation
-        const contactHandle = conversation.recipient?.handle ?? "";
-
-        // Classify by handle pattern
-        const activityType = classifyChannel(undefined, contactHandle);
-
-        // Match contact (now includes accountId auto-linking)
-        const match = await matchContact(db, supabase, contactHandle, activityType);
-
-        for (const message of msgResponse._results) {
-          result.total++;
-
-          // Skip drafts
-          if (message.is_draft) {
-            result.skipped++;
-            continue;
-          }
-
-          // Idempotency: skip if this message ID already exists
-          if (existingFrontIds.has(message.id)) {
-            result.skipped++;
-            continue;
-          }
-
-          // Auto-link colleague based on message author
-          let colleagueId: string | null = null;
-          if (!message.is_inbound && message.author?.handle) {
-            // Outbound: check if author is a colleague
-            colleagueId = await findColleagueByEmail(
-              db,
-              message.author.handle,
-            );
-          } else if (message.is_inbound) {
-            // Inbound: check recipients for colleague emails
-            for (const recipient of message.recipients) {
-              if (recipient.role === "to" || recipient.role === "cc") {
-                const cid = await findColleagueByEmail(db, recipient.handle);
-                if (cid) {
-                  colleagueId = cid;
-                  break;
-                }
-              }
-            }
-          }
-
-          // Build notes with metadata
-          const direction = message.is_inbound ? "Inbound" : "Outbound";
-          const authorInfo =
-            message.author?.name ?? message.author?.handle ?? "Unknown";
-          const contactName =
-            conversation.recipient?.name ?? contactHandle;
-          const noteLines: string[] = [];
-
-          if (!match.matchedEntity) {
-            noteLines.push(
-              `[UNMATCHED] Contact: ${contactName} (${contactHandle})`,
-            );
-            result.unmatched++;
-          }
-
-          noteLines.push(`${direction} from ${authorInfo}`);
-          if (message.text) {
-            noteLines.push(message.text);
-          } else if (message.blurb) {
-            noteLines.push(message.blurb);
-          }
-
-          const subject =
-            conversation.subject ||
-            `${activityType === "email" ? "Email" : activityType === "whatsapp_message" ? "WhatsApp" : "Social"} conversation`;
-          const activityDate = new Date(
-            message.created_at * 1000,
-          ).toISOString();
-          const displayId = await nextDisplayId(db, "ACT");
-
-          const activity = {
-            id: createId(),
-            displayId,
-            type: activityType,
-            subject: subject.slice(0, 500),
-            body: message.text || message.blurb || null,
-            notes: noteLines.join("\n"),
-            activityDate,
-            humanId: match.humanId,
-            accountId: match.accountId,
-            routeSignupId: match.routeSignupId,
-            websiteBookingRequestId: match.websiteBookingRequestId,
-            gmailId: null,
-            frontId: message.id,
-            frontConversationId: conversation.id,
-            syncRunId,
-            colleagueId,
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-          };
-
-          await db.insert(activities).values(activity);
-          existingFrontIds.add(message.id);
-          result.imported++;
-
-          // Track linking stats
-          if (match.humanId) result.linkedToHumans++;
-          if (match.accountId) result.linkedToAccounts++;
-          if (match.routeSignupId) result.linkedToRouteSignups++;
-          if (match.websiteBookingRequestId) result.linkedToBookings++;
-          if (colleagueId) result.linkedToColleagues++;
-        }
+        const convStats = await processConversation(
+          db, supabase, frontToken, conversation, syncRunId, existingFrontIds,
+        );
+        mergeStats(result, convStats);
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
         result.errors.push(`Conversation ${conversation.id}: ${msg}`);
       }
     }
 
-    // Update sync run with accumulated stats
     const isComplete = result.nextCursor == null;
-    await db
-      .update(frontSyncRuns)
-      .set({
-        ...(isComplete
-          ? { status: "completed" as const, completedAt: new Date().toISOString() }
-          : {}),
-        totalMessages: sql`${frontSyncRuns.totalMessages} + ${result.total}`,
-        imported: sql`${frontSyncRuns.imported} + ${result.imported}`,
-        skipped: sql`${frontSyncRuns.skipped} + ${result.skipped}`,
-        unmatched: sql`${frontSyncRuns.unmatched} + ${result.unmatched}`,
-        errorCount: sql`${frontSyncRuns.errorCount} + ${result.errors.length}`,
-        errorMessages:
-          result.errors.length > 0
-            ? JSON.stringify(result.errors)
-            : undefined,
-        linkedToHumans: sql`${frontSyncRuns.linkedToHumans} + ${result.linkedToHumans}`,
-        linkedToAccounts: sql`${frontSyncRuns.linkedToAccounts} + ${result.linkedToAccounts}`,
-        linkedToRouteSignups: sql`${frontSyncRuns.linkedToRouteSignups} + ${result.linkedToRouteSignups}`,
-        linkedToBookings: sql`${frontSyncRuns.linkedToBookings} + ${result.linkedToBookings}`,
-        linkedToColleagues: sql`${frontSyncRuns.linkedToColleagues} + ${result.linkedToColleagues}`,
-      })
-      .where(eq(frontSyncRuns.id, syncRunId));
+    await updateSyncRunStats(db, syncRunId, result, isComplete);
   } catch (err) {
-    // Mark sync run as failed
     await db
       .update(frontSyncRuns)
       .set({
@@ -529,12 +618,120 @@ export async function syncFrontConversations(
   return result;
 }
 
+/** Incremental sync: auto-pages through recent conversations (called by cron). */
+export async function syncFrontConversationsIncremental(
+  db: DB,
+  supabase: SupabaseClient,
+  frontToken: string,
+): Promise<SyncResult> {
+  const syncRunId = await createSyncRun(db, null);
+  const result: SyncResult = {
+    ...emptySyncStats(),
+    nextCursor: null,
+    syncRunId,
+  };
+
+  const startTime = Date.now();
+  const WALL_CLOCK_LIMIT_MS = 25_000; // 25s safety valve
+
+  try {
+    // Determine updated_after from last completed sync run
+    const lastRun = await db
+      .select({ startedAt: frontSyncRuns.startedAt })
+      .from(frontSyncRuns)
+      .where(and(eq(frontSyncRuns.status, "completed"), sql`${frontSyncRuns.id} != ${syncRunId}`))
+      .orderBy(sql`${frontSyncRuns.startedAt} DESC`)
+      .limit(1);
+
+    const updatedAfter = lastRun[0]
+      ? Math.floor(new Date(lastRun[0].startedAt).getTime() / 1000)
+      : Math.floor((Date.now() - 24 * 60 * 60 * 1000) / 1000);
+
+    // Pre-fetch existing frontIds for idempotency check
+    const existingActivities = await db
+      .select({ frontId: activities.frontId })
+      .from(activities);
+    const existingFrontIds = new Set(
+      existingActivities.map((a) => a.frontId).filter(Boolean),
+    );
+
+    let nextUrl: string | null = `https://api2.frontapp.com/conversations?limit=20&q[updated_after]=${updatedAfter}`;
+
+    while (nextUrl) {
+      // Wall-clock safety valve
+      if (Date.now() - startTime > WALL_CLOCK_LIMIT_MS) {
+        break;
+      }
+
+      const convResponse = await frontFetch<{
+        _results: FrontConversation[];
+        _pagination: FrontPagination;
+      }>(nextUrl, frontToken);
+
+      for (const conversation of convResponse._results) {
+        if (Date.now() - startTime > WALL_CLOCK_LIMIT_MS) break;
+
+        try {
+          const convStats = await processConversation(
+            db, supabase, frontToken, conversation, syncRunId, existingFrontIds,
+          );
+          mergeStats(result, convStats);
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : String(err);
+          result.errors.push(`Conversation ${conversation.id}: ${msg}`);
+        }
+      }
+
+      nextUrl = convResponse._pagination.next ?? null;
+    }
+
+    await updateSyncRunStats(db, syncRunId, result, true);
+  } catch (err) {
+    await db
+      .update(frontSyncRuns)
+      .set({
+        status: "failed",
+        completedAt: new Date().toISOString(),
+        errorCount: 1,
+        errorMessages: JSON.stringify([
+          err instanceof Error ? err.message : String(err),
+        ]),
+      })
+      .where(eq(frontSyncRuns.id, syncRunId));
+    // Don't throw in cron context — just mark as failed
+  }
+
+  return result;
+}
+
 // --- Sync run management ---
 
 export async function listSyncRuns(db: DB) {
   const runs = await db
-    .select()
+    .select({
+      id: frontSyncRuns.id,
+      displayId: frontSyncRuns.displayId,
+      status: frontSyncRuns.status,
+      startedAt: frontSyncRuns.startedAt,
+      completedAt: frontSyncRuns.completedAt,
+      totalMessages: frontSyncRuns.totalMessages,
+      imported: frontSyncRuns.imported,
+      skipped: frontSyncRuns.skipped,
+      unmatched: frontSyncRuns.unmatched,
+      errorCount: frontSyncRuns.errorCount,
+      errorMessages: frontSyncRuns.errorMessages,
+      linkedToHumans: frontSyncRuns.linkedToHumans,
+      linkedToAccounts: frontSyncRuns.linkedToAccounts,
+      linkedToRouteSignups: frontSyncRuns.linkedToRouteSignups,
+      linkedToBookings: frontSyncRuns.linkedToBookings,
+      linkedToColleagues: frontSyncRuns.linkedToColleagues,
+      linkedToGeneralLeads: frontSyncRuns.linkedToGeneralLeads,
+      initiatedByColleagueId: frontSyncRuns.initiatedByColleagueId,
+      initiatedByName: colleagues.name,
+      createdAt: frontSyncRuns.createdAt,
+    })
     .from(frontSyncRuns)
+    .leftJoin(colleagues, eq(frontSyncRuns.initiatedByColleagueId, colleagues.id))
     .orderBy(frontSyncRuns.startedAt);
   // Reverse for desc order (D1 doesn't always support desc well)
   return runs.reverse();

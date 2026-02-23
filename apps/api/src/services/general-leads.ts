@@ -28,6 +28,8 @@ export async function listGeneralLeads(
       or(
         like(generalLeads.displayId, `%${filters.q}%`),
         like(generalLeads.notes, `%${filters.q}%`),
+        like(generalLeads.email, `%${filters.q}%`),
+        like(generalLeads.phone, `%${filters.q}%`),
       )!,
     );
   }
@@ -44,6 +46,8 @@ export async function listGeneralLeads(
       status: generalLeads.status,
       source: generalLeads.source,
       notes: generalLeads.notes,
+      email: generalLeads.email,
+      phone: generalLeads.phone,
       rejectReason: generalLeads.rejectReason,
       convertedHumanId: generalLeads.convertedHumanId,
       ownerId: generalLeads.ownerId,
@@ -71,6 +75,8 @@ export async function listGeneralLeads(
     const convertedHuman = row.convertedHumanId ? convertedHumans.find((h) => h.id === row.convertedHumanId) : null;
     return {
       ...row,
+      email: row.email,
+      phone: row.phone,
       convertedHumanDisplayId: convertedHuman?.displayId ?? null,
       convertedHumanName: convertedHuman ? `${convertedHuman.firstName} ${convertedHuman.lastName}` : null,
     };
@@ -89,6 +95,8 @@ export async function getGeneralLead(db: DB, id: string) {
       status: generalLeads.status,
       source: generalLeads.source,
       notes: generalLeads.notes,
+      email: generalLeads.email,
+      phone: generalLeads.phone,
       rejectReason: generalLeads.rejectReason,
       convertedHumanId: generalLeads.convertedHumanId,
       ownerId: generalLeads.ownerId,
@@ -135,7 +143,7 @@ export async function getGeneralLead(db: DB, id: string) {
 
 export async function createGeneralLead(
   db: DB,
-  data: { source: string; notes?: string; ownerId?: string },
+  data: { source: string; notes?: string; email?: string | null; phone?: string | null; ownerId?: string },
   colleagueId: string,
 ) {
   const now = new Date().toISOString();
@@ -148,6 +156,8 @@ export async function createGeneralLead(
     status: "open",
     source: data.source,
     notes: data.notes ?? null,
+    email: data.email ?? null,
+    phone: data.phone ?? null,
     ownerId: data.ownerId ?? null,
     createdAt: now,
     updatedAt: now,
@@ -170,7 +180,7 @@ export async function createGeneralLead(
 export async function updateGeneralLead(
   db: DB,
   id: string,
-  data: { notes?: string; ownerId?: string | null },
+  data: { notes?: string; email?: string | null; phone?: string | null; ownerId?: string | null },
   colleagueId: string,
 ) {
   const existing = await db.query.generalLeads.findFirst({
@@ -189,6 +199,16 @@ export async function updateGeneralLead(
     oldValues["notes"] = existing.notes;
     newValues["notes"] = data.notes;
     updateFields["notes"] = data.notes;
+  }
+  if (data.email !== undefined) {
+    oldValues["email"] = existing.email;
+    newValues["email"] = data.email;
+    updateFields["email"] = data.email;
+  }
+  if (data.phone !== undefined) {
+    oldValues["phone"] = existing.phone;
+    newValues["phone"] = data.phone;
+    updateFields["phone"] = data.phone;
   }
   if (data.ownerId !== undefined) {
     if (CLOSED_STATUSES.includes(existing.status)) {
@@ -308,6 +328,13 @@ export async function convertGeneralLead(
     convertedHumanId: humanId,
     updatedAt: now,
   }).where(eq(generalLeads.id, id));
+
+  // Reparent activities from this general lead to the human
+  await db.update(activities).set({
+    humanId,
+    generalLeadId: null,
+    updatedAt: now,
+  }).where(eq(activities.generalLeadId, id));
 
   await logAuditEntry({
     db,

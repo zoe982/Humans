@@ -25,6 +25,8 @@ export const generalLeads = sqliteTable("general_leads", {
   notes: text("notes"),
   rejectReason: text("reject_reason"),
   convertedHumanId: text("converted_human_id").references(() => humans.id),
+  email: text("email"),
+  phone: text("phone"),
   ownerId: text("owner_id").references(() => colleagues.id),
   createdAt: text("created_at").notNull(),
   updatedAt: text("updated_at").notNull(),

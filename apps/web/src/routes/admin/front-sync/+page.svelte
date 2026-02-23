@@ -32,6 +32,9 @@
     linkedToRouteSignups: number;
     linkedToBookings: number;
     linkedToColleagues: number;
+    linkedToGeneralLeads: number;
+    initiatedByColleagueId: string | null;
+    initiatedByName: string | null;
   }
 
   let { data, form } = $props();
@@ -41,7 +44,7 @@
   let batchCount = $state(0);
   let currentSyncRunId = $state<string | null>(null);
   let totals = $state({ imported: 0, skipped: 0, unmatched: 0, errors: 0 });
-  let linkStats = $state({ humans: 0, accounts: 0, routeSignups: 0, bookings: 0, colleagues: 0 });
+  let linkStats = $state({ humans: 0, accounts: 0, routeSignups: 0, bookings: 0, colleagues: 0, generalLeads: 0 });
   let errorMessages = $state<string[]>([]);
   let finished = $state(false);
   let errorMsg = $state("");
@@ -62,6 +65,7 @@
     linkStats.routeSignups += result.linkedToRouteSignups ?? 0;
     linkStats.bookings += result.linkedToBookings ?? 0;
     linkStats.colleagues += result.linkedToColleagues ?? 0;
+    linkStats.generalLeads += result.linkedToGeneralLeads ?? 0;
     if (!currentSyncRunId && result.syncRunId) {
       currentSyncRunId = result.syncRunId;
     }
@@ -172,6 +176,7 @@
             <tr>
               <th>ID</th>
               <th>Status</th>
+              <th>Initiated By</th>
               <th>Started</th>
               <th>Imported</th>
               <th>Skipped</th>
@@ -190,6 +195,9 @@
                     {run.status}
                   </span>
                 </td>
+                <td class="text-text-muted text-xs whitespace-nowrap">
+                  {run.initiatedByColleagueId ? (run.initiatedByName ?? "Unknown") : "System"}
+                </td>
                 <td class="text-text-muted text-xs whitespace-nowrap">{formatDate(run.startedAt)}</td>
                 <td class="text-[var(--badge-green-text)] font-medium">{run.imported}</td>
                 <td class="text-text-secondary">{run.skipped}</td>
@@ -200,8 +208,9 @@
                   {#if run.linkedToAccounts > 0}<span class="mr-1">A:{run.linkedToAccounts}</span>{/if}
                   {#if run.linkedToRouteSignups > 0}<span class="mr-1">RS:{run.linkedToRouteSignups}</span>{/if}
                   {#if run.linkedToBookings > 0}<span class="mr-1">B:{run.linkedToBookings}</span>{/if}
+                  {#if run.linkedToGeneralLeads > 0}<span class="mr-1">GL:{run.linkedToGeneralLeads}</span>{/if}
                   {#if run.linkedToColleagues > 0}<span>C:{run.linkedToColleagues}</span>{/if}
-                  {#if run.linkedToHumans === 0 && run.linkedToAccounts === 0 && run.linkedToRouteSignups === 0 && run.linkedToBookings === 0 && run.linkedToColleagues === 0}
+                  {#if run.linkedToHumans === 0 && run.linkedToAccounts === 0 && run.linkedToRouteSignups === 0 && run.linkedToBookings === 0 && run.linkedToGeneralLeads === 0 && run.linkedToColleagues === 0}
                     —
                   {/if}
                 </td>
@@ -266,8 +275,8 @@
         </div>
       </div>
 
-      {#if linkStats.humans > 0 || linkStats.accounts > 0 || linkStats.routeSignups > 0 || linkStats.bookings > 0 || linkStats.colleagues > 0}
-        <div class="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-5">
+      {#if linkStats.humans > 0 || linkStats.accounts > 0 || linkStats.routeSignups > 0 || linkStats.bookings > 0 || linkStats.generalLeads > 0 || linkStats.colleagues > 0}
+        <div class="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
           <div class="rounded-lg border border-glass-border bg-glass-bg p-3">
             <p class="text-xs font-medium uppercase text-text-muted">Humans</p>
             <p class="mt-1 text-lg font-bold text-text-primary">{linkStats.humans}</p>
@@ -283,6 +292,10 @@
           <div class="rounded-lg border border-glass-border bg-glass-bg p-3">
             <p class="text-xs font-medium uppercase text-text-muted">Bookings</p>
             <p class="mt-1 text-lg font-bold text-text-primary">{linkStats.bookings}</p>
+          </div>
+          <div class="rounded-lg border border-glass-border bg-glass-bg p-3">
+            <p class="text-xs font-medium uppercase text-text-muted">General Leads</p>
+            <p class="mt-1 text-lg font-bold text-text-primary">{linkStats.generalLeads}</p>
           </div>
           <div class="rounded-lg border border-glass-border bg-glass-bg p-3">
             <p class="text-xs font-medium uppercase text-text-muted">Colleagues</p>

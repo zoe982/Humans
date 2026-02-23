@@ -18,6 +18,9 @@ interface SyncRun {
   linkedToRouteSignups: number;
   linkedToBookings: number;
   linkedToColleagues: number;
+  linkedToGeneralLeads: number;
+  initiatedByColleagueId: string | null;
+  initiatedByName: string | null;
 }
 
 function isSyncRunData(value: unknown): value is { data: SyncRun[] } {

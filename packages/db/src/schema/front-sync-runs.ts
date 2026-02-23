@@ -30,6 +30,7 @@ export const frontSyncRuns = sqliteTable("front_sync_runs", {
     .default(0),
   linkedToBookings: integer("linked_to_bookings").notNull().default(0),
   linkedToColleagues: integer("linked_to_colleagues").notNull().default(0),
+  linkedToGeneralLeads: integer("linked_to_general_leads").notNull().default(0),
   initiatedByColleagueId: text("initiated_by_colleague_id").references(
     () => colleagues.id,
   ),

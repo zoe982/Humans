@@ -49,6 +49,24 @@
     </div>
 
     <div>
+      <label for="email" class="block text-sm font-medium text-text-secondary mb-1">Email</label>
+      <input
+        id="email" name="email" type="email"
+        class="glass-input block w-full px-3 py-2 text-sm"
+        placeholder="Contact email..."
+      />
+    </div>
+
+    <div>
+      <label for="phone" class="block text-sm font-medium text-text-secondary mb-1">Phone</label>
+      <input
+        id="phone" name="phone" type="tel"
+        class="glass-input block w-full px-3 py-2 text-sm"
+        placeholder="Contact phone..."
+      />
+    </div>
+
+    <div>
       <label for="ownerId" class="block text-sm font-medium text-text-secondary mb-1">Owner</label>
       <SearchableSelect
         options={colleagueOptions}

@@ -41,6 +41,8 @@ export const actions = {
       source: form.get("source"),
       notes: form.get("notes") || undefined,
       ownerId: form.get("ownerId") || undefined,
+      email: form.get("email") || undefined,
+      phone: form.get("phone") || undefined,
     };
 
     const res = await fetch(`${PUBLIC_API_URL}/api/general-leads`, {

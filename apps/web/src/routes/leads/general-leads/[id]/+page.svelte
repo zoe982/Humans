@@ -24,6 +24,8 @@
     source: string;
     notes: string | null;
     rejectReason: string | null;
+    email: string | null;
+    phone: string | null;
     ownerName: string | null;
     ownerId: string | null;
     convertedHumanId: string | null;
@@ -188,6 +190,18 @@
         <dt class="text-sm font-medium text-text-muted">Owner</dt>
         <dd class="mt-1 text-sm text-text-primary">{lead.ownerName ?? "—"}</dd>
       </div>
+      {#if lead.email}
+        <div>
+          <dt class="text-sm font-medium text-text-muted">Email</dt>
+          <dd class="mt-1 text-sm text-text-primary">{lead.email}</dd>
+        </div>
+      {/if}
+      {#if lead.phone}
+        <div>
+          <dt class="text-sm font-medium text-text-muted">Phone</dt>
+          <dd class="mt-1 text-sm text-text-primary">{lead.phone}</dd>
+        </div>
+      {/if}
       <div>
         <dt class="text-sm font-medium text-text-muted">Created</dt>
         <dd class="mt-1 text-sm text-text-primary">{formatDatetime(lead.createdAt)}</dd>
@@ -225,6 +239,34 @@
       >{lead.notes ?? ""}</textarea>
       <div class="mt-2 flex justify-end">
         <Button type="submit" size="sm">Save Notes</Button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Contact Info (editable) -->
+  <div class="glass-card p-6 mb-6">
+    <h2 class="text-lg font-semibold text-text-primary">Contact Info</h2>
+    <form method="POST" action="?/updateContact" class="mt-3 grid grid-cols-2 gap-4">
+      <div>
+        <label for="email" class="block text-sm font-medium text-text-muted mb-1">Email</label>
+        <input
+          id="email" name="email" type="email"
+          class="glass-input block w-full px-3 py-2 text-sm"
+          placeholder="Contact email..."
+          value={lead.email ?? ""}
+        />
+      </div>
+      <div>
+        <label for="phone" class="block text-sm font-medium text-text-muted mb-1">Phone</label>
+        <input
+          id="phone" name="phone" type="tel"
+          class="glass-input block w-full px-3 py-2 text-sm"
+          placeholder="Contact phone..."
+          value={lead.phone ?? ""}
+        />
+      </div>
+      <div class="col-span-2 flex justify-end">
+        <Button type="submit" size="sm">Save Contact</Button>
       </div>
     </form>
   </div>

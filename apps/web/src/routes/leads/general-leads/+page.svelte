@@ -14,6 +14,8 @@
     status: string;
     source: string;
     notes: string | null;
+    email: string | null;
+    phone: string | null;
     ownerName: string | null;
     convertedHumanDisplayId: string | null;
     convertedHumanId: string | null;
@@ -44,6 +46,7 @@
     { key: "displayId", label: "Lead Code" },
     { key: "status", label: "Status" },
     { key: "source", label: "Source" },
+    { key: "email", label: "Email" },
     { key: "owner", label: "Owner" },
     { key: "notes", label: "Notes" },
     { key: "createdAt", label: "Created" },
@@ -102,6 +105,7 @@
         {generalLeadSourceLabels[lead.source] ?? lead.source}
       </span>
     </td>
+    <td class="text-text-secondary text-sm">{lead.email ?? "\u2014"}</td>
     <td class="text-text-secondary">{lead.ownerName ?? "\u2014"}</td>
     <td class="text-text-muted max-w-xs truncate">{lead.notes ?? "\u2014"}</td>
     <td class="text-text-muted whitespace-nowrap">{new Date(lead.createdAt).toLocaleDateString()}</td>
@@ -128,6 +132,9 @@
       </div>
       {#if lead.ownerName}
         <p class="text-sm text-text-secondary">{lead.ownerName}</p>
+      {/if}
+      {#if lead.email}
+        <p class="text-sm text-text-secondary">{lead.email}</p>
       {/if}
       {#if lead.notes}
         <p class="text-sm text-text-muted truncate mt-1">{lead.notes}</p>

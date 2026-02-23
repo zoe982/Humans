@@ -64,6 +64,32 @@ export const actions = {
     return { success: true };
   },
 
+  updateContact: async ({ request, cookies, params }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
+    const form = await request.formData();
+    const sessionToken = cookies.get("humans_session");
+    const email = form.get("email") as string;
+    const phone = form.get("phone") as string;
+
+    const res = await fetch(`${PUBLIC_API_URL}/api/general-leads/${params.id}`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        Cookie: `humans_session=${sessionToken ?? ""}`,
+      },
+      body: JSON.stringify({
+        email: email || null,
+        phone: phone || null,
+      }),
+    });
+
+    if (!res.ok) {
+      const resBody: unknown = await res.json();
+      return failFromApi(resBody, res.status, "Failed to update contact info");
+    }
+
+    return { success: true };
+  },
+
   updateStatus: async ({ request, cookies, params }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
     const form = await request.formData();
     const sessionToken = cookies.get("humans_session");

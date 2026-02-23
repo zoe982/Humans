@@ -25,6 +25,7 @@ import { ERROR_CODES } from "@humans/shared";
 import { computeDiff, logAuditEntry } from "../lib/audit";
 import { notFound } from "../lib/errors";
 import { nextDisplayId } from "../lib/display-id";
+import { rematchActivitiesByEmail, rematchActivitiesByPhone } from "./activity-rematch";
 import type { DB } from "./types";
 
 export async function listHumans(db: DB, page: number, limit: number, search?: string) {
@@ -213,6 +214,11 @@ export async function createHuman(
       type,
       createdAt: now,
     });
+  }
+
+  // Rematch unlinked activities by email/phone
+  for (const email of data.emails) {
+    await rematchActivitiesByEmail(db, humanId, email.email);
   }
 
   return { id: humanId, displayId };

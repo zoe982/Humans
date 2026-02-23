@@ -31,7 +31,8 @@ import { generalLeadRoutes } from "./routes/general-leads";
 import { flightRoutes } from "./routes/flights";
 import { referralCodeRoutes } from "./routes/referral-codes";
 import { opportunityCadenceRoutes } from "./routes/opportunity-cadence";
-import type { AppContext } from "./types";
+import { runScheduledFrontSync } from "./scheduled/front-sync";
+import type { AppContext, Env } from "./types";
 
 const app = new Hono<AppContext>();
 
@@ -78,4 +79,9 @@ app.route("/", flightRoutes);
 app.route("/", referralCodeRoutes);
 app.route("/", opportunityCadenceRoutes);
 
-export default app;
+export default {
+  fetch: app.fetch,
+  async scheduled(event: ScheduledEvent, env: Env, ctx: ExecutionContext) {
+    ctx.waitUntil(runScheduledFrontSync(env));
+  },
+};

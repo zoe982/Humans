@@ -213,6 +213,7 @@ const MIGRATION_STATEMENTS = [
     \`linked_to_route_signups\` integer NOT NULL DEFAULT 0,
     \`linked_to_bookings\` integer NOT NULL DEFAULT 0,
     \`linked_to_colleagues\` integer NOT NULL DEFAULT 0,
+    \`linked_to_general_leads\` integer NOT NULL DEFAULT 0,
     \`initiated_by_colleague_id\` text REFERENCES \`colleagues\`(\`id\`),
     \`created_at\` text NOT NULL
   )`,
@@ -226,6 +227,8 @@ const MIGRATION_STATEMENTS = [
     \`notes\` text,
     \`reject_reason\` text,
     \`converted_human_id\` text REFERENCES \`humans\`(\`id\`),
+    \`email\` text,
+    \`phone\` text,
     \`owner_id\` text REFERENCES \`colleagues\`(\`id\`),
     \`created_at\` text NOT NULL,
     \`updated_at\` text NOT NULL
@@ -249,6 +252,7 @@ const MIGRATION_STATEMENTS = [
     \`gmail_id\` text,
     \`front_id\` text,
     \`front_conversation_id\` text,
+    \`front_contact_handle\` text,
     \`sync_run_id\` text REFERENCES \`front_sync_runs\`(\`id\`),
     \`colleague_id\` text REFERENCES \`colleagues\`(\`id\`),
     \`created_by_user_id\` text REFERENCES \`colleagues\`(\`id\`),

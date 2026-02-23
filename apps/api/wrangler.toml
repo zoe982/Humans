@@ -30,6 +30,9 @@ bucket_name = "humans-documents"
 # [[queues.consumers]]
 # queue = "humans-audit"
 
+[triggers]
+crons = ["*/15 * * * *"]
+
 [[routes]]
 pattern = "api.humans.pavinfo.app"
 custom_domain = true

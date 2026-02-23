@@ -147,6 +147,9 @@ export function buildActivity(overrides: Partial<{
   generalLeadId: string | null;
   gmailId: string | null;
   frontId: string | null;
+  frontConversationId: string | null;
+  frontContactHandle: string | null;
+  websiteBookingRequestId: string | null;
   syncRunId: string | null;
   colleagueId: string | null;
   createdAt: string;
@@ -164,10 +167,13 @@ export function buildActivity(overrides: Partial<{
     humanId: null,
     accountId: null,
     routeSignupId: null,
+    websiteBookingRequestId: null,
     opportunityId: null,
     generalLeadId: null,
     gmailId: null,
     frontId: null,
+    frontConversationId: null,
+    frontContactHandle: null,
     syncRunId: null,
     colleagueId: createId(),
     createdAt: ts,
@@ -402,6 +408,8 @@ export function buildGeneralLead(overrides: Partial<{
   notes: string | null;
   rejectReason: string | null;
   convertedHumanId: string | null;
+  email: string | null;
+  phone: string | null;
   ownerId: string | null;
   createdAt: string;
   updatedAt: string;
@@ -415,6 +423,8 @@ export function buildGeneralLead(overrides: Partial<{
     notes: null,
     rejectReason: null,
     convertedHumanId: null,
+    email: null,
+    phone: null,
     ownerId: null,
     createdAt: ts,
     updatedAt: ts,
