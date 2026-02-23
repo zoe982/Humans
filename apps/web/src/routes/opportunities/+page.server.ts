@@ -25,6 +25,7 @@ export const load = async ({ locals, cookies, url }: RequestEvent) => {
   const q = url.searchParams.get("q") ?? "";
   const stage = url.searchParams.get("stage") ?? "";
   const ownerId = url.searchParams.get("ownerId") ?? "";
+  const dealOwnerId = url.searchParams.get("dealOwnerId") ?? "";
   const overdueOnly = url.searchParams.get("overdueOnly") === "true";
 
   const params = new URLSearchParams();
@@ -33,6 +34,7 @@ export const load = async ({ locals, cookies, url }: RequestEvent) => {
   if (q) params.set("q", q);
   if (stage) params.set("stage", stage);
   if (ownerId) params.set("ownerId", ownerId);
+  if (dealOwnerId) params.set("dealOwnerId", dealOwnerId);
   if (overdueOnly) params.set("overdueOnly", "true");
 
   const headers = { Cookie: `humans_session=${sessionToken ?? ""}` };
@@ -65,6 +67,7 @@ export const load = async ({ locals, cookies, url }: RequestEvent) => {
     q,
     stage,
     ownerId,
+    dealOwnerId,
     overdueOnly,
     userRole: locals.user?.role ?? "viewer",
   };

@@ -46,9 +46,10 @@ opportunityRoutes.get("/api/opportunities", requirePermission("viewRecords"), as
   const q = c.req.query("q") || undefined;
   const stage = c.req.query("stage") || undefined;
   const ownerId = c.req.query("ownerId") || undefined;
+  const dealOwnerId = c.req.query("dealOwnerId") || undefined;
   const overdueOnly = c.req.query("overdue") === "true";
   const humanId = c.req.query("humanId") || undefined;
-  const result = await listOpportunities(db, page, limit, { q, stage, ownerId, overdueOnly, humanId });
+  const result = await listOpportunities(db, page, limit, { q, stage, ownerId, dealOwnerId, overdueOnly, humanId });
   return c.json(result);
 });
 

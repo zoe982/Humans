@@ -19,6 +19,9 @@
     passengerSeats: number;
     petSeats: number;
     primaryHumanName: string | null;
+    ownerId: string | null;
+    ownerName: string | null;
+    ownerDisplayId: string | null;
     nextActionOwnerName: string | null;
     nextActionDueDate: string | null;
     isOverdue: boolean;
@@ -36,6 +39,7 @@
     if (data.q) params.set("q", data.q);
     if (data.stage) params.set("stage", data.stage);
     if (data.ownerId) params.set("ownerId", data.ownerId);
+    if (data.dealOwnerId) params.set("dealOwnerId", data.dealOwnerId);
     if (data.overdueOnly) params.set("overdueOnly", "true");
     const qs = params.toString();
     return `/opportunities${qs ? `?${qs}` : ""}`;
@@ -57,6 +61,7 @@
     { key: "pets", label: "Pets" },
     { key: "dueDate", label: "Next Action Due" },
     { key: "owner", label: "Owner" },
+    { key: "naOwner", label: "NA Owner" },
     { key: "updatedAt", label: "Last Touched" },
   ]}
   deleteAction="?/delete"
@@ -83,11 +88,21 @@
       <div class="w-48">
         <SearchableSelect
           options={colleagueOptions}
+          name="dealOwnerId"
+          id="dealOwnerFilter"
+          value={data.dealOwnerId ?? ""}
+          emptyOption="All Owners"
+          placeholder="Filter owner..."
+        />
+      </div>
+      <div class="w-48">
+        <SearchableSelect
+          options={colleagueOptions}
           name="ownerId"
           id="ownerFilter"
           value={data.ownerId ?? ""}
-          emptyOption="All Owners"
-          placeholder="Filter owner..."
+          emptyOption="All NA Owners"
+          placeholder="Filter NA owner..."
         />
       </div>
       <label class="flex items-center gap-2 text-sm text-text-secondary">
@@ -95,7 +110,7 @@
         Overdue only
       </label>
       <Button type="submit" size="sm">Search</Button>
-      {#if data.q || data.stage || data.ownerId || data.overdueOnly}
+      {#if data.q || data.stage || data.ownerId || data.dealOwnerId || data.overdueOnly}
         <a href="/opportunities" class="btn-ghost text-sm">Clear</a>
       {/if}
     </form>
@@ -122,8 +137,15 @@
         <span class="text-text-muted">&mdash;</span>
       {/if}
     </td>
-    <td class="text-text-secondary text-sm">{opp.nextActionOwnerName ?? "\u2014"}</td>
-    <td class="text-text-muted text-sm">{opp.updatedAt ? new Date(opp.updatedAt).toLocaleDateString() : "\u2014"}</td>
+    <td class="text-text-secondary text-sm">
+      {#if opp.ownerName}
+        <span class="font-mono">{opp.ownerDisplayId}</span> — {opp.ownerName}
+      {:else}
+        —
+      {/if}
+    </td>
+    <td class="text-text-secondary text-sm">{opp.nextActionOwnerName ?? "—"}</td>
+    <td class="text-text-muted text-sm">{opp.updatedAt ? new Date(opp.updatedAt).toLocaleDateString() : "—"}</td>
   {/snippet}
   {#snippet mobileCard(opp)}
     <a href="/opportunities/{opp.id}" class="glass-card p-4 block hover:ring-1 hover:ring-accent/40 transition">
@@ -135,6 +157,9 @@
       <div class="flex items-center gap-3 text-sm text-text-secondary">
         <span>{opp.passengerSeats} pax</span>
         <span>{opp.petSeats} pet{opp.petSeats !== 1 ? "s" : ""}</span>
+        {#if opp.ownerName}
+          <span>{opp.ownerName}</span>
+        {/if}
         {#if opp.isOverdue}
           <span class="glass-badge badge-red text-xs">Overdue</span>
         {/if}

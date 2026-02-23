@@ -25,6 +25,7 @@ export const opportunities = sqliteTable("opportunities", {
   petSeats: integer("pet_seats").notNull().default(0),
   notes: text("notes"),
   lossReason: text("loss_reason"),
+  ownerId: text("owner_id").references(() => colleagues.id),
   nextActionOwnerId: text("next_action_owner_id").references(() => colleagues.id),
   nextActionDescription: text("next_action_description"),
   nextActionType: text("next_action_type"),

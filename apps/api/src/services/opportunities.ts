@@ -25,13 +25,14 @@ export async function listOpportunities(
   db: DB,
   page: number,
   limit: number,
-  filters: { q?: string; stage?: string; ownerId?: string; overdueOnly?: boolean; humanId?: string },
+  filters: { q?: string; stage?: string; ownerId?: string; dealOwnerId?: string; overdueOnly?: boolean; humanId?: string },
 ) {
   const offset = (page - 1) * limit;
   const conditions: ReturnType<typeof eq>[] = [];
 
   if (filters.stage) conditions.push(eq(opportunities.stage, filters.stage));
   if (filters.ownerId) conditions.push(eq(opportunities.nextActionOwnerId, filters.ownerId));
+  if (filters.dealOwnerId) conditions.push(eq(opportunities.ownerId, filters.dealOwnerId));
   if (filters.overdueOnly) {
     const now = new Date().toISOString();
     conditions.push(sql`${opportunities.nextActionDueDate} < ${now}`);
@@ -86,10 +87,16 @@ export async function listOpportunities(
   const roleConfigs = await db.select().from(opportunityHumanRolesConfig);
   const primaryRoleId = roleConfigs.find((r) => r.name === "primary")?.id;
 
-  // Fetch owner names
-  const ownerIds = rows.map((r) => r.nextActionOwnerId).filter((id): id is string => id != null);
-  const owners = ownerIds.length > 0
-    ? await db.select({ id: colleagues.id, name: colleagues.name }).from(colleagues).where(inArray(colleagues.id, ownerIds))
+  // Fetch NA owner names
+  const naOwnerIds = rows.map((r) => r.nextActionOwnerId).filter((id): id is string => id != null);
+  const naOwners = naOwnerIds.length > 0
+    ? await db.select({ id: colleagues.id, name: colleagues.name }).from(colleagues).where(inArray(colleagues.id, naOwnerIds))
+    : [];
+
+  // Fetch deal owner names + displayIds
+  const dealOwnerIds = rows.map((r) => r.ownerId).filter((id): id is string => id != null);
+  const dealOwners = dealOwnerIds.length > 0
+    ? await db.select({ id: colleagues.id, name: colleagues.name, displayId: colleagues.displayId }).from(colleagues).where(inArray(colleagues.id, dealOwnerIds))
     : [];
 
   const now = new Date().toISOString();
@@ -97,14 +104,17 @@ export async function listOpportunities(
   const data = rows.map((opp) => {
     const oppHumans = linkedHumans.filter((h) => h.opportunityId === opp.id);
     const primary = oppHumans.find((h) => h.roleId === primaryRoleId) ?? oppHumans[0] ?? null;
-    const owner = opp.nextActionOwnerId ? owners.find((o) => o.id === opp.nextActionOwnerId) : null;
+    const naOwner = opp.nextActionOwnerId ? naOwners.find((o) => o.id === opp.nextActionOwnerId) : null;
+    const dealOwner = opp.ownerId ? dealOwners.find((o) => o.id === opp.ownerId) : null;
     const isOverdue = opp.nextActionDueDate != null && opp.nextActionCompletedAt == null && opp.nextActionDueDate < now;
 
     return {
       ...opp,
       primaryHuman: primary ? { id: primary.humanId, displayId: primary.displayId, firstName: primary.firstName, lastName: primary.lastName } : null,
       primaryHumanName: primary ? `${primary.firstName} ${primary.lastName}` : null,
-      nextActionOwnerName: owner?.name ?? null,
+      nextActionOwnerName: naOwner?.name ?? null,
+      ownerName: dealOwner?.name ?? null,
+      ownerDisplayId: dealOwner?.displayId ?? null,
       isOverdue,
     };
   });
@@ -175,13 +185,24 @@ export async function getOpportunityDetail(db: DB, id: string) {
     };
   });
 
-  // Owner name
+  // NA Owner name
   let nextActionOwnerName: string | null = null;
   if (opp.nextActionOwnerId) {
     const owner = await db.query.colleagues.findFirst({
       where: eq(colleagues.id, opp.nextActionOwnerId),
     });
     nextActionOwnerName = owner?.name ?? null;
+  }
+
+  // Deal owner name + displayId
+  let ownerName: string | null = null;
+  let ownerDisplayId: string | null = null;
+  if (opp.ownerId) {
+    const dealOwner = await db.query.colleagues.findFirst({
+      where: eq(colleagues.id, opp.ownerId),
+    });
+    ownerName = dealOwner?.name ?? null;
+    ownerDisplayId = dealOwner?.displayId ?? null;
   }
 
   // Linked booking requests
@@ -200,6 +221,8 @@ export async function getOpportunityDetail(db: DB, id: string) {
     linkedBookingRequests,
     activities: oppActivities,
     nextActionOwnerName,
+    ownerName,
+    ownerDisplayId,
     isOverdue,
   };
 }
@@ -223,6 +246,8 @@ export async function createOpportunity(
     passengerSeats: data.passengerSeats ?? 1,
     petSeats: data.petSeats ?? 0,
     lossReason: data.lossReason ?? null,
+    ownerId: colleagueId,
+    nextActionOwnerId: colleagueId,
     createdAt: now,
     updatedAt: now,
   });
@@ -244,7 +269,7 @@ export async function createOpportunity(
 export async function updateOpportunity(
   db: DB,
   id: string,
-  data: { seatsRequested?: number; passengerSeats?: number; petSeats?: number; notes?: string | null; lossReason?: string | null; flightId?: string | null },
+  data: { seatsRequested?: number; passengerSeats?: number; petSeats?: number; notes?: string | null; lossReason?: string | null; flightId?: string | null; ownerId?: string | null },
   colleagueId: string,
 ) {
   const existing = await db.query.opportunities.findFirst({
@@ -288,6 +313,11 @@ export async function updateOpportunity(
     oldValues["flightId"] = existing.flightId;
     newValues["flightId"] = data.flightId;
     updateFields["flightId"] = data.flightId;
+  }
+  if (data.ownerId !== undefined) {
+    oldValues["ownerId"] = existing.ownerId;
+    newValues["ownerId"] = data.ownerId;
+    updateFields["ownerId"] = data.ownerId;
   }
 
   await db.update(opportunities).set(updateFields).where(eq(opportunities.id, id));

@@ -39,6 +39,7 @@ export const updateOpportunitySchema = z.object({
   notes: z.string().max(10000).optional().nullable(),
   lossReason: z.string().max(2000).optional().nullable(),
   flightId: z.string().uuid().optional().nullable(),
+  ownerId: z.string().min(1).optional().nullable(),
 });
 
 export const updateOpportunityStageSchema = z

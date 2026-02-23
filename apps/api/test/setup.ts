@@ -338,6 +338,7 @@ const MIGRATION_STATEMENTS = [
     \`passenger_seats\` integer NOT NULL DEFAULT 1,
     \`pet_seats\` integer NOT NULL DEFAULT 0,
     \`loss_reason\` text,
+    \`owner_id\` text REFERENCES \`colleagues\`(\`id\`),
     \`next_action_owner_id\` text REFERENCES \`colleagues\`(\`id\`),
     \`next_action_description\` text,
     \`next_action_type\` text,

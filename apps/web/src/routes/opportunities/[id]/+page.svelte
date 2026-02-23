@@ -62,6 +62,9 @@
     notes: string | null;
     lossReason: string | null;
     flightId: string | null;
+    ownerId: string | null;
+    ownerName: string | null;
+    ownerDisplayId: string | null;
     nextActionOwnerId: string | null;
     nextActionOwnerName: string | null;
     nextActionDescription: string | null;
@@ -139,6 +142,7 @@
   let petSeats = $state(0);
   let notes = $state("");
   let lossReason = $state("");
+  let dealOwnerId = $state("");
   let saveStatus = $state<SaveStatus>("idle");
   let initialized = $state(false);
 
@@ -178,6 +182,7 @@
     petSeats = opp.petSeats ?? 0;
     notes = opp.notes ?? "";
     lossReason = opp.lossReason ?? "";
+    dealOwnerId = opp.ownerId ?? "";
     naOwnerId = opp.nextActionOwnerId ?? data.currentColleagueId ?? "";
     naDescription = opp.nextActionDescription ?? "";
     naType = opp.nextActionType ?? "email";
@@ -211,7 +216,7 @@
 
   function triggerSave() {
     if (!initialized) return;
-    autoSaver.save({ passengerSeats, petSeats, notes: notes || null, lossReason: lossReason || null });
+    autoSaver.save({ passengerSeats, petSeats, notes: notes || null, lossReason: lossReason || null, ownerId: dealOwnerId || null });
   }
 
   function triggerNaSave() {
@@ -397,26 +402,40 @@
       <SaveIndicator status={saveStatus} />
     </div>
 
-    <div class="grid gap-4 sm:grid-cols-3">
+    <div class="grid gap-4 sm:grid-cols-2">
       <div>
-        <label for="passengerSeats" class="block text-sm font-medium text-text-secondary">Passenger (Human) Seats</label>
-        <input
-          id="passengerSeats" type="number" min="0"
-          bind:value={passengerSeats}
-          oninput={triggerSave}
-          class="glass-input mt-1 block w-full"
+        <label for="dealOwner" class="block text-sm font-medium text-text-secondary">Owner</label>
+        <SearchableSelect
+          options={colleagueOptions}
+          name="dealOwner"
+          id="dealOwner"
+          value={dealOwnerId}
+          emptyOption="Select owner..."
+          placeholder="Search colleagues..."
+          onSelect={(value) => { dealOwnerId = value; triggerSave(); }}
         />
       </div>
-      <div>
-        <label for="petSeats" class="block text-sm font-medium text-text-secondary">Pet Seats</label>
-        <input
-          id="petSeats" type="number" min="0"
-          bind:value={petSeats}
-          oninput={triggerSave}
-          class="glass-input mt-1 block w-full"
-        />
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <label for="passengerSeats" class="block text-sm font-medium text-text-secondary">Passenger (Human) Seats</label>
+          <input
+            id="passengerSeats" type="number" min="0"
+            bind:value={passengerSeats}
+            oninput={triggerSave}
+            class="glass-input mt-1 block w-full"
+          />
+        </div>
+        <div>
+          <label for="petSeats" class="block text-sm font-medium text-text-secondary">Pet Seats</label>
+          <input
+            id="petSeats" type="number" min="0"
+            bind:value={petSeats}
+            oninput={triggerSave}
+            class="glass-input mt-1 block w-full"
+          />
+        </div>
       </div>
-      <div>
+      <div class="sm:col-span-2">
         <label for="linkedFlight" class="block text-sm font-medium text-text-secondary">Linked Flight</label>
         {#if linkedFlight}
           <div class="flex items-center gap-2 mt-1 h-10">
@@ -443,7 +462,7 @@
         {/if}
       </div>
       {#if opportunity.stage === "closed_lost"}
-        <div class="sm:col-span-3">
+        <div class="sm:col-span-2">
           <label for="lossReason" class="block text-sm font-medium text-text-secondary">Loss Reason</label>
           <textarea
             id="lossReason" rows="2"
