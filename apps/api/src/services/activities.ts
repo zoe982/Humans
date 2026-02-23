@@ -157,6 +157,7 @@ export async function createActivity(
     routeSignupId?: string | null;
     websiteBookingRequestId?: string | null;
     generalLeadId?: string | null;
+    opportunityId?: string | null;
     gmailId?: string | null;
     frontId?: string | null;
     frontConversationId?: string | null;
@@ -180,6 +181,7 @@ export async function createActivity(
     routeSignupId: data.routeSignupId ?? null,
     websiteBookingRequestId: data.websiteBookingRequestId ?? null,
     generalLeadId: data.generalLeadId ?? null,
+    opportunityId: data.opportunityId ?? null,
     gmailId: data.gmailId ?? null,
     frontId: data.frontId ?? null,
     frontConversationId: data.frontConversationId ?? null,

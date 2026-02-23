@@ -3,7 +3,7 @@ import { SELF } from "cloudflare:test";
 import { describe, it, expect } from "vitest";
 import { createUserAndSession, sessionCookie, getDb } from "../helpers";
 import * as schema from "@humans/db/schema";
-import { buildHuman, buildAccount, buildActivity } from "@humans/test-utils";
+import { buildHuman, buildAccount, buildActivity, buildOpportunity } from "@humans/test-utils";
 
 describe("GET /api/activities", () => {
   it("returns 401 when unauthenticated", async () => {
@@ -151,6 +151,27 @@ describe("POST /api/activities", () => {
     expect(res.status).toBe(201);
     const body = (await res.json()) as { data: { id: string; accountId: string } };
     expect(body.data.accountId).toBe(account.id);
+  });
+
+  it("creates activity with opportunityId and returns 201", async () => {
+    const db = getDb();
+    const opportunity = buildOpportunity();
+    await db.insert(schema.opportunities).values(opportunity);
+
+    const { token } = await createUserAndSession("agent");
+    const res = await SELF.fetch("http://localhost/api/activities", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Cookie: sessionCookie(token) },
+      body: JSON.stringify({
+        type: "phone_call",
+        activityDate: new Date().toISOString(),
+        opportunityId: opportunity.id,
+      }),
+    });
+    expect(res.status).toBe(201);
+    const body = (await res.json()) as { data: { id: string; opportunityId: string } };
+    expect(body.data.id).toBeDefined();
+    expect(body.data.opportunityId).toBe(opportunity.id);
   });
 
   it("returns 400 when email type is missing subject", async () => {
