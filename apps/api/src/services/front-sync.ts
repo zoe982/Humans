@@ -451,11 +451,34 @@ async function processConversation(
   // Determine the contact handle from the conversation
   const contactHandle = conversation.recipient?.handle ?? "";
 
+  // If the conversation recipient is a colleague (e.g., team member
+  // CC'd the shared inbox from personal email), find the actual
+  // external contact from message recipients.
+  let effectiveContactHandle = contactHandle;
+  let senderColleagueId: string | null = null;
+
+  if (contactHandle) {
+    const recipientColleagueId = findColleagueByEmail(cache, contactHandle);
+    if (recipientColleagueId) {
+      senderColleagueId = recipientColleagueId;
+      // Look through messages for the actual external "to" recipient
+      for (const message of msgResponse._results) {
+        for (const r of message.recipients) {
+          if (r.role === "to" && !findColleagueByEmail(cache, r.handle)) {
+            effectiveContactHandle = r.handle;
+            break;
+          }
+        }
+        if (effectiveContactHandle !== contactHandle) break;
+      }
+    }
+  }
+
   // Classify by handle pattern
-  const activityType = classifyChannel(undefined, contactHandle);
+  const activityType = classifyChannel(undefined, effectiveContactHandle);
 
   // Match contact
-  const match = matchContact(cache, contactHandle, activityType);
+  const match = matchContact(cache, effectiveContactHandle, activityType);
 
   // If no match, skip entire conversation and record unmatched contact
   if (!match.matchedEntity) {
@@ -516,6 +539,17 @@ async function processConversation(
           }
         }
       }
+      // If no colleague found in to/cc, check if the "from" is a colleague
+      if (!colleagueId) {
+        const fromRecipient = message.recipients.find(r => r.role === "from");
+        if (fromRecipient) {
+          colleagueId = findColleagueByEmail(cache, fromRecipient.handle);
+        }
+      }
+    }
+    // Final fallback: use the senderColleagueId from conversation recipient
+    if (!colleagueId && senderColleagueId) {
+      colleagueId = senderColleagueId;
     }
 
     // Build notes with metadata
@@ -552,7 +586,7 @@ async function processConversation(
       gmailId: null,
       frontId: message.id,
       frontConversationId: conversation.id,
-      frontContactHandle: contactHandle || null,
+      frontContactHandle: effectiveContactHandle || null,
       syncRunId,
       colleagueId,
       createdAt: new Date().toISOString(),
