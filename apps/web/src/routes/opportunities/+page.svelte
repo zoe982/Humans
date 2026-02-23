@@ -22,6 +22,7 @@
     ownerId: string | null;
     ownerName: string | null;
     ownerDisplayId: string | null;
+    nextActionDescription: string | null;
     nextActionOwnerName: string | null;
     nextActionDueDate: string | null;
     isOverdue: boolean;
@@ -59,9 +60,10 @@
     { key: "primaryHuman", label: "Primary Human" },
     { key: "pax", label: "Pax" },
     { key: "pets", label: "Pets" },
-    { key: "dueDate", label: "Next Action Due" },
-    { key: "owner", label: "Owner" },
+    { key: "nextAction", label: "Next Action" },
+    { key: "dueDate", label: "Due" },
     { key: "naOwner", label: "NA Owner" },
+    { key: "owner", label: "Owner" },
     { key: "updatedAt", label: "Last Touched" },
   ]}
   deleteAction="?/delete"
@@ -125,6 +127,13 @@
     <td class="text-text-secondary text-sm">{opp.primaryHumanName ?? "\u2014"}</td>
     <td class="text-text-secondary text-sm">{opp.passengerSeats}</td>
     <td class="text-text-secondary text-sm">{opp.petSeats}</td>
+    <td class="text-sm max-w-[200px] truncate">
+      {#if opp.nextActionDescription}
+        <span class="text-text-secondary">{opp.nextActionDescription}</span>
+      {:else}
+        <span class="text-text-muted italic">Not set</span>
+      {/if}
+    </td>
     <td class="text-sm whitespace-nowrap">
       {#if opp.nextActionDueDate}
         <span class={opp.isOverdue ? "text-red-400 font-medium" : "text-text-muted"}>
@@ -137,6 +146,7 @@
         <span class="text-text-muted">&mdash;</span>
       {/if}
     </td>
+    <td class="text-text-secondary text-sm">{opp.nextActionOwnerName ?? "—"}</td>
     <td class="text-text-secondary text-sm">
       {#if opp.ownerName}
         <span class="font-mono">{opp.ownerDisplayId}</span> — {opp.ownerName}
@@ -144,7 +154,6 @@
         —
       {/if}
     </td>
-    <td class="text-text-secondary text-sm">{opp.nextActionOwnerName ?? "—"}</td>
     <td class="text-text-muted text-sm">{opp.updatedAt ? new Date(opp.updatedAt).toLocaleDateString() : "—"}</td>
   {/snippet}
   {#snippet mobileCard(opp)}
@@ -160,8 +169,23 @@
         {#if opp.ownerName}
           <span>{opp.ownerName}</span>
         {/if}
-        {#if opp.isOverdue}
-          <span class="glass-badge badge-red text-xs">Overdue</span>
+      </div>
+      <div class="mt-1 flex items-center gap-2 text-xs text-text-muted">
+        {#if opp.nextActionDescription}
+          <span class="truncate max-w-[180px]">NA: {opp.nextActionDescription}</span>
+          {#if opp.nextActionDueDate}
+            <span class={opp.isOverdue ? "text-red-400 font-medium" : ""}>
+              {new Date(opp.nextActionDueDate).toLocaleDateString()}
+            </span>
+          {/if}
+          {#if opp.isOverdue}
+            <span class="glass-badge badge-red text-xs">Overdue</span>
+          {/if}
+          {#if opp.nextActionOwnerName}
+            <span>({opp.nextActionOwnerName})</span>
+          {/if}
+        {:else}
+          <span class="italic">No next action</span>
         {/if}
       </div>
     </a>
