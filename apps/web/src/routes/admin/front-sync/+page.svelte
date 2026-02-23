@@ -5,7 +5,7 @@
   import * as Sheet from "$lib/components/ui/sheet";
   import { api } from "$lib/api";
   import { invalidateAll } from "$app/navigation";
-  import { Loader2, CheckCircle2, XCircle, ChevronDown, ChevronRight } from "lucide-svelte";
+  import { Loader2, CheckCircle2, XCircle, ChevronDown, ChevronRight, Copy, Check } from "lucide-svelte";
 
   interface UnmatchedContact {
     handle: string;
@@ -91,6 +91,19 @@
   let sheetDebug = $state<DebugResult | null>(null);
   let showRawConversation = $state(false);
   let showRawMessages = $state(false);
+  let copiedConversation = $state(false);
+  let copiedMessages = $state(false);
+
+  async function copyJson(json: unknown, section: "conversation" | "messages") {
+    await navigator.clipboard.writeText(JSON.stringify(json, null, 2));
+    if (section === "conversation") {
+      copiedConversation = true;
+      setTimeout(() => { copiedConversation = false; }, 2000);
+    } else {
+      copiedMessages = true;
+      setTimeout(() => { copiedMessages = false; }, 2000);
+    }
+  }
 
   // Derive unmatched contacts from the latest completed sync run
   const latestCompletedRun = $derived(syncRuns.find((r) => r.status === "completed"));
@@ -105,6 +118,8 @@
     sheetLoading = true;
     showRawConversation = false;
     showRawMessages = false;
+    copiedConversation = false;
+    copiedMessages = false;
     sheetOpen = true;
 
     try {
@@ -643,18 +658,34 @@
 
         <!-- Raw Conversation -->
         <div class="mt-6">
-          <button
-            type="button"
-            class="flex items-center gap-1 text-sm font-semibold text-text-primary hover:text-accent transition-colors"
-            onclick={() => { showRawConversation = !showRawConversation; }}
-          >
+          <div class="flex items-center justify-between">
+            <button
+              type="button"
+              class="flex items-center gap-1 text-sm font-semibold text-text-primary hover:text-accent transition-colors"
+              onclick={() => { showRawConversation = !showRawConversation; }}
+            >
+              {#if showRawConversation}
+                <ChevronDown size={16} />
+              {:else}
+                <ChevronRight size={16} />
+              {/if}
+              Raw Conversation
+            </button>
             {#if showRawConversation}
-              <ChevronDown size={16} />
-            {:else}
-              <ChevronRight size={16} />
+              <button
+                type="button"
+                onclick={() => copyJson(sheetDebug?.conversation, "conversation")}
+                class="p-1 text-text-muted hover:text-text-primary transition-colors"
+                title="Copy JSON"
+              >
+                {#if copiedConversation}
+                  <Check size={14} class="text-[var(--badge-green-text)]" />
+                {:else}
+                  <Copy size={14} />
+                {/if}
+              </button>
             {/if}
-            Raw Conversation
-          </button>
+          </div>
           {#if showRawConversation}
             <pre class="mt-2 rounded-lg border border-glass-border bg-glass-bg p-3 text-xs font-mono overflow-x-auto max-h-96 overflow-y-auto">{JSON.stringify(sheetDebug.conversation, null, 2)}</pre>
           {/if}
@@ -662,18 +693,34 @@
 
         <!-- Raw Messages -->
         <div class="mt-4">
-          <button
-            type="button"
-            class="flex items-center gap-1 text-sm font-semibold text-text-primary hover:text-accent transition-colors"
-            onclick={() => { showRawMessages = !showRawMessages; }}
-          >
+          <div class="flex items-center justify-between">
+            <button
+              type="button"
+              class="flex items-center gap-1 text-sm font-semibold text-text-primary hover:text-accent transition-colors"
+              onclick={() => { showRawMessages = !showRawMessages; }}
+            >
+              {#if showRawMessages}
+                <ChevronDown size={16} />
+              {:else}
+                <ChevronRight size={16} />
+              {/if}
+              Raw Messages ({sheetDebug.messages.length})
+            </button>
             {#if showRawMessages}
-              <ChevronDown size={16} />
-            {:else}
-              <ChevronRight size={16} />
+              <button
+                type="button"
+                onclick={() => copyJson(sheetDebug?.messages, "messages")}
+                class="p-1 text-text-muted hover:text-text-primary transition-colors"
+                title="Copy JSON"
+              >
+                {#if copiedMessages}
+                  <Check size={14} class="text-[var(--badge-green-text)]" />
+                {:else}
+                  <Copy size={14} />
+                {/if}
+              </button>
             {/if}
-            Raw Messages ({sheetDebug.messages.length})
-          </button>
+          </div>
           {#if showRawMessages}
             <pre class="mt-2 rounded-lg border border-glass-border bg-glass-bg p-3 text-xs font-mono overflow-x-auto max-h-96 overflow-y-auto">{JSON.stringify(sheetDebug.messages, null, 2)}</pre>
           {/if}

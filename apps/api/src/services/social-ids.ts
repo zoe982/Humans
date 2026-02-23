@@ -4,6 +4,7 @@ import { createId } from "@humans/db";
 import { ERROR_CODES } from "@humans/shared";
 import { notFound } from "../lib/errors";
 import { nextDisplayId } from "../lib/display-id";
+import { rematchActivitiesBySocialId } from "./activity-rematch";
 import type { DB } from "./types";
 
 export async function listSocialIds(db: DB) {
@@ -77,6 +78,11 @@ export async function createSocialId(
   };
 
   await db.insert(socialIds).values(record);
+
+  if (data.humanId) {
+    await rematchActivitiesBySocialId(db, data.humanId, data.handle);
+  }
+
   return record;
 }
 
@@ -100,6 +106,11 @@ export async function updateSocialId(
   const updated = await db.query.socialIds.findFirst({
     where: eq(socialIds.id, id),
   });
+
+  if (updated?.humanId && updated?.handle) {
+    await rematchActivitiesBySocialId(db, updated.humanId, updated.handle);
+  }
+
   return updated;
 }
 

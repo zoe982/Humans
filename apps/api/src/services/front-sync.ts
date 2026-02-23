@@ -8,6 +8,7 @@ import {
   frontSyncRuns,
   generalLeads,
   humans,
+  socialIds,
   geoInterestExpressions,
   routeInterestExpressions,
 } from "@humans/db/schema";
@@ -57,6 +58,7 @@ interface CachedReferenceData {
   allAccountHumans: Array<{ accountId: string; humanId: string }>;
   allSignups: Array<{ id: string; email?: string; phone?: string; whatsapp_phone?: string }>;
   allBookings: Array<{ id: string; client_email?: string; email_for_notifications?: string; phone_number?: string; alt_whatsapp_phone_number?: string }>;
+  allSocialIds: Array<{ id: string; handle: string; humanId: string | null; accountId: string | null }>;
   humanNames: Map<string, { firstName: string; lastName: string; displayId: string }>;
 }
 
@@ -70,6 +72,7 @@ async function preloadReferenceData(db: DB, supabase: SupabaseClient): Promise<C
     signupsResult,
     bookingsResult,
     humanRows,
+    socialIdRows,
   ] = await Promise.all([
     db.select({ id: emails.id, email: emails.email, ownerType: emails.ownerType, ownerId: emails.ownerId }).from(emails),
     db.select({ id: phones.id, phoneNumber: phones.phoneNumber, ownerType: phones.ownerType, ownerId: phones.ownerId }).from(phones),
@@ -79,6 +82,7 @@ async function preloadReferenceData(db: DB, supabase: SupabaseClient): Promise<C
     supabase.from("announcement_signups").select("id, email, phone, whatsapp_phone"),
     supabase.from("bookings").select("id, client_email, email_for_notifications, phone_number, alt_whatsapp_phone_number"),
     db.select({ id: humans.id, firstName: humans.firstName, lastName: humans.lastName, displayId: humans.displayId }).from(humans),
+    db.select({ id: socialIds.id, handle: socialIds.handle, humanId: socialIds.humanId, accountId: socialIds.accountId }).from(socialIds),
   ]);
 
   const humanNames = new Map<string, { firstName: string; lastName: string; displayId: string }>();
@@ -94,6 +98,7 @@ async function preloadReferenceData(db: DB, supabase: SupabaseClient): Promise<C
     allAccountHumans: accountHumanRows,
     allSignups: (signupsResult.data ?? []) as CachedReferenceData["allSignups"],
     allBookings: (bookingsResult.data ?? []) as CachedReferenceData["allBookings"],
+    allSocialIds: socialIdRows,
     humanNames,
   };
 }
@@ -255,25 +260,54 @@ function matchByPhone(cache: CachedReferenceData, phoneHandle: string): MatchRes
   return NO_MATCH;
 }
 
+function normalizeSocialHandle(handle: string): string {
+  return handle.replace(/^@/, "").toLowerCase();
+}
+
+function matchBySocialId(cache: CachedReferenceData, handle: string): MatchResult {
+  const normalized = normalizeSocialHandle(handle);
+  const match = cache.allSocialIds.find(
+    (s) => normalizeSocialHandle(s.handle) === normalized,
+  );
+  if (!match || !match.humanId) return NO_MATCH;
+
+  const accountId = match.accountId ?? findAccountForHuman(cache, match.humanId);
+  return {
+    ...NO_MATCH,
+    humanId: match.humanId,
+    accountId,
+    matchedEntity: `human:${match.humanId}`,
+  };
+}
+
 function matchContact(
   cache: CachedReferenceData,
   handle: string,
   type: ActivityType,
 ): MatchResult {
+  // Try type-specific match first
+  let result: MatchResult = NO_MATCH;
+
   if (type === "email") {
-    return matchByEmail(cache, handle);
+    result = matchByEmail(cache, handle);
+  } else if (type === "whatsapp_message") {
+    result = matchByPhone(cache, handle);
+  } else {
+    // social_message — try email first, then phone
+    if (handle.includes("@")) {
+      result = matchByEmail(cache, handle);
+    }
+    if (!result.matchedEntity && /\d/.test(handle)) {
+      result = matchByPhone(cache, handle);
+    }
   }
-  if (type === "whatsapp_message") {
-    return matchByPhone(cache, handle);
+
+  // Universal fallback: try social IDs
+  if (!result.matchedEntity) {
+    result = matchBySocialId(cache, handle);
   }
-  // social_message — try email first, then phone
-  if (handle.includes("@")) {
-    return matchByEmail(cache, handle);
-  }
-  if (/\d/.test(handle)) {
-    return matchByPhone(cache, handle);
-  }
-  return NO_MATCH;
+
+  return result;
 }
 
 // --- Front API helpers ---
@@ -923,25 +957,60 @@ function debugMatchByPhone(cache: CachedReferenceData, phoneHandle: string): Mat
   return attempts;
 }
 
+function debugMatchBySocialId(cache: CachedReferenceData, handle: string): MatchAttempt[] {
+  const normalized = normalizeSocialHandle(handle);
+  const match = cache.allSocialIds.find(
+    (s) => normalizeSocialHandle(s.handle) === normalized,
+  );
+  return [{
+    source: "Social IDs",
+    searchedFor: `${handle} (normalized: ${normalized})`,
+    found: !!match && !!match.humanId,
+    detail: match?.humanId ? `human:${match.humanId}` : match ? "Social ID found but no humanId linked" : undefined,
+  }];
+}
+
 export function debugMatchContact(
   cache: CachedReferenceData,
   handle: string,
   type: ActivityType,
 ): MatchAttempt[] {
+  let attempts: MatchAttempt[] = [];
+  let matched = false;
+
   if (type === "email") {
-    return debugMatchByEmail(cache, handle);
+    attempts = debugMatchByEmail(cache, handle);
+    matched = attempts.some((a) => a.found);
+  } else if (type === "whatsapp_message") {
+    attempts = debugMatchByPhone(cache, handle);
+    matched = attempts.some((a) => a.found);
+  } else {
+    // social_message — try email first, then phone
+    if (handle.includes("@")) {
+      attempts = debugMatchByEmail(cache, handle);
+      matched = attempts.some((a) => a.found);
+    }
+    if (!matched && /\d/.test(handle)) {
+      attempts = [...attempts, ...debugMatchByPhone(cache, handle)];
+      matched = attempts.some((a) => a.found);
+    }
+    if (!matched && !handle.includes("@") && !/\d/.test(handle)) {
+      attempts.push({ source: "No email/phone strategy", searchedFor: handle, found: false, detail: "Handle is not an email or phone number" });
+    }
   }
-  if (type === "whatsapp_message") {
-    return debugMatchByPhone(cache, handle);
+
+  // Always append social ID debug step
+  const socialAttempts = debugMatchBySocialId(cache, handle);
+  if (matched) {
+    attempts.push({
+      ...socialAttempts[0],
+      detail: `${socialAttempts[0].detail ?? "Not checked"} (skipped — already matched above)`,
+    });
+  } else {
+    attempts.push(...socialAttempts);
   }
-  // social_message — try email first, then phone
-  if (handle.includes("@")) {
-    return debugMatchByEmail(cache, handle);
-  }
-  if (/\d/.test(handle)) {
-    return debugMatchByPhone(cache, handle);
-  }
-  return [{ source: "No matching strategy", searchedFor: handle, found: false, detail: "Handle is not an email or phone number" }];
+
+  return attempts;
 }
 
 export async function debugUnmatchedContact(

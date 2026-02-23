@@ -86,3 +86,47 @@ export async function rematchActivitiesByPhone(
 
   return toUpdate.length;
 }
+
+/**
+ * Find activities where frontContactHandle matches the given social handle
+ * (normalized, case-insensitive, with/without leading @) and humanId IS NULL,
+ * then reparent them to the specified human.
+ */
+export async function rematchActivitiesBySocialId(
+  db: DB,
+  humanId: string,
+  handle: string,
+): Promise<number> {
+  const normalized = handle.replace(/^@/, "").toLowerCase();
+  if (!normalized) return 0;
+
+  // Find unmatched activities whose contact handle matches this social handle
+  const candidates = await db
+    .select({ id: activities.id, frontContactHandle: activities.frontContactHandle })
+    .from(activities)
+    .where(isNull(activities.humanId));
+
+  const toUpdate = candidates.filter((a) => {
+    if (!a.frontContactHandle) return false;
+    const candidateNorm = a.frontContactHandle.replace(/^@/, "").toLowerCase();
+    return candidateNorm === normalized;
+  });
+
+  if (toUpdate.length === 0) return 0;
+
+  const now = new Date().toISOString();
+  for (const activity of toUpdate) {
+    await db
+      .update(activities)
+      .set({
+        humanId,
+        routeSignupId: null,
+        websiteBookingRequestId: null,
+        generalLeadId: null,
+        updatedAt: now,
+      })
+      .where(eq(activities.id, activity.id));
+  }
+
+  return toUpdate.length;
+}
