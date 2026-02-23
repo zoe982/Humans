@@ -20,20 +20,28 @@ describe("GET /api/admin/account-config/:configType", () => {
     expect(res.status).toBe(401);
   });
 
-  it("returns 403 for agent role (requires manageColleagues: admin only)", async () => {
+  it("returns 200 for agent role (GET uses viewRecords permission)", async () => {
     const { token } = await createUserAndSession("agent");
     const res = await SELF.fetch("http://localhost/api/admin/account-config/account-types", {
       headers: { Cookie: sessionCookie(token) },
     });
-    expect(res.status).toBe(403);
+    expect(res.status).toBe(200);
   });
 
-  it("returns 403 for manager role", async () => {
+  it("returns 200 for manager role", async () => {
     const { token } = await createUserAndSession("manager");
     const res = await SELF.fetch("http://localhost/api/admin/account-config/account-types", {
       headers: { Cookie: sessionCookie(token) },
     });
-    expect(res.status).toBe(403);
+    expect(res.status).toBe(200);
+  });
+
+  it("returns 200 for viewer role", async () => {
+    const { token } = await createUserAndSession("viewer");
+    const res = await SELF.fetch("http://localhost/api/admin/account-config/account-types", {
+      headers: { Cookie: sessionCookie(token) },
+    });
+    expect(res.status).toBe(200);
   });
 
   it("returns 400 for invalid config type", async () => {

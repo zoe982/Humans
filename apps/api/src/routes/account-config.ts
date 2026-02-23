@@ -39,8 +39,8 @@ const accountConfigRoutes = new Hono<AppContext>();
 
 accountConfigRoutes.use("/*", authMiddleware);
 
-// List config items
-accountConfigRoutes.get("/api/admin/account-config/:configType", requirePermission("manageColleagues"), async (c) => {
+// List config items (readable by anyone who can view records — needed for dropdown labels on human/account detail pages)
+accountConfigRoutes.get("/api/admin/account-config/:configType", requirePermission("viewRecords"), async (c) => {
   const configType = c.req.param("configType");
   if (!isValidConfigType(configType)) {
     throw badRequest(ERROR_CODES.INVALID_CONFIG_TYPE, "Invalid config type");
