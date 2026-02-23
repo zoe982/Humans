@@ -79,7 +79,7 @@
   <DialogPrimitive.Portal>
     <DialogPrimitive.Overlay class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm" />
     <DialogPrimitive.Content
-      class="fixed left-1/2 top-[15%] z-50 w-full max-w-lg -translate-x-1/2 glass-card-strong overflow-hidden p-0 shadow-2xl"
+      class="fixed left-1/2 top-[15%] z-50 w-full max-w-lg -translate-x-1/2 glass-dialog overflow-hidden p-0 shadow-2xl"
       aria-label="Command palette"
     >
       <CommandPrimitive.Root shouldFilter={false} class="flex h-full w-full flex-col overflow-hidden">

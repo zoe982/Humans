@@ -52,6 +52,15 @@ describe("CommandPalette", () => {
     vi.unstubAllGlobals();
   });
 
+  // ── Glass styling ───────────────────────────────────────────────
+
+  it("uses glass-dialog class on dialog content for opaque modal background", () => {
+    render(CommandPalette, { props: { open: true } });
+    const dialog = screen.getByLabelText("Command palette");
+    expect(dialog.classList.contains("glass-dialog")).toBe(true);
+    expect(dialog.classList.contains("glass-card-strong")).toBe(false);
+  });
+
   // ── Closed state ─────────────────────────────────────────────────
 
   it("renders nothing interactive when open is false", () => {
