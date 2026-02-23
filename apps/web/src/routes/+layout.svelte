@@ -7,10 +7,22 @@
   import CommandPalette from "$lib/components/CommandPalette.svelte";
   import AccountDropdown from "$lib/components/AccountDropdown.svelte";
   import { Toaster } from "svelte-sonner";
+  import { onMount, onDestroy } from "svelte";
+  import { initRealtime, destroyRealtime } from "$lib/realtime";
 
   let commandPaletteOpen = $state(false);
 
   let { data, children }: { data: LayoutData; children: import("svelte").Snippet } = $props();
+
+  onMount(() => {
+    if (data.user && data.sessionToken) {
+      initRealtime(data.user.id, data.sessionToken);
+    }
+  });
+
+  onDestroy(() => {
+    destroyRealtime();
+  });
 
   const isManager = $derived(data.user?.role === "manager" || data.user?.role === "admin");
   const isAdmin = $derived(data.user?.role === "admin");

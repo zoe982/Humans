@@ -30,6 +30,15 @@ bucket_name = "humans-documents"
 # [[queues.consumers]]
 # queue = "humans-audit"
 
+[durable_objects]
+bindings = [
+  { name = "RealtimeHub", class_name = "RealtimeHub" }
+]
+
+[[migrations]]
+tag = "v1"
+new_classes = ["RealtimeHub"]
+
 [triggers]
 crons = ["*/15 * * * *"]
 

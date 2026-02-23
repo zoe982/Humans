@@ -32,6 +32,7 @@ import { flightRoutes } from "./routes/flights";
 import { referralCodeRoutes } from "./routes/referral-codes";
 import { opportunityCadenceRoutes } from "./routes/opportunity-cadence";
 import { runScheduledFrontSync } from "./scheduled/front-sync";
+import { realtimeMiddleware } from "./middleware/realtime";
 import type { AppContext, Env } from "./types";
 
 const app = new Hono<AppContext>();
@@ -46,6 +47,7 @@ app.use("/*", cors({
 app.use("/*", logger());
 app.use("/*", requestIdMiddleware);
 app.use("/*", dbMiddleware);
+app.use("/*", realtimeMiddleware);
 
 // Error handler
 app.onError(errorHandler);
@@ -79,8 +81,32 @@ app.route("/", flightRoutes);
 app.route("/", referralCodeRoutes);
 app.route("/", opportunityCadenceRoutes);
 
+export { RealtimeHub } from "./realtime/hub";
+
+function routePartyRequest(req: Request, env: Env): Response | null {
+  const url = new URL(req.url);
+  const parts = url.pathname.split("/").filter(Boolean);
+  // Match /parties/<namespace>/<room>
+  if (parts[0] !== "parties" || parts.length < 3) return null;
+  if (!env.RealtimeHub) return null;
+
+  const namespace = parts[1];
+  if (namespace !== "realtime-hub") {
+    return new Response("Unknown party namespace", { status: 404 });
+  }
+
+  const roomName = parts[2];
+  const id = env.RealtimeHub.idFromName(roomName);
+  const stub = env.RealtimeHub.get(id);
+  return stub.fetch(req) as unknown as Response;
+}
+
 export default {
-  fetch: app.fetch,
+  async fetch(req: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+    const partyResponse = routePartyRequest(req, env);
+    if (partyResponse) return partyResponse;
+    return app.fetch(req, env, ctx);
+  },
   async scheduled(event: ScheduledEvent, env: Env, ctx: ExecutionContext) {
     ctx.waitUntil(runScheduledFrontSync(env));
   },
