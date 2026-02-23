@@ -51,6 +51,12 @@
   }
 </script>
 
+<svelte:head>
+  <link rel="icon" href="/favicon.png?v={__BUILD_TIMESTAMP__}" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png?v={__BUILD_TIMESTAMP__}" />
+  <link rel="manifest" href="/manifest.webmanifest" />
+</svelte:head>
+
 <svelte:window onkeydown={(e) => {
   if ((e.metaKey || e.ctrlKey) && e.key === "k") {
     e.preventDefault();

@@ -1,5 +1,7 @@
 /// <reference types="@sveltejs/kit" />
 
+declare const __BUILD_TIMESTAMP__: string;
+
 declare global {
   namespace App {
     interface Error {
