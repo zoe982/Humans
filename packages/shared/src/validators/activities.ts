@@ -45,19 +45,19 @@ export const createActivitySchema = z
 export const updateActivitySchema = z.object({
   type: z.enum(activityTypes).optional(),
   subject: z.string().min(1).max(500).optional(),
-  notes: z.string().max(10000).optional(),
+  notes: z.string().max(10000).nullish(),
   activityDate: z.string().datetime().optional(),
-  humanId: z.string().optional(),
-  accountId: z.string().optional(),
-  routeSignupId: z.string().uuid().optional(),
-  websiteBookingRequestId: z.string().uuid().optional(),
-  generalLeadId: z.string().optional(),
-  opportunityId: z.string().optional(),
+  humanId: z.string().nullish(),
+  accountId: z.string().nullish(),
+  routeSignupId: z.string().uuid().nullish(),
+  websiteBookingRequestId: z.string().uuid().nullish(),
+  generalLeadId: z.string().nullish(),
+  opportunityId: z.string().nullish(),
   gmailId: z.string().optional(),
   frontId: z.string().optional(),
   frontConversationId: z.string().optional(),
   syncRunId: z.string().optional(),
-  ownerId: z.string().optional(),
+  ownerId: z.string().nullish(),
 });
 
 export type CreateActivityInput = z.infer<typeof createActivitySchema>;
