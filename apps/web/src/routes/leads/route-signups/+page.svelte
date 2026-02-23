@@ -6,6 +6,7 @@
   import ConfirmDialog from "$lib/components/ConfirmDialog.svelte";
   import Pagination from "$lib/components/Pagination.svelte";
   import { signupStatusLabels } from "$lib/constants/labels";
+  import { formatRelativeTime } from "$lib/utils/format";
 
   let { data, form }: { data: PageData; form: ActionData } = $props();
 
@@ -23,6 +24,7 @@
     inserted_at: string;
     consent: boolean | null;
     newsletter_opt_in: boolean | null;
+    lastActivityDate: string | null;
   };
 
   const signups = $derived(data.signups as Signup[]);
@@ -79,6 +81,9 @@
           {#if signup.origin && signup.destination}<span>→</span>{/if}
           {#if signup.destination}<span>{signup.destination}</span>{/if}
         </div>
+        {#if signup.lastActivityDate}
+          <p class="mt-1 text-xs text-text-muted">Last activity: {formatRelativeTime(signup.lastActivityDate)}</p>
+        {/if}
         <div class="mt-2 flex items-center justify-between">
           <span class="text-xs text-text-muted">{formatDatetime(signup.inserted_at)}</span>
           {#if data.userRole === "admin"}
@@ -102,6 +107,7 @@
           <th scope="col">Origin</th>
           <th scope="col">Destination</th>
           <th scope="col">Status</th>
+          <th scope="col">Last Activity</th>
           <th scope="col">Date</th>
           {#if data.userRole === "admin"}
             <th scope="col">Actions</th>
@@ -128,6 +134,7 @@
                 "Rejected": "badge-red",
               }} />
             </td>
+            <td class="text-text-muted">{signup.lastActivityDate ? formatRelativeTime(signup.lastActivityDate) : "—"}</td>
             <td class="text-text-muted">{formatDatetime(signup.inserted_at)}</td>
             {#if data.userRole === "admin"}
               <td>
@@ -137,7 +144,7 @@
           </tr>
         {:else}
           <tr>
-            <td colspan={data.userRole === "admin" ? 8 : 7} class="px-6 py-8 text-center text-sm text-text-muted">No route signups found.</td>
+            <td colspan={data.userRole === "admin" ? 9 : 8} class="px-6 py-8 text-center text-sm text-text-muted">No route signups found.</td>
           </tr>
         {/each}
       </tbody>

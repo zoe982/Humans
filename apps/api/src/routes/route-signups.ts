@@ -1,4 +1,6 @@
 import { Hono } from "hono";
+import { sql, inArray } from "drizzle-orm";
+import { activities } from "@humans/db/schema";
 import { updateRouteSignupSchema, ERROR_CODES } from "@humans/shared";
 import { authMiddleware } from "../middleware/auth";
 import { requirePermission } from "../middleware/rbac";
@@ -29,7 +31,28 @@ routeSignupRoutes.get("/api/route-signups", requirePermission("viewRouteSignups"
     throw internal(ERROR_CODES.SUPABASE_ERROR, error.message);
   }
 
-  return c.json({ data, meta: { page, limit, total: count ?? 0 } });
+  // Fetch last activity dates from D1
+  const signupIds = (data ?? []).map((s: { id: string }) => s.id);
+  let enriched = data ?? [];
+  if (signupIds.length > 0) {
+    const db = c.get("db");
+    const lastDates = await db
+      .select({
+        routeSignupId: activities.routeSignupId,
+        lastActivityDate: sql<string>`max(${activities.activityDate})`,
+      })
+      .from(activities)
+      .where(inArray(activities.routeSignupId, signupIds))
+      .groupBy(activities.routeSignupId);
+
+    const dateMap = new Map(lastDates.map((r) => [r.routeSignupId, r.lastActivityDate]));
+    enriched = (data ?? []).map((s: { id: string }) => ({
+      ...s,
+      lastActivityDate: dateMap.get(s.id) ?? null,
+    }));
+  }
+
+  return c.json({ data: enriched, meta: { page, limit, total: count ?? 0 } });
 });
 
 // Get single route signup

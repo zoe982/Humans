@@ -10,7 +10,7 @@
   import { activityTypeLabels, ACTIVITY_TYPE_OPTIONS } from "$lib/constants/labels";
   import SearchableSelect from "$lib/components/SearchableSelect.svelte";
   import { Button } from "$lib/components/ui/button";
-  import { formatDateTime } from "$lib/utils/format";
+  import { formatDateTime, formatRelativeTime } from "$lib/utils/format";
 
   let { data, form }: { data: PageData; form: ActionData } = $props();
 
@@ -32,6 +32,7 @@
 
   type Activity = {
     id: string;
+    displayId: string;
     type: string;
     subject: string;
     notes: string | null;
@@ -43,6 +44,11 @@
   const signup = $derived(data.signup as Signup);
   const activities = $derived(data.activities as Activity[]);
   const isAdmin = $derived(data.user?.role === "admin");
+  const lastActivityDate = $derived(
+    activities.length > 0
+      ? activities.reduce((latest, a) => (a.activityDate > latest ? a.activityDate : latest), "")
+      : null
+  );
 
   let showDeleteConfirm = $state(false);
   let searchQuery = $state("");
@@ -159,6 +165,10 @@
         <dt class="text-sm font-medium text-text-muted">Newsletter Opt-in</dt>
         <dd class="mt-1 text-sm text-text-primary">{signup.newsletter_opt_in ? "Yes" : "No"}</dd>
       </div>
+      <div>
+        <dt class="text-sm font-medium text-text-muted">Last Activity</dt>
+        <dd class="mt-1 text-sm text-text-primary">{lastActivityDate ? formatRelativeTime(lastActivityDate) : "—"}</dd>
+      </div>
     </dl>
   </div>
 
@@ -235,6 +245,7 @@
       title="Activities"
       items={activities}
       columns={[
+        { key: "displayId", label: "ID", sortable: true, sortValue: (a) => a.displayId },
         { key: "type", label: "Type", sortable: true, sortValue: (a) => activityTypeLabels[a.type] ?? a.type },
         { key: "subject", label: "Subject", sortable: true, sortValue: (a) => a.subject },
         { key: "notes", label: "Notes", sortable: true, sortValue: (a) => a.notes ?? "" },
@@ -253,6 +264,9 @@
       addLabel="Activity"
     >
       {#snippet row(activity, searchQuery)}
+        <td class="font-mono text-sm whitespace-nowrap">
+          <a href="/activities/{activity.id}" class="text-accent hover:text-[var(--link-hover)]">{activity.displayId}</a>
+        </td>
         <td>
           <span class="glass-badge inline-flex rounded-full px-2 py-0.5 text-xs font-medium {activityTypeColors[activity.type] ?? 'bg-glass text-text-secondary'}">
             <HighlightText text={activityTypeLabels[activity.type] ?? activity.type} query={searchQuery} />
