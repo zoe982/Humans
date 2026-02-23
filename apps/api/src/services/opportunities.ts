@@ -388,6 +388,7 @@ export async function updateOpportunityStage(
     updateFields["nextActionStartDate"] = null;
     updateFields["nextActionDueDate"] = null;
     updateFields["nextActionCompletedAt"] = null;
+    updateFields["nextActionCadenceNote"] = null;
   } else if (data.stage === "closed_flown") {
     // Auto-complete next action if present
     if (existing.nextActionDescription && !existing.nextActionCompletedAt) {
@@ -414,6 +415,7 @@ export async function updateOpportunityStage(
     updateFields["nextActionStartDate"] = null;
     updateFields["nextActionDueDate"] = null;
     updateFields["nextActionCompletedAt"] = null;
+    updateFields["nextActionCadenceNote"] = null;
   }
 
   await db.update(opportunities).set(updateFields).where(eq(opportunities.id, id));
@@ -600,7 +602,7 @@ export async function unlinkOpportunityPet(db: DB, linkId: string) {
 export async function updateNextAction(
   db: DB,
   id: string,
-  data: { ownerId: string; description: string; type: string; dueDate: string },
+  data: { ownerId: string; description: string; type: string; dueDate: string; cadenceNote?: string | null },
   colleagueId: string,
 ) {
   const existing = await db.query.opportunities.findFirst({
@@ -616,13 +618,14 @@ export async function updateNextAction(
     nextActionDescription: data.description,
     nextActionType: data.type,
     nextActionDueDate: data.dueDate,
+    nextActionCadenceNote: data.cadenceNote ?? null,
     nextActionCompletedAt: null,
     updatedAt: now,
   }).where(eq(opportunities.id, id));
 
   const diff = computeDiff(
-    { nextActionDescription: existing.nextActionDescription, nextActionType: existing.nextActionType, nextActionDueDate: existing.nextActionDueDate },
-    { nextActionDescription: data.description, nextActionType: data.type, nextActionDueDate: data.dueDate },
+    { nextActionDescription: existing.nextActionDescription, nextActionType: existing.nextActionType, nextActionDueDate: existing.nextActionDueDate, nextActionCadenceNote: existing.nextActionCadenceNote },
+    { nextActionDescription: data.description, nextActionType: data.type, nextActionDueDate: data.dueDate, nextActionCadenceNote: data.cadenceNote ?? null },
   );
   let auditEntryId: string | undefined;
   if (diff) {
@@ -805,6 +808,7 @@ export async function completeNextAction(db: DB, id: string, colleagueId: string
     nextActionStartDate: null,
     nextActionDueDate: null,
     nextActionCompletedAt: null,
+    nextActionCadenceNote: null,
     updatedAt: now,
   }).where(eq(opportunities.id, id));
 

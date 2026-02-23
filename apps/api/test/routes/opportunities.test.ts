@@ -283,6 +283,7 @@ describe("PATCH /api/opportunities/:id/stage", () => {
       nextActionOwnerId: colleague.id,
       nextActionType: "phone_call",
       nextActionDueDate: "2025-12-01T00:00:00.000Z",
+      nextActionCadenceNote: "Extended cadence reason",
     });
     await db.insert(schema.opportunities).values(opp);
 
@@ -293,10 +294,11 @@ describe("PATCH /api/opportunities/:id/stage", () => {
       body: JSON.stringify({ stage: "closed_lost", lossReason: "Too expensive" }),
     });
     expect(res.status).toBe(200);
-    const body = (await res.json()) as { data: { stage: string; lossReason: string; nextActionDescription: string | null } };
+    const body = (await res.json()) as { data: { stage: string; lossReason: string; nextActionDescription: string | null; nextActionCadenceNote: string | null } };
     expect(body.data.stage).toBe("closed_lost");
     expect(body.data.lossReason).toBe("Too expensive");
     expect(body.data.nextActionDescription).toBeNull();
+    expect(body.data.nextActionCadenceNote).toBeNull();
   });
 
   it("closed_flown auto-completes next action and creates activity", async () => {
@@ -311,6 +313,7 @@ describe("PATCH /api/opportunities/:id/stage", () => {
       nextActionOwnerId: colleague.id,
       nextActionType: "email",
       nextActionDueDate: "2025-12-01T00:00:00.000Z",
+      nextActionCadenceNote: "Extended cadence reason",
     });
     await db.insert(schema.opportunities).values(opp);
 
@@ -321,9 +324,10 @@ describe("PATCH /api/opportunities/:id/stage", () => {
       body: JSON.stringify({ stage: "closed_flown" }),
     });
     expect(res.status).toBe(200);
-    const body = (await res.json()) as { data: { stage: string; nextActionDescription: string | null } };
+    const body = (await res.json()) as { data: { stage: string; nextActionDescription: string | null; nextActionCadenceNote: string | null } };
     expect(body.data.stage).toBe("closed_flown");
     expect(body.data.nextActionDescription).toBeNull();
+    expect(body.data.nextActionCadenceNote).toBeNull();
 
     // Verify activity was created
     const activitiesRes = await db.select().from(schema.activities).where(
@@ -533,12 +537,14 @@ describe("PATCH /api/opportunities/:id/next-action", () => {
         description: "Send deposit request",
         type: "email",
         dueDate: "2025-12-15T10:00:00.000Z",
+        cadenceNote: "Client on vacation",
       }),
     });
     expect(res.status).toBe(200);
-    const body = (await res.json()) as { data: { nextActionDescription: string; nextActionType: string } };
+    const body = (await res.json()) as { data: { nextActionDescription: string; nextActionType: string; nextActionCadenceNote: string | null } };
     expect(body.data.nextActionDescription).toBe("Send deposit request");
     expect(body.data.nextActionType).toBe("email");
+    expect(body.data.nextActionCadenceNote).toBe("Client on vacation");
   });
 });
 
@@ -552,6 +558,7 @@ describe("POST /api/opportunities/:id/next-action/done", () => {
       nextActionDescription: "Follow up call",
       nextActionType: "phone_call",
       nextActionDueDate: "2025-12-15T10:00:00.000Z",
+      nextActionCadenceNote: "Some note",
     });
     await db.insert(schema.opportunities).values(opp);
 
@@ -561,8 +568,9 @@ describe("POST /api/opportunities/:id/next-action/done", () => {
       headers: jsonHeaders(token),
     });
     expect(res.status).toBe(200);
-    const body = (await res.json()) as { data: { nextActionDescription: string | null } };
+    const body = (await res.json()) as { data: { nextActionDescription: string | null; nextActionCadenceNote: string | null } };
     expect(body.data.nextActionDescription).toBeNull();
+    expect(body.data.nextActionCadenceNote).toBeNull();
 
     // Verify no activity was created
     const oppActivities = await db.select().from(schema.activities);

@@ -8,15 +8,16 @@
   import SaveIndicator from "$lib/components/SaveIndicator.svelte";
   import ConfettiOverlay from "$lib/components/ConfettiOverlay.svelte";
   import { toast } from "svelte-sonner";
-  import { Trash2, CheckCircle, Check, Pencil } from "lucide-svelte";
+  import { Trash2, CheckCircle, Check, Pencil, Clock } from "lucide-svelte";
   import * as Select from "$lib/components/ui/select";
   import * as Dialog from "$lib/components/ui/dialog";
   import GlassDateTimePicker from "$lib/components/GlassDateTimePicker.svelte";
+  import GlassDatePicker from "$lib/components/GlassDatePicker.svelte";
   import { createAutoSaver, type SaveStatus } from "$lib/autosave";
   import { api } from "$lib/api";
   import { opportunityStageColors } from "$lib/constants/colors";
   import { opportunityStageLabels, OPPORTUNITY_STAGE_OPTIONS, TERMINAL_STAGES, ACTIVITY_TYPE_OPTIONS, activityTypeLabels } from "$lib/constants/labels";
-  import { formatRelativeTime, formatDateTime, summarizeChanges } from "$lib/utils/format";
+  import { formatRelativeTime, formatDateTime, formatDate, summarizeChanges } from "$lib/utils/format";
   import { onDestroy } from "svelte";
   import { Button } from "$lib/components/ui/button";
 
@@ -72,6 +73,7 @@
     nextActionStartDate: string | null;
     nextActionDueDate: string | null;
     nextActionCompletedAt: string | null;
+    nextActionCadenceNote: string | null;
     isOverdue: boolean;
     linkedHumans: LinkedHuman[];
     linkedPets: LinkedPet[];
@@ -155,9 +157,13 @@
   let naDescription = $state("");
   let naType = $state("email");
   let naDueDate = $state("");
+  let naCadenceNote = $state("");
   let naSaveStatus = $state<SaveStatus>("idle");
   let naLocked = $state(false);
-  const naAllFilled = $derived(Boolean(naOwnerId && naDescription && naType && naDueDate));
+  const naAllFilled = $derived(
+    Boolean(naOwnerId && naDescription && naType && naDueDate) &&
+    (!cadenceWarning() || Boolean(naCadenceNote.trim()))
+  );
 
   // Confetti
   let showConfetti = $state(false);
@@ -192,6 +198,7 @@
     naDescription = opp.nextActionDescription ?? "";
     naType = opp.nextActionType ?? "email";
     naDueDate = opp.nextActionDueDate ?? "";
+    naCadenceNote = opp.nextActionCadenceNote ?? "";
     naLocked = Boolean(opp.nextActionDescription && opp.nextActionDueDate);
     initializedForId = opp.id;
     initialized = true;
@@ -229,11 +236,14 @@
     if (!initialized) return;
     // Only auto-save when all required fields are populated
     if (!naOwnerId || !naDescription || !naType || !naDueDate) return;
+    // Block save when cadence is exceeded but no note provided
+    if (cadenceWarning() && !naCadenceNote.trim()) return;
     naAutoSaver.save({
       ownerId: naOwnerId,
       description: naDescription,
       type: naType,
-      dueDate: new Date(naDueDate).toISOString(),
+      dueDate: naDueDate,
+      cadenceNote: cadenceWarning() ? naCadenceNote : null,
     });
   }
 
@@ -305,6 +315,7 @@
     naDescription = "";
     naType = "email";
     naDueDate = "";
+    naCadenceNote = "";
     naSaveStatus = "idle";
     naLocked = false;
     // Clear server-side next action data
@@ -824,12 +835,23 @@
           </div>
           <div>
             <span class="block text-xs font-medium text-text-muted uppercase tracking-wide">Due Date</span>
-            <p class="mt-1 text-sm text-text-primary">{naDueDate ? formatDateTime(naDueDate) : "—"}</p>
+            <p class="mt-1 text-sm text-text-primary">{naDueDate ? formatDate(naDueDate) : "—"}</p>
           </div>
           <div class="sm:col-span-3">
             <span class="block text-xs font-medium text-text-muted uppercase tracking-wide">Description</span>
             <p class="mt-1 text-sm text-text-primary whitespace-pre-wrap">{naDescription}</p>
           </div>
+          {#if naCadenceNote}
+            <div class="sm:col-span-3">
+              <div class="cadence-deviation-note">
+                <span class="flex items-center gap-1 text-xs font-medium uppercase tracking-wider mb-1"
+                      style="color: rgba(245,158,11,0.70)">
+                  <Clock size={12} class="opacity-60" /> Cadence Note
+                </span>
+                <p class="text-sm text-text-secondary whitespace-pre-wrap">{naCadenceNote}</p>
+              </div>
+            </div>
+          {/if}
         </div>
       {:else}
         <!-- Unlocked: editable form -->
@@ -877,7 +899,7 @@
                 <Check size={14} class="text-emerald-500" />
               {/if}
             </label>
-            <GlassDateTimePicker
+            <GlassDatePicker
               name="naDueDate"
               id="naDueDate"
               value={naDueDate}
@@ -887,21 +909,43 @@
               <p class="mt-1 text-xs text-amber-500">Due date exceeds the recommended cadence for this stage.</p>
             {/if}
           </div>
-          <div class="sm:col-span-3">
-            <label for="naDescription" class="flex items-center gap-1.5 text-sm font-medium text-text-secondary">
-              Description <span class="text-red-400">*</span>
-              {#if naDescription}
+        </div>
+        {#if cadenceWarning()}
+          <div class="cadence-deviation-field" role="region" aria-label="Cadence deviation explanation required">
+            <label for="naCadenceNote" class="flex items-center gap-1.5 text-sm font-medium text-amber-400">
+              Reason for extended cadence <span class="text-red-400">*</span>
+              {#if naCadenceNote.trim()}
                 <Check size={14} class="text-emerald-500" />
               {/if}
             </label>
-            <textarea
-              id="naDescription" rows="3"
-              bind:value={naDescription}
-              oninput={(e) => { const target = e.currentTarget; target.style.height = "auto"; target.style.height = target.scrollHeight + "px"; triggerNaSave(); }}
-              class="glass-input mt-1 block w-full resize-none {naDescription ? 'ring-1 ring-emerald-500/30 border-emerald-500/30' : ''}"
-              placeholder="What needs to happen next?"
+            {#if cadenceHint}
+              <p class="text-xs text-text-muted mb-2">
+                This date is beyond the recommended {cadenceHint.displayText} for the
+                <span class="text-text-secondary font-medium">{opportunityStageLabels[opportunity.stage] ?? opportunity.stage}</span> stage.
+              </p>
+            {/if}
+            <textarea id="naCadenceNote" rows="2" bind:value={naCadenceNote}
+              oninput={(e) => { e.currentTarget.style.height = "auto"; e.currentTarget.style.height = e.currentTarget.scrollHeight + "px"; triggerNaSave(); }}
+              class="glass-input block w-full resize-none {naCadenceNote.trim() ? 'ring-1 ring-emerald-500/30 border-emerald-500/30' : ''}"
+              placeholder="e.g. Client requested more time to review the proposal, follow-up scheduled for their return from travel"
+              aria-required="true"
             ></textarea>
           </div>
+        {/if}
+        <div>
+          <label for="naDescription" class="flex items-center gap-1.5 text-sm font-medium text-text-secondary">
+            Description <span class="text-red-400">*</span>
+            {#if naDescription}
+              <Check size={14} class="text-emerald-500" />
+            {/if}
+          </label>
+          <textarea
+            id="naDescription" rows="3"
+            bind:value={naDescription}
+            oninput={(e) => { const target = e.currentTarget; target.style.height = "auto"; target.style.height = target.scrollHeight + "px"; triggerNaSave(); }}
+            class="glass-input mt-1 block w-full resize-none {naDescription ? 'ring-1 ring-emerald-500/30 border-emerald-500/30' : ''}"
+            placeholder="What needs to happen next?"
+          ></textarea>
         </div>
       {/if}
     </div>
