@@ -37,7 +37,7 @@ bindings = [
 
 [[migrations]]
 tag = "v1"
-new_classes = ["RealtimeHub"]
+new_sqlite_classes = ["RealtimeHub"]
 
 [triggers]
 crons = ["*/15 * * * *"]
