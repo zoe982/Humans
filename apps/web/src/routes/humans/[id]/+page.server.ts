@@ -652,7 +652,7 @@ export const actions = {
     const payload = {
       humanId: params.id,
       type: petType,
-      name: form.get("name"),
+      name: (form.get("name") as string)?.trim() || null,
       breed,
       weight: weightStr ? parseFloat(weightStr) : undefined,
     };
@@ -782,6 +782,63 @@ export const actions = {
     if (!res.ok) {
       const resBody: unknown = await res.json();
       return failFromApi(resBody, res.status, "Failed to unlink booking request");
+    }
+
+    return { success: true };
+  },
+
+  addOpportunity: async ({ request, cookies, params }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
+    const form = await request.formData();
+    const sessionToken = cookies.get("humans_session");
+    const headers = {
+      "Content-Type": "application/json",
+      Cookie: `humans_session=${sessionToken ?? ""}`,
+    };
+
+    const passengerSeatsStr = form.get("passengerSeats") as string;
+    const petSeatsStr = form.get("petSeats") as string;
+    const petIds = form.getAll("petIds") as string[];
+
+    const payload = {
+      passengerSeats: passengerSeatsStr ? parseInt(passengerSeatsStr, 10) : 1,
+      petSeats: petSeatsStr ? parseInt(petSeatsStr, 10) : 0,
+    };
+
+    // 1. Create the opportunity
+    const res = await fetch(`${PUBLIC_API_URL}/api/opportunities`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify(payload),
+    });
+
+    if (!res.ok) {
+      const resBody: unknown = await res.json();
+      return failFromApi(resBody, res.status, "Failed to create opportunity");
+    }
+
+    const created: unknown = await res.json();
+    if (!isObjData(created)) {
+      return fail(500, { error: "Unexpected response" });
+    }
+
+    const oppId = (created.data as { id: string }).id;
+
+    // 2. Link the current human as primary
+    await fetch(`${PUBLIC_API_URL}/api/opportunities/${oppId}/humans`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ humanId: params.id }),
+    });
+
+    // 3. Link pets (best-effort)
+    for (const petId of petIds) {
+      if (petId) {
+        await fetch(`${PUBLIC_API_URL}/api/opportunities/${oppId}/pets`, {
+          method: "POST",
+          headers,
+          body: JSON.stringify({ petId }),
+        });
+      }
     }
 
     return { success: true };

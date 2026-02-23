@@ -38,7 +38,7 @@
   type SocialIdItem = { id: string; displayId: string; handle: string; platformId: string | null; platformName: string | null };
   type ReferralCodeItem = { id: string; displayId: string; code: string; description: string | null; isActive: boolean };
   type ConfigItem = { id: string; name: string; createdAt: string };
-  type Pet = { id: string; displayId: string; name: string; type: string; breed: string | null; weight: number | null };
+  type Pet = { id: string; displayId: string; name: string | null; type: string; breed: string | null; weight: number | null };
   type GeoInterestExpression = {
     id: string;
     displayId: string;
@@ -183,6 +183,26 @@
   let newActivityType = $state("email");
   let newPetType = $state("dog");
   let accountAddMode = $state<'link' | 'create'>('link');
+
+  // Opportunity creation state
+  let newOppPetIds = $state<string[]>([]);
+  let newOppPetSelectKey = $state(0);
+
+  const oppPetOptions = $derived(
+    human.pets
+      .filter((p) => !newOppPetIds.includes(p.id))
+      .map((p) => ({
+        value: p.id,
+        label: `${p.displayId} — ${p.name ?? p.displayId} (${p.type === "cat" ? "Cat" : "Dog"})`,
+      }))
+  );
+
+  const selectedOppPetLabels = $derived(
+    newOppPetIds.map((id) => {
+      const pet = human.pets.find((p) => p.id === id);
+      return pet ? `${pet.name ?? pet.displayId} (${pet.type === "cat" ? "Cat" : "Dog"})` : id;
+    })
+  );
 
   // Initialize state from data — runs on each data update (e.g. after invalidateAll)
   $effect(() => {
@@ -842,7 +862,7 @@
       items={human.pets}
       columns={[
         { key: "displayId", label: "ID" },
-        { key: "name", label: "Name", sortable: true, sortValue: (p) => p.name },
+        { key: "name", label: "Name", sortable: true, sortValue: (p) => p.name ?? "" },
         { key: "type", label: "Type", sortable: true, sortValue: (p) => p.type },
         { key: "breed", label: "Breed" },
         { key: "weight", label: "Weight" },
@@ -850,7 +870,7 @@
       ]}
       defaultSortKey="name"
       defaultSortDirection="asc"
-      searchFilter={(p, q) => p.name.toLowerCase().includes(q) || (p.breed ?? "").toLowerCase().includes(q) || p.type.toLowerCase().includes(q)}
+      searchFilter={(p, q) => (p.name ?? "").toLowerCase().includes(q) || (p.breed ?? "").toLowerCase().includes(q) || p.type.toLowerCase().includes(q)}
       emptyMessage="No pets yet."
       addLabel="Pet"
     >
@@ -859,7 +879,7 @@
           <a href="/pets/{pet.id}" class="text-accent hover:text-[var(--link-hover)]">{pet.displayId}</a>
         </td>
         <td>
-          <a href="/pets/{pet.id}" class="text-sm font-medium text-accent hover:text-[var(--link-hover)]">{pet.name}</a>
+          <a href="/pets/{pet.id}" class="text-sm font-medium text-accent hover:text-[var(--link-hover)]">{pet.name ?? pet.displayId}</a>
         </td>
         <td>
           <span class="glass-badge inline-flex rounded-full px-2 py-0.5 text-xs font-medium {pet.type === 'cat' ? 'badge-purple' : 'badge-blue'}">
@@ -903,8 +923,9 @@
             <div>
               <label for="petName" class="block text-sm font-medium text-text-secondary">Name</label>
               <input
-                id="petName" name="name" type="text" required
+                id="petName" name="name" type="text"
                 class="glass-input mt-1 block w-full"
+                placeholder="Optional — follow up for name"
               />
             </div>
             {#if newPetType === "dog"}
@@ -1199,6 +1220,8 @@
       defaultSortDirection="desc"
       searchFilter={(o, q) => o.displayId.toLowerCase().includes(q) || (opportunityStageLabels[o.stage] ?? o.stage).toLowerCase().includes(q)}
       emptyMessage="No linked opportunities."
+      addLabel="Opportunity"
+      onFormToggle={(open) => { if (!open) { newOppPetIds = []; } }}
     >
       {#snippet row(opp, _searchQuery)}
         <td class="font-mono text-sm whitespace-nowrap">
@@ -1211,6 +1234,59 @@
         </td>
         <td class="text-sm text-text-secondary">{opp.passengerSeats + opp.petSeats}</td>
         <td class="text-sm text-text-muted whitespace-nowrap">{new Date(opp.createdAt).toLocaleDateString()}</td>
+      {/snippet}
+      {#snippet addForm()}
+        <form method="POST" action="?/addOpportunity" class="space-y-3">
+          <!-- Pet multi-select -->
+          {#if human.pets.length > 0}
+            <div>
+              <label for="oppPetSelect" class="block text-sm font-medium text-text-secondary mb-1">Pet(s)</label>
+              {#if newOppPetIds.length > 0}
+                <div class="flex flex-wrap gap-2 mb-2">
+                  {#each selectedOppPetLabels as label, i}
+                    <span class="inline-flex items-center gap-1 rounded-full bg-surface-secondary px-3 py-1 text-sm">
+                      {label}
+                      <button type="button" class="ml-1 text-text-muted hover:text-text-primary" onclick={() => { newOppPetIds = newOppPetIds.filter((_, idx) => idx !== i); }}>
+                        &times;
+                      </button>
+                    </span>
+                  {/each}
+                </div>
+              {/if}
+              {#key newOppPetSelectKey}
+                <SearchableSelect
+                  options={oppPetOptions}
+                  name="_oppPetSelect"
+                  id="oppPetSelect"
+                  emptyOption="Select a pet..."
+                  placeholder="Search pets..."
+                  onSelect={(v) => { if (v && !newOppPetIds.includes(v)) { newOppPetIds = [...newOppPetIds, v]; newOppPetSelectKey++; } }}
+                />
+              {/key}
+              {#each newOppPetIds as petId}
+                <input type="hidden" name="petIds" value={petId} />
+              {/each}
+            </div>
+          {/if}
+          <!-- Seats -->
+          <div class="grid gap-3 sm:grid-cols-2">
+            <div>
+              <label for="oppPassengerSeats" class="block text-sm font-medium text-text-secondary">Passenger Seats</label>
+              <input
+                id="oppPassengerSeats" name="passengerSeats" type="number" min="0" value="1"
+                class="glass-input mt-1 block w-full"
+              />
+            </div>
+            <div>
+              <label for="oppPetSeats" class="block text-sm font-medium text-text-secondary">Pet Seats</label>
+              <input
+                id="oppPetSeats" name="petSeats" type="number" min="0" value="0"
+                class="glass-input mt-1 block w-full"
+              />
+            </div>
+          </div>
+          <Button type="submit" size="sm">Create Opportunity</Button>
+        </form>
       {/snippet}
     </RelatedListTable>
   </div>
