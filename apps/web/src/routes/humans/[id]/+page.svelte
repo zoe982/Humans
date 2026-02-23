@@ -20,7 +20,7 @@
   import { api } from "$lib/api";
   import { statusColors as statusColorMap, humanTypeColors as typeColors, activityTypeColors, labelBadgeColor, opportunityStageColors } from "$lib/constants/colors";
   import { humanTypeLabels as typeLabels, activityTypeLabels, ACTIVITY_TYPE_OPTIONS, opportunityStageLabels } from "$lib/constants/labels";
-  import { formatRelativeTime, summarizeChanges } from "$lib/utils/format";
+  import { formatRelativeTime, formatDateTime, summarizeChanges } from "$lib/utils/format";
   import { PET_BREEDS } from "@humans/shared/constants";
   import { onDestroy } from "svelte";
   import { Button } from "$lib/components/ui/button";
@@ -976,7 +976,7 @@
           <a href="/activities/{activity.id}" class="hover:text-accent transition-colors duration-150"><HighlightText text={activity.subject} query={searchQuery} /></a>
         </td>
         <td class="text-text-muted max-w-xs truncate"><HighlightText text={truncateText(activity.notes ?? activity.body, 80)} query={searchQuery} /></td>
-        <td class="text-text-muted whitespace-nowrap">{new Date(activity.activityDate).toLocaleString(undefined, { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })}</td>
+        <td class="text-text-muted whitespace-nowrap">{formatDateTime(activity.activityDate)}</td>
         <td>
           <button
             type="button"

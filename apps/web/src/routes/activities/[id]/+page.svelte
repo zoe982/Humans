@@ -11,7 +11,7 @@
   import { createAutoSaver, type SaveStatus } from "$lib/autosave";
   import { onDestroy } from "svelte";
   import { activityTypeLabels, ACTIVITY_TYPE_OPTIONS } from "$lib/constants/labels";
-  import { displayName, formatRelativeTime, summarizeChanges } from "$lib/utils/format";
+  import { displayName, formatRelativeTime, formatDateTime, summarizeChanges } from "$lib/utils/format";
   import SearchableSelect from "$lib/components/SearchableSelect.svelte";
   import { createChangeHistoryLoader } from "$lib/changeHistory";
   import RouteInterestPicker from "$lib/components/RouteInterestPicker.svelte";
@@ -176,8 +176,8 @@
   let deleteFormEl = $state<HTMLFormElement>();
 
   const metadataItems = $derived([
-    { id: "created", field: "Created", value: new Date(activity.createdAt).toLocaleString() },
-    { id: "updated", field: "Updated", value: new Date(activity.updatedAt).toLocaleString() },
+    { id: "created", field: "Created", value: formatDateTime(activity.createdAt) },
+    { id: "updated", field: "Updated", value: formatDateTime(activity.updatedAt) },
     { id: "createdBy", field: "Created by", value: activity.ownerName ? `${activity.ownerName} (${activity.ownerDisplayId})` : "—" },
   ]);
 </script>

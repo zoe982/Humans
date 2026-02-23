@@ -7,6 +7,7 @@
   import { Search } from "lucide-svelte";
   import SearchableSelect from "$lib/components/SearchableSelect.svelte";
   import { Button } from "$lib/components/ui/button";
+  import { formatDate } from "$lib/utils/format";
 
   let { data, form }: { data: PageData; form: ActionData } = $props();
 
@@ -130,7 +131,7 @@
         <span class="text-text-muted">\u2014</span>
       {/each}
     </td>
-    <td class="text-text-muted">{new Date(activity.activityDate).toLocaleDateString()}</td>
+    <td class="text-text-muted">{formatDate(activity.activityDate)}</td>
   {/snippet}
   {#snippet mobileCard(activity)}
     <a href="/activities/{activity.id}" class="glass-card p-4 block hover:ring-1 hover:ring-accent/40 transition">
@@ -139,7 +140,7 @@
         <span class="glass-badge text-xs {activityTypeColors[activity.type] ?? 'bg-glass text-text-secondary'}">
           {activityTypeLabels[activity.type] ?? activity.type}
         </span>
-        <span class="text-xs text-text-muted">{new Date(activity.activityDate).toLocaleDateString()}</span>
+        <span class="text-xs text-text-muted">{formatDate(activity.activityDate)}</span>
       </div>
       <p class="font-medium text-text-primary">{activity.subject}</p>
       {#if activity.ownerName}

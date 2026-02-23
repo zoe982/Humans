@@ -1,3 +1,24 @@
+/** Format a date string as date + time in the user's local timezone, 24h format (e.g., "18/02/2026, 21:03") */
+export function formatDateTime(dateStr: string): string {
+  return new Date(dateStr).toLocaleString(undefined, {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+}
+
+/** Format a date string as date-only in the user's local timezone (e.g., "18/02/2026") */
+export function formatDate(dateStr: string): string {
+  return new Date(dateStr).toLocaleDateString(undefined, {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
+}
+
 /** Format a date string as relative time (e.g., "5m ago", "2h ago", "3d ago") */
 export function formatRelativeTime(dateStr: string): string {
   const date = new Date(dateStr);

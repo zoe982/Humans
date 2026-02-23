@@ -7,6 +7,7 @@
   import { Users, PawPrint, Activity, Globe2, Plus, Search, ClipboardList } from "lucide-svelte";
   import { activityTypeLabels } from "$lib/constants/labels";
   import { activityTypeColors } from "$lib/constants/colors";
+  import { formatDate } from "$lib/utils/format";
 
   let { data }: { data: PageData } = $props();
 
@@ -160,7 +161,7 @@
             <span class="text-text-muted">&mdash;</span>
           {/if}
         </td>
-        <td class="text-text-muted whitespace-nowrap">{new Date(activity.activityDate).toLocaleDateString()}</td>
+        <td class="text-text-muted whitespace-nowrap">{formatDate(activity.activityDate)}</td>
       {/snippet}
     </RelatedListTable>
     <div class="mt-3 text-right">

@@ -1,6 +1,7 @@
 import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
 import { PUBLIC_API_URL } from "$env/static/public";
+import { formatDate } from "$lib/utils/format";
 
 type SearchResult = {
   id: string;
@@ -71,7 +72,7 @@ export const GET: RequestHandler = async ({ url, cookies }) => {
     results.push({
       id: `activity-${act.id}`,
       label: act.subject,
-      sublabel: new Date(act.activityDate).toLocaleDateString(),
+      sublabel: formatDate(act.activityDate),
       href: `/activities/${act.id}`,
       category: "Activities",
     });

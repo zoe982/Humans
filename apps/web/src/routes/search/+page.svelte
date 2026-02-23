@@ -4,6 +4,7 @@
   import { signupStatusColors } from "$lib/constants/colors";
   import { activityTypeLabels } from "$lib/constants/labels";
   import { Button } from "$lib/components/ui/button";
+  import { formatDate } from "$lib/utils/format";
 
   let { data }: { data: PageData } = $props();
 
@@ -159,7 +160,7 @@
                 </span>
                 <p class="text-sm font-medium text-text-primary">{activity.subject}</p>
               </div>
-              <span class="text-xs text-text-muted">{new Date(activity.activityDate).toLocaleDateString()}</span>
+              <span class="text-xs text-text-muted">{formatDate(activity.activityDate)}</span>
             </div>
             <div class="mt-1">
               {#if activity.humanId}

@@ -13,6 +13,7 @@
   import { generalLeadStatusColors, generalLeadSourceColors, activityTypeColors } from "$lib/constants/colors";
   import { generalLeadStatusLabels, generalLeadSourceLabels, activityTypeLabels, ACTIVITY_TYPE_OPTIONS } from "$lib/constants/labels";
   import { Button } from "$lib/components/ui/button";
+  import { formatDateTime } from "$lib/utils/format";
 
   let { data, form }: { data: PageData; form: ActionData } = $props();
 
@@ -261,7 +262,7 @@
           <HighlightText text={activity.subject} query={searchQuery} />
         </td>
         <td class="text-text-muted max-w-xs truncate"><HighlightText text={activity.notes ?? activity.body ?? "—"} query={searchQuery} /></td>
-        <td class="text-text-muted whitespace-nowrap">{new Date(activity.activityDate).toLocaleString(undefined, { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })}</td>
+        <td class="text-text-muted whitespace-nowrap">{formatDateTime(activity.activityDate)}</td>
       {/snippet}
       {#snippet addForm()}
         <form method="POST" action="?/addActivity" class="space-y-3">

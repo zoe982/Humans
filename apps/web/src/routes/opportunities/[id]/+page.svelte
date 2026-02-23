@@ -16,7 +16,7 @@
   import { api } from "$lib/api";
   import { opportunityStageColors } from "$lib/constants/colors";
   import { opportunityStageLabels, OPPORTUNITY_STAGE_OPTIONS, TERMINAL_STAGES, ACTIVITY_TYPE_OPTIONS, activityTypeLabels } from "$lib/constants/labels";
-  import { formatRelativeTime, summarizeChanges } from "$lib/utils/format";
+  import { formatRelativeTime, formatDateTime, summarizeChanges } from "$lib/utils/format";
   import { onDestroy } from "svelte";
   import { Button } from "$lib/components/ui/button";
 
@@ -719,7 +719,7 @@
         </td>
         <td class="font-medium max-w-sm truncate">{activity.subject}</td>
         <td class="text-text-muted max-w-xs truncate">{activity.notes ?? "\u2014"}</td>
-        <td class="text-text-muted whitespace-nowrap">{new Date(activity.activityDate).toLocaleString(undefined, { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })}</td>
+        <td class="text-text-muted whitespace-nowrap">{formatDateTime(activity.activityDate)}</td>
         <td>
           <button
             type="button"
@@ -827,7 +827,7 @@
           </div>
           <div>
             <span class="block text-xs font-medium text-text-muted uppercase tracking-wide">Due Date</span>
-            <p class="mt-1 text-sm text-text-primary">{naDueDate ? new Date(naDueDate).toLocaleString(undefined, { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "—"}</p>
+            <p class="mt-1 text-sm text-text-primary">{naDueDate ? formatDateTime(naDueDate) : "—"}</p>
           </div>
           <div class="sm:col-span-3">
             <span class="block text-xs font-medium text-text-muted uppercase tracking-wide">Description</span>
