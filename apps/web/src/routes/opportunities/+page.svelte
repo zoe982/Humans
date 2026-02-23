@@ -118,7 +118,7 @@
     </form>
   {/snippet}
   {#snippet desktopRow(opp)}
-    <td class="font-mono text-sm">
+    <td class="font-mono text-sm whitespace-nowrap">
       <a href="/opportunities/{opp.id}" class="text-accent hover:text-[var(--link-hover)]">{opp.displayId}</a>
     </td>
     <td>

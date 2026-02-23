@@ -45,7 +45,7 @@
   canDelete={data.userRole === "admin"}
 >
   {#snippet desktopRow(account)}
-    <td class="font-mono text-sm">
+    <td class="font-mono text-sm whitespace-nowrap">
       <a href="/accounts/{account.id}" class="text-accent hover:text-[var(--link-hover)]">{account.displayId}</a>
     </td>
     <td class="font-medium">

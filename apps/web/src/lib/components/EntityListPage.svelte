@@ -126,7 +126,7 @@
   <title>{pageTitle ?? `${title} - Humans`}</title>
 </svelte:head>
 
-<div class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+<div class="px-4 py-8 sm:px-6 lg:px-8">
   <PageHeader {title} {breadcrumbs}>
     {#snippet action()}
       {#if headerAction}
@@ -166,7 +166,7 @@
   </div>
 
   <!-- Desktop table view -->
-  <div class="glass-card overflow-hidden hidden sm:block">
+  <div class="glass-card overflow-x-auto hidden sm:block">
     <table class="min-w-full">
       <thead class="glass-thead">
         <tr>

@@ -45,7 +45,7 @@
   searchPlaceholder="Search codes, descriptions, humans, accounts..."
 >
   {#snippet desktopRow(rc)}
-    <td class="font-mono text-sm"><a href="/referral-codes/{rc.id}" class="text-accent hover:text-[var(--link-hover)]">{rc.displayId}</a></td>
+    <td class="font-mono text-sm whitespace-nowrap"><a href="/referral-codes/{rc.id}" class="text-accent hover:text-[var(--link-hover)]">{rc.displayId}</a></td>
     <td class="font-medium">{rc.code}</td>
     <td class="text-sm text-text-secondary max-w-xs truncate">{rc.description ?? "\u2014"}</td>
     <td>

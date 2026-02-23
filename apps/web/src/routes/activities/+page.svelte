@@ -110,7 +110,7 @@
     </form>
   {/snippet}
   {#snippet desktopRow(activity)}
-    <td class="font-mono text-sm">
+    <td class="font-mono text-sm whitespace-nowrap">
       <a href="/activities/{activity.id}" class="text-accent hover:text-[var(--link-hover)]">{activity.displayId}</a>
     </td>
     <td>

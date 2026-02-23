@@ -54,7 +54,7 @@
   emptyMessage={pets.length === 0 ? "No pets found." : "No matching pets."}
 >
   {#snippet desktopRow(pet)}
-    <td class="font-mono text-sm"><a href="/pets/{pet.id}" class="text-accent hover:text-[var(--link-hover)]">{pet.displayId}</a></td>
+    <td class="font-mono text-sm whitespace-nowrap"><a href="/pets/{pet.id}" class="text-accent hover:text-[var(--link-hover)]">{pet.displayId}</a></td>
     <td class="font-medium">
       {#if pet.humanId}
         <a href="/humans/{pet.humanId}" class="text-accent hover:text-[var(--link-hover)]">{pet.ownerName ?? "\u2014"}</a>

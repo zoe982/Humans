@@ -35,7 +35,7 @@
   pagination={{ page: data.page, limit: data.limit, total: data.total, baseUrl: "/flights" }}
 >
   {#snippet desktopRow(flight)}
-    <td class="font-mono text-sm">
+    <td class="font-mono text-sm whitespace-nowrap">
       <a href="/flights/{flight.id}" class="text-accent hover:text-[var(--link-hover)]">{flight.crm_display_id ?? "\u2014"}</a>
     </td>
     <td class="text-sm text-text-secondary">

@@ -52,7 +52,7 @@
       <tbody>
         {#each colleagues as colleague (colleague.id)}
           <tr class="glass-row-hover">
-            <td class="font-mono text-sm text-text-muted">{colleague.displayId}</td>
+            <td class="font-mono text-sm whitespace-nowrap text-text-muted">{colleague.displayId}</td>
             <td>
               <div>
                 <p class="font-medium">{colleague.name}</p>
