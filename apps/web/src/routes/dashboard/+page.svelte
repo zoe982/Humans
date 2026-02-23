@@ -84,7 +84,7 @@
   <!-- Activity Chart -->
   {#if dailyCounts.length > 0}
     <div class="mt-8 glass-card p-6">
-      <h2 class="text-lg font-semibold text-text-primary mb-4">Activity (Last 30 Days)</h2>
+      <h2 class="text-lg font-semibold text-text-primary mb-4">Cumulative Activity (Last 30 Days)</h2>
       <ActivityChart data={dailyCounts} />
     </div>
   {/if}

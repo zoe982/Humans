@@ -21,25 +21,50 @@
   const CHART_WIDTH = $derived(VIEW_WIDTH - PADDING_LEFT - PADDING_RIGHT);
   const CHART_HEIGHT = $derived(VIEW_HEIGHT - PADDING_TOP - PADDING_BOTTOM);
 
-  // Derived chart data
-  const maxCount = $derived(data.length > 0 ? Math.max(...data.map((d) => d.count), 1) : 1);
+  // Compute cumulative data
+  const cumulativeData = $derived.by(() => {
+    let running = 0;
+    return data.map((d) => {
+      running += d.count;
+      return { date: d.date, count: d.count, cumulative: running };
+    });
+  });
 
-  const barWidth = $derived(data.length > 0 ? CHART_WIDTH / data.length : 0);
-  const barPadding = $derived(barWidth * 0.25);
+  const maxCumulative = $derived(
+    cumulativeData.length > 0 ? Math.max(cumulativeData[cumulativeData.length - 1]!.cumulative, 1) : 1,
+  );
 
   // Y-axis gridline values: 0, half, and max, rounded to nice numbers
   const yGridValues = $derived.by(() => {
-    const step = Math.ceil(maxCount / 2);
-    return [0, step, step * 2 > maxCount ? maxCount : step * 2];
+    const step = Math.ceil(maxCumulative / 2);
+    return [0, step, step * 2 > maxCumulative ? maxCumulative : step * 2];
   });
 
-  function yToSvg(count: number): number {
-    return PADDING_TOP + CHART_HEIGHT - (count / maxCount) * CHART_HEIGHT;
+  function yToSvg(value: number): number {
+    return PADDING_TOP + CHART_HEIGHT - (value / maxCumulative) * CHART_HEIGHT;
   }
 
   function xToSvg(index: number): number {
-    return PADDING_LEFT + index * barWidth;
+    if (cumulativeData.length <= 1) return PADDING_LEFT;
+    return PADDING_LEFT + (index / (cumulativeData.length - 1)) * CHART_WIDTH;
   }
+
+  // Build the line path and area path
+  const linePath = $derived.by(() => {
+    if (cumulativeData.length === 0) return "";
+    return cumulativeData
+      .map((d, i) => `${i === 0 ? "M" : "L"}${xToSvg(i)},${yToSvg(d.cumulative)}`)
+      .join(" ");
+  });
+
+  const areaPath = $derived.by(() => {
+    if (cumulativeData.length === 0) return "";
+    const baseline = PADDING_TOP + CHART_HEIGHT;
+    const first = `M${xToSvg(0)},${baseline}`;
+    const lineUp = cumulativeData.map((d, i) => `L${xToSvg(i)},${yToSvg(d.cumulative)}`).join(" ");
+    const close = `L${xToSvg(cumulativeData.length - 1)},${baseline} Z`;
+    return `${first} ${lineUp} ${close}`;
+  });
 
   // Format a date string ("2024-02-01") as "Feb 1"
   function formatDateLabel(dateStr: string): string {
@@ -50,21 +75,23 @@
   // Hover state
   let hoveredIndex = $state<number | null>(null);
 
-  const tooltip = $derived.by(() => {
-    if (hoveredIndex === null || hoveredIndex >= data.length) return null;
-    const point = data[hoveredIndex];
-    if (!point) return null;
-    const barX = xToSvg(hoveredIndex);
-    const barH = (point.count / maxCount) * CHART_HEIGHT;
-    const barY = PADDING_TOP + CHART_HEIGHT - barH;
-    const bw = barWidth - barPadding * 2;
+  // Segment width for hover hit areas
+  const segmentWidth = $derived(
+    cumulativeData.length > 1 ? CHART_WIDTH / (cumulativeData.length - 1) : CHART_WIDTH,
+  );
 
-    // Center the tooltip over the bar; keep it within the SVG bounds
-    const tipWidth = 90;
-    const tipHeight = 34;
-    const rawX = barX + barPadding + bw / 2 - tipWidth / 2;
+  const tooltip = $derived.by(() => {
+    if (hoveredIndex === null || hoveredIndex >= cumulativeData.length) return null;
+    const point = cumulativeData[hoveredIndex];
+    if (!point) return null;
+    const px = xToSvg(hoveredIndex);
+    const py = yToSvg(point.cumulative);
+
+    const tipWidth = 110;
+    const tipHeight = 46;
+    const rawX = px - tipWidth / 2;
     const tipX = Math.max(PADDING_LEFT, Math.min(rawX, VIEW_WIDTH - PADDING_RIGHT - tipWidth));
-    const tipY = Math.max(PADDING_TOP, barY - tipHeight - 6);
+    const tipY = Math.max(PADDING_TOP, py - tipHeight - 10);
 
     return {
       x: tipX,
@@ -72,7 +99,8 @@
       width: tipWidth,
       height: tipHeight,
       label: formatDateLabel(point.date),
-      count: point.count,
+      daily: point.count,
+      cumulative: point.cumulative,
     };
   });
 </script>
@@ -81,7 +109,7 @@
   viewBox="0 0 {VIEW_WIDTH} {VIEW_HEIGHT}"
   preserveAspectRatio="xMidYMid meet"
   width="100%"
-  aria-label="Daily activity counts over the last 30 days"
+  aria-label="Cumulative activity counts over the last 30 days"
   role="img"
 >
   <!-- Y-axis gridlines and labels -->
@@ -107,31 +135,48 @@
     </text>
   {/each}
 
-  <!-- Bars -->
-  {#each data as point, i}
-    {@const barH = Math.max((point.count / maxCount) * CHART_HEIGHT, point.count > 0 ? 2 : 0)}
-    {@const barX = xToSvg(i) + barPadding}
-    {@const barY = PADDING_TOP + CHART_HEIGHT - barH}
-    {@const bw = barWidth - barPadding * 2}
+  <!-- Filled area under the line -->
+  {#if areaPath}
+    <path
+      d={areaPath}
+      fill="rgba(6, 182, 212, 0.15)"
+      data-testid="area"
+    />
+  {/if}
 
-    <rect
-      x={barX}
-      y={barY}
-      width={bw}
-      height={barH}
-      rx="2"
-      fill={hoveredIndex === i ? "rgba(6, 182, 212, 0.8)" : "rgba(6, 182, 212, 0.6)"}
+  <!-- Line -->
+  {#if linePath}
+    <path
+      d={linePath}
+      fill="none"
+      stroke="rgba(6, 182, 212, 0.8)"
+      stroke-width="2"
+      stroke-linejoin="round"
+      stroke-linecap="round"
+      data-testid="line"
+    />
+  {/if}
+
+  <!-- Data point dots -->
+  {#each cumulativeData as point, i}
+    <circle
+      cx={xToSvg(i)}
+      cy={yToSvg(point.cumulative)}
+      r={hoveredIndex === i ? 5 : 3}
+      fill={hoveredIndex === i ? "rgb(6, 182, 212)" : "rgba(6, 182, 212, 0.8)"}
+      stroke={hoveredIndex === i ? "rgba(6, 182, 212, 0.3)" : "none"}
+      stroke-width={hoveredIndex === i ? 4 : 0}
       role="presentation"
       aria-hidden="true"
-      onmouseenter={() => (hoveredIndex = i)}
-      onmouseleave={() => (hoveredIndex = null)}
-      style="cursor: pointer; transition: fill 0.1s ease;"
+      style="transition: r 0.1s ease, fill 0.1s ease;"
     />
+  {/each}
 
-    <!-- X-axis label every 5th bar (0-indexed: 0, 4, 9, 14, 19, 24, 29) -->
+  <!-- X-axis labels every 5th point -->
+  {#each cumulativeData as point, i}
     {#if i % 5 === 0}
       <text
-        x={barX + bw / 2}
+        x={xToSvg(i)}
         y={VIEW_HEIGHT - PADDING_BOTTOM + 14}
         text-anchor="middle"
         font-size="9"
@@ -142,21 +187,25 @@
     {/if}
   {/each}
 
-  <!-- Transparent overlay rects for a larger hover hit area -->
-  {#each data as hitPoint, i}
-    {@const barX = xToSvg(i) + barPadding}
-    {@const bw = barWidth - barPadding * 2}
+  <!-- Transparent overlay rects for hover hit areas -->
+  {#each cumulativeData as point, i}
+    {@const hitX = cumulativeData.length <= 1
+      ? PADDING_LEFT
+      : xToSvg(i) - segmentWidth / 2}
+    {@const hitW = cumulativeData.length <= 1
+      ? CHART_WIDTH
+      : segmentWidth}
     <rect
-      x={barX}
+      x={Math.max(PADDING_LEFT, hitX)}
       y={PADDING_TOP}
-      width={bw}
+      width={Math.min(hitW, VIEW_WIDTH - PADDING_RIGHT - Math.max(PADDING_LEFT, hitX))}
       height={CHART_HEIGHT}
       fill="transparent"
       onmouseenter={() => (hoveredIndex = i)}
       onmouseleave={() => (hoveredIndex = null)}
       role="button"
       tabindex="0"
-      aria-label="{formatDateLabel(hitPoint.date)}: {hitPoint.count} {hitPoint.count === 1 ? 'activity' : 'activities'}"
+      aria-label="{formatDateLabel(point.date)}: {point.cumulative} total ({point.count} {point.count === 1 ? 'activity' : 'activities'})"
       onfocus={() => (hoveredIndex = i)}
       onblur={() => (hoveredIndex = null)}
     />
@@ -165,7 +214,6 @@
   <!-- Tooltip -->
   {#if tooltip !== null}
     <g role="tooltip" aria-live="polite">
-      <!-- Background -->
       <rect
         x={tooltip.x}
         y={tooltip.y}
@@ -176,7 +224,6 @@
         stroke="rgba(255, 255, 255, 0.08)"
         stroke-width="1"
       />
-      <!-- Date label -->
       <text
         x={tooltip.x + tooltip.width / 2}
         y={tooltip.y + 12}
@@ -186,7 +233,6 @@
       >
         {tooltip.label}
       </text>
-      <!-- Count -->
       <text
         x={tooltip.x + tooltip.width / 2}
         y={tooltip.y + 26}
@@ -195,7 +241,16 @@
         font-weight="600"
         fill="rgb(6, 182, 212)"
       >
-        {tooltip.count}
+        {tooltip.cumulative} total
+      </text>
+      <text
+        x={tooltip.x + tooltip.width / 2}
+        y={tooltip.y + 40}
+        text-anchor="middle"
+        font-size="9"
+        fill="rgba(255,255,255,0.4)"
+      >
+        +{tooltip.daily} today
       </text>
     </g>
   {/if}

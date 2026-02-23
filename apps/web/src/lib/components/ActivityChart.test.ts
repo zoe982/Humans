@@ -42,51 +42,62 @@ describe("ActivityChart", () => {
     expect(svg.getAttribute("aria-label")).toContain("activity");
   });
 
-  // --- Bars ---
+  // --- Line and area ---
 
-  it("renders one bar rect per data point", () => {
+  it("renders a line path", () => {
+    const { container } = render(ActivityChart, { props: { data: makeData(30) } });
+    const line = container.querySelector('[data-testid="line"]');
+    expect(line).not.toBeNull();
+    expect(line?.getAttribute("d")).toContain("M");
+    expect(line?.getAttribute("d")).toContain("L");
+  });
+
+  it("renders a filled area under the line", () => {
+    const { container } = render(ActivityChart, { props: { data: makeData(30) } });
+    const area = container.querySelector('[data-testid="area"]');
+    expect(area).not.toBeNull();
+    expect(area?.getAttribute("fill")).toContain("rgba(6, 182, 212");
+  });
+
+  it("renders one circle dot per data point", () => {
     const data = makeData(30);
     const { container } = render(ActivityChart, { props: { data } });
-    // presentation rects (bars) have role="presentation"
-    const bars = container.querySelectorAll('rect[role="presentation"]');
-    expect(bars.length).toBe(30);
+    const dots = container.querySelectorAll('circle[role="presentation"]');
+    expect(dots.length).toBe(30);
   });
 
-  it("renders bars with rx=2 for rounded corners", () => {
+  it("renders dots with the accent fill color", () => {
     const data = makeData(5);
     const { container } = render(ActivityChart, { props: { data } });
-    const bars = container.querySelectorAll('rect[role="presentation"]');
-    bars.forEach((bar) => {
-      expect(bar.getAttribute("rx")).toBe("2");
+    const dots = container.querySelectorAll('circle[role="presentation"]');
+    dots.forEach((dot) => {
+      expect(dot.getAttribute("fill")).toContain("6, 182, 212");
     });
   });
 
-  it("renders bars with the accent fill color", () => {
-    const data = makeData(5);
-    const { container } = render(ActivityChart, { props: { data } });
-    const bars = container.querySelectorAll('rect[role="presentation"]');
-    bars.forEach((bar) => {
-      expect(bar.getAttribute("fill")).toContain("rgba(6, 182, 212");
-    });
-  });
-
-  it("renders no bars when data is empty", () => {
+  it("renders no line or dots when data is empty", () => {
     const { container } = render(ActivityChart, { props: { data: [] } });
-    const bars = container.querySelectorAll('rect[role="presentation"]');
-    expect(bars.length).toBe(0);
+    expect(container.querySelector('[data-testid="line"]')).toBeNull();
+    expect(container.querySelectorAll('circle[role="presentation"]').length).toBe(0);
+  });
+
+  // --- Cumulative calculation ---
+
+  it("computes cumulative values correctly", async () => {
+    const data = [
+      { date: "2024-02-01", count: 2 },
+      { date: "2024-02-02", count: 3 },
+      { date: "2024-02-03", count: 5 },
+    ];
+    const { container } = render(ActivityChart, { props: { data } });
+    // Hover over the third point — should show cumulative of 10
+    const overlays = container.querySelectorAll('rect[role="button"]');
+    await fireEvent.mouseEnter(overlays[2] as SVGElement);
+    const tooltip = container.querySelector('[role="tooltip"]');
+    expect(tooltip?.textContent).toContain("10 total");
   });
 
   // --- Empty / Zero counts ---
-
-  it("renders bars with zero height for zero-count entries", () => {
-    const data = [{ date: "2024-02-01", count: 0 }];
-    const { container } = render(ActivityChart, { props: { data } });
-    const bars = container.querySelectorAll('rect[role="presentation"]');
-    // height must be 0 or very small for a zero-count bar
-    bars.forEach((bar) => {
-      expect(Number(bar.getAttribute("height"))).toBe(0);
-    });
-  });
 
   it("handles a single data point without throwing", () => {
     const { container } = render(ActivityChart, {
@@ -103,12 +114,9 @@ describe("ActivityChart", () => {
 
   // --- X-axis labels ---
 
-  it("renders an x-axis label for every 5th bar (0-indexed: 0, 5, 10, ...)", () => {
+  it("renders an x-axis label for every 5th point (0-indexed: 0, 5, 10, ...)", () => {
     const data = makeData(30);
     const { container } = render(ActivityChart, { props: { data } });
-    // All text nodes except y-axis numbers and tooltip text:
-    // x-axis labels appear at positions 0, 5, 10, 15, 20, 25 → 6 labels for 30 items
-    // The y-axis also renders 3 labels. We'll count labels containing "Feb".
     const allText = Array.from(container.querySelectorAll("text"));
     const xLabels = allText.filter((t) => t.textContent?.includes("Feb") && Number(t.getAttribute("font-size")) === 9);
     // 30 items / 5 = 6 labels
@@ -127,7 +135,6 @@ describe("ActivityChart", () => {
 
   it("renders horizontal gridlines", () => {
     const { container } = render(ActivityChart, { props: { data: makeData(30) } });
-    // Gridlines are <line> elements with the faint stroke color
     const lines = Array.from(container.querySelectorAll("line")).filter(
       (l) => l.getAttribute("stroke") === "rgba(255,255,255,0.06)"
     );
@@ -139,7 +146,6 @@ describe("ActivityChart", () => {
     const yLabels = Array.from(container.querySelectorAll("text")).filter(
       (t) => t.getAttribute("text-anchor") === "end" && t.getAttribute("fill") === "rgba(255,255,255,0.5)"
     );
-    // At least "0" and the max value
     expect(yLabels.length).toBeGreaterThanOrEqual(2);
   });
 
@@ -164,19 +170,19 @@ describe("ActivityChart", () => {
 
   // --- Hover overlay buttons (keyboard accessibility) ---
 
-  it("renders an accessible button overlay for each bar", () => {
+  it("renders an accessible button overlay for each point", () => {
     const data = makeData(30);
     const { container } = render(ActivityChart, { props: { data } });
     const overlays = container.querySelectorAll('rect[role="button"]');
     expect(overlays.length).toBe(30);
   });
 
-  it("each overlay has a descriptive aria-label", () => {
+  it("each overlay has a descriptive aria-label with cumulative total", () => {
     const data = [{ date: "2024-02-01", count: 3 }];
     const { container } = render(ActivityChart, { props: { data } });
     const overlay = container.querySelector('rect[role="button"]');
-    expect(overlay?.getAttribute("aria-label")).toContain("3");
-    expect(overlay?.getAttribute("aria-label")).toContain("activities");
+    expect(overlay?.getAttribute("aria-label")).toContain("3 total");
+    expect(overlay?.getAttribute("aria-label")).toContain("3 activities");
   });
 
   it("each overlay is keyboard-focusable (tabindex=0)", () => {
@@ -188,14 +194,14 @@ describe("ActivityChart", () => {
     });
   });
 
-  it("uses singular 'activity' in aria-label when count is 1", () => {
+  it("uses singular 'activity' in aria-label when daily count is 1", () => {
     const data = [{ date: "2024-02-01", count: 1 }];
     const { container } = render(ActivityChart, { props: { data } });
     const overlay = container.querySelector('rect[role="button"]');
-    expect(overlay?.getAttribute("aria-label")).toContain("1 activity");
+    expect(overlay?.getAttribute("aria-label")).toContain("1 activity)");
   });
 
-  it("uses plural 'activities' in aria-label when count is 0", () => {
+  it("uses plural 'activities' in aria-label when daily count is 0", () => {
     const data = [{ date: "2024-02-01", count: 0 }];
     const { container } = render(ActivityChart, { props: { data } });
     const overlay = container.querySelector('rect[role="button"]');
@@ -218,13 +224,25 @@ describe("ActivityChart", () => {
     expect(tooltip).not.toBeNull();
   });
 
-  it("tooltip contains the count value", async () => {
-    const data = [{ date: "2024-02-01", count: 42 }];
+  it("tooltip contains the cumulative total", async () => {
+    const data = [
+      { date: "2024-02-01", count: 10 },
+      { date: "2024-02-02", count: 32 },
+    ];
+    const { container } = render(ActivityChart, { props: { data } });
+    const overlays = container.querySelectorAll('rect[role="button"]');
+    await fireEvent.mouseEnter(overlays[1] as SVGElement);
+    const tooltip = container.querySelector('[role="tooltip"]');
+    expect(tooltip?.textContent).toContain("42 total");
+  });
+
+  it("tooltip contains the daily count", async () => {
+    const data = [{ date: "2024-02-01", count: 5 }];
     const { container } = render(ActivityChart, { props: { data } });
     const overlay = container.querySelector('rect[role="button"]') as SVGElement;
     await fireEvent.mouseEnter(overlay);
     const tooltip = container.querySelector('[role="tooltip"]');
-    expect(tooltip?.textContent).toContain("42");
+    expect(tooltip?.textContent).toContain("+5 today");
   });
 
   it("tooltip contains the formatted date", async () => {
@@ -263,57 +281,42 @@ describe("ActivityChart", () => {
     expect(container.querySelector('[role="tooltip"]')).toBeNull();
   });
 
-  // --- Hover bar color change ---
+  // --- Hover dot highlight ---
 
-  it("changes the hovered bar fill to the brighter accent color", async () => {
+  it("enlarges the hovered dot", async () => {
     const data = makeData(5, 4);
     const { container } = render(ActivityChart, { props: { data } });
-    const bars = container.querySelectorAll('rect[role="presentation"]');
+    const dots = container.querySelectorAll('circle[role="presentation"]');
     const overlays = container.querySelectorAll('rect[role="button"]');
-    const firstOverlay = overlays[0] as SVGElement;
-    await fireEvent.mouseEnter(firstOverlay);
-    // First bar should now have the hover fill
-    expect(bars[0].getAttribute("fill")).toBe("rgba(6, 182, 212, 0.8)");
-    // Other bars remain at normal fill
-    expect(bars[1].getAttribute("fill")).toBe("rgba(6, 182, 212, 0.6)");
+    await fireEvent.mouseEnter(overlays[0] as SVGElement);
+    expect(dots[0].getAttribute("r")).toBe("5");
+    expect(dots[1].getAttribute("r")).toBe("3");
   });
 
-  it("restores normal bar fill after mouseleave", async () => {
+  it("restores dot size after mouseleave", async () => {
     const data = makeData(5, 4);
     const { container } = render(ActivityChart, { props: { data } });
-    const bars = container.querySelectorAll('rect[role="presentation"]');
+    const dots = container.querySelectorAll('circle[role="presentation"]');
     const overlays = container.querySelectorAll('rect[role="button"]');
-    const firstOverlay = overlays[0] as SVGElement;
-    await fireEvent.mouseEnter(firstOverlay);
-    await fireEvent.mouseLeave(firstOverlay);
-    expect(bars[0].getAttribute("fill")).toBe("rgba(6, 182, 212, 0.6)");
+    await fireEvent.mouseEnter(overlays[0] as SVGElement);
+    await fireEvent.mouseLeave(overlays[0] as SVGElement);
+    expect(dots[0].getAttribute("r")).toBe("3");
   });
 
-  // --- Large counts (boundary) ---
+  // --- Cumulative line always increases ---
 
-  it("renders correctly when all counts are the same (flat chart)", () => {
-    const data = makeData(30, 100);
-    const { container } = render(ActivityChart, { props: { data } });
-    const bars = container.querySelectorAll('rect[role="presentation"]');
-    expect(bars.length).toBe(30);
-    // All bars should have the same height
-    const heights = Array.from(bars).map((b) => b.getAttribute("height"));
-    const unique = new Set(heights);
-    expect(unique.size).toBe(1);
-  });
-
-  it("renders correctly with a single very high spike", () => {
+  it("line is monotonically non-decreasing (cumulative)", () => {
     const data = [
-      { date: "2024-02-01", count: 1 },
-      { date: "2024-02-02", count: 999 },
-      { date: "2024-02-03", count: 1 },
+      { date: "2024-02-01", count: 5 },
+      { date: "2024-02-02", count: 0 },
+      { date: "2024-02-03", count: 3 },
     ];
     const { container } = render(ActivityChart, { props: { data } });
-    const bars = container.querySelectorAll('rect[role="presentation"]');
-    expect(bars.length).toBe(3);
-    // The spike bar should be taller than the others
-    const heights = Array.from(bars).map((b) => Number(b.getAttribute("height")));
-    expect(heights[1]).toBeGreaterThan(heights[0]);
-    expect(heights[1]).toBeGreaterThan(heights[2]);
+    const dots = container.querySelectorAll('circle[role="presentation"]');
+    const yValues = Array.from(dots).map((d) => Number(d.getAttribute("cy")));
+    // In SVG, lower y = higher value, so values should be non-increasing
+    for (let i = 1; i < yValues.length; i++) {
+      expect(yValues[i]).toBeLessThanOrEqual(yValues[i - 1]);
+    }
   });
 });
