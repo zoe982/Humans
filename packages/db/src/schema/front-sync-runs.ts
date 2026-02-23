@@ -23,6 +23,7 @@ export const frontSyncRuns = sqliteTable("front_sync_runs", {
   unmatched: integer("unmatched").notNull().default(0),
   errorCount: integer("error_count").notNull().default(0),
   errorMessages: text("error_messages"),
+  unmatchedContacts: text("unmatched_contacts"),
   linkedToHumans: integer("linked_to_humans").notNull().default(0),
   linkedToAccounts: integer("linked_to_accounts").notNull().default(0),
   linkedToRouteSignups: integer("linked_to_route_signups")

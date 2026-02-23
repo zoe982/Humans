@@ -208,6 +208,7 @@ const MIGRATION_STATEMENTS = [
     \`unmatched\` integer NOT NULL DEFAULT 0,
     \`error_count\` integer NOT NULL DEFAULT 0,
     \`error_messages\` text,
+    \`unmatched_contacts\` text,
     \`linked_to_humans\` integer NOT NULL DEFAULT 0,
     \`linked_to_accounts\` integer NOT NULL DEFAULT 0,
     \`linked_to_route_signups\` integer NOT NULL DEFAULT 0,

@@ -7,6 +7,7 @@ import {
   accountHumans,
   frontSyncRuns,
   generalLeads,
+  humans,
   geoInterestExpressions,
   routeInterestExpressions,
 } from "@humans/db/schema";
@@ -46,7 +47,58 @@ function classifyChannel(
   return "social_message";
 }
 
-// --- Contact matching ---
+// --- Cached reference data (fixes subrequest limits) ---
+
+interface CachedReferenceData {
+  allEmails: Array<{ id: string; email: string; ownerType: string; ownerId: string }>;
+  allPhones: Array<{ id: string; phoneNumber: string; ownerType: string; ownerId: string }>;
+  allColleagues: Array<{ id: string; email: string }>;
+  allLeads: Array<{ id: string; email: string | null; phone: string | null }>;
+  allAccountHumans: Array<{ accountId: string; humanId: string }>;
+  allSignups: Array<{ id: string; email?: string; phone?: string; whatsapp_phone?: string }>;
+  allBookings: Array<{ id: string; client_email?: string; email_for_notifications?: string; phone_number?: string; alt_whatsapp_phone_number?: string }>;
+  humanNames: Map<string, { firstName: string; lastName: string; displayId: string }>;
+}
+
+async function preloadReferenceData(db: DB, supabase: SupabaseClient): Promise<CachedReferenceData> {
+  const [
+    emailRows,
+    phoneRows,
+    colleagueRows,
+    leadRows,
+    accountHumanRows,
+    signupsResult,
+    bookingsResult,
+    humanRows,
+  ] = await Promise.all([
+    db.select({ id: emails.id, email: emails.email, ownerType: emails.ownerType, ownerId: emails.ownerId }).from(emails),
+    db.select({ id: phones.id, phoneNumber: phones.phoneNumber, ownerType: phones.ownerType, ownerId: phones.ownerId }).from(phones),
+    db.select({ id: colleagues.id, email: colleagues.email }).from(colleagues),
+    db.select({ id: generalLeads.id, email: generalLeads.email, phone: generalLeads.phone }).from(generalLeads),
+    db.select({ accountId: accountHumans.accountId, humanId: accountHumans.humanId }).from(accountHumans),
+    supabase.from("announcement_signups").select("id, email, phone, whatsapp_phone"),
+    supabase.from("bookings").select("id, client_email, email_for_notifications, phone_number, alt_whatsapp_phone_number"),
+    db.select({ id: humans.id, firstName: humans.firstName, lastName: humans.lastName, displayId: humans.displayId }).from(humans),
+  ]);
+
+  const humanNames = new Map<string, { firstName: string; lastName: string; displayId: string }>();
+  for (const h of humanRows) {
+    humanNames.set(h.id, { firstName: h.firstName, lastName: h.lastName, displayId: h.displayId });
+  }
+
+  return {
+    allEmails: emailRows,
+    allPhones: phoneRows,
+    allColleagues: colleagueRows,
+    allLeads: leadRows,
+    allAccountHumans: accountHumanRows,
+    allSignups: (signupsResult.data ?? []) as CachedReferenceData["allSignups"],
+    allBookings: (bookingsResult.data ?? []) as CachedReferenceData["allBookings"],
+    humanNames,
+  };
+}
+
+// --- Contact matching (sync, uses cache) ---
 
 interface MatchResult {
   humanId: string | null;
@@ -57,30 +109,38 @@ interface MatchResult {
   matchedEntity: string | null; // description for logging
 }
 
-async function matchByEmail(
-  db: DB,
-  supabase: SupabaseClient,
-  emailHandle: string,
-): Promise<MatchResult> {
-  const noMatch: MatchResult = {
-    humanId: null,
-    accountId: null,
-    routeSignupId: null,
-    websiteBookingRequestId: null,
-    generalLeadId: null,
-    matchedEntity: null,
-  };
+const NO_MATCH: MatchResult = {
+  humanId: null,
+  accountId: null,
+  routeSignupId: null,
+  websiteBookingRequestId: null,
+  generalLeadId: null,
+  matchedEntity: null,
+};
+
+function findAccountForHuman(cache: CachedReferenceData, humanId: string): string | null {
+  const link = cache.allAccountHumans.find((ah) => ah.humanId === humanId);
+  return link?.accountId ?? null;
+}
+
+function findColleagueByEmail(cache: CachedReferenceData, email: string): string | null {
+  const match = cache.allColleagues.find(
+    (c) => c.email.toLowerCase() === email.toLowerCase(),
+  );
+  return match?.id ?? null;
+}
+
+function matchByEmail(cache: CachedReferenceData, emailHandle: string): MatchResult {
   const lowerEmail = emailHandle.toLowerCase();
 
   // 1. Check D1 emails table (humans)
-  const allEmails = await db.select().from(emails);
-  const matched = allEmails.find(
+  const matched = cache.allEmails.find(
     (e) => e.email.toLowerCase() === lowerEmail && e.ownerType === "human",
   );
   if (matched) {
-    const accountId = await findAccountForHuman(db, matched.ownerId);
+    const accountId = findAccountForHuman(cache, matched.ownerId);
     return {
-      ...noMatch,
+      ...NO_MATCH,
       humanId: matched.ownerId,
       accountId,
       matchedEntity: `human:${matched.ownerId}`,
@@ -88,81 +148,58 @@ async function matchByEmail(
   }
 
   // 2. Check Supabase announcement_signups
-  const { data: signups } = await supabase
-    .from("announcement_signups")
-    .select("id")
-    .ilike("email", lowerEmail)
-    .limit(1);
-  const signup = signups?.[0];
+  const signup = cache.allSignups.find(
+    (s) => s.email && s.email.toLowerCase() === lowerEmail,
+  );
   if (signup) {
-    const sid = signup["id"] as string;
     return {
-      ...noMatch,
-      routeSignupId: sid,
-      matchedEntity: `signup:${sid}`,
+      ...NO_MATCH,
+      routeSignupId: signup.id,
+      matchedEntity: `signup:${signup.id}`,
     };
   }
 
   // 3. Check D1 general_leads by email
-  const allLeads = await db.select({ id: generalLeads.id, email: generalLeads.email }).from(generalLeads);
-  const matchedLead = allLeads.find(
+  const matchedLead = cache.allLeads.find(
     (l) => l.email && l.email.toLowerCase() === lowerEmail,
   );
   if (matchedLead) {
     return {
-      ...noMatch,
+      ...NO_MATCH,
       generalLeadId: matchedLead.id,
       matchedEntity: `general_lead:${matchedLead.id}`,
     };
   }
 
   // 4. Check Supabase bookings
-  const { data: bookings } = await supabase
-    .from("bookings")
-    .select("id")
-    .or(
-      `client_email.ilike.${lowerEmail},email_for_notifications.ilike.${lowerEmail}`,
-    )
-    .limit(1);
-  const booking = bookings?.[0];
+  const booking = cache.allBookings.find(
+    (b) =>
+      (b.client_email && b.client_email.toLowerCase() === lowerEmail) ||
+      (b.email_for_notifications && b.email_for_notifications.toLowerCase() === lowerEmail),
+  );
   if (booking) {
-    const bid = booking["id"] as string;
     return {
-      ...noMatch,
-      websiteBookingRequestId: bid,
-      matchedEntity: `booking:${bid}`,
+      ...NO_MATCH,
+      websiteBookingRequestId: booking.id,
+      matchedEntity: `booking:${booking.id}`,
     };
   }
 
-  return noMatch;
+  return NO_MATCH;
 }
 
-async function matchByPhone(
-  db: DB,
-  supabase: SupabaseClient,
-  phoneHandle: string,
-): Promise<MatchResult> {
-  const noMatch: MatchResult = {
-    humanId: null,
-    accountId: null,
-    routeSignupId: null,
-    websiteBookingRequestId: null,
-    generalLeadId: null,
-    matchedEntity: null,
-  };
-
+function matchByPhone(cache: CachedReferenceData, phoneHandle: string): MatchResult {
   const normalized = normalizePhone(phoneHandle);
   const suffix = normalized.slice(-9);
 
   // 1. Check D1 phones table (humans)
-  const allPhones = await db.select().from(phones);
-  const matched = allPhones.find(
+  const matched = cache.allPhones.find(
     (p) => p.ownerType === "human" && phonesMatch(p.phoneNumber, phoneHandle),
   );
   if (matched) {
-    const accountId = await findAccountForHuman(db, matched.ownerId);
+    const accountId = findAccountForHuman(cache, matched.ownerId);
     return {
-      ...noMatch,
+      ...NO_MATCH,
       humanId: matched.ownerId,
       accountId,
       matchedEntity: `human:${matched.ownerId}`,
@@ -170,121 +207,73 @@ async function matchByPhone(
   }
 
   // 2. Check Supabase announcement_signups by phone/whatsapp_phone
-  const { data: signups } = await supabase
-    .from("announcement_signups")
-    .select("id, phone, whatsapp_phone");
-  if (signups) {
-    const matchedSignup = signups.find((s) => {
-      const phone = s["phone"] as string | null;
-      const wp = s["whatsapp_phone"] as string | null;
-      return (
-        (phone && normalizePhone(phone).slice(-9) === suffix) ||
-        (wp && normalizePhone(wp).slice(-9) === suffix)
-      );
-    });
-    if (matchedSignup) {
-      const sid = matchedSignup["id"] as string;
-      return {
-        ...noMatch,
-        routeSignupId: sid,
-        matchedEntity: `signup:${sid}`,
-      };
-    }
+  const matchedSignup = cache.allSignups.find((s) => {
+    const phone = s.phone;
+    const wp = s.whatsapp_phone;
+    return (
+      (phone && normalizePhone(phone).slice(-9) === suffix) ||
+      (wp && normalizePhone(wp).slice(-9) === suffix)
+    );
+  });
+  if (matchedSignup) {
+    return {
+      ...NO_MATCH,
+      routeSignupId: matchedSignup.id,
+      matchedEntity: `signup:${matchedSignup.id}`,
+    };
   }
 
   // 3. Check D1 general_leads by phone
-  const allLeads = await db.select({ id: generalLeads.id, phone: generalLeads.phone }).from(generalLeads);
-  const matchedLead = allLeads.find(
+  const matchedLead = cache.allLeads.find(
     (l) => l.phone && phonesMatch(l.phone, phoneHandle),
   );
   if (matchedLead) {
     return {
-      ...noMatch,
+      ...NO_MATCH,
       generalLeadId: matchedLead.id,
       matchedEntity: `general_lead:${matchedLead.id}`,
     };
   }
 
   // 4. Check Supabase bookings by phone
-  const { data: bookings } = await supabase
-    .from("bookings")
-    .select("id, phone_number, alt_whatsapp_phone_number");
-  if (bookings) {
-    const matchedBooking = bookings.find((b) => {
-      const phone = b["phone_number"] as string | null;
-      const alt = b["alt_whatsapp_phone_number"] as string | null;
-      return (
-        (phone && normalizePhone(phone).slice(-9) === suffix) ||
-        (alt && normalizePhone(alt).slice(-9) === suffix)
-      );
-    });
-    if (matchedBooking) {
-      const bid = matchedBooking["id"] as string;
-      return {
-        ...noMatch,
-        websiteBookingRequestId: bid,
-        matchedEntity: `booking:${bid}`,
-      };
-    }
+  const matchedBooking = cache.allBookings.find((b) => {
+    const phone = b.phone_number;
+    const alt = b.alt_whatsapp_phone_number;
+    return (
+      (phone && normalizePhone(phone).slice(-9) === suffix) ||
+      (alt && normalizePhone(alt).slice(-9) === suffix)
+    );
+  });
+  if (matchedBooking) {
+    return {
+      ...NO_MATCH,
+      websiteBookingRequestId: matchedBooking.id,
+      matchedEntity: `booking:${matchedBooking.id}`,
+    };
   }
 
-  return noMatch;
+  return NO_MATCH;
 }
 
-async function matchContact(
-  db: DB,
-  supabase: SupabaseClient,
+function matchContact(
+  cache: CachedReferenceData,
   handle: string,
   type: ActivityType,
-): Promise<MatchResult> {
+): MatchResult {
   if (type === "email") {
-    return matchByEmail(db, supabase, handle);
+    return matchByEmail(cache, handle);
   }
   if (type === "whatsapp_message") {
-    return matchByPhone(db, supabase, handle);
+    return matchByPhone(cache, handle);
   }
   // social_message — try email first, then phone
   if (handle.includes("@")) {
-    return matchByEmail(db, supabase, handle);
+    return matchByEmail(cache, handle);
   }
   if (/\d/.test(handle)) {
-    return matchByPhone(db, supabase, handle);
+    return matchByPhone(cache, handle);
   }
-  return {
-    humanId: null,
-    accountId: null,
-    routeSignupId: null,
-    websiteBookingRequestId: null,
-    generalLeadId: null,
-    matchedEntity: null,
-  };
-}
-
-// --- Auto-link helpers ---
-
-async function findAccountForHuman(
-  db: DB,
-  humanId: string,
-): Promise<string | null> {
-  const links = await db
-    .select({ accountId: accountHumans.accountId })
-    .from(accountHumans)
-    .where(eq(accountHumans.humanId, humanId))
-    .limit(1);
-  return links[0]?.accountId ?? null;
-}
-
-async function findColleagueByEmail(
-  db: DB,
-  email: string,
-): Promise<string | null> {
-  const allColleagues = await db
-    .select({ id: colleagues.id, email: colleagues.email })
-    .from(colleagues);
-  const match = allColleagues.find(
-    (c) => c.email.toLowerCase() === email.toLowerCase(),
-  );
-  return match?.id ?? null;
+  return NO_MATCH;
 }
 
 // --- Front API helpers ---
@@ -328,7 +317,32 @@ async function frontFetch<T>(url: string, token: string): Promise<T> {
   return res.json() as Promise<T>;
 }
 
+async function frontPostComment(token: string, conversationId: string, body: string): Promise<void> {
+  const res = await fetch(`https://api2.frontapp.com/conversations/${conversationId}/comments`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+      Accept: "application/json",
+    },
+    body: JSON.stringify({ body }),
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Front comment API ${res.status}: ${text}`);
+  }
+}
+
 // --- Sync logic ---
+
+export interface UnmatchedContact {
+  handle: string;
+  name: string | null;
+  conversationId: string;
+  conversationSubject: string;
+  type: ActivityType;
+  messageCount: number;
+}
 
 export interface SyncStats {
   total: number;
@@ -336,6 +350,7 @@ export interface SyncStats {
   skipped: number;
   unmatched: number;
   errors: string[];
+  unmatchedContacts: UnmatchedContact[];
   linkedToHumans: number;
   linkedToAccounts: number;
   linkedToRouteSignups: number;
@@ -356,6 +371,7 @@ function emptySyncStats(): SyncStats {
     skipped: 0,
     unmatched: 0,
     errors: [],
+    unmatchedContacts: [],
     linkedToHumans: 0,
     linkedToAccounts: 0,
     linkedToRouteSignups: 0,
@@ -371,6 +387,7 @@ function mergeStats(target: SyncStats, source: SyncStats) {
   target.skipped += source.skipped;
   target.unmatched += source.unmatched;
   target.errors.push(...source.errors);
+  target.unmatchedContacts.push(...source.unmatchedContacts);
   target.linkedToHumans += source.linkedToHumans;
   target.linkedToAccounts += source.linkedToAccounts;
   target.linkedToRouteSignups += source.linkedToRouteSignups;
@@ -382,7 +399,7 @@ function mergeStats(target: SyncStats, source: SyncStats) {
 /** Process a single conversation and its messages, creating activities. */
 async function processConversation(
   db: DB,
-  supabase: SupabaseClient,
+  cache: CachedReferenceData,
   frontToken: string,
   conversation: FrontConversation,
   syncRunId: string,
@@ -404,7 +421,37 @@ async function processConversation(
   const activityType = classifyChannel(undefined, contactHandle);
 
   // Match contact
-  const match = await matchContact(db, supabase, contactHandle, activityType);
+  const match = matchContact(cache, contactHandle, activityType);
+
+  // If no match, skip entire conversation and record unmatched contact
+  if (!match.matchedEntity) {
+    // Count new (non-draft, non-existing) messages that would have been imported
+    let newMessageCount = 0;
+    for (const message of msgResponse._results) {
+      stats.total++;
+      if (message.is_draft || existingFrontIds.has(message.id)) {
+        stats.skipped++;
+      } else {
+        newMessageCount++;
+        stats.unmatched++;
+      }
+    }
+
+    if (newMessageCount > 0) {
+      stats.unmatchedContacts.push({
+        handle: contactHandle,
+        name: conversation.recipient?.name ?? null,
+        conversationId: conversation.id,
+        conversationSubject: conversation.subject || "(no subject)",
+        type: activityType,
+        messageCount: newMessageCount,
+      });
+    }
+
+    return stats;
+  }
+
+  const importedDisplayIds: string[] = [];
 
   for (const message of msgResponse._results) {
     stats.total++;
@@ -424,11 +471,11 @@ async function processConversation(
     // Auto-link colleague based on message author
     let colleagueId: string | null = null;
     if (!message.is_inbound && message.author?.handle) {
-      colleagueId = await findColleagueByEmail(db, message.author.handle);
+      colleagueId = findColleagueByEmail(cache, message.author.handle);
     } else if (message.is_inbound) {
       for (const recipient of message.recipients) {
         if (recipient.role === "to" || recipient.role === "cc") {
-          const cid = await findColleagueByEmail(db, recipient.handle);
+          const cid = findColleagueByEmail(cache, recipient.handle);
           if (cid) {
             colleagueId = cid;
             break;
@@ -440,13 +487,7 @@ async function processConversation(
     // Build notes with metadata
     const direction = message.is_inbound ? "Inbound" : "Outbound";
     const authorInfo = message.author?.name ?? message.author?.handle ?? "Unknown";
-    const contactName = conversation.recipient?.name ?? contactHandle;
     const noteLines: string[] = [];
-
-    if (!match.matchedEntity) {
-      noteLines.push(`[UNMATCHED] Contact: ${contactName} (${contactHandle})`);
-      stats.unmatched++;
-    }
 
     noteLines.push(`${direction} from ${authorInfo}`);
     if (message.text) {
@@ -487,6 +528,7 @@ async function processConversation(
     await db.insert(activities).values(activity);
     existingFrontIds.add(message.id);
     stats.imported++;
+    importedDisplayIds.push(displayId);
 
     // Track linking stats
     if (match.humanId) stats.linkedToHumans++;
@@ -495,6 +537,21 @@ async function processConversation(
     if (match.websiteBookingRequestId) stats.linkedToBookings++;
     if (match.generalLeadId) stats.linkedToGeneralLeads++;
     if (colleagueId) stats.linkedToColleagues++;
+  }
+
+  // Comment writeback to Front
+  if (importedDisplayIds.length > 0) {
+    const actIds = importedDisplayIds.join(", ");
+    let commentBody = `Synced to Humans CRM: ${actIds}`;
+    if (match.humanId) {
+      const human = cache.humanNames.get(match.humanId);
+      if (human) {
+        commentBody += `\nLinked to: ${human.firstName} ${human.lastName} (${human.displayId})`;
+      }
+    }
+    frontPostComment(frontToken, conversation.id, commentBody).catch((err) => {
+      console.warn(`Failed to post Front comment for ${conversation.id}:`, err);
+    });
   }
 
   return stats;
@@ -507,6 +564,20 @@ async function updateSyncRunStats(
   stats: SyncStats,
   markComplete: boolean,
 ) {
+  // Read-append-write for unmatchedContacts (multiple pages may contribute)
+  let unmatchedContactsJson: string | undefined;
+  if (stats.unmatchedContacts.length > 0) {
+    const existing = await db
+      .select({ unmatchedContacts: frontSyncRuns.unmatchedContacts })
+      .from(frontSyncRuns)
+      .where(eq(frontSyncRuns.id, syncRunId))
+      .limit(1);
+    const prev: UnmatchedContact[] = existing[0]?.unmatchedContacts
+      ? JSON.parse(existing[0].unmatchedContacts)
+      : [];
+    unmatchedContactsJson = JSON.stringify([...prev, ...stats.unmatchedContacts]);
+  }
+
   await db
     .update(frontSyncRuns)
     .set({
@@ -522,6 +593,7 @@ async function updateSyncRunStats(
         stats.errors.length > 0
           ? JSON.stringify(stats.errors)
           : undefined,
+      unmatchedContacts: unmatchedContactsJson,
       linkedToHumans: sql`${frontSyncRuns.linkedToHumans} + ${stats.linkedToHumans}`,
       linkedToAccounts: sql`${frontSyncRuns.linkedToAccounts} + ${stats.linkedToAccounts}`,
       linkedToRouteSignups: sql`${frontSyncRuns.linkedToRouteSignups} + ${stats.linkedToRouteSignups}`,
@@ -569,6 +641,9 @@ export async function syncFrontConversations(
   };
 
   try {
+    // Preload all reference data once
+    const cache = await preloadReferenceData(db, supabase);
+
     const conversationsUrl =
       cursor ?? `https://api2.frontapp.com/conversations?limit=${limit}`;
     const convResponse = await frontFetch<{
@@ -589,7 +664,7 @@ export async function syncFrontConversations(
     for (const conversation of convResponse._results) {
       try {
         const convStats = await processConversation(
-          db, supabase, frontToken, conversation, syncRunId, existingFrontIds,
+          db, cache, frontToken, conversation, syncRunId, existingFrontIds,
         );
         mergeStats(result, convStats);
       } catch (err) {
@@ -635,6 +710,9 @@ export async function syncFrontConversationsIncremental(
   const WALL_CLOCK_LIMIT_MS = 25_000; // 25s safety valve
 
   try {
+    // Preload all reference data once
+    const cache = await preloadReferenceData(db, supabase);
+
     // Determine updated_after from last completed sync run
     const lastRun = await db
       .select({ startedAt: frontSyncRuns.startedAt })
@@ -655,7 +733,7 @@ export async function syncFrontConversationsIncremental(
       existingActivities.map((a) => a.frontId).filter(Boolean),
     );
 
-    let nextUrl: string | null = `https://api2.frontapp.com/conversations?limit=20&q[updated_after]=${updatedAfter}`;
+    let nextUrl: string | null = `https://api2.frontapp.com/conversations?limit=10&q[updated_after]=${updatedAfter}`;
 
     while (nextUrl) {
       // Wall-clock safety valve
@@ -673,7 +751,7 @@ export async function syncFrontConversationsIncremental(
 
         try {
           const convStats = await processConversation(
-            db, supabase, frontToken, conversation, syncRunId, existingFrontIds,
+            db, cache, frontToken, conversation, syncRunId, existingFrontIds,
           );
           mergeStats(result, convStats);
         } catch (err) {
@@ -720,6 +798,7 @@ export async function listSyncRuns(db: DB) {
       unmatched: frontSyncRuns.unmatched,
       errorCount: frontSyncRuns.errorCount,
       errorMessages: frontSyncRuns.errorMessages,
+      unmatchedContacts: frontSyncRuns.unmatchedContacts,
       linkedToHumans: frontSyncRuns.linkedToHumans,
       linkedToAccounts: frontSyncRuns.linkedToAccounts,
       linkedToRouteSignups: frontSyncRuns.linkedToRouteSignups,

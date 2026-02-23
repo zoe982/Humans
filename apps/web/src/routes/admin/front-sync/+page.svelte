@@ -6,12 +6,22 @@
   import { invalidateAll } from "$app/navigation";
   import { Loader2 } from "lucide-svelte";
 
+  interface UnmatchedContact {
+    handle: string;
+    name: string | null;
+    conversationId: string;
+    conversationSubject: string;
+    type: string;
+    messageCount: number;
+  }
+
   interface SyncResult {
     total: number;
     imported: number;
     skipped: number;
     unmatched: number;
     errors: string[];
+    unmatchedContacts: UnmatchedContact[];
     nextCursor: string | null;
     syncRunId: string;
   }
@@ -33,6 +43,7 @@
     linkedToBookings: number;
     linkedToColleagues: number;
     linkedToGeneralLeads: number;
+    unmatchedContacts: string | null;
     initiatedByColleagueId: string | null;
     initiatedByName: string | null;
   }
@@ -46,6 +57,7 @@
   let totals = $state({ imported: 0, skipped: 0, unmatched: 0, errors: 0 });
   let linkStats = $state({ humans: 0, accounts: 0, routeSignups: 0, bookings: 0, colleagues: 0, generalLeads: 0 });
   let errorMessages = $state<string[]>([]);
+  let unmatchedContacts = $state<UnmatchedContact[]>([]);
   let finished = $state(false);
   let errorMsg = $state("");
 
@@ -53,6 +65,9 @@
   let showRevertConfirm = $state(false);
   let revertTargetId = $state("");
   let reverting = $state(false);
+
+  // Expanded unmatched contacts row in history table
+  let expandedRunId = $state<string | null>(null);
 
   function addBatch(result: SyncResult) {
     batchCount++;
@@ -71,6 +86,9 @@
     }
     if (result.errors.length > 0) {
       errorMessages = [...errorMessages, ...result.errors];
+    }
+    if (result.unmatchedContacts?.length > 0) {
+      unmatchedContacts = [...unmatchedContacts, ...result.unmatchedContacts];
     }
   }
 
@@ -128,6 +146,15 @@
 
   function formatDate(iso: string) {
     return new Date(iso).toLocaleString();
+  }
+
+  function parseUnmatchedContacts(json: string | null): UnmatchedContact[] {
+    if (!json) return [];
+    try {
+      return JSON.parse(json) as UnmatchedContact[];
+    } catch {
+      return [];
+    }
   }
 
   const statusColors: Record<string, string> = {
@@ -188,6 +215,7 @@
           </thead>
           <tbody>
             {#each syncRuns as run (run.id)}
+              {@const runUnmatched = parseUnmatchedContacts(run.unmatchedContacts)}
               <tr class="glass-row-hover">
                 <td class="font-mono text-xs text-accent">{run.displayId}</td>
                 <td>
@@ -201,7 +229,19 @@
                 <td class="text-text-muted text-xs whitespace-nowrap">{formatDate(run.startedAt)}</td>
                 <td class="text-[var(--badge-green-text)] font-medium">{run.imported}</td>
                 <td class="text-text-secondary">{run.skipped}</td>
-                <td class="text-[var(--badge-yellow-text)]">{run.unmatched}</td>
+                <td>
+                  {#if runUnmatched.length > 0}
+                    <button
+                      type="button"
+                      class="text-[var(--badge-yellow-text)] font-medium hover:underline cursor-pointer"
+                      onclick={() => { expandedRunId = expandedRunId === run.id ? null : run.id; }}
+                    >
+                      {run.unmatched}
+                    </button>
+                  {:else}
+                    <span class="text-[var(--badge-yellow-text)]">{run.unmatched}</span>
+                  {/if}
+                </td>
                 <td class="text-destructive-foreground">{run.errorCount}</td>
                 <td class="text-xs text-text-muted whitespace-nowrap">
                   {#if run.linkedToHumans > 0}<span class="mr-1">H:{run.linkedToHumans}</span>{/if}
@@ -226,6 +266,39 @@
                   {/if}
                 </td>
               </tr>
+              {#if expandedRunId === run.id && runUnmatched.length > 0}
+                <tr>
+                  <td colspan="10" class="p-0">
+                    <div class="border-t border-b border-yellow-500/30 bg-yellow-500/5 p-4">
+                      <p class="text-sm font-medium text-[var(--badge-yellow-text)] mb-2">
+                        Unmatched Contacts ({runUnmatched.length})
+                      </p>
+                      <table class="min-w-full text-xs">
+                        <thead>
+                          <tr class="text-text-muted">
+                            <th class="text-left py-1 pr-3">Handle</th>
+                            <th class="text-left py-1 pr-3">Name</th>
+                            <th class="text-left py-1 pr-3">Type</th>
+                            <th class="text-left py-1 pr-3">Subject</th>
+                            <th class="text-right py-1">Messages</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {#each runUnmatched as contact}
+                            <tr class="border-t border-yellow-500/10">
+                              <td class="py-1 pr-3 font-mono">{contact.handle}</td>
+                              <td class="py-1 pr-3 text-text-secondary">{contact.name ?? "—"}</td>
+                              <td class="py-1 pr-3 text-text-muted">{contact.type}</td>
+                              <td class="py-1 pr-3 text-text-secondary max-w-xs truncate">{contact.conversationSubject}</td>
+                              <td class="py-1 text-right">{contact.messageCount}</td>
+                            </tr>
+                          {/each}
+                        </tbody>
+                      </table>
+                    </div>
+                  </td>
+                </tr>
+              {/if}
             {/each}
           </tbody>
         </table>
@@ -238,6 +311,7 @@
     <p class="text-sm text-text-secondary mb-4">
       Import conversations from Front.com as activities. Each batch processes up to 20 conversations.
       The sync will automatically continue until all conversations have been processed.
+      Unmatched conversations are skipped and surfaced below.
     </p>
 
     <form method="POST" action="?/sync">
@@ -311,6 +385,41 @@
           Completed {batchCount} {batchCount === 1 ? "batch" : "batches"}.
         {/if}
       </p>
+
+      {#if unmatchedContacts.length > 0}
+        <div class="mt-4 rounded-lg border border-yellow-500/30 bg-yellow-500/5 p-4">
+          <p class="text-sm font-medium text-[var(--badge-yellow-text)] mb-2">
+            Unmatched Contacts ({unmatchedContacts.length})
+          </p>
+          <p class="text-xs text-text-muted mb-3">
+            These contacts couldn't be matched to any record in the CRM. Create the missing records, then re-sync.
+          </p>
+          <div class="overflow-x-auto max-h-60 overflow-y-auto">
+            <table class="min-w-full text-xs">
+              <thead>
+                <tr class="text-text-muted">
+                  <th class="text-left py-1 pr-3">Handle</th>
+                  <th class="text-left py-1 pr-3">Name</th>
+                  <th class="text-left py-1 pr-3">Type</th>
+                  <th class="text-left py-1 pr-3">Subject</th>
+                  <th class="text-right py-1">Messages</th>
+                </tr>
+              </thead>
+              <tbody>
+                {#each unmatchedContacts as contact}
+                  <tr class="border-t border-yellow-500/10">
+                    <td class="py-1 pr-3 font-mono">{contact.handle}</td>
+                    <td class="py-1 pr-3 text-text-secondary">{contact.name ?? "—"}</td>
+                    <td class="py-1 pr-3 text-text-muted">{contact.type}</td>
+                    <td class="py-1 pr-3 text-text-secondary max-w-xs truncate">{contact.conversationSubject}</td>
+                    <td class="py-1 text-right">{contact.messageCount}</td>
+                  </tr>
+                {/each}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      {/if}
 
       {#if errorMessages.length > 0}
         <div class="mt-4 rounded-lg border border-red-500/30 bg-red-500/10 p-4">

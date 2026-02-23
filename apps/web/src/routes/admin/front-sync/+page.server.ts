@@ -19,6 +19,7 @@ interface SyncRun {
   linkedToBookings: number;
   linkedToColleagues: number;
   linkedToGeneralLeads: number;
+  unmatchedContacts: string | null;
   initiatedByColleagueId: string | null;
   initiatedByName: string | null;
 }
@@ -90,6 +91,14 @@ export const actions = {
         skipped: number;
         unmatched: number;
         errors: string[];
+        unmatchedContacts: Array<{
+          handle: string;
+          name: string | null;
+          conversationId: string;
+          conversationSubject: string;
+          type: string;
+          messageCount: number;
+        }>;
         nextCursor: string | null;
         syncRunId: string;
       };
