@@ -356,6 +356,17 @@ describe("updateActivity", () => {
     await seedColleague(db);
     await seedActivity(db, "act-1");
 
+    // Seed a front_sync_runs row to satisfy the FK on syncRunId
+    const ts = now();
+    await db.insert(schema.frontSyncRuns).values({
+      id: "sync-456",
+      displayId: nextDisplayId("FRY"),
+      status: "completed",
+      startedAt: ts,
+      completedAt: ts,
+      createdAt: ts,
+    });
+
     const result = await updateActivity(db, "act-1", {
       gmailId: "gmail-abc",
       frontId: "front-xyz",

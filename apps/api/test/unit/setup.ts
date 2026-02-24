@@ -283,11 +283,13 @@ const MIGRATION_STATEMENTS = [
     \`unmatched\` integer NOT NULL DEFAULT 0,
     \`error_count\` integer NOT NULL DEFAULT 0,
     \`error_messages\` text,
+    \`unmatched_contacts\` text,
     \`linked_to_humans\` integer NOT NULL DEFAULT 0,
     \`linked_to_accounts\` integer NOT NULL DEFAULT 0,
     \`linked_to_route_signups\` integer NOT NULL DEFAULT 0,
     \`linked_to_bookings\` integer NOT NULL DEFAULT 0,
     \`linked_to_colleagues\` integer NOT NULL DEFAULT 0,
+    \`linked_to_general_leads\` integer NOT NULL DEFAULT 0,
     \`initiated_by_colleague_id\` text REFERENCES \`colleagues\`(\`id\`),
     \`created_at\` text NOT NULL
   )`,
