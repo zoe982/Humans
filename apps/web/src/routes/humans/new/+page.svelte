@@ -4,6 +4,7 @@
   import AlertBanner from "$lib/components/AlertBanner.svelte";
   import TypeTogglePills from "$lib/components/TypeTogglePills.svelte";
   import { Button } from "$lib/components/ui/button";
+  import { resolve } from "$app/paths";
 
   let { data, form }: { data: PageData; form: ActionData } = $props();
 
@@ -71,7 +72,7 @@
       <Button type="submit">
         {prefill.fromSignup || prefill.fromGeneralLead ? "Create & Convert" : "Create Human"}
       </Button>
-      <a href={prefill.fromSignup ? "/leads/route-signups" : prefill.fromGeneralLead ? "/leads/general-leads" : "/humans"} class="btn-ghost">
+      <a href={prefill.fromSignup ? resolve('/leads/route-signups') : prefill.fromGeneralLead ? resolve('/leads/general-leads') : resolve('/humans')} class="btn-ghost">
         Cancel
       </a>
     </div>

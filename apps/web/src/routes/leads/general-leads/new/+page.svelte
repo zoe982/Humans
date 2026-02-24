@@ -5,6 +5,7 @@
   import SearchableSelect from "$lib/components/SearchableSelect.svelte";
   import { GENERAL_LEAD_SOURCE_OPTIONS } from "$lib/constants/labels";
   import { Button } from "$lib/components/ui/button";
+  import { resolve } from "$app/paths";
 
   let { data, form }: { data: PageData; form: ActionData } = $props();
 
@@ -79,7 +80,7 @@
 
     <div class="flex gap-3">
       <Button type="submit">Create Lead</Button>
-      <a href="/leads/general-leads" class="btn-ghost">Cancel</a>
+      <a href={resolve('/leads/general-leads')} class="btn-ghost">Cancel</a>
     </div>
   </form>
 </div>

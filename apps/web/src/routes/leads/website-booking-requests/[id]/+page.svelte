@@ -11,6 +11,7 @@
   import NextActionSection from "$lib/components/NextActionSection.svelte";
   import { Button } from "$lib/components/ui/button";
   import { formatDateTime } from "$lib/utils/format";
+  import { resolve } from "$app/paths";
 
   let { data, form }: { data: PageData; form: ActionData } = $props();
 
@@ -108,6 +109,7 @@
   }
 
   function convertUrl(): string {
+    // eslint-disable-next-line svelte/prefer-svelte-reactivity
     const params = new URLSearchParams();
     params.set("fromBookingRequest", booking.id);
     if (booking.first_name) params.set("firstName", booking.first_name);
@@ -156,7 +158,7 @@
     statusFormAction="?/updateStatus"
   >
     {#snippet actions()}
-      <a href={convertUrl()} class="btn-primary text-sm py-1.5">
+      <a href={resolve(convertUrl())} class="btn-primary text-sm py-1.5">
         Convert to Human
       </a>
     {/snippet}
@@ -311,7 +313,7 @@
       {#each linkedHumans as lh}
         <div class="mt-4 flex items-center justify-between">
           <div>
-            <a href="/humans/{lh.humanId}" class="text-sm font-medium text-accent-primary hover:underline">
+            <a href={resolve(`/humans/${lh.humanId}`)} class="text-sm font-medium text-accent-primary hover:underline">
               {lh.humanFirstName} {lh.humanLastName}
             </a>
             <p class="text-xs text-text-muted">{lh.humanDisplayId}</p>
@@ -343,7 +345,7 @@
           </div>
           {#if searchResults.length > 0}
             <ul class="mt-2 divide-y divide-glass-border rounded-xl border border-glass-border overflow-hidden">
-              {#each searchResults as human}
+              {#each searchResults as human (human.id)}
                 <li class="flex items-center justify-between px-4 py-3 bg-glass hover:bg-glass-hover transition-colors">
                   <div>
                     <p class="text-sm font-medium text-text-primary">{human.firstName} {human.lastName}</p>
@@ -369,7 +371,7 @@
         <div class="border-t border-glass-border pt-4">
           <p class="text-sm font-medium text-text-secondary">Or create a new human</p>
           <a
-            href={convertUrl()}
+            href={resolve(convertUrl())}
             class="btn-primary mt-2 inline-block text-sm"
           >
             Create New Human

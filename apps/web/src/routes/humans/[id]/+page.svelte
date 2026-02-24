@@ -957,6 +957,7 @@
           <a href={resolve(`/websites/${w.id}`)} class="text-accent hover:text-[var(--link-hover)]">{w.displayId}</a>
         </td>
         <td>
+          <!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
           <a href={w.url} target="_blank" rel="noopener noreferrer" class="text-sm font-medium text-accent hover:text-[var(--link-hover)]">{w.url}</a>
         </td>
         <td>
@@ -1238,6 +1239,7 @@
               <input type="hidden" name="type" value={newActivityType} />
               <Select.Root type="single" value={newActivityType} onValueChange={(v) => { if (v) newActivityType = v; }}>
                 <Select.Trigger>
+                  <!-- eslint-disable-next-line security/detect-object-injection -->
                   {activityTypeLabels[newActivityType] ?? "Select type..."}
                 </Select.Trigger>
                 <Select.Content>

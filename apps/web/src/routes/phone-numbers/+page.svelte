@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { PageData } from "./$types";
   import EntityListPage from "$lib/components/EntityListPage.svelte";
+  import { resolve } from "$app/paths";
 
   let { data }: { data: PageData } = $props();
 
@@ -20,7 +21,7 @@
   const phoneNumbers = $derived(data.phoneNumbers as PhoneNumber[]);
 
   function ownerHref(p: PhoneNumber): string {
-    return p.ownerType === "human" ? `/humans/${p.ownerId}` : `/accounts/${p.ownerId}`;
+    return p.ownerType === "human" ? resolve(`/humans/${p.ownerId}`) : resolve(`/accounts/${p.ownerId}`);
   }
 </script>
 
@@ -48,7 +49,7 @@
   searchPlaceholder="Search phones, owners, labels..."
 >
   {#snippet desktopRow(phone)}
-    <td class="font-mono text-sm"><a href="/phone-numbers/{phone.id}" class="text-accent hover:text-[var(--link-hover)]">{phone.displayId}</a></td>
+    <td class="font-mono text-sm"><a href={resolve(`/phone-numbers/${phone.id}`)} class="text-accent hover:text-[var(--link-hover)]">{phone.displayId}</a></td>
     <td class="font-medium">
       <a href={ownerHref(phone)} class="text-accent hover:text-[var(--link-hover)]">{phone.ownerName ?? "\u2014"}</a>
       {#if phone.ownerDisplayId}
@@ -67,7 +68,7 @@
     <td class="text-text-muted">{phone.isPrimary ? "Yes" : "\u2014"}</td>
   {/snippet}
   {#snippet mobileCard(phone)}
-    <a href="/phone-numbers/{phone.id}" class="glass-card p-4 block hover:ring-1 hover:ring-accent/40 transition">
+    <a href={resolve(`/phone-numbers/${phone.id}`)} class="glass-card p-4 block hover:ring-1 hover:ring-accent/40 transition">
       <span class="font-mono text-xs text-text-muted">{phone.displayId}</span>
       <div class="font-medium text-accent">{phone.phoneNumber}</div>
       <div class="text-sm text-text-secondary">

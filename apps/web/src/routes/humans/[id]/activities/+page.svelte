@@ -6,6 +6,7 @@
   import { toast } from "svelte-sonner";
   import { invalidateAll } from "$app/navigation";
   import { ArrowLeft } from "lucide-svelte";
+  import { resolve } from "$app/paths";
 
   let { data }: { data: PageData } = $props();
 
@@ -40,7 +41,7 @@
 
 <div class="flex items-center gap-3 mb-4">
   <a
-    href="/humans/{human.id}"
+    href={resolve(`/humans/${human.id}`)}
     class="flex items-center gap-1.5 text-sm text-text-muted hover:text-accent transition-colors duration-150"
   >
     <ArrowLeft size={14} />

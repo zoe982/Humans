@@ -4,6 +4,7 @@
   import AlertBanner from "$lib/components/AlertBanner.svelte";
   import SearchableSelect from "$lib/components/SearchableSelect.svelte";
   import { Button } from "$lib/components/ui/button";
+  import { resolve } from "$app/paths";
 
   let { data, form }: { data: PageData; form: ActionData } = $props();
 
@@ -79,7 +80,7 @@
 
     <div class="flex gap-3">
       <Button type="submit">Create Referral Code</Button>
-      <a href="/referral-codes" class="btn-ghost">Cancel</a>
+      <a href={resolve('/referral-codes')} class="btn-ghost">Cancel</a>
     </div>
   </form>
 </div>

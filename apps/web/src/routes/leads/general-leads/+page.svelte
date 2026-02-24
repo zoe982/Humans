@@ -121,7 +121,7 @@
           {lead.convertedHumanDisplayId}
         </a>
       {:else}
-        <span class="text-text-muted">{"\u2014"}</span>
+        <span class="text-text-muted">&mdash;</span>
       {/if}
     </td>
   {/snippet}

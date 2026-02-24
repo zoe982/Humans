@@ -4,6 +4,7 @@
   import AlertBanner from "$lib/components/AlertBanner.svelte";
   import SearchableSelect from "$lib/components/SearchableSelect.svelte";
   import { Button } from "$lib/components/ui/button";
+  import { resolve } from "$app/paths";
 
   let { data, form }: { data: PageData; form: ActionData } = $props();
 
@@ -103,7 +104,7 @@
       <label for="petSelect" class="block text-sm font-medium text-text-secondary mb-1">Pet(s)</label>
       {#if selectedPetIds.length > 0}
         <div class="flex flex-wrap gap-2 mb-2">
-          {#each selectedPetLabels as label, i}
+          {#each selectedPetLabels as label, i (i)}
             <span class="inline-flex items-center gap-1 rounded-full bg-surface-secondary px-3 py-1 text-sm">
               {label}
               <button type="button" class="ml-1 text-text-muted hover:text-text-primary" onclick={() => removePet(selectedPetIds[i])}>
@@ -129,7 +130,7 @@
         <p class="text-xs text-text-muted mt-1">No pets found for this passenger.</p>
       {/if}
       <!-- Hidden inputs for form submission -->
-      {#each selectedPetIds as petId}
+      {#each selectedPetIds as petId (petId)}
         <input type="hidden" name="petIds" value={petId} />
       {/each}
     </div>
@@ -154,7 +155,7 @@
 
     <div class="flex gap-3">
       <Button type="submit">Create Opportunity</Button>
-      <a href="/opportunities" class="btn-ghost">Cancel</a>
+      <a href={resolve('/opportunities')} class="btn-ghost">Cancel</a>
     </div>
   </form>
 </div>

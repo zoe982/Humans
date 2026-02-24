@@ -5,6 +5,7 @@
   import SearchableSelect from "$lib/components/SearchableSelect.svelte";
   import { COUNTRIES } from "@humans/shared";
   import { Button } from "$lib/components/ui/button";
+  import { resolve } from "$app/paths";
 
   let { data, form }: { data: PageData; form: ActionData } = $props();
 
@@ -110,10 +111,10 @@
   {/snippet}
   {#snippet desktopRow(gi)}
     <td class="font-mono text-sm">
-      <a href="/geo-interests/{gi.id}" class="text-accent hover:text-[var(--link-hover)]">{gi.displayId}</a>
+      <a href={resolve(`/geo-interests/${gi.id}`)} class="text-accent hover:text-[var(--link-hover)]">{gi.displayId}</a>
     </td>
     <td class="font-medium">
-      <a href="/geo-interests/{gi.id}" class="text-accent hover:text-[var(--link-hover)]">{gi.city}</a>
+      <a href={resolve(`/geo-interests/${gi.id}`)} class="text-accent hover:text-[var(--link-hover)]">{gi.city}</a>
     </td>
     <td>{gi.country}</td>
     <td>{gi.humanCount}</td>
@@ -121,7 +122,7 @@
     <td class="text-text-muted text-sm">{new Date(gi.createdAt).toLocaleDateString()}</td>
   {/snippet}
   {#snippet mobileCard(gi)}
-    <a href="/geo-interests/{gi.id}" class="glass-card p-4 block hover:ring-1 hover:ring-accent/40 transition">
+    <a href={resolve(`/geo-interests/${gi.id}`)} class="glass-card p-4 block hover:ring-1 hover:ring-accent/40 transition">
       <span class="font-mono text-xs text-text-muted">{gi.displayId}</span>
       <div class="flex items-center justify-between mb-1">
         <span class="font-medium text-accent">{gi.city}</span>

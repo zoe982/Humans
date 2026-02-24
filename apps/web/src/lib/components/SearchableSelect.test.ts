@@ -151,7 +151,8 @@ describe("SearchableSelect", () => {
     await fireEvent.focus(input);
 
     const items = screen.getAllByRole("option");
-    expect(items[0]?.textContent?.trim()).toBe("All"); // items[0] may be undefined
+    const firstItem = items[0];
+    expect(firstItem?.textContent.trim()).toBe("All");
   });
 
   it("empty option always visible when filtering", async () => {
@@ -178,11 +179,13 @@ describe("SearchableSelect", () => {
     const input = screen.getByRole("combobox");
     await fireEvent.focus(input);
 
-    const noneItem = screen.getByText("— None —").closest("[role='option']")!;
+    const noneItem = screen.getByText("— None —").closest("[role='option']");
+    if (noneItem == null) throw new Error("expected option element");
     await fireEvent.pointerUp(noneItem);
 
     expect(onSelect).toHaveBeenCalledWith("");
-    const hidden = container.querySelector('input[type="hidden"]') as HTMLInputElement;
+    const hidden = container.querySelector('input[type="hidden"]');
+    if (!(hidden instanceof HTMLInputElement)) throw new Error("expected hidden input");
     expect(hidden.value).toBe("");
   });
 
@@ -192,16 +195,17 @@ describe("SearchableSelect", () => {
     render(SearchableSelect, {
       props: { options: kvOptions, name: "type", value: "email" },
     });
-    const input = screen.getByRole("combobox") as HTMLInputElement;
+    const inputEl = screen.getByRole("combobox");
+    if (!(inputEl instanceof HTMLInputElement)) throw new Error("expected input element");
 
     // Open, type a search query, then press Tab to close
-    await fireEvent.focus(input);
-    await fireEvent.input(input, { target: { value: "xyz" } });
-    await fireEvent.keyDown(input, { key: "Tab" });
+    await fireEvent.focus(inputEl);
+    await fireEvent.input(inputEl, { target: { value: "xyz" } });
+    await fireEvent.keyDown(inputEl, { key: "Tab" });
 
     // Display text should revert to the selected option's label
     // (may need a reactive tick for bits-ui to sync the inputValue prop)
-    await waitFor(() => expect(input.value).toBe("Email"));
+    await waitFor(() => { expect(inputEl.value).toBe("Email"); });
   });
 
   // ── Required prop ─────────────────────────────────────────────────
@@ -210,7 +214,8 @@ describe("SearchableSelect", () => {
     render(SearchableSelect, {
       props: { options, name: "country", required: true },
     });
-    const input = screen.getByRole("combobox") as HTMLInputElement;
+    const input = screen.getByRole("combobox");
+    if (!(input instanceof HTMLInputElement)) throw new Error("expected input element");
     expect(input.required).toBe(true);
   });
 
@@ -224,7 +229,8 @@ describe("SearchableSelect", () => {
       const input = screen.getByRole("combobox");
       await fireEvent.focus(input);
 
-      const brazilOption = screen.getByText("Brazil").closest("[role='option']")!;
+      const brazilOption = screen.getByText("Brazil").closest("[role='option']");
+      if (brazilOption == null) throw new Error("expected option element");
       expect(brazilOption.querySelector("[data-icon]")).not.toBeNull();
     });
 
@@ -235,15 +241,18 @@ describe("SearchableSelect", () => {
       const input = screen.getByRole("combobox");
       await fireEvent.focus(input);
 
-      const canadaItem = screen.getByText("Canada").closest("[role='option']")!;
+      const canadaItem = screen.getByText("Canada").closest("[role='option']");
+      if (canadaItem == null) throw new Error("expected option element");
       await fireEvent.pointerUp(canadaItem);
 
       await fireEvent.focus(input);
 
-      const canadaItemAfter = screen.getByText("Canada").closest("[role='option']")!;
+      const canadaItemAfter = screen.getByText("Canada").closest("[role='option']");
+      if (canadaItemAfter == null) throw new Error("expected option element");
       expect(canadaItemAfter.querySelector("[data-icon]")).not.toBeNull();
 
-      const brazilItem = screen.getByText("Brazil").closest("[role='option']")!;
+      const brazilItem = screen.getByText("Brazil").closest("[role='option']");
+      if (brazilItem == null) throw new Error("expected option element");
       expect(brazilItem.querySelector("[data-icon]")).toBeNull();
     });
 
@@ -340,7 +349,8 @@ describe("SearchableSelect", () => {
 
       const optionItems = screen.getAllByRole("option");
       expect(optionItems).toHaveLength(1);
-      expect(optionItems[0]?.textContent?.trim()).toBe("None");
+      const firstOption = optionItems[0];
+      expect(firstOption?.textContent.trim()).toBe("None");
     });
 
     it("selecting emptyOption fires onSelect with empty string", async () => {
@@ -356,7 +366,8 @@ describe("SearchableSelect", () => {
       const input = screen.getByRole("combobox");
       await fireEvent.focus(input);
 
-      const noneItem = screen.getByText("None").closest("[role='option']")!;
+      const noneItem = screen.getByText("None").closest("[role='option']");
+      if (noneItem == null) throw new Error("expected option element");
       await fireEvent.pointerUp(noneItem);
 
       expect(onSelect).toHaveBeenCalledWith("");
@@ -371,7 +382,8 @@ describe("SearchableSelect", () => {
 
       const content = document.querySelector(".glass-popover");
       expect(content).not.toBeNull();
-      expect(content!.classList.contains("min-w-[8rem]")).toBe(true);
+      if (content == null) throw new Error("expected .glass-popover element");
+      expect(content.classList.contains("min-w-[8rem]")).toBe(true);
     });
   });
 

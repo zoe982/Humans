@@ -16,6 +16,7 @@
   import { Button } from "$lib/components/ui/button";
   import { formatDateTime } from "$lib/utils/format";
   import { generalLeadStatuses } from "@humans/shared";
+  import { resolve } from "$app/paths";
 
   let { data, form }: { data: PageData; form: ActionData } = $props();
 
@@ -90,6 +91,7 @@
   }
 
   function convertUrl(): string {
+    // eslint-disable-next-line svelte/prefer-svelte-reactivity
     const params = new URLSearchParams();
     params.set("fromGeneralLead", lead.id);
     if (lead.notes) params.set("notes", lead.notes);
@@ -227,7 +229,7 @@
         <div>
           <dt class="text-sm font-medium text-text-muted">Converted Human</dt>
           <dd class="mt-1 text-sm">
-            <a href="/humans/{lead.convertedHumanId}" class="text-accent hover:text-[var(--link-hover)] font-mono">
+            <a href={resolve(`/humans/${lead.convertedHumanId}`)} class="text-accent hover:text-[var(--link-hover)] font-mono">
               {lead.convertedHumanDisplayId}
             </a>
             {#if lead.convertedHumanName}
@@ -406,7 +408,7 @@
       <Dialog.Description>Choose how to convert this lead into a verified human record.</Dialog.Description>
     </Dialog.Header>
     <div class="mt-4 space-y-4">
-      <a href={convertUrl()} class="block glass-card p-4 hover:ring-1 hover:ring-accent/40 transition">
+      <a href={resolve(convertUrl())} class="block glass-card p-4 hover:ring-1 hover:ring-accent/40 transition">
         <h3 class="text-sm font-semibold text-text-primary">Create New Human</h3>
         <p class="text-xs text-text-muted mt-1">Create a brand new human record from this lead's data.</p>
       </a>

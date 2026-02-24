@@ -7,6 +7,7 @@
   import { toast } from "svelte-sonner";
   import { createAutoSaver, type SaveStatus } from "$lib/autosave";
   import { onDestroy } from "svelte";
+  import { resolve } from "$app/paths";
 
   let { data }: { data: PageData } = $props();
 
@@ -171,7 +172,7 @@
         onSelect={handleHumanChange}
       />
       {#if humanId}
-        <a href="/humans/{humanId}" class="mt-1 inline-block text-sm text-accent hover:text-[var(--link-hover)]">
+        <a href={resolve(`/humans/${humanId}`)} class="mt-1 inline-block text-sm text-accent hover:text-[var(--link-hover)]">
           View Human
         </a>
       {/if}
@@ -189,7 +190,7 @@
         onSelect={handleAccountChange}
       />
       {#if accountId}
-        <a href="/accounts/{accountId}" class="mt-1 inline-block text-sm text-accent hover:text-[var(--link-hover)]">
+        <a href={resolve(`/accounts/${accountId}`)} class="mt-1 inline-block text-sm text-accent hover:text-[var(--link-hover)]">
           View Account
         </a>
       {/if}
@@ -210,7 +211,7 @@
     >
       {#snippet row(flight, _searchQuery)}
         <td class="font-mono text-sm">
-          <a href="/flights/{flight.id}" class="text-accent hover:text-[var(--link-hover)]">{flight.crmDisplayId ?? flight.id}</a>
+          <a href={resolve(`/flights/${flight.id}`)} class="text-accent hover:text-[var(--link-hover)]">{flight.crmDisplayId ?? flight.id}</a>
         </td>
         <td class="text-sm text-text-secondary">
           {flight.originCity ?? "?"} &rarr; {flight.destinationCity ?? "?"}

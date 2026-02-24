@@ -7,23 +7,36 @@ import { render } from "@testing-library/svelte";
 // (it produces a text node instead of an element), causing Svelte's cloneNode
 // call to fail. We patch HTMLTemplateElement to fix table-element parsing before
 // importing the component.
-beforeAll(() => {
-  const originalDescriptor = Object.getOwnPropertyDescriptor(
-    HTMLTemplateElement.prototype,
-    "innerHTML"
-  );
 
-  if (originalDescriptor?.set) {
+// Import after patching
+const { default: SkeletonRowWrapper } = await import("./SkeletonRowWrapper.test.svelte");
+
+describe("SkeletonRow", () => {
+  beforeAll(() => {
+    const originalDescriptor = Object.getOwnPropertyDescriptor(
+      HTMLTemplateElement.prototype,
+      "innerHTML"
+    );
+
+    if (originalDescriptor?.set == null) {
+      return;
+    }
+
+    // eslint-disable-next-line @typescript-eslint/unbound-method
+    const originalSetter = originalDescriptor.set;
+    // eslint-disable-next-line @typescript-eslint/unbound-method
+    const originalGetter = originalDescriptor.get;
     Object.defineProperty(HTMLTemplateElement.prototype, "innerHTML", {
-      get: originalDescriptor.get,
-      set(html: string) {
+      get: originalGetter,
+      set(this: HTMLTemplateElement, html: string) {
         // Check if this looks like a table row/cell fragment
         const tableFragmentRe = /^\s*<(tr|td|th|thead|tbody|tfoot|colgroup|col|caption)/i;
         if (tableFragmentRe.test(html)) {
           // Parse the fragment in the correct context using a temporary table
           const wrapper = document.createElement("div");
           // Determine the correct wrapper tag
-          const tag = html.trim().match(/^<(\w+)/i)?.[1]?.toLowerCase();
+          const tagMatch = /^<(\w+)/i.exec(html.trim());
+          const tag = tagMatch?.[1]?.toLowerCase();
           let contextHtml: string;
           if (tag === "tr") {
             contextHtml = `<table><tbody>${html}</tbody></table>`;
@@ -34,32 +47,33 @@ beforeAll(() => {
           }
           wrapper.innerHTML = contextHtml;
           // Extract the parsed nodes into the template content
-          const table = wrapper.firstElementChild!;
+          const table = wrapper.firstElementChild;
+          if (table == null) {
+            originalSetter.call(this, html);
+            return;
+          }
           let source: Element | null = table;
           if (tag === "tr") source = table.querySelector("tbody");
           else if (tag === "td" || tag === "th") source = table.querySelector("tr");
-          if (source) {
-            while (this.content.firstChild) {
-              this.content.removeChild(this.content.firstChild);
+          if (source != null) {
+            const content = this.content;
+            while (content.firstChild != null) {
+              content.removeChild(content.firstChild);
             }
-            while (source.firstChild) {
-              this.content.appendChild(source.firstChild);
+            while (source.firstChild != null) {
+              content.appendChild(source.firstChild);
             }
             return;
           }
         }
         // Fall through to original setter
-        originalDescriptor.set!.call(this, html);
+        originalSetter.call(this, html);
       },
       configurable: true,
     });
-  }
-});
+  });
 
-// Import after patching
-const { default: SkeletonRowWrapper } = await import("./SkeletonRowWrapper.test.svelte");
 
-describe("SkeletonRow", () => {
   it("renders a table row element", () => {
     const { container } = render(SkeletonRowWrapper, { props: {} });
     expect(container.querySelector("tr")).not.toBeNull();

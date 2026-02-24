@@ -6,6 +6,7 @@
   import ConfirmDialog from "$lib/components/ConfirmDialog.svelte";
   import Pagination from "$lib/components/Pagination.svelte";
   import { bookingRequestStatusLabels, depositStatusLabels } from "$lib/constants/labels";
+  import { resolve } from "$app/paths";
 
   let { data, form }: { data: PageData; form: ActionData } = $props();
 
@@ -57,7 +58,7 @@
   <!-- Mobile card view -->
   <div class="sm:hidden space-y-3">
     {#each bookings as booking (booking.id)}
-      <a href="/leads/website-booking-requests/{booking.id}" class="glass-card p-4 block hover:ring-1 hover:ring-accent/40 transition">
+      <a href={resolve(`/leads/website-booking-requests/${booking.id}`)} class="glass-card p-4 block hover:ring-1 hover:ring-accent/40 transition">
         {#if booking.crm_display_id}
           <span class="font-mono text-xs text-text-muted">{booking.crm_display_id}</span>
         {/if}
@@ -122,10 +123,10 @@
         {#each bookings as booking (booking.id)}
           <tr class="glass-row-hover">
             <td class="font-mono text-sm whitespace-nowrap">
-              <a href="/leads/website-booking-requests/{booking.id}" class="text-accent hover:text-[var(--link-hover)]">{booking.crm_display_id ?? "—"}</a>
+              <a href={resolve(`/leads/website-booking-requests/${booking.id}`)} class="text-accent hover:text-[var(--link-hover)]">{booking.crm_display_id ?? "—"}</a>
             </td>
             <td class="font-medium">
-              <a href="/leads/website-booking-requests/{booking.id}" class="text-accent hover:text-[var(--link-hover)]">{displayName(booking)}</a>
+              <a href={resolve(`/leads/website-booking-requests/${booking.id}`)} class="text-accent hover:text-[var(--link-hover)]">{displayName(booking)}</a>
             </td>
             <td class="text-text-secondary">{booking.client_email ?? "—"}</td>
             <td class="text-text-secondary">

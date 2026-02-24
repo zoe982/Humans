@@ -10,6 +10,7 @@
   import * as Select from "$lib/components/ui/select";
   import { formatRelativeTime, summarizeChanges } from "$lib/utils/format";
   import { createChangeHistoryLoader } from "$lib/changeHistory";
+  import { resolve } from "$app/paths";
 
   const MONTH_OPTIONS = [
     { value: "1", label: "01 - January" },
@@ -248,7 +249,7 @@
 
       <!-- Reverse route -->
       {#if reverseRoute}
-        <a href="/route-interests/{reverseRoute.id}" class="group rounded-xl border border-glass-border bg-glass p-4 hover:border-accent/30 transition-colors block">
+        <a href={resolve(`/route-interests/${reverseRoute.id}`)} class="group rounded-xl border border-glass-border bg-glass p-4 hover:border-accent/30 transition-colors block">
           <p class="text-sm font-semibold text-text-primary group-hover:text-accent transition-colors mb-1">{reverseRoute.originCity} &rarr; {reverseRoute.destinationCity}</p>
           <span class="font-mono text-xs text-text-muted">{reverseRoute.displayId}</span>
           <div class="mt-3 grid grid-cols-2 gap-2 text-sm">
@@ -310,11 +311,11 @@
   >
     {#snippet row(expr, _searchQuery)}
       <td class="font-mono text-sm">
-        <a href="/route-interests/expressions/{expr.id}" class="text-accent hover:text-[var(--link-hover)]">{expr.displayId}</a>
+        <a href={resolve(`/route-interests/expressions/${expr.id}`)} class="text-accent hover:text-[var(--link-hover)]">{expr.displayId}</a>
       </td>
       <td>
         {#if expr.humanName}
-          <a href="/humans/{expr.humanId}" class="text-accent hover:text-[var(--link-hover)]">{expr.humanName}</a>
+          <a href={resolve(`/humans/${expr.humanId}`)} class="text-accent hover:text-[var(--link-hover)]">{expr.humanName}</a>
         {:else}
           <span class="text-text-muted">Unknown</span>
         {/if}

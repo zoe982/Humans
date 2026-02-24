@@ -22,41 +22,74 @@ export const load = async ({ locals, cookies, params }: RequestEvent): Promise<{
   const sessionToken = cookies.get("humans_session") ?? "";
   const id = params.id ?? "";
 
-  // Fetch account detail
-  const accountRes = await fetch(`${PUBLIC_API_URL}/api/accounts/${id}`, {
-    headers: { Cookie: `humans_session=${sessionToken}` },
-  });
+  // SSR diagnostic: report timing to error endpoint
+  const t0 = Date.now();
+  let phase = "account-fetch";
+  try {
+    // Fetch account detail
+    const accountRes = await fetch(`${PUBLIC_API_URL}/api/accounts/${id}`, {
+      headers: { Cookie: `humans_session=${sessionToken}` },
+    });
+    const t1 = Date.now();
 
-  if (!accountRes.ok) redirect(302, "/accounts");
-  const accountRaw: unknown = await accountRes.json();
-  const account = isObjData(accountRaw) ? accountRaw.data : null;
-  if (account == null) redirect(302, "/accounts");
+    if (!accountRes.ok) {
+      void fetch(`${PUBLIC_API_URL}/api/client-errors`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: `SSR account-load: API ${accountRes.status}`, url: `/accounts/${id}`, errors: [{ type: "ssr", message: `status=${accountRes.status} elapsed=${t1 - t0}ms` }] }),
+      }).catch(() => {});
+      redirect(302, "/accounts");
+    }
+    const accountRaw: unknown = await accountRes.json();
+    const account = isObjData(accountRaw) ? accountRaw.data : null;
+    if (account == null) redirect(302, "/accounts");
 
-  const headers = authHeaders(sessionToken);
-  async function fetchList(url: string): Promise<unknown[]> {
-    const res = await fetch(url, { headers });
-    if (!res.ok) return [];
-    const raw: unknown = await res.json();
-    return isListData(raw) ? raw.data : [];
+    phase = "parallel-fetch";
+    const headers = authHeaders(sessionToken);
+    async function fetchList(url: string): Promise<unknown[]> {
+      const res = await fetch(url, { headers });
+      if (!res.ok) return [];
+      const raw: unknown = await res.json();
+      return isListData(raw) ? raw.data : [];
+    }
+
+    // Batch: all configs + humans + discount codes in one batch
+    const [configs, allHumans, allDiscountCodes] = await Promise.all([
+      fetchConfigs(sessionToken, ["account-types", "account-human-labels", "account-email-labels", "account-phone-labels", "social-id-platforms"]),
+      fetchList(`${PUBLIC_API_URL}/api/humans`),
+      fetchList(`${PUBLIC_API_URL}/api/discount-codes`),
+    ]);
+    const t2 = Date.now();
+
+    // Log success timing
+    void fetch(`${PUBLIC_API_URL}/api/client-errors`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message: `SSR account-load OK`, url: `/accounts/${id}`, errors: [{ type: "ssr-timing", message: `account=${t1 - t0}ms parallel=${t2 - t1}ms total=${t2 - t0}ms` }] }),
+    }).catch(() => {});
+
+    return {
+      account,
+      typeConfigs: configs["account-types"] ?? [],
+      humanLabelConfigs: configs["account-human-labels"] ?? [],
+      emailLabelConfigs: configs["account-email-labels"] ?? [],
+      phoneLabelConfigs: configs["account-phone-labels"] ?? [],
+      allHumans,
+      socialIdPlatformConfigs: configs["social-id-platforms"] ?? [],
+      allDiscountCodes,
+    };
+  } catch (err) {
+    // Re-throw redirects (SvelteKit Redirect is thrown as an exception)
+    if (err != null && typeof err === "object" && "status" in err && "location" in err) throw err;
+
+    const elapsed = Date.now() - t0;
+    void fetch(`${PUBLIC_API_URL}/api/client-errors`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message: `SSR account-load CRASH at ${phase}`, url: `/accounts/${id}`, errors: [{ type: "ssr-error", message: `${err instanceof Error ? err.message : String(err)} elapsed=${elapsed}ms`, stack: err instanceof Error ? err.stack ?? "" : "" }] }),
+    }).catch(() => {});
+    throw err;
   }
-
-  // Batch: all configs + humans + discount codes in one batch
-  const [configs, allHumans, allDiscountCodes] = await Promise.all([
-    fetchConfigs(sessionToken, ["account-types", "account-human-labels", "account-email-labels", "account-phone-labels", "social-id-platforms"]),
-    fetchList(`${PUBLIC_API_URL}/api/humans`),
-    fetchList(`${PUBLIC_API_URL}/api/discount-codes`),
-  ]);
-
-  return {
-    account,
-    typeConfigs: configs["account-types"] ?? [],
-    humanLabelConfigs: configs["account-human-labels"] ?? [],
-    emailLabelConfigs: configs["account-email-labels"] ?? [],
-    phoneLabelConfigs: configs["account-phone-labels"] ?? [],
-    allHumans,
-    socialIdPlatformConfigs: configs["social-id-platforms"] ?? [],
-    allDiscountCodes,
-  };
 };
 
 export const actions = {

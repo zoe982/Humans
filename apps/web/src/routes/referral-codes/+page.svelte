@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { PageData } from "./$types";
   import EntityListPage from "$lib/components/EntityListPage.svelte";
+  import { resolve } from "$app/paths";
 
   let { data }: { data: PageData } = $props();
 
@@ -45,7 +46,7 @@
   searchPlaceholder="Search codes, descriptions, humans, accounts..."
 >
   {#snippet desktopRow(rc)}
-    <td class="font-mono text-sm whitespace-nowrap"><a href="/referral-codes/{rc.id}" class="text-accent hover:text-[var(--link-hover)]">{rc.displayId}</a></td>
+    <td class="font-mono text-sm whitespace-nowrap"><a href={resolve(`/referral-codes/${rc.id}`)} class="text-accent hover:text-[var(--link-hover)]">{rc.displayId}</a></td>
     <td class="font-medium">{rc.code}</td>
     <td class="text-sm text-text-secondary max-w-xs truncate">{rc.description ?? "—"}</td>
     <td>
@@ -57,7 +58,7 @@
     </td>
     <td>
       {#if rc.humanId}
-        <a href="/humans/{rc.humanId}" class="text-accent hover:text-[var(--link-hover)]">{rc.humanName ?? "—"}</a>
+        <a href={resolve(`/humans/${rc.humanId}`)} class="text-accent hover:text-[var(--link-hover)]">{rc.humanName ?? "—"}</a>
         {#if rc.humanDisplayId}
           <span class="ml-1 text-xs text-text-muted">{rc.humanDisplayId}</span>
         {/if}
@@ -67,7 +68,7 @@
     </td>
     <td>
       {#if rc.accountId}
-        <a href="/accounts/{rc.accountId}" class="text-accent hover:text-[var(--link-hover)]">{rc.accountName ?? "—"}</a>
+        <a href={resolve(`/accounts/${rc.accountId}`)} class="text-accent hover:text-[var(--link-hover)]">{rc.accountName ?? "—"}</a>
         {#if rc.accountDisplayId}
           <span class="ml-1 text-xs text-text-muted">{rc.accountDisplayId}</span>
         {/if}
@@ -77,7 +78,7 @@
     </td>
   {/snippet}
   {#snippet mobileCard(rc)}
-    <a href="/referral-codes/{rc.id}" class="glass-card p-4 block hover:ring-1 hover:ring-accent/40 transition">
+    <a href={resolve(`/referral-codes/${rc.id}`)} class="glass-card p-4 block hover:ring-1 hover:ring-accent/40 transition">
       <span class="font-mono text-xs text-text-muted">{rc.displayId}</span>
       <div class="font-medium text-accent">{rc.code}</div>
       <div class="text-sm text-text-secondary">

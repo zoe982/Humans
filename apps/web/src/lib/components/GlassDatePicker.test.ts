@@ -15,7 +15,8 @@ describe("GlassDatePicker", () => {
     const { container } = render(GlassDatePicker, {
       props: { name: "birth_date" },
     });
-    const hidden = container.querySelector('input[type="hidden"]') as HTMLInputElement;
+    const hidden = container.querySelector('input[type="hidden"]');
+    if (!(hidden instanceof HTMLInputElement)) throw new Error("expected hidden input");
     expect(hidden.value).toBe("");
   });
 
@@ -28,7 +29,8 @@ describe("GlassDatePicker", () => {
     const { container } = render(GlassDatePicker, {
       props: { name: "birth_date", value: "2025-03-15" },
     });
-    const hidden = container.querySelector('input[type="hidden"]') as HTMLInputElement;
+    const hidden = container.querySelector('input[type="hidden"]');
+    if (!(hidden instanceof HTMLInputElement)) throw new Error("expected hidden input");
     expect(hidden.value).toBe("2025-03-15");
   });
 
@@ -51,11 +53,13 @@ describe("GlassDatePicker", () => {
     const { container, rerender } = render(GlassDatePicker, {
       props: { name: "birth_date", value: "2025-03-15" },
     });
-    let hidden = container.querySelector('input[type="hidden"]') as HTMLInputElement;
+    let hidden = container.querySelector('input[type="hidden"]');
+    if (!(hidden instanceof HTMLInputElement)) throw new Error("expected hidden input");
     expect(hidden.value).toBe("2025-03-15");
 
     await rerender({ name: "birth_date", value: "2026-11-30" });
-    hidden = container.querySelector('input[type="hidden"]') as HTMLInputElement;
+    hidden = container.querySelector('input[type="hidden"]');
+    if (!(hidden instanceof HTMLInputElement)) throw new Error("expected hidden input");
     expect(hidden.value).toBe("2026-11-30");
   });
 });

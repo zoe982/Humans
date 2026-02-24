@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { PageData } from "./$types";
   import PageHeader from "$lib/components/PageHeader.svelte";
+  import { resolve } from "$app/paths";
 
   let { data }: { data: PageData } = $props();
 
@@ -45,10 +46,10 @@
           <tr class="glass-row-hover">
             <td class="font-mono text-sm text-text-muted">{expr.displayId}</td>
             <td class="font-medium">
-              <a href="/humans/{expr.humanId}" class="text-accent hover:text-[var(--link-hover)]">{expr.humanName ?? "—"}</a>
+              <a href={resolve(`/humans/${expr.humanId}`)} class="text-accent hover:text-[var(--link-hover)]">{expr.humanName ?? "—"}</a>
             </td>
             <td>
-              <a href="/geo-interests/{expr.geoInterestId}" class="text-accent hover:text-[var(--link-hover)]">
+              <a href={resolve(`/geo-interests/${expr.geoInterestId}`)} class="text-accent hover:text-[var(--link-hover)]">
                 {expr.city ?? "—"}, {expr.country ?? "—"}
               </a>
             </td>

@@ -5,6 +5,7 @@
   import SearchableSelect from "$lib/components/SearchableSelect.svelte";
   import { PET_BREEDS } from "@humans/shared/constants";
   import { Button } from "$lib/components/ui/button";
+  import { resolve } from "$app/paths";
 
   let { data, form }: { data: PageData; form: ActionData } = $props();
 
@@ -106,7 +107,7 @@
 
     <div class="flex gap-3">
       <Button type="submit">Create Pet</Button>
-      <a href="/pets" class="btn-ghost">Cancel</a>
+      <a href={resolve('/pets')} class="btn-ghost">Cancel</a>
     </div>
   </form>
 </div>

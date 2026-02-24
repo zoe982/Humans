@@ -15,8 +15,9 @@ describe("GlassDateTimePicker", () => {
     const { container } = render(GlassDateTimePicker, {
       props: { name: "scheduled_at", id: "my-picker" },
     });
-    const hidden = container.querySelector('input[type="hidden"]') as HTMLInputElement;
-    expect(hidden?.id).toBe("my-picker");
+    const hidden = container.querySelector('input[type="hidden"]');
+    if (!(hidden instanceof HTMLInputElement)) throw new Error("expected hidden input");
+    expect(hidden.id).toBe("my-picker");
   });
 
   it("renders the placeholder text when no value is provided", () => {
@@ -28,7 +29,8 @@ describe("GlassDateTimePicker", () => {
     const { container } = render(GlassDateTimePicker, {
       props: { name: "scheduled_at" },
     });
-    const hidden = container.querySelector('input[type="hidden"]') as HTMLInputElement;
+    const hidden = container.querySelector('input[type="hidden"]');
+    if (!(hidden instanceof HTMLInputElement)) throw new Error("expected hidden input");
     expect(hidden.value).toBe("");
   });
 
@@ -36,7 +38,8 @@ describe("GlassDateTimePicker", () => {
     const { container } = render(GlassDateTimePicker, {
       props: { name: "scheduled_at", value: "2025-06-15T14:30:00" },
     });
-    const hidden = container.querySelector('input[type="hidden"]') as HTMLInputElement;
+    const hidden = container.querySelector('input[type="hidden"]');
+    if (!(hidden instanceof HTMLInputElement)) throw new Error("expected hidden input");
     expect(hidden.value).toBe("2025-06-15T14:30:00");
   });
 
@@ -60,11 +63,13 @@ describe("GlassDateTimePicker", () => {
     const { container, rerender } = render(GlassDateTimePicker, {
       props: { name: "scheduled_at", value: "2025-06-15T14:30:00" },
     });
-    let hidden = container.querySelector('input[type="hidden"]') as HTMLInputElement;
+    let hidden = container.querySelector('input[type="hidden"]');
+    if (!(hidden instanceof HTMLInputElement)) throw new Error("expected hidden input");
     expect(hidden.value).toBe("2025-06-15T14:30:00");
 
     await rerender({ name: "scheduled_at", value: "2025-09-01T09:00:00" });
-    hidden = container.querySelector('input[type="hidden"]') as HTMLInputElement;
+    hidden = container.querySelector('input[type="hidden"]');
+    if (!(hidden instanceof HTMLInputElement)) throw new Error("expected hidden input");
     expect(hidden.value).toBe("2025-09-01T09:00:00");
   });
 });

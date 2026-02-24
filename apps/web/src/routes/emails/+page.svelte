@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { PageData } from "./$types";
   import EntityListPage from "$lib/components/EntityListPage.svelte";
+  import { resolve } from "$app/paths";
 
   let { data }: { data: PageData } = $props();
 
@@ -25,7 +26,7 @@
   };
 
   function ownerHref(e: Email): string {
-    return e.ownerType === "human" ? `/humans/${e.ownerId}` : `/accounts/${e.ownerId}`;
+    return e.ownerType === "human" ? resolve(`/humans/${e.ownerId}`) : resolve(`/accounts/${e.ownerId}`);
   }
 </script>
 
@@ -52,7 +53,7 @@
   searchPlaceholder="Search emails, owners, labels..."
 >
   {#snippet desktopRow(email)}
-    <td class="font-mono text-sm"><a href="/emails/{email.id}" class="text-accent hover:text-[var(--link-hover)]">{email.displayId}</a></td>
+    <td class="font-mono text-sm"><a href={resolve(`/emails/${email.id}`)} class="text-accent hover:text-[var(--link-hover)]">{email.displayId}</a></td>
     <td class="font-medium">
       <a href={ownerHref(email)} class="text-accent hover:text-[var(--link-hover)]">{email.ownerName ?? "\u2014"}</a>
       {#if email.ownerDisplayId}
@@ -70,7 +71,7 @@
     <td class="text-text-muted">{email.isPrimary ? "Yes" : "\u2014"}</td>
   {/snippet}
   {#snippet mobileCard(email)}
-    <a href="/emails/{email.id}" class="glass-card p-4 block hover:ring-1 hover:ring-accent/40 transition">
+    <a href={resolve(`/emails/${email.id}`)} class="glass-card p-4 block hover:ring-1 hover:ring-accent/40 transition">
       <span class="font-mono text-xs text-text-muted">{email.displayId}</span>
       <div class="font-medium text-accent">{email.email}</div>
       <div class="text-sm text-text-secondary">

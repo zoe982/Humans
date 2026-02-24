@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { PageData, ActionData } from "./$types";
   import EntityListPage from "$lib/components/EntityListPage.svelte";
+  import { resolve } from "$app/paths";
 
   let { data, form }: { data: PageData; form: ActionData } = $props();
 
@@ -54,10 +55,10 @@
   emptyMessage={pets.length === 0 ? "No pets found." : "No matching pets."}
 >
   {#snippet desktopRow(pet)}
-    <td class="font-mono text-sm whitespace-nowrap"><a href="/pets/{pet.id}" class="text-accent hover:text-[var(--link-hover)]">{pet.displayId}</a></td>
+    <td class="font-mono text-sm whitespace-nowrap"><a href={resolve(`/pets/${pet.id}`)} class="text-accent hover:text-[var(--link-hover)]">{pet.displayId}</a></td>
     <td class="font-medium">
       {#if pet.humanId}
-        <a href="/humans/{pet.humanId}" class="text-accent hover:text-[var(--link-hover)]">{pet.ownerName ?? "\u2014"}</a>
+        <a href={resolve(`/humans/${pet.humanId}`)} class="text-accent hover:text-[var(--link-hover)]">{pet.ownerName ?? "\u2014"}</a>
         {#if pet.ownerDisplayId}
           <span class="ml-1 text-xs text-text-muted">{pet.ownerDisplayId}</span>
         {/if}
@@ -73,7 +74,7 @@
     <td class="text-text-muted">{pet.weight ? `${pet.weight} kg` : "\u2014"}</td>
   {/snippet}
   {#snippet mobileCard(pet)}
-    <a href="/pets/{pet.id}" class="glass-card p-4 block hover:ring-1 hover:ring-accent/40 transition">
+    <a href={resolve(`/pets/${pet.id}`)} class="glass-card p-4 block hover:ring-1 hover:ring-accent/40 transition">
       <span class="font-mono text-xs text-text-muted">{pet.displayId}</span>
       <div class="font-medium text-accent">{pet.name ?? pet.displayId}</div>
       <div class="text-sm text-text-secondary">

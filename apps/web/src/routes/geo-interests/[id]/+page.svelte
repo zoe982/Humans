@@ -8,6 +8,7 @@
   import { Button } from "$lib/components/ui/button";
   import { formatRelativeTime, summarizeChanges } from "$lib/utils/format";
   import { createChangeHistoryLoader } from "$lib/changeHistory";
+  import { resolve } from "$app/paths";
 
   let { data, form }: { data: PageData; form: ActionData } = $props();
 
@@ -156,11 +157,11 @@
   >
     {#snippet row(expr, _searchQuery)}
       <td class="font-mono text-sm">
-        <a href="/geo-interests/expressions/{expr.id}" class="text-accent hover:text-[var(--link-hover)]">{expr.displayId}</a>
+        <a href={resolve(`/geo-interests/expressions/${expr.id}`)} class="text-accent hover:text-[var(--link-hover)]">{expr.displayId}</a>
       </td>
       <td>
         {#if expr.humanName}
-          <a href="/humans/{expr.humanId}" class="text-sm font-medium text-accent hover:text-[var(--link-hover)]">{expr.humanName}</a>
+          <a href={resolve(`/humans/${expr.humanId}`)} class="text-sm font-medium text-accent hover:text-[var(--link-hover)]">{expr.humanName}</a>
         {:else}
           <span class="text-sm text-text-muted">Unknown human</span>
         {/if}

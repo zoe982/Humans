@@ -84,6 +84,7 @@
   }
 
   function convertUrl(): string {
+    // eslint-disable-next-line svelte/prefer-svelte-reactivity
     const params = new URLSearchParams();
     params.set("fromSignup", signup.id);
     if (signup.first_name) params.set("firstName", signup.first_name);
@@ -141,7 +142,7 @@
   >
     {#snippet actions()}
       {#if signup.status !== "closed_converted"}
-        <a href={convertUrl()} class="btn-primary text-sm py-1.5">
+        <a href={resolve(convertUrl())} class="btn-primary text-sm py-1.5">
           Convert to Human
         </a>
       {/if}
@@ -248,7 +249,7 @@
         <div class="border-t border-glass-border pt-4">
           <p class="text-sm font-medium text-text-secondary">Or create a new human</p>
           <a
-            href={convertUrl()}
+            href={resolve(convertUrl())}
             class="btn-primary mt-2 inline-block text-sm"
           >
             Create New Human

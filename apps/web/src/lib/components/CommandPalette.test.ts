@@ -11,7 +11,7 @@ function makeResult(overrides: Partial<{
   sublabel: string;
   href: string;
   category: string;
-}> = {}) {
+}> = {}): { id: string; label: string; sublabel: string; href: string; category: string } {
   return {
     id: "r-1",
     label: "Jane Doe",
@@ -22,22 +22,22 @@ function makeResult(overrides: Partial<{
   };
 }
 
-function mockFetchSuccess(results: ReturnType<typeof makeResult>[]) {
+function mockFetchSuccess(results: ReturnType<typeof makeResult>[]): void {
   vi.stubGlobal(
     "fetch",
     vi.fn().mockResolvedValue({
       ok: true,
-      json: async () => ({ results }),
+      json: vi.fn().mockResolvedValue({ results }),
     }),
   );
 }
 
-function mockFetchFailure() {
+function mockFetchFailure(): void {
   vi.stubGlobal(
     "fetch",
     vi.fn().mockResolvedValue({
       ok: false,
-      json: async () => ({}),
+      json: vi.fn().mockResolvedValue({}),
     }),
   );
 }
@@ -85,7 +85,7 @@ describe("CommandPalette", () => {
     // All three navigation keys should appear
     const kbdElements = document
       .querySelectorAll("kbd");
-    const kbdTexts = Array.from(kbdElements).map((k) => k.textContent?.trim());
+    const kbdTexts = Array.from(kbdElements).map((k) => k.textContent.trim());
     expect(kbdTexts).toContain("↑");
     expect(kbdTexts).toContain("↓");
     expect(kbdTexts).toContain("Enter");
@@ -94,7 +94,7 @@ describe("CommandPalette", () => {
   it("shows esc kbd hint in input area", () => {
     render(CommandPalette, { props: { open: true } });
     const kbdElements = document.querySelectorAll("kbd");
-    const kbdTexts = Array.from(kbdElements).map((k) => k.textContent?.trim());
+    const kbdTexts = Array.from(kbdElements).map((k) => k.textContent.trim());
     expect(kbdTexts).toContain("esc");
   });
 
@@ -115,7 +115,7 @@ describe("CommandPalette", () => {
   it("clear button resets query and removes itself", async () => {
     mockFetchSuccess([]);
     render(CommandPalette, { props: { open: true } });
-    const input = screen.getByTestId("command-palette-input") as HTMLInputElement;
+    const input = screen.getByTestId("command-palette-input");
 
     await fireEvent.input(input, { target: { value: "jane" } });
     const clearBtn = screen.getByLabelText("Clear search");
@@ -165,7 +165,7 @@ describe("CommandPalette", () => {
   });
 
   it("does not call fetch until debounce delay elapses", async () => {
-    const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ results: [] }) });
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: vi.fn().mockResolvedValue({ results: [] }) });
     vi.stubGlobal("fetch", fetchMock);
 
     render(CommandPalette, { props: { open: true } });
@@ -182,7 +182,7 @@ describe("CommandPalette", () => {
   });
 
   it("debounces rapid consecutive inputs to a single fetch call", async () => {
-    const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ results: [] }) });
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: vi.fn().mockResolvedValue({ results: [] }) });
     vi.stubGlobal("fetch", fetchMock);
 
     render(CommandPalette, { props: { open: true } });
@@ -221,7 +221,7 @@ describe("CommandPalette", () => {
     expect(screen.getByText("Searching...")).toBeDefined();
 
     // Resolve the fetch so afterEach cleanup is clean
-    resolveFetch({ ok: true, json: async () => ({ results: [] }) });
+    resolveFetch({ ok: true, json: vi.fn().mockResolvedValue({ results: [] }) });
   });
 
   // ── Results rendering ─────────────────────────────────────────────
@@ -344,7 +344,7 @@ describe("CommandPalette", () => {
 
     await fireEvent.input(input, { target: { value: "ja" } });
     await vi.runAllTimersAsync();
-    await waitFor(() => expect(screen.getByText("Jane Doe")).toBeDefined());
+    await waitFor(() => { expect(screen.getByText("Jane Doe")).toBeDefined(); });
 
     await fireEvent.input(input, { target: { value: "j" } });
     await vi.runAllTimersAsync();

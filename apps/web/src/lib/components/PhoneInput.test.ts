@@ -35,7 +35,8 @@ describe("PhoneInput", () => {
     });
     // Should show UK dial code
     expect(screen.getByText("+44")).toBeDefined();
-    const tel = container.querySelector('input[type="tel"]') as HTMLInputElement;
+    const tel = container.querySelector('input[type="tel"]');
+    if (!(tel instanceof HTMLInputElement)) throw new Error("expected tel input");
     expect(tel.value).toBe("7911123456");
   });
 
@@ -43,13 +44,15 @@ describe("PhoneInput", () => {
     const { container } = render(PhoneInput, {
       props: { name: "phone", value: "5551234567" },
     });
-    const tel = container.querySelector('input[type="tel"]') as HTMLInputElement;
+    const tel = container.querySelector('input[type="tel"]');
+    if (!(tel instanceof HTMLInputElement)) throw new Error("expected tel input");
     expect(tel.value).toBe("5551234567");
   });
 
   it("hidden input starts empty when no value provided", () => {
     const { container } = render(PhoneInput, { props: { name: "phone" } });
-    const hidden = container.querySelector('input[type="hidden"]') as HTMLInputElement;
+    const hidden = container.querySelector('input[type="hidden"]');
+    if (!(hidden instanceof HTMLInputElement)) throw new Error("expected hidden input");
     expect(hidden.value).toBe("");
   });
 
@@ -59,14 +62,17 @@ describe("PhoneInput", () => {
     it("has no axe violations when closed", async () => {
       const { container } = render(PhoneInput, { props: { name: "phone" } });
       const results = await axe(container);
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-call
       expect(results).toHaveNoViolations();
     });
 
     it("has no axe violations when dropdown is open", async () => {
       const { container } = render(PhoneInput, { props: { name: "phone" } });
-      const trigger = container.querySelector('button[aria-label="Select country code"]')!;
+      const trigger = container.querySelector('button[aria-label="Select country code"]');
+      if (trigger == null) throw new Error("expected trigger button");
       await fireEvent.click(trigger);
       const results = await axe(container);
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-call
       expect(results).toHaveNoViolations();
     });
   });

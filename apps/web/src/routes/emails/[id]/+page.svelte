@@ -9,6 +9,7 @@
   import { formatRelativeTime, summarizeChanges } from "$lib/utils/format";
   import { createChangeHistoryLoader } from "$lib/changeHistory";
   import RelatedListTable from "$lib/components/RelatedListTable.svelte";
+  import { resolve } from "$app/paths";
 
   let { data }: { data: PageData } = $props();
 
@@ -77,7 +78,7 @@
   const selectedOwnerValue = $derived(`${ownerType}:${ownerId}`);
 
   const ownerHref = $derived(
-    ownerType === "human" ? `/humans/${ownerId}` : `/accounts/${ownerId}`
+    ownerType === "human" ? resolve(`/humans/${ownerId}`) : resolve(`/accounts/${ownerId}`)
   );
 
   const autoSaver = createAutoSaver({

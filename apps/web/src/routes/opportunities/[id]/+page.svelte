@@ -863,7 +863,7 @@
                 {activityTypeLabels[naType] ?? "Select type..."}
               </Select.Trigger>
               <Select.Content>
-                {#each ACTIVITY_TYPE_OPTIONS as opt}
+                {#each ACTIVITY_TYPE_OPTIONS as opt (opt.value)}
                   <Select.Item value={opt.value}>{opt.label}</Select.Item>
                 {/each}
               </Select.Content>

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { render, screen } from "@testing-library/svelte";
+import { render } from "@testing-library/svelte";
 import Pagination from "./Pagination.svelte";
 
 describe("Pagination", () => {
@@ -21,7 +21,7 @@ describe("Pagination", () => {
     const { container } = render(Pagination, {
       props: { page: 1, limit: 10, total: 50, baseUrl: "/humans" },
     });
-    const text = container.querySelector("p")?.textContent?.replace(/\s+/g, " ").trim();
+    const text = container.querySelector("p")?.textContent.replace(/\s+/g, " ").trim();
     expect(text).toContain("1");
     expect(text).toContain("10");
     expect(text).toContain("50");
@@ -31,7 +31,7 @@ describe("Pagination", () => {
     const { container } = render(Pagination, {
       props: { page: 2, limit: 10, total: 50, baseUrl: "/humans" },
     });
-    const text = container.querySelector("p")?.textContent?.replace(/\s+/g, " ").trim();
+    const text = container.querySelector("p")?.textContent.replace(/\s+/g, " ").trim();
     expect(text).toContain("11");
     expect(text).toContain("20");
     expect(text).toContain("50");
@@ -41,7 +41,7 @@ describe("Pagination", () => {
     const { container } = render(Pagination, {
       props: { page: 3, limit: 10, total: 25, baseUrl: "/humans" },
     });
-    const text = container.querySelector("p")?.textContent?.replace(/\s+/g, " ").trim();
+    const text = container.querySelector("p")?.textContent.replace(/\s+/g, " ").trim();
     expect(text).toContain("21");
     expect(text).toContain("25");
   });
@@ -52,12 +52,12 @@ describe("Pagination", () => {
     });
     // On the first page there should be no anchor for Prev
     const links = container.querySelectorAll("a");
-    const prevLink = Array.from(links).find((a) => a.textContent?.includes("Prev"));
+    const prevLink = Array.from(links).find((a) => a.textContent.includes("Prev"));
     expect(prevLink).toBeUndefined();
 
     // The disabled Prev span should exist
     const spans = container.querySelectorAll("span");
-    const prevSpan = Array.from(spans).find((s) => s.textContent?.includes("Prev"));
+    const prevSpan = Array.from(spans).find((s) => s.textContent.includes("Prev"));
     expect(prevSpan).toBeDefined();
     expect(prevSpan?.className).toContain("opacity-40");
   });
@@ -67,11 +67,11 @@ describe("Pagination", () => {
       props: { page: 5, limit: 10, total: 50, baseUrl: "/humans" },
     });
     const links = container.querySelectorAll("a");
-    const nextLink = Array.from(links).find((a) => a.textContent?.includes("Next"));
+    const nextLink = Array.from(links).find((a) => a.textContent.includes("Next"));
     expect(nextLink).toBeUndefined();
 
     const spans = container.querySelectorAll("span");
-    const nextSpan = Array.from(spans).find((s) => s.textContent?.includes("Next"));
+    const nextSpan = Array.from(spans).find((s) => s.textContent.includes("Next"));
     expect(nextSpan).toBeDefined();
     expect(nextSpan?.className).toContain("opacity-40");
   });
@@ -81,7 +81,7 @@ describe("Pagination", () => {
       props: { page: 3, limit: 10, total: 50, baseUrl: "/humans" },
     });
     const links = container.querySelectorAll("a");
-    const prevLink = Array.from(links).find((a) => a.textContent?.includes("Prev"));
+    const prevLink = Array.from(links).find((a) => a.textContent.includes("Prev"));
     expect(prevLink).toBeDefined();
     expect(prevLink?.getAttribute("href")).toContain("page=2");
   });
@@ -91,7 +91,7 @@ describe("Pagination", () => {
       props: { page: 2, limit: 10, total: 50, baseUrl: "/humans" },
     });
     const links = container.querySelectorAll("a");
-    const nextLink = Array.from(links).find((a) => a.textContent?.includes("Next"));
+    const nextLink = Array.from(links).find((a) => a.textContent.includes("Next"));
     expect(nextLink).toBeDefined();
     expect(nextLink?.getAttribute("href")).toContain("page=3");
   });
@@ -101,7 +101,7 @@ describe("Pagination", () => {
       props: { page: 1, limit: 25, total: 100, baseUrl: "/humans" },
     });
     const links = container.querySelectorAll("a");
-    const nextLink = Array.from(links).find((a) => a.textContent?.includes("Next"));
+    const nextLink = Array.from(links).find((a) => a.textContent.includes("Next"));
     expect(nextLink?.getAttribute("href")).toContain("limit=25");
   });
 
@@ -110,7 +110,7 @@ describe("Pagination", () => {
       props: { page: 1, limit: 10, total: 30, baseUrl: "/clients" },
     });
     const links = container.querySelectorAll("a");
-    const nextLink = Array.from(links).find((a) => a.textContent?.includes("Next"));
+    const nextLink = Array.from(links).find((a) => a.textContent.includes("Next"));
     expect(nextLink?.getAttribute("href")).toContain("/clients");
   });
 });

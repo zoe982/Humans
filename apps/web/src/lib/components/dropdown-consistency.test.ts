@@ -42,7 +42,8 @@ describe("Dropdown consistency contract", () => {
       // bits-ui Combobox portals content to document.body
       const popover = document.querySelector(".glass-popover");
       expect(popover).not.toBeNull();
-      expect(popover!.classList.contains("glass-popover")).toBe(true);
+      if (popover == null) throw new Error("expected .glass-popover element");
+      expect(popover.classList.contains("glass-popover")).toBe(true);
     });
 
     it("uses glass-dropdown-item on option elements", async () => {
@@ -92,8 +93,9 @@ describe("Dropdown consistency contract", () => {
         props: { options: OPTIONS, name: "test" },
       });
 
-      const combobox = container.querySelector('[role="combobox"]') as HTMLElement;
+      const combobox = container.querySelector('[role="combobox"]');
       expect(combobox).not.toBeNull();
+      if (!(combobox instanceof HTMLElement)) throw new Error("expected combobox element");
 
       // Closed by default.
       expect(combobox.getAttribute("aria-expanded")).toBe("false");
@@ -116,15 +118,17 @@ describe("Dropdown consistency contract", () => {
 
       const trigger = container.querySelector(
         'button[aria-label="Select country code"]'
-      ) as HTMLButtonElement;
+      );
       expect(trigger).not.toBeNull();
+      if (!(trigger instanceof HTMLButtonElement)) throw new Error("expected button element");
 
       await fireEvent.click(trigger);
 
       // The outermost dropdown wrapper carries glass-popover.
       const popover = container.querySelector(".glass-popover");
       expect(popover).not.toBeNull();
-      expect(popover!.classList.contains("glass-popover")).toBe(true);
+      if (popover == null) throw new Error("expected .glass-popover element");
+      expect(popover.classList.contains("glass-popover")).toBe(true);
     });
 
     it("uses glass-dropdown-item on option elements", async () => {
@@ -134,7 +138,8 @@ describe("Dropdown consistency contract", () => {
 
       const trigger = container.querySelector(
         'button[aria-label="Select country code"]'
-      ) as HTMLButtonElement;
+      );
+      if (!(trigger instanceof HTMLButtonElement)) throw new Error("expected button element");
       await fireEvent.click(trigger);
 
       const optionButtons = container.querySelectorAll('button[role="option"]');
@@ -154,8 +159,9 @@ describe("Dropdown consistency contract", () => {
       // Trigger button must advertise that it opens a listbox.
       const trigger = container.querySelector(
         'button[aria-label="Select country code"]'
-      ) as HTMLButtonElement;
+      );
       expect(trigger).not.toBeNull();
+      if (!(trigger instanceof HTMLButtonElement)) throw new Error("expected button element");
       expect(trigger.getAttribute("aria-haspopup")).toBe("listbox");
 
       await fireEvent.click(trigger);
