@@ -388,6 +388,12 @@ const MIGRATION_STATEMENTS = [
     \`pet_id\` text NOT NULL REFERENCES \`pets\`(\`id\`),
     \`created_at\` text NOT NULL
   )`,
+  `CREATE TABLE IF NOT EXISTS \`activity_opportunities\` (
+    \`id\` text PRIMARY KEY NOT NULL,
+    \`activity_id\` text NOT NULL REFERENCES \`activities\`(\`id\`),
+    \`opportunity_id\` text NOT NULL REFERENCES \`opportunities\`(\`id\`),
+    \`created_at\` text NOT NULL
+  )`,
 
   // ── Additional label configs ────────────────────────────────────
   `CREATE TABLE IF NOT EXISTS \`account_email_labels_config\` (
@@ -437,6 +443,9 @@ const MIGRATION_STATEMENTS = [
   `CREATE INDEX IF NOT EXISTS \`opportunity_humans_human_id_idx\` ON \`opportunity_humans\` (\`human_id\`)`,
   `CREATE INDEX IF NOT EXISTS \`opportunity_pets_opportunity_id_idx\` ON \`opportunity_pets\` (\`opportunity_id\`)`,
   `CREATE INDEX IF NOT EXISTS \`opportunity_pets_pet_id_idx\` ON \`opportunity_pets\` (\`pet_id\`)`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS \`activity_opportunities_activity_opportunity_idx\` ON \`activity_opportunities\` (\`activity_id\`,\`opportunity_id\`)`,
+  `CREATE INDEX IF NOT EXISTS \`activity_opportunities_activity_id_idx\` ON \`activity_opportunities\` (\`activity_id\`)`,
+  `CREATE INDEX IF NOT EXISTS \`activity_opportunities_opportunity_id_idx\` ON \`activity_opportunities\` (\`opportunity_id\`)`,
   `CREATE INDEX IF NOT EXISTS \`referral_codes_human_id_idx\` ON \`referral_codes\` (\`human_id\`)`,
   `CREATE INDEX IF NOT EXISTS \`referral_codes_account_id_idx\` ON \`referral_codes\` (\`account_id\`)`,
   `CREATE INDEX IF NOT EXISTS \`websites_human_id_idx\` ON \`websites\` (\`human_id\`)`,
@@ -458,6 +467,7 @@ afterEach(async () => {
   await env.DB.exec("DELETE FROM social_ids");
   await env.DB.exec("DELETE FROM opportunity_pets");
   await env.DB.exec("DELETE FROM opportunity_humans");
+  await env.DB.exec("DELETE FROM activity_opportunities");
   await env.DB.exec("DELETE FROM activities");
   await env.DB.exec("DELETE FROM general_leads");
   await env.DB.exec("DELETE FROM account_humans");

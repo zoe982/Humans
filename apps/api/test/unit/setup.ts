@@ -345,6 +345,12 @@ const MIGRATION_STATEMENTS = [
     \`pet_id\` text NOT NULL REFERENCES \`pets\`(\`id\`),
     \`created_at\` text NOT NULL
   )`,
+  `CREATE TABLE IF NOT EXISTS \`activity_opportunities\` (
+    \`id\` text PRIMARY KEY NOT NULL,
+    \`activity_id\` text NOT NULL REFERENCES \`activities\`(\`id\`),
+    \`opportunity_id\` text NOT NULL REFERENCES \`opportunities\`(\`id\`),
+    \`created_at\` text NOT NULL
+  )`,
   `CREATE TABLE IF NOT EXISTS \`human_relationships\` (
     \`id\` text PRIMARY KEY NOT NULL,
     \`display_id\` text NOT NULL UNIQUE,
@@ -443,6 +449,9 @@ const MIGRATION_STATEMENTS = [
   `CREATE INDEX IF NOT EXISTS \`opportunity_humans_human_id_idx\` ON \`opportunity_humans\` (\`human_id\`)`,
   `CREATE INDEX IF NOT EXISTS \`opportunity_pets_opportunity_id_idx\` ON \`opportunity_pets\` (\`opportunity_id\`)`,
   `CREATE INDEX IF NOT EXISTS \`opportunity_pets_pet_id_idx\` ON \`opportunity_pets\` (\`pet_id\`)`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS \`activity_opportunities_activity_opportunity_idx\` ON \`activity_opportunities\` (\`activity_id\`,\`opportunity_id\`)`,
+  `CREATE INDEX IF NOT EXISTS \`activity_opportunities_activity_id_idx\` ON \`activity_opportunities\` (\`activity_id\`)`,
+  `CREATE INDEX IF NOT EXISTS \`activity_opportunities_opportunity_id_idx\` ON \`activity_opportunities\` (\`opportunity_id\`)`,
   `CREATE INDEX IF NOT EXISTS \`websites_human_id_idx\` ON \`websites\` (\`human_id\`)`,
   `CREATE INDEX IF NOT EXISTS \`websites_account_id_idx\` ON \`websites\` (\`account_id\`)`,
   `CREATE INDEX IF NOT EXISTS \`referral_codes_human_id_idx\` ON \`referral_codes\` (\`human_id\`)`,
@@ -453,6 +462,7 @@ const MIGRATION_STATEMENTS = [
 const CLEANUP_TABLES = [
   "opportunity_humans",
   "opportunity_pets",
+  "activity_opportunities",
   "human_relationships",
   "route_interest_expressions",
   "geo_interest_expressions",

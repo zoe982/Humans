@@ -1,5 +1,5 @@
 import { eq, and, gte, lte, sql, desc, like, or } from "drizzle-orm";
-import { activities, humans, accounts, colleagues, geoInterestExpressions, geoInterests, routeInterestExpressions, routeInterests } from "@humans/db/schema";
+import { activities, humans, accounts, colleagues, geoInterestExpressions, geoInterests, routeInterestExpressions, routeInterests, activityOpportunities, opportunities } from "@humans/db/schema";
 import { createId } from "@humans/db";
 import { ERROR_CODES } from "@humans/shared";
 import { notFound } from "../lib/errors";
@@ -133,6 +133,19 @@ export async function getActivityDetail(db: DB, id: string) {
     };
   });
 
+  // Fetch linked opportunities via junction table
+  const linkedOpps = await db
+    .select({
+      id: activityOpportunities.id,
+      opportunityId: activityOpportunities.opportunityId,
+      displayId: opportunities.displayId,
+      stage: opportunities.stage,
+      createdAt: activityOpportunities.createdAt,
+    })
+    .from(activityOpportunities)
+    .innerJoin(opportunities, eq(activityOpportunities.opportunityId, opportunities.id))
+    .where(eq(activityOpportunities.activityId, id));
+
   return {
     ...activity,
     humanName: human ? `${human.firstName} ${human.lastName}` : null,
@@ -142,6 +155,7 @@ export async function getActivityDetail(db: DB, id: string) {
     ownerDisplayId: owner?.displayId ?? null,
     geoInterestExpressions: geoExpressions,
     routeInterestExpressions: routeExprData,
+    linkedOpportunities: linkedOpps,
   };
 }
 
@@ -249,6 +263,28 @@ export async function updateActivity(
   return updated;
 }
 
+export async function linkActivityOpportunity(db: DB, activityId: string, opportunityId: string) {
+  // Check for duplicate
+  const existing = await db
+    .select()
+    .from(activityOpportunities)
+    .where(and(eq(activityOpportunities.activityId, activityId), eq(activityOpportunities.opportunityId, opportunityId)));
+  if (existing.length > 0) return existing[0];
+
+  const link = {
+    id: createId(),
+    activityId,
+    opportunityId,
+    createdAt: new Date().toISOString(),
+  };
+  await db.insert(activityOpportunities).values(link);
+  return link;
+}
+
+export async function unlinkActivityOpportunity(db: DB, linkId: string) {
+  await db.delete(activityOpportunities).where(eq(activityOpportunities.id, linkId));
+}
+
 export async function deleteActivity(db: DB, id: string) {
   const existing = await db.query.activities.findFirst({
     where: eq(activities.id, id),
@@ -256,6 +292,9 @@ export async function deleteActivity(db: DB, id: string) {
   if (existing == null) {
     throw notFound(ERROR_CODES.ACTIVITY_NOT_FOUND, "Activity not found");
   }
+
+  // Remove activity-opportunity links
+  await db.delete(activityOpportunities).where(eq(activityOpportunities.activityId, id));
 
   // Nullify activityId on any geo-interest expressions referencing this activity
   await db

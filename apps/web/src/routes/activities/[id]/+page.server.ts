@@ -32,7 +32,7 @@ export const load = async ({ locals, cookies, params }: RequestEvent) => {
   const activity = isObjData(activityRaw) ? activityRaw.data : null;
   if (activity == null) redirect(302, "/activities");
 
-  // Fetch humans, accounts, route signups, website booking requests, and colleagues for dropdowns
+  // Batch 1: Fetch humans, accounts, route signups, booking requests, and colleagues for dropdowns
   const [humansRes, accountsRes, routeSignupsRes, bookingRequestsRes, colleaguesRes] = await Promise.all([
     fetch(`${PUBLIC_API_URL}/api/humans`, {
       headers: { Cookie: `humans_session=${sessionToken ?? ""}` },
@@ -47,6 +47,16 @@ export const load = async ({ locals, cookies, params }: RequestEvent) => {
       headers: { Cookie: `humans_session=${sessionToken ?? ""}` },
     }),
     fetch(`${PUBLIC_API_URL}/api/colleagues`, {
+      headers: { Cookie: `humans_session=${sessionToken ?? ""}` },
+    }),
+  ]);
+
+  // Batch 2: General leads and opportunities for dropdowns
+  const [generalLeadsRes, opportunitiesListRes] = await Promise.all([
+    fetch(`${PUBLIC_API_URL}/api/general-leads?limit=100`, {
+      headers: { Cookie: `humans_session=${sessionToken ?? ""}` },
+    }),
+    fetch(`${PUBLIC_API_URL}/api/opportunities?limit=100`, {
       headers: { Cookie: `humans_session=${sessionToken ?? ""}` },
     }),
   ]);
@@ -81,7 +91,19 @@ export const load = async ({ locals, cookies, params }: RequestEvent) => {
     colleagues = isListData(raw) ? raw.data : [];
   }
 
-  return { activity, humans, accounts, routeSignups, websiteBookingRequests, colleagues, apiUrl: PUBLIC_API_URL };
+  let generalLeads: unknown[] = [];
+  if (generalLeadsRes.ok) {
+    const raw: unknown = await generalLeadsRes.json();
+    generalLeads = isListData(raw) ? raw.data : [];
+  }
+
+  let opportunitiesList: unknown[] = [];
+  if (opportunitiesListRes.ok) {
+    const raw: unknown = await opportunitiesListRes.json();
+    opportunitiesList = isListData(raw) ? raw.data : [];
+  }
+
+  return { activity, humans, accounts, routeSignups, websiteBookingRequests, colleagues, generalLeads, opportunitiesList, apiUrl: PUBLIC_API_URL };
 };
 
 export const actions = {
@@ -225,6 +247,50 @@ export const actions = {
     if (!res.ok) {
       const resBody: unknown = await res.json();
       return failFromApi(resBody, res.status, "Failed to delete route-interest expression");
+    }
+
+    return { success: true };
+  },
+
+  linkOpportunity: async ({ request, cookies, params }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
+    const form = await request.formData();
+    const sessionToken = cookies.get("humans_session");
+    const opportunityId = (form.get("opportunityId") as string)?.trim();
+
+    if (!opportunityId) {
+      return fail(400, { error: "Please select an opportunity to link." });
+    }
+
+    const res = await fetch(`${PUBLIC_API_URL}/api/activities/${params.id}/opportunities`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Cookie: `humans_session=${sessionToken ?? ""}`,
+      },
+      body: JSON.stringify({ opportunityId }),
+    });
+
+    if (!res.ok) {
+      const resBody: unknown = await res.json();
+      return failFromApi(resBody, res.status, "Failed to link opportunity");
+    }
+
+    return { success: true };
+  },
+
+  unlinkOpportunity: async ({ request, cookies, params }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
+    const form = await request.formData();
+    const sessionToken = cookies.get("humans_session");
+    const linkId = (form.get("linkId") as string)?.trim();
+
+    const res = await fetch(`${PUBLIC_API_URL}/api/activities/${params.id}/opportunities/${linkId}`, {
+      method: "DELETE",
+      headers: { Cookie: `humans_session=${sessionToken ?? ""}` },
+    });
+
+    if (!res.ok) {
+      const resBody: unknown = await res.json();
+      return failFromApi(resBody, res.status, "Failed to unlink opportunity");
     }
 
     return { success: true };
