@@ -51,4 +51,9 @@ describe("updatePhoneNumberSchema", () => {
     const result = updatePhoneNumberSchema.parse({});
     expect(result).not.toHaveProperty("humanId");
   });
+
+  it("accepts labelId: null to clear a label", () => {
+    const result = updatePhoneNumberSchema.parse({ labelId: null });
+    expect(result.labelId).toBeNull();
+  });
 });

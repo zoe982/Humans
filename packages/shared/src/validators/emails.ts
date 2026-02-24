@@ -3,7 +3,7 @@ import { z } from "zod";
 export const createEmailSchema = z.object({
   humanId: z.string().min(1),
   email: z.string().email().max(255),
-  labelId: z.string().optional(),
+  labelId: z.string().nullable().optional(),
   isPrimary: z.boolean().default(false),
 });
 

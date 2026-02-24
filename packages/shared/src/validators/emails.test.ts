@@ -49,4 +49,9 @@ describe("updateEmailSchema", () => {
     const result = updateEmailSchema.parse({ isPrimary: true });
     expect(result.isPrimary).toBe(true);
   });
+
+  it("accepts labelId: null to clear a label", () => {
+    const result = updateEmailSchema.parse({ labelId: null });
+    expect(result.labelId).toBeNull();
+  });
 });
