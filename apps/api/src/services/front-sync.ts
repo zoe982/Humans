@@ -13,7 +13,7 @@ import {
   routeInterestExpressions,
 } from "@humans/db/schema";
 import { createId } from "@humans/db";
-import { eq, sql, and } from "drizzle-orm";
+import { eq, sql, and, isNull, isNotNull } from "drizzle-orm";
 import { nextDisplayId } from "../lib/display-id";
 import { normalizePhone, phonesMatch } from "../lib/phone-utils";
 import type { DB } from "./types";
@@ -1432,8 +1432,8 @@ export async function backfillAuthorNames(
     .from(activities)
     .where(
       and(
-        sql`${activities.senderName} IS NULL`,
-        sql`${activities.frontId} IS NOT NULL`,
+        isNull(activities.senderName),
+        isNotNull(activities.frontId),
       ),
     )
     .orderBy(activities.frontConversationId);
