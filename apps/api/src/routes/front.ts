@@ -10,6 +10,7 @@ import {
   getSyncRun,
   revertSyncRun,
   debugUnmatchedContact,
+  reclassifyActivities,
 } from "../services/front-sync";
 import type { AppContext } from "../types";
 
@@ -123,6 +124,33 @@ frontRoutes.get(
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       throw internal(ERROR_CODES.FRONT_SYNC_FAILED, `Debug failed: ${msg}`);
+    }
+  },
+);
+
+// Reclassify mistyped activities by re-fetching message type from Front
+frontRoutes.post(
+  "/api/admin/front/sync/reclassify",
+  requirePermission("manageColleagues"),
+  async (c) => {
+    const db = c.get("db");
+    const frontToken = c.env.FRONT_API_TOKEN;
+
+    if (!frontToken) {
+      throw internal(
+        ERROR_CODES.FRONT_SYNC_FAILED,
+        "FRONT_API_TOKEN not configured",
+      );
+    }
+
+    const cursor = c.req.query("cursor") || undefined;
+
+    try {
+      const result = await reclassifyActivities(db, frontToken, cursor);
+      return c.json({ data: result });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      throw internal(ERROR_CODES.FRONT_SYNC_FAILED, `Reclassify failed: ${msg}`);
     }
   },
 );

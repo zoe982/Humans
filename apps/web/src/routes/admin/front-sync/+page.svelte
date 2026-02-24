@@ -67,6 +67,51 @@
   let revertTargetId = $state("");
   let reverting = $state(false);
 
+  // Reclassify state
+  let reclassifying = $state(false);
+  let reclassifyBatches = $state(0);
+  let reclassifyUpdated = $state(0);
+  let reclassifyChecked = $state(0);
+  let reclassifyErrors = $state<string[]>([]);
+  let reclassifyFinished = $state(false);
+
+  async function startReclassify() {
+    reclassifying = true;
+    reclassifyBatches = 0;
+    reclassifyUpdated = 0;
+    reclassifyChecked = 0;
+    reclassifyErrors = [];
+    reclassifyFinished = false;
+    errorMsg = "";
+
+    let cursor: string | undefined;
+    try {
+      while (true) {
+        const params = new URLSearchParams();
+        if (cursor) params.set("cursor", cursor);
+        const res = (await api(
+          `/api/admin/front/sync/reclassify${params.toString() ? `?${params.toString()}` : ""}`,
+          { method: "POST" },
+        )) as { data: { updated: number; checked: number; errors: string[]; nextCursor: string | null } };
+
+        reclassifyBatches++;
+        reclassifyUpdated += res.data.updated;
+        reclassifyChecked += res.data.checked;
+        if (res.data.errors.length > 0) {
+          reclassifyErrors = [...reclassifyErrors, ...res.data.errors];
+        }
+
+        if (!res.data.nextCursor) break;
+        cursor = res.data.nextCursor;
+      }
+      reclassifyFinished = true;
+    } catch (err) {
+      errorMsg = err instanceof Error ? err.message : "Reclassify failed";
+    } finally {
+      reclassifying = false;
+    }
+  }
+
   // Expanded unmatched contacts row in history table
   let expandedRunId = $state<string | null>(null);
 
@@ -438,20 +483,52 @@
       Unmatched conversations are skipped and surfaced below.
     </p>
 
-    <form method="POST" action="?/sync">
+    <div class="flex items-center gap-3">
+      <form method="POST" action="?/sync">
+        <button
+          type="submit"
+          disabled={syncing || reclassifying}
+          class="inline-flex items-center gap-2 rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        >
+          {#if syncing}
+            <Loader2 size={16} class="animate-spin" />
+            Syncing...
+          {:else}
+            Start Sync
+          {/if}
+        </button>
+      </form>
+
       <button
-        type="submit"
-        disabled={syncing}
-        class="inline-flex items-center gap-2 rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        type="button"
+        disabled={syncing || reclassifying}
+        onclick={startReclassify}
+        class="inline-flex items-center gap-2 rounded-lg border border-glass-border bg-glass-bg px-4 py-2 text-sm font-medium text-text-primary hover:bg-glass-bg/80 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
       >
-        {#if syncing}
+        {#if reclassifying}
           <Loader2 size={16} class="animate-spin" />
-          Syncing...
+          Reclassifying... ({reclassifyBatches})
         {:else}
-          Start Sync
+          Reclassify Activity Types
         {/if}
       </button>
-    </form>
+    </div>
+
+    {#if reclassifyFinished}
+      <div class="mt-4 rounded-lg border border-green-500/30 bg-green-500/5 p-4">
+        <p class="text-sm font-medium text-[var(--badge-green-text)]">
+          Reclassification complete: {reclassifyUpdated} conversations updated, {reclassifyChecked} checked across {reclassifyBatches} batches.
+        </p>
+        {#if reclassifyErrors.length > 0}
+          <p class="text-xs text-destructive-foreground mt-2">{reclassifyErrors.length} errors:</p>
+          <ul class="text-xs text-destructive-foreground font-mono mt-1 max-h-32 overflow-y-auto">
+            {#each reclassifyErrors as err}
+              <li>{err}</li>
+            {/each}
+          </ul>
+        {/if}
+      </div>
+    {/if}
 
     {#if batchCount > 0}
       <div class="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-4">

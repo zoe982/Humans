@@ -33,14 +33,22 @@ const EMAIL_CHANNEL_IDS = new Set(["cha_lxe5c", "cha_ly6sg", "cha_m7tuo"]);
 
 type ActivityType = "email" | "whatsapp_message" | "social_message";
 
-function classifyChannel(
+export function classifyChannel(
   channelId: string | undefined,
   handle: string,
+  messageType?: string,
 ): ActivityType {
+  // Priority 1: Known channel ID
   if (channelId) {
     if (SOCIAL_CHANNEL_IDS.has(channelId)) return "social_message";
     if (WHATSAPP_CHANNEL_IDS.has(channelId)) return "whatsapp_message";
     if (EMAIL_CHANNEL_IDS.has(channelId)) return "email";
+  }
+  // Priority 2: Front message type field
+  if (messageType === "email") return "email";
+  if (messageType === "custom") {
+    if (/^\+?\d[\d\s-]{6,}$/.test(handle)) return "whatsapp_message";
+    return "social_message";
   }
   // Fallback: infer from handle pattern
   if (handle.includes("@")) return "email";
@@ -474,8 +482,9 @@ async function processConversation(
     }
   }
 
-  // Classify by handle pattern
-  const activityType = classifyChannel(undefined, effectiveContactHandle);
+  // Classify using message type from first non-draft message
+  const firstMsg = msgResponse._results.find((m) => !m.is_draft);
+  const activityType = classifyChannel(undefined, effectiveContactHandle, firstMsg?.type);
 
   // Match contact
   const match = matchContact(cache, effectiveContactHandle, activityType);
@@ -1055,8 +1064,6 @@ export async function debugUnmatchedContact(
   contactHandle: string,
 ) {
   const cache = await preloadReferenceData(db, supabase);
-  const activityType = classifyChannel(undefined, contactHandle);
-  const matchAttempts = debugMatchContact(cache, contactHandle, activityType);
 
   const conversation = await frontFetch<Record<string, unknown>>(
     `https://api2.frontapp.com/conversations/${conversationId}`,
@@ -1069,10 +1076,15 @@ export async function debugUnmatchedContact(
       ._links?.related?.messages?.href
     ?? `https://api2.frontapp.com/conversations/${conversationId}/messages`;
 
-  const messagesResponse = await frontFetch<{ _results: Record<string, unknown>[] }>(
+  const messagesResponse = await frontFetch<{ _results: FrontMessage[] }>(
     messagesHref,
     frontToken,
   );
+
+  // Use message type from first non-draft message for classification
+  const firstMsg = messagesResponse._results.find((m) => !m.is_draft);
+  const activityType = classifyChannel(undefined, contactHandle, firstMsg?.type);
+  const matchAttempts = debugMatchContact(cache, contactHandle, activityType);
 
   return {
     conversation,
@@ -1167,4 +1179,80 @@ export async function revertSyncRun(db: DB, syncRunId: string) {
     .where(eq(frontSyncRuns.id, syncRunId));
 
   return { deleted, skipped };
+}
+
+// --- Reclassify mistyped activities ---
+
+export async function reclassifyActivities(
+  db: DB,
+  frontToken: string,
+  cursor?: string,
+) {
+  const BATCH_SIZE = 20;
+  let updated = 0;
+  let checked = 0;
+  const errors: string[] = [];
+
+  // Get distinct front_conversation_ids with their current types
+  const rows = await db
+    .select({
+      frontConversationId: activities.frontConversationId,
+      frontContactHandle: activities.frontContactHandle,
+      type: activities.type,
+    })
+    .from(activities)
+    .where(sql`${activities.frontConversationId} IS NOT NULL`)
+    .groupBy(activities.frontConversationId)
+    .orderBy(activities.frontConversationId);
+
+  // Simple cursor-based pagination: skip conversations until we pass the cursor
+  let started = !cursor;
+  let processed = 0;
+  let nextCursor: string | null = null;
+
+  for (const row of rows) {
+    if (!started) {
+      if (row.frontConversationId === cursor) {
+        started = true;
+      }
+      continue;
+    }
+
+    if (processed >= BATCH_SIZE) {
+      nextCursor = row.frontConversationId;
+      break;
+    }
+
+    processed++;
+    checked++;
+
+    try {
+      const msgResponse = await frontFetch<{ _results: FrontMessage[] }>(
+        `https://api2.frontapp.com/conversations/${row.frontConversationId}/messages`,
+        frontToken,
+      );
+
+      const firstMsg = msgResponse._results.find((m) => !m.is_draft);
+      const handle = row.frontContactHandle ?? firstMsg?.author?.handle ?? "";
+      const correctType = classifyChannel(undefined, handle, firstMsg?.type);
+
+      if (correctType !== row.type) {
+        await db
+          .update(activities)
+          .set({ type: correctType, updatedAt: new Date().toISOString() })
+          .where(
+            and(
+              eq(activities.frontConversationId, row.frontConversationId!),
+              sql`${activities.type} != ${correctType}`,
+            ),
+          );
+        updated++;
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      errors.push(`${row.frontConversationId}: ${msg}`);
+    }
+  }
+
+  return { updated, checked, errors, nextCursor };
 }

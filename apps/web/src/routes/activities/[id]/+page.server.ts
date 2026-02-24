@@ -21,87 +21,38 @@ export const load = async ({ locals, cookies, params }: RequestEvent) => {
 
   const sessionToken = cookies.get("humans_session");
   const id = params.id;
+  const headers = { Cookie: `humans_session=${sessionToken ?? ""}` };
+
+  // Helper: fetch + consume body in one step so the connection is released immediately
+  const fetchList = async (url: string): Promise<unknown[]> => {
+    const res = await fetch(url, { headers });
+    if (!res.ok) return [];
+    const raw: unknown = await res.json();
+    return isListData(raw) ? raw.data : [];
+  };
 
   // Fetch activity detail
-  const activityRes = await fetch(`${PUBLIC_API_URL}/api/activities/${id}`, {
-    headers: { Cookie: `humans_session=${sessionToken ?? ""}` },
-  });
+  const activityRes = await fetch(`${PUBLIC_API_URL}/api/activities/${id}`, { headers });
 
   if (!activityRes.ok) redirect(302, "/activities");
   const activityRaw: unknown = await activityRes.json();
   const activity = isObjData(activityRaw) ? activityRaw.data : null;
   if (activity == null) redirect(302, "/activities");
 
-  // Batch 1: Fetch humans, accounts, route signups, booking requests, and colleagues for dropdowns
-  const [humansRes, accountsRes, routeSignupsRes, bookingRequestsRes, colleaguesRes] = await Promise.all([
-    fetch(`${PUBLIC_API_URL}/api/humans`, {
-      headers: { Cookie: `humans_session=${sessionToken ?? ""}` },
-    }),
-    fetch(`${PUBLIC_API_URL}/api/accounts`, {
-      headers: { Cookie: `humans_session=${sessionToken ?? ""}` },
-    }),
-    fetch(`${PUBLIC_API_URL}/api/route-signups?limit=100`, {
-      headers: { Cookie: `humans_session=${sessionToken ?? ""}` },
-    }),
-    fetch(`${PUBLIC_API_URL}/api/website-booking-requests?limit=100`, {
-      headers: { Cookie: `humans_session=${sessionToken ?? ""}` },
-    }),
-    fetch(`${PUBLIC_API_URL}/api/colleagues`, {
-      headers: { Cookie: `humans_session=${sessionToken ?? ""}` },
-    }),
+  // Batch 1 (5 concurrent — each connection closes after body is consumed)
+  const [humans, accounts, routeSignups, websiteBookingRequests, colleagues] = await Promise.all([
+    fetchList(`${PUBLIC_API_URL}/api/humans`),
+    fetchList(`${PUBLIC_API_URL}/api/accounts`),
+    fetchList(`${PUBLIC_API_URL}/api/route-signups?limit=100`),
+    fetchList(`${PUBLIC_API_URL}/api/website-booking-requests?limit=100`),
+    fetchList(`${PUBLIC_API_URL}/api/colleagues`),
   ]);
 
-  // Batch 2: General leads and opportunities for dropdowns
-  const [generalLeadsRes, opportunitiesListRes] = await Promise.all([
-    fetch(`${PUBLIC_API_URL}/api/general-leads?limit=100`, {
-      headers: { Cookie: `humans_session=${sessionToken ?? ""}` },
-    }),
-    fetch(`${PUBLIC_API_URL}/api/opportunities?limit=100`, {
-      headers: { Cookie: `humans_session=${sessionToken ?? ""}` },
-    }),
+  // Batch 2 (2 concurrent — batch 1 connections already released)
+  const [generalLeads, opportunitiesList] = await Promise.all([
+    fetchList(`${PUBLIC_API_URL}/api/general-leads?limit=100`),
+    fetchList(`${PUBLIC_API_URL}/api/opportunities?limit=100`),
   ]);
-
-  let humans: unknown[] = [];
-  if (humansRes.ok) {
-    const raw: unknown = await humansRes.json();
-    humans = isListData(raw) ? raw.data : [];
-  }
-
-  let accounts: unknown[] = [];
-  if (accountsRes.ok) {
-    const raw: unknown = await accountsRes.json();
-    accounts = isListData(raw) ? raw.data : [];
-  }
-
-  let routeSignups: unknown[] = [];
-  if (routeSignupsRes.ok) {
-    const raw: unknown = await routeSignupsRes.json();
-    routeSignups = isListData(raw) ? raw.data : [];
-  }
-
-  let websiteBookingRequests: unknown[] = [];
-  if (bookingRequestsRes.ok) {
-    const raw: unknown = await bookingRequestsRes.json();
-    websiteBookingRequests = isListData(raw) ? raw.data : [];
-  }
-
-  let colleagues: unknown[] = [];
-  if (colleaguesRes.ok) {
-    const raw: unknown = await colleaguesRes.json();
-    colleagues = isListData(raw) ? raw.data : [];
-  }
-
-  let generalLeads: unknown[] = [];
-  if (generalLeadsRes.ok) {
-    const raw: unknown = await generalLeadsRes.json();
-    generalLeads = isListData(raw) ? raw.data : [];
-  }
-
-  let opportunitiesList: unknown[] = [];
-  if (opportunitiesListRes.ok) {
-    const raw: unknown = await opportunitiesListRes.json();
-    opportunitiesList = isListData(raw) ? raw.data : [];
-  }
 
   return { activity, humans, accounts, routeSignups, websiteBookingRequests, colleagues, generalLeads, opportunitiesList, apiUrl: PUBLIC_API_URL };
 };
