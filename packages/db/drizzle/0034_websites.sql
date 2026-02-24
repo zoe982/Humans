@@ -8,4 +8,4 @@ CREATE TABLE websites (
 );
 CREATE INDEX websites_human_id_idx ON websites(human_id);
 CREATE INDEX websites_account_id_idx ON websites(account_id);
-INSERT INTO display_id_counters (prefix, current_counter) VALUES ('WEB', 0);
+INSERT INTO display_id_counters (prefix, counter) VALUES ('WEB', 0);
