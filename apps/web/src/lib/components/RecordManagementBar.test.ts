@@ -96,6 +96,7 @@ describe("RecordManagementBar", () => {
       },
     });
     const results = await axe(container);
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-call
     expect(results).toHaveNoViolations();
   });
 });

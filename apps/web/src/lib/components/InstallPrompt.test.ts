@@ -39,6 +39,7 @@ describe("InstallPrompt", () => {
   it("does not render when already in standalone display mode", () => {
     // Override matchMedia to return matches: true for the standalone query.
     // The onMount guard returns early when this is true, so visible stays false.
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
     (window.matchMedia as ReturnType<typeof vi.fn>).mockReturnValue({
       matches: true,
       media: "(display-mode: standalone)",

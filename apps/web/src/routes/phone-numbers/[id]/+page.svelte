@@ -194,6 +194,7 @@
         onSelect={handleOwnerChange}
       />
       {#if phone.ownerName}
+        <!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
         <a href={ownerHref} class="mt-1 inline-block text-sm text-accent hover:text-[var(--link-hover)]">
           View {phone.ownerName}
         </a>

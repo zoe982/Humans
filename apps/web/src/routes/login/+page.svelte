@@ -15,6 +15,7 @@
       <h1 class="text-3xl font-bold text-accent inline-flex items-center gap-2"><Users size={28} /> Humans</h1>
       <p class="mt-2 text-text-secondary">Sign in to manage Pet Air Valet</p>
     </div>
+    <!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
     <a
       href={`${apiUrl}/auth/google/login`}
       class="flex w-full items-center justify-center gap-3 glass-card px-4 py-3 text-text-primary hover:bg-glass-hover transition-colors"

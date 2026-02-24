@@ -169,6 +169,7 @@
 
   <div class="mt-4 flex justify-between">
     {#if data.offset > 0}
+      <!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
       <a href={`?offset=${data.offset - data.limit}${paginationParams()}`} class="btn-ghost text-sm py-1.5 px-3 inline-flex items-center gap-1">
         <ChevronLeft size={14} /> Previous
       </a>
@@ -176,6 +177,7 @@
       <span></span>
     {/if}
     {#if errors.length === data.limit}
+      <!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
       <a href={`?offset=${data.offset + data.limit}${paginationParams()}`} class="btn-ghost text-sm py-1.5 px-3 inline-flex items-center gap-1">
         Next <ChevronRight size={14} />
       </a>

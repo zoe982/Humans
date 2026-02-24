@@ -107,6 +107,7 @@
           {#each selectedPetLabels as label, i (i)}
             <span class="inline-flex items-center gap-1 rounded-full bg-surface-secondary px-3 py-1 text-sm">
               {label}
+              <!-- eslint-disable-next-line security/detect-object-injection -->
               <button type="button" class="ml-1 text-text-muted hover:text-text-primary" onclick={() => removePet(selectedPetIds[i])}>
                 &times;
               </button>

@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { formatErrorForClipboard } from "./error-format";
 
 /** Minimal valid ErrorEntry with all nullable fields set to benign defaults. */
-function makeEntry(overrides: Partial<Parameters<typeof formatErrorForClipboard>[0]> = {}) {
+function makeEntry(overrides: Partial<Parameters<typeof formatErrorForClipboard>[0]> = {}): Parameters<typeof formatErrorForClipboard>[0] {
   return {
     displayId: "ERR-001",
     code: "INTERNAL_ERROR",
@@ -73,6 +73,7 @@ describe("formatErrorForClipboard", () => {
     circular["self"] = circular;
     const result = formatErrorForClipboard(makeEntry({ details: circular }));
     expect(result).toContain("Details:");
+    // eslint-disable-next-line @typescript-eslint/no-base-to-string
     expect(result).toContain(String(circular));
   });
 

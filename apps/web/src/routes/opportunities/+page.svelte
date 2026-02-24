@@ -36,6 +36,9 @@
   const colleagueOptions = $derived(colleagues.map((c) => ({ value: c.id, label: c.name })));
   const stageFilterOptions = $derived(OPPORTUNITY_STAGE_OPTIONS.map((s) => ({ value: s.value, label: s.label })));
 
+  // eslint-disable-next-line security/detect-object-injection
+  const stageColorMap = $derived(Object.fromEntries(Object.entries(opportunityStageColors).map(([k, v]) => [opportunityStageLabels[k] ?? k, v])));
+
   const paginationBaseUrl = $derived.by(() => {
     // eslint-disable-next-line svelte/prefer-svelte-reactivity
     const params = new URLSearchParams();
@@ -124,7 +127,8 @@
       <a href={resolve(`/opportunities/${opp.id}`)} class="text-accent hover:text-[var(--link-hover)]">{opp.displayId}</a>
     </td>
     <td>
-      <StatusBadge status={opportunityStageLabels[opp.stage] ?? opp.stage} colorMap={Object.fromEntries(Object.entries(opportunityStageColors).map(([k, v]) => [opportunityStageLabels[k] ?? k, v]))} />
+      <!-- eslint-disable-next-line security/detect-object-injection -->
+      <StatusBadge status={opportunityStageLabels[opp.stage] ?? opp.stage} colorMap={stageColorMap} />
     </td>
     <td class="text-text-secondary text-sm">{opp.primaryHumanName ?? "\u2014"}</td>
     <td class="text-text-secondary text-sm">{opp.passengerSeats}</td>
@@ -163,7 +167,8 @@
       <span class="font-mono text-xs text-text-muted">{opp.displayId}</span>
       <div class="flex items-center justify-between mb-2">
         <span class="font-medium text-accent">{opp.primaryHumanName ?? "No primary human"}</span>
-        <StatusBadge status={opportunityStageLabels[opp.stage] ?? opp.stage} colorMap={Object.fromEntries(Object.entries(opportunityStageColors).map(([k, v]) => [opportunityStageLabels[k] ?? k, v]))} />
+        <!-- eslint-disable-next-line security/detect-object-injection -->
+      <StatusBadge status={opportunityStageLabels[opp.stage] ?? opp.stage} colorMap={stageColorMap} />
       </div>
       <div class="flex items-center gap-3 text-sm text-text-secondary">
         <span>{opp.passengerSeats} pax</span>

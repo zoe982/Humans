@@ -32,7 +32,7 @@ describe("HighlightText", () => {
     });
     const mark = container.querySelector("mark");
     expect(mark).not.toBeNull();
-    expect(mark?.textContent?.toLowerCase()).toBe("hello");
+    expect(mark?.textContent.toLowerCase()).toBe("hello");
   });
 
   it("preserves the original text casing in the highlight", () => {

@@ -75,11 +75,13 @@
 
   <div class="mt-4 flex justify-between">
     {#if data.offset > 0}
+      <!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
       <a href={`?offset=${data.offset - data.limit}`} class="text-sm text-accent hover:text-[var(--link-hover)]">&larr; Previous</a>
     {:else}
       <span></span>
     {/if}
     {#if logs.length === data.limit}
+      <!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
       <a href={`?offset=${data.offset + data.limit}`} class="text-sm text-accent hover:text-[var(--link-hover)]">Next &rarr;</a>
     {/if}
   </div>

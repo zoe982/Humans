@@ -5,7 +5,7 @@ import SaveIndicator from "./SaveIndicator.svelte";
 describe("SaveIndicator", () => {
   it("shows nothing when status is idle", () => {
     const { container } = render(SaveIndicator, { props: { status: "idle" } });
-    expect(container.textContent?.trim()).toBe("");
+    expect(container.textContent.trim()).toBe("");
   });
 
   it("shows Saving... when status is saving", () => {

@@ -310,7 +310,7 @@
   {#if linkedHumans.length > 0}
     <div class="glass-card p-6 mb-6">
       <h2 class="text-lg font-semibold text-text-primary">Linked Human</h2>
-      {#each linkedHumans as lh}
+      {#each linkedHumans as lh (lh.id)}
         <div class="mt-4 flex items-center justify-between">
           <div>
             <a href={resolve(`/humans/${lh.humanId}`)} class="text-sm font-medium text-accent-primary hover:underline">

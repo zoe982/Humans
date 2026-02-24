@@ -51,6 +51,7 @@
   {#snippet desktopRow(phone)}
     <td class="font-mono text-sm"><a href={resolve(`/phone-numbers/${phone.id}`)} class="text-accent hover:text-[var(--link-hover)]">{phone.displayId}</a></td>
     <td class="font-medium">
+      <!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
       <a href={ownerHref(phone)} class="text-accent hover:text-[var(--link-hover)]">{phone.ownerName ?? "\u2014"}</a>
       {#if phone.ownerDisplayId}
         <span class="ml-1 text-xs text-text-muted">{phone.ownerDisplayId}</span>

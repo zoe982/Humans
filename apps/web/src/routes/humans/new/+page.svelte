@@ -72,6 +72,7 @@
       <Button type="submit">
         {prefill.fromSignup || prefill.fromGeneralLead ? "Create & Convert" : "Create Human"}
       </Button>
+      <!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
       <a href={prefill.fromSignup ? resolve('/leads/route-signups') : prefill.fromGeneralLead ? resolve('/leads/general-leads') : resolve('/humans')} class="btn-ghost">
         Cancel
       </a>

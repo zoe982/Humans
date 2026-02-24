@@ -17,7 +17,10 @@ describe("TypeTogglePills", () => {
     });
     const hiddens = container.querySelectorAll('input[type="hidden"][name="types"]');
     expect(hiddens.length).toBe(2);
-    const values = Array.from(hiddens).map((el) => (el as HTMLInputElement).value);
+    const values = Array.from(hiddens).map((el) => {
+      if (!(el instanceof HTMLInputElement)) throw new Error("expected hidden input");
+      return el.value;
+    });
     expect(values).toContain("client");
     expect(values).toContain("trainer");
   });

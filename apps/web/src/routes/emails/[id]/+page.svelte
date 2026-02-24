@@ -189,6 +189,7 @@
         onSelect={handleOwnerChange}
       />
       {#if email.ownerName}
+        <!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
         <a href={ownerHref} class="mt-1 inline-block text-sm text-accent hover:text-[var(--link-hover)]">
           View {email.ownerName}
         </a>

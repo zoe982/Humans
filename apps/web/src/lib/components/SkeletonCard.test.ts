@@ -10,8 +10,6 @@ describe("SkeletonCard", () => {
 
   it("renders with default 3 lines (1 heading + 2 body skeletons)", () => {
     const { container } = render(SkeletonCard, { props: {} });
-    // Skeleton component renders a div — one for heading row, two for body rows
-    const skeletons = container.querySelectorAll(".glass-card > div");
     // The outer card has a heading Skeleton + (lines-1) body Skeletons
     // The outer wrapper itself is the glass-card, children are the skeletons
     const children = container.querySelector(".glass-card")?.children;
