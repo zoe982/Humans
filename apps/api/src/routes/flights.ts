@@ -21,12 +21,17 @@ flightRoutes.use("/*", supabaseMiddleware);
  * Auto-assign crm_display_id to flights that don't have one yet.
  * Writes back to Supabase and mutates the row objects in place.
  */
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
 async function ensureFlightDisplayIds(
   supabase: SupabaseClient,
   db: DB,
-  rows: Record<string, unknown>[],
+  rows: unknown[],
 ): Promise<void> {
   for (const row of rows) {
+    if (!isRecord(row)) continue;
     if (row["crm_display_id"] == null) {
       const displayId = await nextDisplayId(db, "FLY");
       const { error } = await supabase
@@ -64,9 +69,7 @@ flightRoutes.get(
       throw internal(ERROR_CODES.SUPABASE_ERROR, error.message);
     }
 
-    if (data !== null) {
-      await ensureFlightDisplayIds(supabase, db, data as Record<string, unknown>[]);
-    }
+    await ensureFlightDisplayIds(supabase, db, data as unknown[]);
 
     return c.json({ data, meta: { page, limit, total: count ?? 0 } });
   },
@@ -90,9 +93,7 @@ flightRoutes.get(
       throw internal(ERROR_CODES.SUPABASE_ERROR, error.message);
     }
 
-    if (data !== null) {
-      await ensureFlightDisplayIds(supabase, db, data as Record<string, unknown>[]);
-    }
+    await ensureFlightDisplayIds(supabase, db, data as unknown[]);
 
     return c.json({ data });
   },
@@ -107,18 +108,18 @@ flightRoutes.get(
     const db = c.get("db");
     const flightId = c.req.param("id");
 
-    const { data: flightData, error } = await supabase
+    const flightResult = await supabase
       .from("flights")
       .select("*")
       .eq("id", flightId)
-      .single();
+      .single<Record<string, unknown>>();
 
-    if (error !== null) {
-      throw notFound(ERROR_CODES.FLIGHT_NOT_FOUND, error.message);
+    if (flightResult.error !== null) {
+      throw notFound(ERROR_CODES.FLIGHT_NOT_FOUND, flightResult.error.message);
     }
 
-    const safeFlightData = flightData as Record<string, unknown>;
-    await ensureFlightDisplayIds(supabase, db, [safeFlightData]);
+    const flightData = flightResult.data;
+    await ensureFlightDisplayIds(supabase, db, [flightData as unknown]);
 
     // Fetch linked opportunities from D1
     const linkedOpps = await db
@@ -172,7 +173,7 @@ flightRoutes.get(
     // Fetch linked discount codes
     const linkedDiscountCodes = await getDiscountCodesForFlight(supabase, db, flightId);
 
-    return c.json({ data: safeFlightData, linkedOpportunities, linkedDiscountCodes });
+    return c.json({ data: flightData, linkedOpportunities, linkedDiscountCodes });
   },
 );
 

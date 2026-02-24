@@ -41,7 +41,18 @@ export async function listAccounts(db: DB): Promise<{ data: { id: string; displa
   return { data };
 }
 
-export async function getAccountDetail(supabase: SupabaseClient, db: DB, id: string) {
+export async function getAccountDetail(supabase: SupabaseClient, db: DB, id: string): Promise<{
+  id: string; displayId: string; name: string; status: string; createdAt: string; updatedAt: string;
+  types: { id: string; name: string }[];
+  linkedHumans: { id: string; accountId: string; humanId: string; labelId: string | null; createdAt: string; humanDisplayId: string | null; humanName: string; humanStatus: string | null; labelName: string | null; emails: (typeof emails.$inferSelect)[]; phoneNumbers: (typeof phones.$inferSelect)[] }[];
+  emails: { labelName: string | null; id: string; displayId: string; ownerType: string; ownerId: string; email: string; labelId: string | null; isPrimary: boolean; createdAt: string }[];
+  phoneNumbers: { labelName: string | null; id: string; displayId: string; ownerType: string; ownerId: string; phoneNumber: string; labelId: string | null; hasWhatsapp: boolean; isPrimary: boolean; createdAt: string }[];
+  activities: ({ viaHumanName: string | null } & typeof activities.$inferSelect)[];
+  socialIds: { platformName: string | null; id: string; displayId: string; handle: string; platformId: string | null; humanId: string | null; accountId: string | null; createdAt: string }[];
+  referralCodes: { id: string; displayId: string; code: string; description: string | null; isActive: boolean }[];
+  discountCodes: { id: string; crmDisplayId: string | null; code: string; description: string | null; percentOff: number; isActive: boolean }[];
+  websites: (typeof websites.$inferSelect)[];
+}> {
   const account = await db.query.accounts.findFirst({
     where: eq(accounts.id, id),
   });

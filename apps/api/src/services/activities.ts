@@ -20,22 +20,30 @@ interface ActivityFilters {
   limit: number;
 }
 
-export async function listActivities(db: DB, filters: ActivityFilters) {
+export async function listActivities(db: DB, filters: ActivityFilters): Promise<{ data: ({ humanName: string | null; accountName: string | null; ownerId: string | null; ownerName: string | null; ownerDisplayId: string | null } & typeof activities.$inferSelect)[]; meta: { page: number; limit: number; total: number } }> {
   const { page, limit } = filters;
   const offset = (page - 1) * limit;
 
   const conditions = [];
-  if (filters.humanId) conditions.push(eq(activities.humanId, filters.humanId));
-  if (filters.accountId) conditions.push(eq(activities.accountId, filters.accountId));
-  if (filters.routeSignupId) conditions.push(eq(activities.routeSignupId, filters.routeSignupId));
-  if (filters.websiteBookingRequestId) conditions.push(eq(activities.websiteBookingRequestId, filters.websiteBookingRequestId));
-  if (filters.generalLeadId) conditions.push(eq(activities.generalLeadId, filters.generalLeadId));
-  if (filters.type) conditions.push(eq(activities.type, filters.type as typeof activities.type.enumValues[number]));
-  if (filters.dateFrom) conditions.push(gte(activities.activityDate, filters.dateFrom));
-  if (filters.dateTo) conditions.push(lte(activities.activityDate, filters.dateTo));
-  if (filters.q) {
+  if (filters.humanId != null) conditions.push(eq(activities.humanId, filters.humanId));
+  if (filters.accountId != null) conditions.push(eq(activities.accountId, filters.accountId));
+  if (filters.routeSignupId != null) conditions.push(eq(activities.routeSignupId, filters.routeSignupId));
+  if (filters.websiteBookingRequestId != null) conditions.push(eq(activities.websiteBookingRequestId, filters.websiteBookingRequestId));
+  if (filters.generalLeadId != null) conditions.push(eq(activities.generalLeadId, filters.generalLeadId));
+  if (filters.type != null) {
+    const validTypes = ["email", "whatsapp_message", "online_meeting", "phone_call", "social_message"] as const;
+    type ValidType = typeof validTypes[number];
+    const t = filters.type;
+    if (validTypes.includes(t as ValidType)) {
+      conditions.push(eq(activities.type, t as ValidType));
+    }
+  }
+  if (filters.dateFrom != null) conditions.push(gte(activities.activityDate, filters.dateFrom));
+  if (filters.dateTo != null) conditions.push(lte(activities.activityDate, filters.dateTo));
+  if (filters.q != null) {
     const pattern = `%${filters.q}%`;
-    conditions.push(or(like(activities.subject, pattern), like(activities.notes, pattern))!);
+    const orCondition = or(like(activities.subject, pattern), like(activities.notes, pattern));
+    if (orCondition != null) conditions.push(orCondition);
   }
 
   const where = conditions.length > 0 ? and(...conditions) : undefined;
@@ -59,12 +67,12 @@ export async function listActivities(db: DB, filters: ActivityFilters) {
   const allAccounts = await db.select().from(accounts);
   const allColleagues = await db.select().from(colleagues);
   const data = results.map((a) => {
-    const human = a.humanId ? allHumans.find((h) => h.id === a.humanId) : null;
-    const account = a.accountId ? allAccounts.find((ac) => ac.id === a.accountId) : null;
-    const owner = a.colleagueId ? allColleagues.find((c) => c.id === a.colleagueId) : null;
+    const human = a.humanId != null ? allHumans.find((h) => h.id === a.humanId) : null;
+    const account = a.accountId != null ? allAccounts.find((ac) => ac.id === a.accountId) : null;
+    const owner = a.colleagueId != null ? allColleagues.find((c) => c.id === a.colleagueId) : null;
     return {
       ...a,
-      humanName: human ? `${human.firstName} ${human.lastName}` : null,
+      humanName: human != null ? `${human.firstName} ${human.lastName}` : null,
       accountId: a.accountId,
       accountName: account?.name ?? null,
       ownerId: a.colleagueId,
@@ -76,7 +84,7 @@ export async function listActivities(db: DB, filters: ActivityFilters) {
   return { data, meta: { page, limit, total } };
 }
 
-export async function getActivityDetail(db: DB, id: string) {
+export async function getActivityDetail(db: DB, id: string): Promise<typeof activities.$inferSelect & { humanName: string | null; accountName: string | null; ownerId: string | null; ownerName: string | null; ownerDisplayId: string | null; geoInterestExpressions: unknown[]; routeInterestExpressions: unknown[]; linkedOpportunities: unknown[] }> {
   const activity = await db.query.activities.findFirst({
     where: eq(activities.id, id),
   });
@@ -85,13 +93,13 @@ export async function getActivityDetail(db: DB, id: string) {
   }
 
   // Enrich with human name, account name, and owner info
-  const human = activity.humanId
+  const human = activity.humanId != null
     ? await db.query.humans.findFirst({ where: eq(humans.id, activity.humanId) })
     : null;
-  const account = activity.accountId
+  const account = activity.accountId != null
     ? await db.query.accounts.findFirst({ where: eq(accounts.id, activity.accountId) })
     : null;
-  const owner = activity.colleagueId
+  const owner = activity.colleagueId != null
     ? await db.query.colleagues.findFirst({ where: eq(colleagues.id, activity.colleagueId) })
     : null;
 
@@ -148,7 +156,7 @@ export async function getActivityDetail(db: DB, id: string) {
 
   return {
     ...activity,
-    humanName: human ? `${human.firstName} ${human.lastName}` : null,
+    humanName: human != null ? `${human.firstName} ${human.lastName}` : null,
     accountName: account?.name ?? null,
     ownerId: activity.colleagueId,
     ownerName: owner?.name ?? null,
@@ -178,7 +186,7 @@ export async function createActivity(
     syncRunId?: string | null;
   },
   colleagueId: string,
-) {
+): Promise<{ id: string; displayId: string; type: string; subject: string; body: string | null; notes: string | null; activityDate: string; humanId: string | null; accountId: string | null; routeSignupId: string | null; websiteBookingRequestId: string | null; generalLeadId: string | null; opportunityId: string | null; gmailId: string | null; frontId: string | null; frontConversationId: string | null; syncRunId: string | null; colleagueId: string; createdAt: string; updatedAt: string }> {
   const now = new Date().toISOString();
   const displayId = await nextDisplayId(db, "ACT");
 
@@ -228,7 +236,7 @@ export async function updateActivity(
     syncRunId?: string | null;
     colleagueId?: string | null;
   },
-) {
+): Promise<typeof activities.$inferSelect | undefined> {
   const existing = await db.query.activities.findFirst({
     where: eq(activities.id, id),
   });
@@ -263,7 +271,7 @@ export async function updateActivity(
   return updated;
 }
 
-export async function linkActivityOpportunity(db: DB, activityId: string, opportunityId: string) {
+export async function linkActivityOpportunity(db: DB, activityId: string, opportunityId: string): Promise<{ id: string; activityId: string; opportunityId: string; createdAt: string } | undefined> {
   // Check for duplicate
   const existing = await db
     .select()
@@ -281,11 +289,11 @@ export async function linkActivityOpportunity(db: DB, activityId: string, opport
   return link;
 }
 
-export async function unlinkActivityOpportunity(db: DB, linkId: string) {
+export async function unlinkActivityOpportunity(db: DB, linkId: string): Promise<void> {
   await db.delete(activityOpportunities).where(eq(activityOpportunities.id, linkId));
 }
 
-export async function deleteActivity(db: DB, id: string) {
+export async function deleteActivity(db: DB, id: string): Promise<void> {
   const existing = await db.query.activities.findFirst({
     where: eq(activities.id, id),
   });

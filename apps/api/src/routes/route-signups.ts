@@ -59,7 +59,7 @@ routeSignupRoutes.get("/api/route-signups", requirePermission("viewRouteSignups"
     const r = row as Record<string, unknown>;
     return { ...r, id: String(r["id"] ?? ""), lastActivityDate: null };
   }
-  let enriched: SignupRow[] = Array.isArray(data) ? data.map(toSignupRow) : [];
+  let enriched: SignupRow[] = data.map(toSignupRow);
   const signupIds = enriched.map((s) => s.id);
   if (signupIds.length > 0) {
     const db = c.get("db");

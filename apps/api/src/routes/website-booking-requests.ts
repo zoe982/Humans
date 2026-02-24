@@ -14,6 +14,10 @@ const websiteBookingRequestRoutes = new Hono<AppContext>();
 websiteBookingRequestRoutes.use("/*", authMiddleware);
 websiteBookingRequestRoutes.use("/*", supabaseMiddleware);
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
 /**
  * Auto-assign crm_display_id to bookings that don't have one yet.
  * Writes back to Supabase and mutates the row objects in place.
@@ -21,9 +25,10 @@ websiteBookingRequestRoutes.use("/*", supabaseMiddleware);
 async function ensureDisplayIds(
   supabase: SupabaseClient,
   db: DB,
-  rows: Record<string, unknown>[],
+  rows: unknown[],
 ): Promise<void> {
   for (const row of rows) {
+    if (!isRecord(row)) continue;
     if (row["crm_display_id"] == null) {
       const displayId = await nextDisplayId(db, "BOR");
       const { error } = await supabase
@@ -61,10 +66,8 @@ websiteBookingRequestRoutes.get(
       throw internal(ERROR_CODES.SUPABASE_ERROR, error.message);
     }
 
-    // Auto-assign display IDs to any rows missing them
-    if (data !== null) {
-      await ensureDisplayIds(supabase, db, data as Record<string, unknown>[]);
-    }
+    // Auto-assign display IDs to rows missing them
+    await ensureDisplayIds(supabase, db, data as unknown[]);
 
     return c.json({ data, meta: { page, limit, total: count ?? 0 } });
   },
@@ -88,7 +91,7 @@ websiteBookingRequestRoutes.get(
     }
 
     // Auto-assign display ID if missing
-    await ensureDisplayIds(supabase, db, [result.data]);
+    await ensureDisplayIds(supabase, db, [result.data as unknown]);
 
     return c.json({ data: result.data });
   },

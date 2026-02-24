@@ -15,7 +15,7 @@ import { notFound, badRequest } from "../lib/errors";
 import type { FieldDiff } from "../lib/audit";
 import type { DB } from "./types";
 
-export async function getAuditEntries(db: DB, entityType: string, entityId: string) {
+export async function getAuditEntries(db: DB, entityType: string, entityId: string): Promise<{ id: string; action: string; entityType: string; entityId: string; changes: unknown; createdAt: string; colleagueId: string | null; colleagueName: string | null }[]> {
   const entries = await db
     .select({
       id: auditLog.id,
@@ -40,17 +40,17 @@ export async function getAuditEntries(db: DB, entityType: string, entityId: stri
   return entries;
 }
 
-export async function undoAuditEntry(db: DB, entryId: string, colleagueId: string) {
+export async function undoAuditEntry(db: DB, entryId: string, colleagueId: string): Promise<{ undoEntryId: string }> {
   const entry = await db.query.auditLog.findFirst({
     where: eq(auditLog.id, entryId),
   });
 
-  if (!entry) {
+  if (entry == null) {
     throw notFound(ERROR_CODES.AUDIT_ENTRY_NOT_FOUND, "Audit entry not found");
   }
 
   const changes = entry.changes as Record<string, FieldDiff> | null;
-  if (!changes) {
+  if (changes == null) {
     throw badRequest(ERROR_CODES.NO_CHANGES_TO_UNDO, "No changes to undo");
   }
 
@@ -59,9 +59,8 @@ export async function undoAuditEntry(db: DB, entryId: string, colleagueId: strin
   const undoChanges: Record<string, FieldDiff> = {};
 
   for (const [field, diff] of Object.entries(changes)) {
-    const typedDiff = diff as FieldDiff;
-    revertFields[field] = typedDiff.old;
-    undoChanges[field] = { old: typedDiff.new, new: typedDiff.old };
+    Object.assign(revertFields, { [field]: diff.old });
+    Object.assign(undoChanges, { [field]: { old: diff.new, new: diff.old } });
   }
 
   const now = new Date().toISOString();
@@ -77,14 +76,17 @@ export async function undoAuditEntry(db: DB, entryId: string, colleagueId: strin
         .where(eq(humans.id, entry.entityId));
     }
 
-    if (types !== undefined) {
-      const typeArray = types as string[];
+    if (Array.isArray(types)) {
+      const typeArray: string[] = types.filter((t): t is string => typeof t === "string");
       await db.delete(humanTypes).where(eq(humanTypes.humanId, entry.entityId));
       for (const type of typeArray) {
+        const validHumanTypes: HumanType[] = ["client", "trainer", "travel_agent", "flight_broker"];
+        const humanType = validHumanTypes.includes(type as HumanType) ? (type as HumanType) : null;
+        if (humanType == null) continue;
         await db.insert(humanTypes).values({
           id: createId(),
           humanId: entry.entityId,
-          type: type as HumanType,
+          type: humanType,
           createdAt: now,
         });
       }
@@ -99,8 +101,8 @@ export async function undoAuditEntry(db: DB, entryId: string, colleagueId: strin
         .where(eq(accounts.id, entry.entityId));
     }
 
-    if (typeIds !== undefined) {
-      const typeIdArray = typeIds as string[];
+    if (Array.isArray(typeIds)) {
+      const typeIdArray: string[] = typeIds.filter((t): t is string => typeof t === "string");
       await db.delete(accountTypes).where(eq(accountTypes.accountId, entry.entityId));
       for (const typeId of typeIdArray) {
         await db.insert(accountTypes).values({
