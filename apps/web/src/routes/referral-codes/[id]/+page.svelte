@@ -31,7 +31,6 @@
   const allAccounts = $derived(data.allAccounts as AccountListItem[]);
 
   // Auto-save state
-  let code = $state("");
   let description = $state("");
   let isActive = $state(true);
   let humanId = $state("");
@@ -50,7 +49,6 @@
 
   // Initialize state from data
   $effect(() => {
-    code = referralCode.code;
     description = referralCode.description ?? "";
     isActive = referralCode.isActive;
     humanId = referralCode.humanId ?? "";
@@ -82,7 +80,6 @@
 
   function buildPayload() {
     return {
-      code,
       description: description || null,
       isActive,
       humanId: humanId || null,
@@ -135,13 +132,8 @@
 
     <div class="grid gap-4 sm:grid-cols-2">
       <div>
-        <label for="code" class="block text-sm font-medium text-text-secondary">Code</label>
-        <input
-          id="code" type="text"
-          bind:value={code}
-          oninput={triggerSave}
-          class="glass-input mt-1 block w-full"
-        />
+        <label class="block text-sm font-medium text-text-secondary">Code</label>
+        <div class="mt-1 px-3 py-2 text-sm font-mono text-text-primary bg-glass/50 rounded-lg">{referralCode.code}</div>
       </div>
       <div>
         <label for="active" class="block text-sm font-medium text-text-secondary">Active</label>

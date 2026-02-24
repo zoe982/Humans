@@ -13,7 +13,7 @@ const routeSignupRoutes = new Hono<AppContext>();
 routeSignupRoutes.use("/*", authMiddleware);
 routeSignupRoutes.use("/*", supabaseMiddleware);
 
-// List all route signups (paginated)
+// List all route signups (paginated, filterable)
 routeSignupRoutes.get("/api/route-signups", requirePermission("viewRouteSignups"), async (c) => {
   const supabase = c.get("supabase");
   const page = Math.max(1, Number(c.req.query("page")) || 1);
@@ -21,9 +21,29 @@ routeSignupRoutes.get("/api/route-signups", requirePermission("viewRouteSignups"
   const from = (page - 1) * limit;
   const to = from + limit - 1;
 
-  const { data, error, count } = await supabase
+  const status = c.req.query("status") ?? "";
+  const q = c.req.query("q") ?? "";
+  const origin = c.req.query("origin") ?? "";
+  const destination = c.req.query("destination") ?? "";
+  const dateFrom = c.req.query("dateFrom") ?? "";
+  const dateTo = c.req.query("dateTo") ?? "";
+
+  let query = supabase
     .from("announcement_signups")
-    .select("*", { count: "exact" })
+    .select("*", { count: "exact" });
+
+  if (status) query = query.eq("status", status);
+  if (origin) query = query.ilike("origin", `%${origin}%`);
+  if (destination) query = query.ilike("destination", `%${destination}%`);
+  if (dateFrom) query = query.gte("inserted_at", dateFrom);
+  if (dateTo) query = query.lte("inserted_at", `${dateTo}T23:59:59.999Z`);
+  if (q) {
+    query = query.or(
+      `first_name.ilike.%${q}%,last_name.ilike.%${q}%,email.ilike.%${q}%,origin.ilike.%${q}%,destination.ilike.%${q}%`
+    );
+  }
+
+  const { data, error, count } = await query
     .order("inserted_at", { ascending: false })
     .range(from, to);
 

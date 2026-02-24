@@ -125,3 +125,56 @@ A PreToolUse hook (`.claude/hooks/enforce-model-selection.sh`) auto-corrects Tas
   2. Creates a record referencing that config item's ID
   3. Asserts the resolved name appears in the service response
 - This applies to phone labels, email labels, social ID platforms, and any future config lookups.
+
+## Display ID System
+
+Every entity gets a human-readable display ID in the format **`{PREFIX}-{LETTERS}-{NUMBER}`**.
+
+### Format rules
+- **Prefix**: 3 uppercase letters identifying the entity type (e.g. `HUM`, `REF`)
+- **Letters**: 3-letter block from `AAA` to `ZZZ` (base-26, 17,576 blocks)
+- **Number**: Zero-padded 001–999
+
+### Sequencing
+IDs are assigned from a single auto-incrementing counter per prefix stored in D1 (`display_id_counters` table):
+
+| Counter | Display ID |
+|---------|-----------|
+| 1       | XXX-AAA-001 |
+| 999     | XXX-AAA-999 |
+| 1000    | XXX-AAB-001 |
+| 1998    | XXX-AAB-999 |
+| 1999    | XXX-AAC-001 |
+
+Maximum capacity: ~17.5M IDs per prefix.
+
+### Prefix registry
+
+| Prefix | Entity | Service |
+|--------|--------|---------|
+| HUM | Humans | `services/humans.ts` |
+| ACC | Accounts | `services/accounts.ts` |
+| ACT | Activities | `services/activities.ts` |
+| COL | Colleagues | `services/admin.ts` |
+| EML | Emails | `services/emails.ts` |
+| FON | Phone Numbers | `services/phone-numbers.ts` |
+| PET | Pets | `services/pets.ts` |
+| GEO | Geo Interests | `services/geo-interests.ts` |
+| GEX | Geo Interest Expressions | `services/geo-interests.ts` |
+| ROI | Route Interests | `services/route-interests.ts` |
+| REX | Route Interest Expressions | `services/route-interests.ts` |
+| SOC | Social IDs | `services/social-ids.ts` |
+| OPP | Opportunities | `services/opportunities.ts` |
+| LEA | General Leads | `services/general-leads.ts` |
+| LES | Lead Emails | `services/leads.ts` |
+| LED | Lead Designations | `services/leads.ts` |
+| REF | Referral Codes | `services/referral-codes.ts` |
+| FLY | Flights | `routes/flights.ts` |
+| FRY | Front Sync Runs | `services/front-sync.ts` |
+| BOR | Booking Requests | `routes/website-booking-requests.ts` |
+| ERR | Error Log | `lib/error-logger.ts` |
+
+### Implementation
+- **Formatter**: `packages/db/src/display-id.ts` — `formatDisplayId(prefix, counter)` and `parseDisplayId(id)`
+- **Counter**: `apps/api/src/lib/display-id.ts` — `nextDisplayId(db, prefix)` atomically increments and returns the next ID
+- **Adding a new prefix**: Add it to `DISPLAY_ID_PREFIXES` in `packages/db/src/display-id.ts`, update this table, call `nextDisplayId(db, "XXX")` in your service

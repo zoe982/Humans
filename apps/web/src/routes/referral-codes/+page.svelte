@@ -47,7 +47,7 @@
   {#snippet desktopRow(rc)}
     <td class="font-mono text-sm whitespace-nowrap"><a href="/referral-codes/{rc.id}" class="text-accent hover:text-[var(--link-hover)]">{rc.displayId}</a></td>
     <td class="font-medium">{rc.code}</td>
-    <td class="text-sm text-text-secondary max-w-xs truncate">{rc.description ?? "\u2014"}</td>
+    <td class="text-sm text-text-secondary max-w-xs truncate">{rc.description ?? "—"}</td>
     <td>
       {#if rc.isActive}
         <span class="glass-badge inline-flex rounded-full px-2 py-0.5 text-xs font-medium badge-green">Active</span>
@@ -57,22 +57,22 @@
     </td>
     <td>
       {#if rc.humanId}
-        <a href="/humans/{rc.humanId}" class="text-accent hover:text-[var(--link-hover)]">{rc.humanName ?? "\u2014"}</a>
+        <a href="/humans/{rc.humanId}" class="text-accent hover:text-[var(--link-hover)]">{rc.humanName ?? "—"}</a>
         {#if rc.humanDisplayId}
           <span class="ml-1 text-xs text-text-muted">{rc.humanDisplayId}</span>
         {/if}
       {:else}
-        <span class="text-text-muted">\u2014</span>
+        <span class="text-text-muted">—</span>
       {/if}
     </td>
     <td>
       {#if rc.accountId}
-        <a href="/accounts/{rc.accountId}" class="text-accent hover:text-[var(--link-hover)]">{rc.accountName ?? "\u2014"}</a>
+        <a href="/accounts/{rc.accountId}" class="text-accent hover:text-[var(--link-hover)]">{rc.accountName ?? "—"}</a>
         {#if rc.accountDisplayId}
           <span class="ml-1 text-xs text-text-muted">{rc.accountDisplayId}</span>
         {/if}
       {:else}
-        <span class="text-text-muted">\u2014</span>
+        <span class="text-text-muted">—</span>
       {/if}
     </td>
   {/snippet}

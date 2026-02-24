@@ -128,7 +128,6 @@ export async function updateReferralCode(
   supabase: SupabaseClient,
   id: string,
   data: {
-    code?: string;
     description?: string | null;
     isActive?: boolean;
     humanId?: string | null;
@@ -147,7 +146,6 @@ export async function updateReferralCode(
   }
 
   const updates: Record<string, unknown> = { updated_at: new Date().toISOString() };
-  if (data.code !== undefined) updates["code"] = data.code;
   if (data.description !== undefined) updates["description"] = data.description;
   if (data.isActive !== undefined) updates["is_active"] = data.isActive;
   if (data.humanId !== undefined) updates["human_id"] = data.humanId;

@@ -20,7 +20,7 @@ describe("leads/route-signups +page.server load", () => {
     }
   });
 
-  it("returns signups from API with pagination", async () => {
+  it("returns signups from API with pagination and filter fields", async () => {
     const mockFetch = createMockFetch({
       "/api/route-signups": { body: { data: [{ id: "rs1", routeName: "Rome" }], meta: { page: 1, limit: 25, total: 1 } } },
     });
@@ -34,6 +34,12 @@ describe("leads/route-signups +page.server load", () => {
     expect(result.page).toBe(1);
     expect(result.limit).toBe(25);
     expect(result.total).toBe(1);
+    expect(result.status).toBe("");
+    expect(result.q).toBe("");
+    expect(result.origin).toBe("");
+    expect(result.destination).toBe("");
+    expect(result.dateFrom).toBe("");
+    expect(result.dateTo).toBe("");
   });
 
   it("returns empty array when API fails", async () => {
@@ -47,6 +53,41 @@ describe("leads/route-signups +page.server load", () => {
 
     expect(result.signups).toEqual([]);
     expect(result.total).toBe(0);
+    expect(result.status).toBe("");
+    expect(result.q).toBe("");
+    expect(result.origin).toBe("");
+    expect(result.destination).toBe("");
+    expect(result.dateFrom).toBe("");
+    expect(result.dateTo).toBe("");
+  });
+
+  it("passes filter params to API and returns them in data", async () => {
+    const mockFetch = createMockFetch({
+      "/api/route-signups": { body: { data: [], meta: { page: 1, limit: 25, total: 0 } } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = mockEvent({
+      url: "http://localhost/leads/route-signups?status=open&q=test&origin=Rome&destination=NYC&dateFrom=2025-01-01&dateTo=2025-12-31",
+    });
+    const result = await load(event as any);
+
+    // Verify filter values returned in page data
+    expect(result.status).toBe("open");
+    expect(result.q).toBe("test");
+    expect(result.origin).toBe("Rome");
+    expect(result.destination).toBe("NYC");
+    expect(result.dateFrom).toBe("2025-01-01");
+    expect(result.dateTo).toBe("2025-12-31");
+
+    // Verify params were forwarded to the API
+    const fetchUrl = (mockFetch as ReturnType<typeof vi.fn>).mock.calls[0][0] as string;
+    expect(fetchUrl).toContain("status=open");
+    expect(fetchUrl).toContain("q=test");
+    expect(fetchUrl).toContain("origin=Rome");
+    expect(fetchUrl).toContain("destination=NYC");
+    expect(fetchUrl).toContain("dateFrom=2025-01-01");
+    expect(fetchUrl).toContain("dateTo=2025-12-31");
   });
 });
 

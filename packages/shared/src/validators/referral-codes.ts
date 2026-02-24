@@ -9,7 +9,6 @@ export const createReferralCodeSchema = z.object({
 });
 
 export const updateReferralCodeSchema = z.object({
-  code: z.string().min(1).max(255).optional(),
   description: z.string().max(1000).nullable().optional(),
   isActive: z.boolean().optional(),
   humanId: z.string().nullable().optional(),

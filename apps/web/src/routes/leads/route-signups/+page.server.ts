@@ -22,15 +22,41 @@ export const load = async ({ locals, cookies, url }: RequestEvent) => {
   const sessionToken = cookies.get("humans_session");
   const page = Number(url.searchParams.get("page")) || 1;
   const limit = Number(url.searchParams.get("limit")) || 25;
+  const status = url.searchParams.get("status") || "";
+  const q = url.searchParams.get("q") || "";
+  const origin = url.searchParams.get("origin") || "";
+  const destination = url.searchParams.get("destination") || "";
+  const dateFrom = url.searchParams.get("dateFrom") || "";
+  const dateTo = url.searchParams.get("dateTo") || "";
 
-  const res = await fetch(`${PUBLIC_API_URL}/api/route-signups?page=${page}&limit=${limit}`, {
+  const params = new URLSearchParams({ page: String(page), limit: String(limit) });
+  if (status) params.set("status", status);
+  if (q) params.set("q", q);
+  if (origin) params.set("origin", origin);
+  if (destination) params.set("destination", destination);
+  if (dateFrom) params.set("dateFrom", dateFrom);
+  if (dateTo) params.set("dateTo", dateTo);
+
+  const res = await fetch(`${PUBLIC_API_URL}/api/route-signups?${params.toString()}`, {
     headers: { Cookie: `humans_session=${sessionToken ?? ""}` },
   });
 
-  if (!res.ok) return { signups: [], page, limit, total: 0, userRole: locals.user?.role ?? "viewer" };
+  if (!res.ok) return { signups: [], page, limit, total: 0, userRole: locals.user?.role ?? "viewer", status, q, origin, destination, dateFrom, dateTo };
   const raw: unknown = await res.json();
   const meta = isPaginatedData(raw) ? raw.meta : { page, limit, total: 0 };
-  return { signups: isListData(raw) ? raw.data : [], page: meta.page, limit: meta.limit, total: meta.total, userRole: locals.user?.role ?? "viewer" };
+  return {
+    signups: isListData(raw) ? raw.data : [],
+    page: meta.page,
+    limit: meta.limit,
+    total: meta.total,
+    userRole: locals.user?.role ?? "viewer",
+    status,
+    q,
+    origin,
+    destination,
+    dateFrom,
+    dateTo,
+  };
 };
 
 export const actions = {
