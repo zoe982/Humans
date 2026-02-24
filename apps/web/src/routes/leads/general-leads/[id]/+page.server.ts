@@ -1,13 +1,22 @@
-import { redirect, fail } from "@sveltejs/kit";
+import { redirect } from "@sveltejs/kit";
 import type { RequestEvent, ActionFailure } from "@sveltejs/kit";
 import { PUBLIC_API_URL } from "$env/static/public";
 import { isObjData, isListData, failFromApi } from "$lib/server/api";
 
-export const load = async ({ locals, cookies, params }: RequestEvent) => {
+function formStr(value: FormDataEntryValue | null): string {
+  return typeof value === "string" ? value : "";
+}
+
+export const load = async ({ locals, cookies, params }: RequestEvent): Promise<{
+  lead: Record<string, unknown>;
+  user: { id: string; email: string; role: string; name: string };
+  allHumans: unknown[];
+  colleagues: unknown[];
+}> => {
   if (locals.user == null) redirect(302, "/login");
 
   const sessionToken = cookies.get("humans_session");
-  const id = params.id;
+  const id = params.id ?? "";
 
   const leadRes = await fetch(`${PUBLIC_API_URL}/api/general-leads/${id}`, {
     headers: { Cookie: `humans_session=${sessionToken ?? ""}` },
@@ -43,8 +52,9 @@ export const actions = {
   updateNotes: async ({ request, cookies, params }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
     const form = await request.formData();
     const sessionToken = cookies.get("humans_session");
+    const id = params.id ?? "";
 
-    const res = await fetch(`${PUBLIC_API_URL}/api/general-leads/${params.id}`, {
+    const res = await fetch(`${PUBLIC_API_URL}/api/general-leads/${id}`, {
       method: "PATCH",
       headers: {
         "Content-Type": "application/json",
@@ -64,18 +74,19 @@ export const actions = {
   updateContact: async ({ request, cookies, params }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
     const form = await request.formData();
     const sessionToken = cookies.get("humans_session");
-    const email = form.get("email") as string;
-    const phone = form.get("phone") as string;
+    const id = params.id ?? "";
+    const email = formStr(form.get("email"));
+    const phone = formStr(form.get("phone"));
 
-    const res = await fetch(`${PUBLIC_API_URL}/api/general-leads/${params.id}`, {
+    const res = await fetch(`${PUBLIC_API_URL}/api/general-leads/${id}`, {
       method: "PATCH",
       headers: {
         "Content-Type": "application/json",
         Cookie: `humans_session=${sessionToken ?? ""}`,
       },
       body: JSON.stringify({
-        email: email || null,
-        phone: phone || null,
+        email: email !== "" ? email : null,
+        phone: phone !== "" ? phone : null,
       }),
     });
 
@@ -90,13 +101,15 @@ export const actions = {
   updateStatus: async ({ request, cookies, params }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
     const form = await request.formData();
     const sessionToken = cookies.get("humans_session");
-    const status = form.get("status") as string;
-    const rejectReason = form.get("rejectReason") as string | null;
+    const id = params.id ?? "";
+    const status = formStr(form.get("status"));
+    const rejectReasonVal = form.get("rejectReason");
+    const rejectReason = typeof rejectReasonVal === "string" && rejectReasonVal !== "" ? rejectReasonVal : null;
 
     const payload: Record<string, string> = { status };
-    if (rejectReason) payload["rejectReason"] = rejectReason;
+    if (rejectReason != null) payload["rejectReason"] = rejectReason;
 
-    const res = await fetch(`${PUBLIC_API_URL}/api/general-leads/${params.id}/status`, {
+    const res = await fetch(`${PUBLIC_API_URL}/api/general-leads/${id}/status`, {
       method: "PATCH",
       headers: {
         "Content-Type": "application/json",
@@ -116,13 +129,17 @@ export const actions = {
   addActivity: async ({ request, cookies, params }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
     const form = await request.formData();
     const sessionToken = cookies.get("humans_session");
+    const id = params.id ?? "";
 
+    const typeVal = formStr(form.get("type"));
+    const notesVal = formStr(form.get("notes"));
+    const activityDateVal = formStr(form.get("activityDate"));
     const payload = {
-      type: form.get("type") || "email",
+      type: typeVal !== "" ? typeVal : "email",
       subject: form.get("subject"),
-      notes: form.get("notes") || undefined,
-      activityDate: form.get("activityDate") || new Date().toISOString(),
-      generalLeadId: params.id,
+      notes: notesVal !== "" ? notesVal : undefined,
+      activityDate: activityDateVal !== "" ? activityDateVal : new Date().toISOString(),
+      generalLeadId: id,
     };
 
     const res = await fetch(`${PUBLIC_API_URL}/api/activities`, {
@@ -144,8 +161,9 @@ export const actions = {
 
   delete: async ({ cookies, params }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
     const sessionToken = cookies.get("humans_session");
+    const id = params.id ?? "";
 
-    const res = await fetch(`${PUBLIC_API_URL}/api/general-leads/${params.id}`, {
+    const res = await fetch(`${PUBLIC_API_URL}/api/general-leads/${id}`, {
       method: "DELETE",
       headers: { Cookie: `humans_session=${sessionToken ?? ""}` },
     });

@@ -11,6 +11,7 @@ import {
   revertSyncRun,
   debugUnmatchedContact,
   reclassifyActivities,
+  backfillAuthorNames,
 } from "../services/front-sync";
 import type { AppContext } from "../types";
 
@@ -156,6 +157,34 @@ frontRoutes.post(
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       throw internal(ERROR_CODES.FRONT_SYNC_FAILED, `Reclassify failed: ${msg}`);
+    }
+  },
+);
+
+// Backfill author names for existing activities from Front API
+frontRoutes.post(
+  "/api/admin/front/sync/backfill-authors",
+  requirePermission("manageColleagues"),
+  async (c) => {
+    const db = c.get("db");
+    const frontToken = c.env.FRONT_API_TOKEN;
+
+    if (frontToken === "") {
+      throw internal(
+        ERROR_CODES.FRONT_SYNC_FAILED,
+        "FRONT_API_TOKEN not configured",
+      );
+    }
+
+    const rawCursor = c.req.query("cursor");
+    const cursor = rawCursor !== undefined && rawCursor !== "" ? rawCursor : undefined;
+
+    try {
+      const result = await backfillAuthorNames(db, frontToken, cursor);
+      return c.json({ data: result });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      throw internal(ERROR_CODES.FRONT_SYNC_FAILED, `Backfill failed: ${msg}`);
     }
   },
 );

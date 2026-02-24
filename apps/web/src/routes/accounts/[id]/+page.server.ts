@@ -3,11 +3,24 @@ import type { RequestEvent, ActionFailure } from "@sveltejs/kit";
 import { PUBLIC_API_URL } from "$env/static/public";
 import { isObjData, isListData, failFromApi, fetchConfigs, authHeaders } from "$lib/server/api";
 
-export const load = async ({ locals, cookies, params }: RequestEvent) => {
+function formStr(value: FormDataEntryValue | null): string {
+  return typeof value === "string" ? value : "";
+}
+
+export const load = async ({ locals, cookies, params }: RequestEvent): Promise<{
+  account: Record<string, unknown>;
+  typeConfigs: unknown[];
+  humanLabelConfigs: unknown[];
+  emailLabelConfigs: unknown[];
+  phoneLabelConfigs: unknown[];
+  allHumans: unknown[];
+  socialIdPlatformConfigs: unknown[];
+  allDiscountCodes: unknown[];
+}> => {
   if (locals.user == null) redirect(302, "/login");
 
   const sessionToken = cookies.get("humans_session") ?? "";
-  const id = params.id;
+  const id = params.id ?? "";
 
   // Fetch account detail
   const accountRes = await fetch(`${PUBLIC_API_URL}/api/accounts/${id}`, {
@@ -50,11 +63,12 @@ export const actions = {
   addEmail: async ({ request, cookies, params }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
     const form = await request.formData();
     const sessionToken = cookies.get("humans_session") ?? "";
-    const id = params.id;
+    const id = params.id ?? "";
 
+    const labelIdVal = formStr(form.get("labelId"));
     const payload = {
       email: form.get("email"),
-      labelId: form.get("labelId") || undefined,
+      labelId: labelIdVal !== "" ? labelIdVal : undefined,
       isPrimary: form.get("isPrimary") === "on",
     };
 
@@ -78,8 +92,8 @@ export const actions = {
   deleteEmail: async ({ request, cookies, params }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
     const form = await request.formData();
     const sessionToken = cookies.get("humans_session") ?? "";
-    const id = params.id;
-    const emailId = form.get("id");
+    const id = params.id ?? "";
+    const emailId = formStr(form.get("id"));
 
     const res = await fetch(`${PUBLIC_API_URL}/api/accounts/${id}/emails/${emailId}`, {
       method: "DELETE",
@@ -97,11 +111,12 @@ export const actions = {
   addPhoneNumber: async ({ request, cookies, params }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
     const form = await request.formData();
     const sessionToken = cookies.get("humans_session") ?? "";
-    const id = params.id;
+    const id = params.id ?? "";
 
+    const labelIdVal = formStr(form.get("labelId"));
     const payload = {
       phoneNumber: form.get("phoneNumber"),
-      labelId: form.get("labelId") || undefined,
+      labelId: labelIdVal !== "" ? labelIdVal : undefined,
       hasWhatsapp: form.get("hasWhatsapp") === "on",
       isPrimary: form.get("isPrimary") === "on",
     };
@@ -126,8 +141,8 @@ export const actions = {
   deletePhoneNumber: async ({ request, cookies, params }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
     const form = await request.formData();
     const sessionToken = cookies.get("humans_session") ?? "";
-    const id = params.id;
-    const phoneId = form.get("id");
+    const id = params.id ?? "";
+    const phoneId = formStr(form.get("id"));
 
     const res = await fetch(`${PUBLIC_API_URL}/api/accounts/${id}/phone-numbers/${phoneId}`, {
       method: "DELETE",
@@ -145,11 +160,12 @@ export const actions = {
   linkHuman: async ({ request, cookies, params }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
     const form = await request.formData();
     const sessionToken = cookies.get("humans_session") ?? "";
-    const id = params.id;
+    const id = params.id ?? "";
 
+    const labelIdVal = formStr(form.get("labelId"));
     const payload = {
       humanId: form.get("humanId"),
-      labelId: form.get("labelId") || undefined,
+      labelId: labelIdVal !== "" ? labelIdVal : undefined,
     };
 
     const res = await fetch(`${PUBLIC_API_URL}/api/accounts/${id}/humans`, {
@@ -172,8 +188,8 @@ export const actions = {
   unlinkHuman: async ({ request, cookies, params }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
     const form = await request.formData();
     const sessionToken = cookies.get("humans_session") ?? "";
-    const id = params.id;
-    const linkId = form.get("id");
+    const id = params.id ?? "";
+    const linkId = formStr(form.get("id"));
 
     const res = await fetch(`${PUBLIC_API_URL}/api/accounts/${id}/humans/${linkId}`, {
       method: "DELETE",
@@ -191,9 +207,10 @@ export const actions = {
   updateHumanLabel: async ({ request, cookies, params }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
     const form = await request.formData();
     const sessionToken = cookies.get("humans_session") ?? "";
-    const id = params.id;
-    const linkId = form.get("linkId");
-    const labelId = form.get("labelId") || null;
+    const id = params.id ?? "";
+    const linkId = formStr(form.get("linkId"));
+    const labelIdVal = formStr(form.get("labelId"));
+    const labelId = labelIdVal !== "" ? labelIdVal : null;
 
     const res = await fetch(`${PUBLIC_API_URL}/api/accounts/${id}/humans/${linkId}`, {
       method: "PATCH",
@@ -215,11 +232,12 @@ export const actions = {
   createAndLinkHuman: async ({ request, cookies, params }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
     const form = await request.formData();
     const sessionToken = cookies.get("humans_session") ?? "";
-    const id = params.id;
+    const id = params.id ?? "";
 
-    const firstName = form.get("firstName") as string;
-    const lastName = form.get("lastName") as string;
-    const labelId = form.get("labelId") || undefined;
+    const firstName = formStr(form.get("firstName"));
+    const lastName = formStr(form.get("lastName"));
+    const labelIdVal = formStr(form.get("labelId"));
+    const labelId = labelIdVal !== "" ? labelIdVal : undefined;
 
     // Create the human
     const createRes = await fetch(`${PUBLIC_API_URL}/api/humans`, {
@@ -237,8 +255,9 @@ export const actions = {
     }
 
     const createData: unknown = await createRes.json();
-    const humanId = (createData as { data?: { id?: string } })?.data?.id;
-    if (!humanId) {
+    const humanIdRaw = isObjData(createData) ? (createData.data as { id?: string }).id : undefined;
+    const humanId = humanIdRaw != null && humanIdRaw !== "" ? humanIdRaw : null;
+    if (humanId == null) {
       return fail(500, { error: "Failed to get created human ID" });
     }
 
@@ -264,9 +283,10 @@ export const actions = {
     const form = await request.formData();
     const sessionToken = cookies.get("humans_session") ?? "";
 
+    const platformIdVal = formStr(form.get("platformId"));
     const payload = {
       handle: form.get("handle"),
-      platformId: form.get("platformId") || undefined,
+      platformId: platformIdVal !== "" ? platformIdVal : undefined,
       accountId: params.id,
     };
 
@@ -290,7 +310,7 @@ export const actions = {
   deleteSocialId: async ({ request, cookies }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
     const form = await request.formData();
     const sessionToken = cookies.get("humans_session") ?? "";
-    const socialIdId = form.get("id");
+    const socialIdId = formStr(form.get("id"));
 
     const res = await fetch(`${PUBLIC_API_URL}/api/social-ids/${socialIdId}`, {
       method: "DELETE",
@@ -334,7 +354,7 @@ export const actions = {
   deleteWebsite: async ({ request, cookies }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
     const form = await request.formData();
     const sessionToken = cookies.get("humans_session") ?? "";
-    const websiteId = form.get("id");
+    const websiteId = formStr(form.get("id"));
 
     const res = await fetch(`${PUBLIC_API_URL}/api/websites/${websiteId}`, {
       method: "DELETE",
@@ -353,9 +373,10 @@ export const actions = {
     const form = await request.formData();
     const sessionToken = cookies.get("humans_session") ?? "";
 
+    const descriptionVal = formStr(form.get("description"));
     const payload = {
       code: form.get("code"),
-      description: form.get("description") || undefined,
+      description: descriptionVal !== "" ? descriptionVal : undefined,
       accountId: params.id,
     };
 
@@ -379,7 +400,7 @@ export const actions = {
   deleteReferralCode: async ({ request, cookies }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
     const form = await request.formData();
     const sessionToken = cookies.get("humans_session") ?? "";
-    const referralCodeId = form.get("id");
+    const referralCodeId = formStr(form.get("id"));
 
     const res = await fetch(`${PUBLIC_API_URL}/api/referral-codes/${referralCodeId}`, {
       method: "DELETE",
@@ -397,7 +418,7 @@ export const actions = {
   linkDiscountCode: async ({ request, cookies, params }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
     const form = await request.formData();
     const sessionToken = cookies.get("humans_session") ?? "";
-    const discountCodeId = form.get("discountCodeId");
+    const discountCodeId = formStr(form.get("discountCodeId"));
 
     const res = await fetch(`${PUBLIC_API_URL}/api/discount-codes/${discountCodeId}`, {
       method: "PATCH",
@@ -419,7 +440,7 @@ export const actions = {
   unlinkDiscountCode: async ({ request, cookies }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
     const form = await request.formData();
     const sessionToken = cookies.get("humans_session") ?? "";
-    const discountCodeId = form.get("id");
+    const discountCodeId = formStr(form.get("id"));
 
     const res = await fetch(`${PUBLIC_API_URL}/api/discount-codes/${discountCodeId}`, {
       method: "PATCH",
@@ -442,11 +463,14 @@ export const actions = {
     const form = await request.formData();
     const sessionToken = cookies.get("humans_session") ?? "";
 
+    const typeVal = formStr(form.get("type"));
+    const notesVal = formStr(form.get("notes"));
+    const activityDateVal = formStr(form.get("activityDate"));
     const payload = {
-      type: form.get("type") || "email",
+      type: typeVal !== "" ? typeVal : "email",
       subject: form.get("subject"),
-      notes: form.get("notes") || undefined,
-      activityDate: (() => { const v = form.get("activityDate") as string; return v ? new Date(v).toISOString() : new Date().toISOString(); })(),
+      notes: notesVal !== "" ? notesVal : undefined,
+      activityDate: activityDateVal !== "" ? new Date(activityDateVal).toISOString() : new Date().toISOString(),
       accountId: params.id,
     };
 

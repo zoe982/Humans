@@ -3,11 +3,11 @@ import type { RequestEvent } from "@sveltejs/kit";
 import { PUBLIC_API_URL } from "$env/static/public";
 import { isObjData, isListData } from "$lib/server/api";
 
-export const load = async ({ locals, cookies, params }: RequestEvent) => {
+export const load = async ({ locals, cookies, params }: RequestEvent): Promise<{ discountCode: Record<string, unknown>; allHumans: unknown[]; allAccounts: unknown[] }> => {
   if (locals.user == null) redirect(302, "/login");
 
   const sessionToken = cookies.get("humans_session") ?? "";
-  const id = params.id;
+  const id = params.id ?? "";
 
   const discountCodeRes = await fetch(`${PUBLIC_API_URL}/api/discount-codes/${id}`, {
     headers: { Cookie: `humans_session=${sessionToken}` },
@@ -27,7 +27,7 @@ export const load = async ({ locals, cookies, params }: RequestEvent) => {
     }),
   ]);
 
-  const parseList = async (res: Response) => {
+  const parseList = async (res: Response): Promise<unknown[]> => {
     if (!res.ok) return [];
     const raw: unknown = await res.json();
     return isListData(raw) ? raw.data : [];

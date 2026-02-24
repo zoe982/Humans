@@ -42,8 +42,8 @@ describe("createAutoSaver", () => {
 
   it("debounces save calls", () => {
     mockApi.mockResolvedValue({ data: {} });
-    const onStatusChange = vi.fn();
-    const saver = createAutoSaver({ endpoint: "/api/test", debounceMs: 500, onStatusChange });
+    const onStatusChangeMock = vi.fn();
+    const saver = createAutoSaver({ endpoint: "/api/test", debounceMs: 500, onStatusChange: (s) => { onStatusChangeMock(s); } });
     saver.init({});
 
     saver.save({ name: "a" });
@@ -57,8 +57,8 @@ describe("createAutoSaver", () => {
 
   it("calls onStatusChange with saving then saved", async () => {
     mockApi.mockResolvedValue({ data: {} });
-    const onStatusChange = vi.fn();
-    const saver = createAutoSaver({ endpoint: "/api/test", debounceMs: 100, onStatusChange });
+    const onStatusChangeMock = vi.fn();
+    const saver = createAutoSaver({ endpoint: "/api/test", debounceMs: 100, onStatusChange: (s) => { onStatusChangeMock(s); } });
     saver.init({});
 
     saver.save({ name: "test" });
@@ -67,8 +67,8 @@ describe("createAutoSaver", () => {
     // Let the async save complete
     await vi.runAllTimersAsync();
 
-    expect(onStatusChange).toHaveBeenCalledWith("saving");
-    expect(onStatusChange).toHaveBeenCalledWith("saved");
+    expect(onStatusChangeMock).toHaveBeenCalledWith("saving");
+    expect(onStatusChangeMock).toHaveBeenCalledWith("saved");
   });
 
   it("saveImmediate bypasses debounce", () => {
@@ -94,29 +94,29 @@ describe("createAutoSaver", () => {
 
   it("calls onError on API failure", async () => {
     mockApi.mockRejectedValue(new Error("Network error"));
-    const onError = vi.fn();
-    const onStatusChange = vi.fn();
-    const saver = createAutoSaver({ endpoint: "/api/test", debounceMs: 0, onStatusChange, onError });
+    const onErrorMock = vi.fn();
+    const onStatusChangeMock = vi.fn();
+    const saver = createAutoSaver({ endpoint: "/api/test", debounceMs: 0, onStatusChange: (s) => { onStatusChangeMock(s); }, onError: (e, info) => { onErrorMock(e, info); } });
     saver.init({});
 
     saver.save({ name: "fail" });
     await vi.runAllTimersAsync();
 
-    expect(onStatusChange).toHaveBeenCalledWith("error");
-    expect(onError).toHaveBeenCalledWith("Network error");
+    expect(onStatusChangeMock).toHaveBeenCalledWith("error");
+    expect(onErrorMock).toHaveBeenCalledWith("Network error", undefined);
   });
 
   it("calls onError with structured info for ApiRequestError", async () => {
     const apiErr = new ApiRequestError("Validation failed", "VALIDATION_FAILED", "req-1", undefined, 400);
     mockApi.mockRejectedValue(apiErr);
-    const onError = vi.fn();
-    const saver = createAutoSaver({ endpoint: "/api/test", debounceMs: 0, onError });
+    const onErrorMock = vi.fn();
+    const saver = createAutoSaver({ endpoint: "/api/test", debounceMs: 0, onError: (e, info) => { onErrorMock(e, info); } });
     saver.init({});
 
     saver.save({ name: "fail" });
     await vi.runAllTimersAsync();
 
-    expect(onError).toHaveBeenCalledWith("Validation failed", {
+    expect(onErrorMock).toHaveBeenCalledWith("Validation failed", {
       message: "Validation failed",
       code: "VALIDATION_FAILED",
       requestId: "req-1",
@@ -125,14 +125,14 @@ describe("createAutoSaver", () => {
 
   it("calls onSaved with auditEntryId", async () => {
     mockApi.mockResolvedValue({ auditEntryId: "audit-1" });
-    const onSaved = vi.fn();
-    const saver = createAutoSaver({ endpoint: "/api/test", debounceMs: 0, onSaved });
+    const onSavedMock = vi.fn();
+    const saver = createAutoSaver({ endpoint: "/api/test", debounceMs: 0, onSaved: (r) => { onSavedMock(r); } });
     saver.init({});
 
     saver.save({ name: "test" });
     await vi.runAllTimersAsync();
 
-    expect(onSaved).toHaveBeenCalledWith({ auditEntryId: "audit-1" });
+    expect(onSavedMock).toHaveBeenCalledWith({ auditEntryId: "audit-1" });
   });
 
   it("saveImmediate clears pending debounce timer", () => {

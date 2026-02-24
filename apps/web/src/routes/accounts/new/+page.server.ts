@@ -7,7 +7,7 @@ function isDataWithId(value: unknown): value is { data: { id: string } } {
   return typeof value === "object" && value !== null && "data" in value;
 }
 
-export const load = async ({ locals, cookies }: RequestEvent) => {
+export const load = async ({ locals, cookies }: RequestEvent): Promise<{ accountTypes: unknown[] }> => {
   if (locals.user == null) redirect(302, "/login");
 
   const sessionToken = cookies.get("humans_session") ?? "";
@@ -31,7 +31,8 @@ export const actions = {
     const form = await request.formData();
     const sessionToken = cookies.get("humans_session") ?? "";
 
-    const typeIds = form.getAll("typeIds") as string[];
+    const typeIdsRaw = form.getAll("typeIds");
+    const typeIds = typeIdsRaw.filter((v): v is string => typeof v === "string");
 
     const payload = {
       name: form.get("name"),

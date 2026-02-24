@@ -7,6 +7,7 @@
   import { activityTypeColors } from "$lib/constants/colors";
   import { activityTypeLabels } from "$lib/constants/labels";
   import { parseActivityContent } from "$lib/utils/activity-helpers";
+  import { resolve } from "$app/paths";
 
   type Activity = {
     id: string;
@@ -18,7 +19,9 @@
     direction: string | null;
     activityDate: string;
     frontConversationId: string | null;
+    senderName?: string | null;
     ownerName?: string | null;
+    humanName?: string | null;
     [key: string]: unknown;
   };
 
@@ -118,13 +121,16 @@
     senderName: string | null,
   ): boolean {
     if (index === 0) return true;
+    // eslint-disable-next-line security/detect-object-injection
     const prev = visibleActivities[index - 1];
     const prevParsed = parseActivityContent(prev);
     const prevDay = calendarDate(prev.activityDate);
+    // eslint-disable-next-line security/detect-object-injection
     const currDay = calendarDate(visibleActivities[index].activityDate);
     // Show label after a day change.
     if (prevDay !== currDay) return true;
     // Show label after a conversation change.
+    // eslint-disable-next-line security/detect-object-injection
     const currConv = visibleActivities[index].frontConversationId;
     const prevConv = prev.frontConversationId;
     if (
@@ -139,7 +145,9 @@
   // Determine whether to show a day separator before a message.
   function shouldShowDaySeparator(index: number): boolean {
     if (index === 0) return true;
+    // eslint-disable-next-line security/detect-object-injection
     const prev = visibleActivities[index - 1];
+    // eslint-disable-next-line security/detect-object-injection
     return calendarDate(prev.activityDate) !== calendarDate(visibleActivities[index].activityDate);
   }
 
@@ -149,6 +157,7 @@
   function shouldShowConversationDivider(index: number): boolean {
     if (index === 0) return false;
     if (shouldShowDaySeparator(index)) return false;
+    // eslint-disable-next-line security/detect-object-injection
     const prev = visibleActivities[index - 1];
     const curr = visibleActivities[index];
     return (
@@ -288,7 +297,7 @@
             <div class="flex items-center gap-2 min-w-0">
               <!-- Display ID link -->
               <a
-                href="/activities/{activity.id}"
+                href={resolve(`/activities/${activity.id}`)}
                 class="font-mono text-xs shrink-0 activity-id-link"
                 style="color: var(--color-text-muted); opacity: 0.5; transition: opacity 0.2s, color 0.2s;"
                 onmouseenter={(e) => {
@@ -373,7 +382,7 @@
             {#if showViewAll}
               ·
               <a
-                href="/{entityType === 'human' ? 'humans' : entityType === 'account' ? 'accounts' : 'opportunities'}/{entityId}/conversations"
+                href={resolve(`/${entityType === 'human' ? 'humans' : entityType === 'account' ? 'accounts' : 'opportunities'}/${entityId}/conversations`)}
                 class="text-accent hover:text-[var(--link-hover)] transition-colors duration-150"
               >
                 View all →

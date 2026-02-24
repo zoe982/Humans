@@ -31,6 +31,7 @@
   });
 
   const maxCumulative = $derived(
+    // eslint-disable-next-line security/detect-object-injection
     cumulativeData.length > 0 ? Math.max(cumulativeData[cumulativeData.length - 1]!.cumulative, 1) : 1,
   );
 
@@ -113,7 +114,7 @@
   role="img"
 >
   <!-- Y-axis gridlines and labels -->
-  {#each yGridValues as value}
+  {#each yGridValues as value (value)}
     {@const y = yToSvg(value)}
     <line
       x1={PADDING_LEFT}
@@ -158,7 +159,7 @@
   {/if}
 
   <!-- Data point dots -->
-  {#each cumulativeData as point, i}
+  {#each cumulativeData as point, i (point.date)}
     <circle
       cx={xToSvg(i)}
       cy={yToSvg(point.cumulative)}
@@ -173,7 +174,7 @@
   {/each}
 
   <!-- X-axis labels every 5th point -->
-  {#each cumulativeData as point, i}
+  {#each cumulativeData as point, i (point.date)}
     {#if i % 5 === 0}
       <text
         x={xToSvg(i)}
@@ -188,7 +189,7 @@
   {/each}
 
   <!-- Transparent overlay rects for hover hit areas -->
-  {#each cumulativeData as point, i}
+  {#each cumulativeData as point, i (point.date)}
     {@const hitX = cumulativeData.length <= 1
       ? PADDING_LEFT
       : xToSvg(i) - segmentWidth / 2}

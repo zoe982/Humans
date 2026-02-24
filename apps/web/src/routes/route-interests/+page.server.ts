@@ -3,7 +3,12 @@ import type { RequestEvent, ActionFailure } from "@sveltejs/kit";
 import { PUBLIC_API_URL } from "$env/static/public";
 import { isListData, failFromApi } from "$lib/server/api";
 
-export const load = async ({ locals, cookies }: RequestEvent) => {
+function getFormString(form: FormData, key: string): string {
+  const raw = form.get(key);
+  return typeof raw === "string" ? raw : "";
+}
+
+export const load = async ({ locals, cookies }: RequestEvent): Promise<{ routeInterests: unknown[]; expressions: unknown[]; userRole: string }> => {
   if (locals.user == null) redirect(302, "/login");
 
   const sessionToken = cookies.get("humans_session");
@@ -28,19 +33,19 @@ export const load = async ({ locals, cookies }: RequestEvent) => {
     expressions = isListData(raw) ? raw.data : [];
   }
 
-  return { routeInterests, expressions, userRole: locals.user?.role ?? "viewer" };
+  return { routeInterests, expressions, userRole: locals.user.role };
 };
 
 export const actions = {
   create: async ({ request, cookies }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
     const form = await request.formData();
     const sessionToken = cookies.get("humans_session");
-    const originCity = (form.get("originCity") as string)?.trim();
-    const originCountry = (form.get("originCountry") as string)?.trim();
-    const destinationCity = (form.get("destinationCity") as string)?.trim();
-    const destinationCountry = (form.get("destinationCountry") as string)?.trim();
+    const originCity = getFormString(form, "originCity").trim();
+    const originCountry = getFormString(form, "originCountry").trim();
+    const destinationCity = getFormString(form, "destinationCity").trim();
+    const destinationCountry = getFormString(form, "destinationCountry").trim();
 
-    if (!originCity || !originCountry || !destinationCity || !destinationCountry) {
+    if (originCity === "" || originCountry === "" || destinationCity === "" || destinationCountry === "") {
       return fail(400, { error: "All origin and destination fields are required." });
     }
 
@@ -64,7 +69,7 @@ export const actions = {
   delete: async ({ request, cookies }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
     const form = await request.formData();
     const sessionToken = cookies.get("humans_session");
-    const routeInterestId = form.get("id");
+    const routeInterestId = getFormString(form, "id");
 
     const res = await fetch(`${PUBLIC_API_URL}/api/route-interests/${routeInterestId}`, {
       method: "DELETE",

@@ -2,11 +2,23 @@ import { redirect } from "@sveltejs/kit";
 import type { RequestEvent } from "@sveltejs/kit";
 import { PUBLIC_API_URL } from "$env/static/public";
 
-export const load = async ({ locals, cookies, url }: RequestEvent) => {
+interface SearchApiData {
+  humans?: unknown[];
+  routeSignups?: unknown[];
+  activities?: unknown[];
+  geoInterests?: unknown[];
+  accounts?: unknown[];
+}
+
+function isSearchApiData(value: unknown): value is SearchApiData {
+  return typeof value === "object" && value !== null;
+}
+
+export const load = async ({ locals, cookies, url }: RequestEvent): Promise<{ q: string; humans: unknown[]; routeSignups: unknown[]; activities: unknown[]; geoInterests: unknown[]; accounts: unknown[] }> => {
   if (locals.user == null) redirect(302, "/login");
 
   const q = url.searchParams.get("q") ?? "";
-  if (!q.trim()) {
+  if (q.trim() === "") {
     return { q, humans: [], routeSignups: [], activities: [], geoInterests: [], accounts: [] };
   }
 
@@ -20,7 +32,7 @@ export const load = async ({ locals, cookies, url }: RequestEvent) => {
   }
 
   const data: unknown = await res.json();
-  const result = data as { humans?: unknown[]; routeSignups?: unknown[]; activities?: unknown[]; geoInterests?: unknown[]; accounts?: unknown[] };
+  const result: SearchApiData = isSearchApiData(data) ? data : {};
 
   return {
     q,

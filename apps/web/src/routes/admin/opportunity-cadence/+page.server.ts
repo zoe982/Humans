@@ -1,9 +1,9 @@
-import { redirect, fail } from "@sveltejs/kit";
+import { redirect } from "@sveltejs/kit";
 import type { RequestEvent, ActionFailure } from "@sveltejs/kit";
 import { PUBLIC_API_URL } from "$env/static/public";
 import { isListData, failFromApi } from "$lib/server/api";
 
-export const load = async ({ locals, cookies }: RequestEvent) => {
+export const load = async ({ locals, cookies }: RequestEvent): Promise<{ cadenceConfigs: unknown[] }> => {
   if (locals.user == null) redirect(302, "/login");
   if (locals.user.role !== "admin") redirect(302, "/dashboard");
 
@@ -25,9 +25,11 @@ export const actions = {
   updateCadence: async ({ request, cookies }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
     const form = await request.formData();
     const sessionToken = cookies.get("humans_session") ?? "";
-    const id = form.get("id") as string;
+    const idRaw = form.get("id");
+    const id = typeof idRaw === "string" ? idRaw : "";
     const cadenceHours = Number(form.get("cadenceHours"));
-    const displayText = form.get("displayText") as string;
+    const displayTextRaw = form.get("displayText");
+    const displayText = typeof displayTextRaw === "string" ? displayTextRaw : "";
 
     const res = await fetch(`${PUBLIC_API_URL}/api/admin/opportunity-cadence/${id}`, {
       method: "PATCH",

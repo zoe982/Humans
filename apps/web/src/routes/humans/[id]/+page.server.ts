@@ -3,11 +3,38 @@ import type { RequestEvent, ActionFailure } from "@sveltejs/kit";
 import { PUBLIC_API_URL } from "$env/static/public";
 import { isObjData, isListData, failFromApi, fetchConfigs, authHeaders } from "$lib/server/api";
 
-export const load = async ({ locals, cookies, params }: RequestEvent) => {
+function formStr(value: FormDataEntryValue | null): string {
+  return typeof value === "string" ? value : "";
+}
+
+function toRecord(value: unknown): Record<string, unknown> {
+  if (typeof value !== "object" || value === null) return {};
+  return Object.fromEntries(Object.entries(value));
+}
+
+export const load = async ({ locals, cookies, params }: RequestEvent): Promise<{
+  human: Record<string, unknown>;
+  activities: unknown[];
+  apiUrl: string;
+  emailLabelConfigs: unknown[];
+  phoneLabelConfigs: unknown[];
+  socialIdPlatformConfigs: unknown[];
+  allRouteSignups: unknown[];
+  allBookingRequests: unknown[];
+  allAccounts: unknown[];
+  accountHumanLabelConfigs: unknown[];
+  convertedFromLead: { id: string; displayId: string } | null;
+  generalLeads: unknown[];
+  humanOpportunities: unknown[];
+  allDiscountCodes: unknown[];
+  humanRelationships: unknown[];
+  humanRelationshipLabelConfigs: unknown[];
+  allHumans: unknown[];
+}> => {
   if (locals.user == null) redirect(302, "/login");
 
   const sessionToken = cookies.get("humans_session");
-  const id = params.id;
+  const id = params.id ?? "";
 
   // Fetch human detail (now includes phoneNumbers and pets)
   const humanRes = await fetch(`${PUBLIC_API_URL}/api/humans/${id}`, {
@@ -55,35 +82,46 @@ export const load = async ({ locals, cookies, params }: RequestEvent) => {
   ]);
 
   // Derive convertedFromLead from the first general lead (backwards compat)
-  const convertedFromLead = generalLeads.length > 0
-    ? { id: (generalLeads[0] as { id: string }).id, displayId: (generalLeads[0] as { displayId: string }).displayId }
+  const firstLead = generalLeads[0];
+  const convertedFromLead = firstLead != null && typeof firstLead === "object" && "id" in firstLead && "displayId" in firstLead
+    ? { id: String((firstLead as Record<string, unknown>).id), displayId: String((firstLead as Record<string, unknown>).displayId) }
     : null;
 
   // Enrich linked route signups with Supabase data
-  type SupabaseSignup = { id: string; display_id?: string | null; first_name?: string | null; last_name?: string | null; origin?: string | null; destination?: string | null };
+  interface SupabaseSignup { id: string; display_id?: string | null; first_name?: string | null; last_name?: string | null; origin?: string | null; destination?: string | null }
   const humanData = human as {
-    linkedRouteSignups?: Array<{ id: string; routeSignupId: string; linkedAt: string }>;
-    linkedWebsiteBookingRequests?: Array<{ id: string; websiteBookingRequestId: string; linkedAt: string }>;
+    linkedRouteSignups?: { id: string; routeSignupId: string; linkedAt: string }[];
+    linkedWebsiteBookingRequests?: { id: string; websiteBookingRequestId: string; linkedAt: string }[];
   };
+  function isSupabaseSignup(v: unknown): v is SupabaseSignup {
+    return typeof v === "object" && v !== null && "id" in v;
+  }
   const enrichedLinkedSignups = (humanData.linkedRouteSignups ?? []).map((link) => {
-    const signup = (allRouteSignups as SupabaseSignup[]).find((s) => s.id === link.routeSignupId);
+    const signupRaw = allRouteSignups.find((s) => isSupabaseSignup(s) && s.id === link.routeSignupId);
+    const signup = isSupabaseSignup(signupRaw) ? signupRaw : null;
+    const joinedName = signup != null ? [signup.first_name, signup.last_name].filter(Boolean).join(" ") : "";
     return {
       ...link,
       displayId: signup?.display_id ?? null,
-      passengerName: signup ? [signup.first_name, signup.last_name].filter(Boolean).join(" ") || null : null,
+      passengerName: joinedName !== "" ? joinedName : null,
       origin: signup?.origin ?? null,
       destination: signup?.destination ?? null,
     };
   });
 
   // Enrich linked booking requests with Supabase data
-  type SupabaseBooking = { id: string; crm_display_id?: string | null; first_name?: string | null; last_name?: string | null; origin_city?: string | null; destination_city?: string | null };
+  interface SupabaseBooking { id: string; crm_display_id?: string | null; first_name?: string | null; last_name?: string | null; origin_city?: string | null; destination_city?: string | null }
+  function isSupabaseBooking(v: unknown): v is SupabaseBooking {
+    return typeof v === "object" && v !== null && "id" in v;
+  }
   const enrichedLinkedBookingRequests = (humanData.linkedWebsiteBookingRequests ?? []).map((link) => {
-    const booking = (allBookingRequests as SupabaseBooking[]).find((b) => b.id === link.websiteBookingRequestId);
+    const bookingRaw = allBookingRequests.find((b) => isSupabaseBooking(b) && b.id === link.websiteBookingRequestId);
+    const booking = isSupabaseBooking(bookingRaw) ? bookingRaw : null;
+    const joinedName = booking != null ? [booking.first_name, booking.last_name].filter(Boolean).join(" ") : "";
     return {
       ...link,
       displayId: booking?.crm_display_id ?? null,
-      passengerName: booking ? [booking.first_name, booking.last_name].filter(Boolean).join(" ") || null : null,
+      passengerName: joinedName !== "" ? joinedName : null,
       originCity: booking?.origin_city ?? null,
       destinationCity: booking?.destination_city ?? null,
     };
@@ -91,7 +129,7 @@ export const load = async ({ locals, cookies, params }: RequestEvent) => {
 
   return {
     human: {
-      ...(human as Record<string, unknown>),
+      ...human,
       linkedRouteSignups: enrichedLinkedSignups,
       linkedWebsiteBookingRequests: enrichedLinkedBookingRequests,
     },
@@ -119,11 +157,14 @@ export const actions = {
     const form = await request.formData();
     const sessionToken = cookies.get("humans_session");
 
+    const typeVal = formStr(form.get("type"));
+    const notesVal = formStr(form.get("notes"));
+    const activityDateVal = formStr(form.get("activityDate"));
     const payload = {
-      type: form.get("type") || "email",
+      type: typeVal !== "" ? typeVal : "email",
       subject: form.get("subject"),
-      notes: form.get("notes") || undefined,
-      activityDate: (() => { const v = form.get("activityDate") as string; return v ? new Date(v).toISOString() : new Date().toISOString(); })(),
+      notes: notesVal !== "" ? notesVal : undefined,
+      activityDate: activityDateVal !== "" ? new Date(activityDateVal).toISOString() : new Date().toISOString(),
       humanId: params.id,
     };
 
@@ -148,69 +189,76 @@ export const actions = {
     }
 
     // Create geo-interest expressions from JSON array
-    const geoInterestsRaw = (form.get("geoInterestsJson") as string)?.trim();
-    if (geoInterestsRaw) {
+    const geoInterestsRaw = formStr(form.get("geoInterestsJson")).trim();
+    if (geoInterestsRaw !== "") {
       try {
-        const geoItems = JSON.parse(geoInterestsRaw) as Array<{ id?: string; city?: string; country?: string; notes?: string }>;
-        for (const geo of geoItems) {
-          const geoPayload: Record<string, unknown> = {
-            humanId: params.id,
-            activityId,
-            notes: geo.notes || undefined,
-          };
-          if (geo.id) {
-            geoPayload.geoInterestId = geo.id;
-          } else {
-            geoPayload.city = geo.city;
-            geoPayload.country = geo.country;
+        const geoParsed: unknown = JSON.parse(geoInterestsRaw);
+        if (Array.isArray(geoParsed)) {
+          for (const geoRaw of geoParsed) {
+            const geo = toRecord(geoRaw);
+            const geoId = typeof geo.id === "string" ? geo.id : "";
+            const geoNotes = typeof geo.notes === "string" && geo.notes !== "" ? geo.notes : undefined;
+            const geoPayload: Record<string, unknown> = {
+              humanId: params.id,
+              activityId,
+              notes: geoNotes,
+            };
+            if (geoId !== "") {
+              geoPayload.geoInterestId = geoId;
+            } else {
+              geoPayload.city = geo.city;
+              geoPayload.country = geo.country;
+            }
+            await fetch(`${PUBLIC_API_URL}/api/geo-interest-expressions`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Cookie: `humans_session=${sessionToken ?? ""}`,
+              },
+              body: JSON.stringify(geoPayload),
+            });
           }
-          await fetch(`${PUBLIC_API_URL}/api/geo-interest-expressions`, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Cookie: `humans_session=${sessionToken ?? ""}`,
-            },
-            body: JSON.stringify(geoPayload),
-          });
         }
       } catch { /* ignore malformed JSON */ }
     }
 
     // Create route-interest expressions from JSON array
-    const routeInterestsRaw = (form.get("routeInterestsJson") as string)?.trim();
-    if (routeInterestsRaw) {
+    const routeInterestsRaw = formStr(form.get("routeInterestsJson")).trim();
+    if (routeInterestsRaw !== "") {
       try {
-        const routeItems = JSON.parse(routeInterestsRaw) as Array<{
-          id?: string; originCity?: string; originCountry?: string;
-          destinationCity?: string; destinationCountry?: string;
-          frequency?: string; travelYear?: number; travelMonth?: number; travelDay?: number; notes?: string;
-        }>;
-        for (const route of routeItems) {
-          const routePayload: Record<string, unknown> = {
-            humanId: params.id,
-            activityId,
-            frequency: route.frequency || "one_time",
-            notes: route.notes || undefined,
-          };
-          if (route.id) {
-            routePayload.routeInterestId = route.id;
-          } else {
-            routePayload.originCity = route.originCity;
-            routePayload.originCountry = route.originCountry;
-            routePayload.destinationCity = route.destinationCity;
-            routePayload.destinationCountry = route.destinationCountry;
+        const routeParsed: unknown = JSON.parse(routeInterestsRaw);
+        if (Array.isArray(routeParsed)) {
+          for (const routeRaw of routeParsed) {
+            const route = toRecord(routeRaw);
+            const routeId = typeof route.id === "string" ? route.id : "";
+            const routeFrequency = typeof route.frequency === "string" && route.frequency !== "" ? route.frequency : "one_time";
+            const routeNotes = typeof route.notes === "string" && route.notes !== "" ? route.notes : undefined;
+            const routePayload: Record<string, unknown> = {
+              humanId: params.id,
+              activityId,
+              frequency: routeFrequency,
+              notes: routeNotes,
+            };
+            if (routeId !== "") {
+              routePayload.routeInterestId = routeId;
+            } else {
+              routePayload.originCity = route.originCity;
+              routePayload.originCountry = route.originCountry;
+              routePayload.destinationCity = route.destinationCity;
+              routePayload.destinationCountry = route.destinationCountry;
+            }
+            if (typeof route.travelYear === "number") routePayload.travelYear = route.travelYear;
+            if (typeof route.travelMonth === "number") routePayload.travelMonth = route.travelMonth;
+            if (typeof route.travelDay === "number") routePayload.travelDay = route.travelDay;
+            await fetch(`${PUBLIC_API_URL}/api/route-interest-expressions`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Cookie: `humans_session=${sessionToken ?? ""}`,
+              },
+              body: JSON.stringify(routePayload),
+            });
           }
-          if (route.travelYear) routePayload.travelYear = route.travelYear;
-          if (route.travelMonth) routePayload.travelMonth = route.travelMonth;
-          if (route.travelDay) routePayload.travelDay = route.travelDay;
-          await fetch(`${PUBLIC_API_URL}/api/route-interest-expressions`, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Cookie: `humans_session=${sessionToken ?? ""}`,
-            },
-            body: JSON.stringify(routePayload),
-          });
         }
       } catch { /* ignore malformed JSON */ }
     }
@@ -222,7 +270,7 @@ export const actions = {
     const form = await request.formData();
     const sessionToken = cookies.get("humans_session");
     const routeSignupId = form.get("routeSignupId");
-    const id = params.id;
+    const id = params.id ?? "";
 
     const res = await fetch(`${PUBLIC_API_URL}/api/humans/${id}/route-signups`, {
       method: "POST",
@@ -244,8 +292,8 @@ export const actions = {
   unlinkSignup: async ({ request, cookies, params }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
     const form = await request.formData();
     const sessionToken = cookies.get("humans_session");
-    const linkId = form.get("linkId");
-    const id = params.id;
+    const linkId = formStr(form.get("linkId"));
+    const id = params.id ?? "";
 
     const res = await fetch(`${PUBLIC_API_URL}/api/humans/${id}/route-signups/${linkId}`, {
       method: "DELETE",
@@ -266,7 +314,8 @@ export const actions = {
     const form = await request.formData();
     const sessionToken = cookies.get("humans_session");
 
-    const labelId = (form.get("labelId") as string) || undefined;
+    const labelIdVal = formStr(form.get("labelId"));
+    const labelId = labelIdVal !== "" ? labelIdVal : undefined;
     const payload = {
       humanId: params.id,
       email: form.get("email"),
@@ -294,7 +343,7 @@ export const actions = {
   deleteEmail: async ({ request, cookies }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
     const form = await request.formData();
     const sessionToken = cookies.get("humans_session");
-    const emailId = form.get("id");
+    const emailId = formStr(form.get("id"));
 
     const res = await fetch(`${PUBLIC_API_URL}/api/emails/${emailId}`, {
       method: "DELETE",
@@ -315,7 +364,8 @@ export const actions = {
     const form = await request.formData();
     const sessionToken = cookies.get("humans_session");
 
-    const phoneLabelId = (form.get("labelId") as string) || undefined;
+    const phoneLabelIdVal = formStr(form.get("labelId"));
+    const phoneLabelId = phoneLabelIdVal !== "" ? phoneLabelIdVal : undefined;
     const payload = {
       humanId: params.id,
       phoneNumber: form.get("phoneNumber"),
@@ -344,7 +394,7 @@ export const actions = {
   deletePhoneNumber: async ({ request, cookies }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
     const form = await request.formData();
     const sessionToken = cookies.get("humans_session");
-    const phoneId = form.get("phoneId");
+    const phoneId = formStr(form.get("phoneId"));
 
     const res = await fetch(`${PUBLIC_API_URL}/api/phone-numbers/${phoneId}`, {
       method: "DELETE",
@@ -365,14 +415,15 @@ export const actions = {
     const form = await request.formData();
     const sessionToken = cookies.get("humans_session");
 
-    const geoInterestId = (form.get("geoInterestId") as string)?.trim();
+    const geoInterestId = formStr(form.get("geoInterestId")).trim();
+    const notesVal = formStr(form.get("notes"));
 
     const payload: Record<string, unknown> = {
       humanId: params.id,
-      notes: form.get("notes") || undefined,
+      notes: notesVal !== "" ? notesVal : undefined,
     };
 
-    if (geoInterestId) {
+    if (geoInterestId !== "") {
       payload.geoInterestId = geoInterestId;
     } else {
       payload.city = form.get("city");
@@ -399,7 +450,7 @@ export const actions = {
   deleteGeoInterestExpression: async ({ request, cookies }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
     const form = await request.formData();
     const sessionToken = cookies.get("humans_session");
-    const expressionId = form.get("id");
+    const expressionId = formStr(form.get("id"));
 
     const res = await fetch(`${PUBLIC_API_URL}/api/geo-interest-expressions/${expressionId}`, {
       method: "DELETE",
@@ -420,14 +471,15 @@ export const actions = {
     const form = await request.formData();
     const sessionToken = cookies.get("humans_session");
 
-    const routeInterestId = (form.get("routeInterestId") as string)?.trim();
+    const routeInterestId = formStr(form.get("routeInterestId")).trim();
+    const notesRaw = formStr(form.get("notes")).trim();
 
     const payload: Record<string, unknown> = {
       humanId: params.id,
-      notes: (form.get("notes") as string)?.trim() || undefined,
+      notes: notesRaw !== "" ? notesRaw : undefined,
     };
 
-    if (routeInterestId) {
+    if (routeInterestId !== "") {
       payload.routeInterestId = routeInterestId;
     } else {
       payload.originCity = form.get("originCity");
@@ -436,15 +488,15 @@ export const actions = {
       payload.destinationCountry = form.get("destinationCountry");
     }
 
-    const frequency = form.get("frequency") as string;
-    if (frequency) payload.frequency = frequency;
+    const frequency = formStr(form.get("frequency"));
+    if (frequency !== "") payload.frequency = frequency;
 
-    const travelYearStr = form.get("travelYear") as string;
-    if (travelYearStr) payload.travelYear = parseInt(travelYearStr, 10);
-    const travelMonthStr = form.get("travelMonth") as string;
-    if (travelMonthStr) payload.travelMonth = parseInt(travelMonthStr, 10);
-    const travelDayStr = form.get("travelDay") as string;
-    if (travelDayStr) payload.travelDay = parseInt(travelDayStr, 10);
+    const travelYearStr = formStr(form.get("travelYear"));
+    if (travelYearStr !== "") payload.travelYear = parseInt(travelYearStr, 10);
+    const travelMonthStr = formStr(form.get("travelMonth"));
+    if (travelMonthStr !== "") payload.travelMonth = parseInt(travelMonthStr, 10);
+    const travelDayStr = formStr(form.get("travelDay"));
+    if (travelDayStr !== "") payload.travelDay = parseInt(travelDayStr, 10);
 
     const res = await fetch(`${PUBLIC_API_URL}/api/route-interest-expressions`, {
       method: "POST",
@@ -466,7 +518,7 @@ export const actions = {
   deleteRouteInterestExpression: async ({ request, cookies }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
     const form = await request.formData();
     const sessionToken = cookies.get("humans_session");
-    const expressionId = form.get("id");
+    const expressionId = formStr(form.get("id"));
 
     const res = await fetch(`${PUBLIC_API_URL}/api/route-interest-expressions/${expressionId}`, {
       method: "DELETE",
@@ -487,9 +539,10 @@ export const actions = {
     const form = await request.formData();
     const sessionToken = cookies.get("humans_session");
 
+    const platformIdVal = formStr(form.get("platformId"));
     const payload = {
       handle: form.get("handle"),
-      platformId: form.get("platformId") || undefined,
+      platformId: platformIdVal !== "" ? platformIdVal : undefined,
       humanId: params.id,
     };
 
@@ -513,7 +566,7 @@ export const actions = {
   deleteSocialId: async ({ request, cookies }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
     const form = await request.formData();
     const sessionToken = cookies.get("humans_session");
-    const socialIdId = form.get("id");
+    const socialIdId = formStr(form.get("id"));
 
     const res = await fetch(`${PUBLIC_API_URL}/api/social-ids/${socialIdId}`, {
       method: "DELETE",
@@ -559,7 +612,7 @@ export const actions = {
   deleteWebsite: async ({ request, cookies }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
     const form = await request.formData();
     const sessionToken = cookies.get("humans_session");
-    const websiteId = form.get("id");
+    const websiteId = formStr(form.get("id"));
 
     const res = await fetch(`${PUBLIC_API_URL}/api/websites/${websiteId}`, {
       method: "DELETE",
@@ -580,9 +633,10 @@ export const actions = {
     const form = await request.formData();
     const sessionToken = cookies.get("humans_session");
 
+    const descriptionVal = formStr(form.get("description"));
     const payload = {
       code: form.get("code"),
-      description: form.get("description") || undefined,
+      description: descriptionVal !== "" ? descriptionVal : undefined,
       humanId: params.id,
     };
 
@@ -606,7 +660,7 @@ export const actions = {
   deleteReferralCode: async ({ request, cookies }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
     const form = await request.formData();
     const sessionToken = cookies.get("humans_session");
-    const referralCodeId = form.get("id");
+    const referralCodeId = formStr(form.get("id"));
 
     const res = await fetch(`${PUBLIC_API_URL}/api/referral-codes/${referralCodeId}`, {
       method: "DELETE",
@@ -626,7 +680,7 @@ export const actions = {
   linkDiscountCode: async ({ request, cookies, params }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
     const form = await request.formData();
     const sessionToken = cookies.get("humans_session");
-    const discountCodeId = form.get("discountCodeId");
+    const discountCodeId = formStr(form.get("discountCodeId"));
 
     const res = await fetch(`${PUBLIC_API_URL}/api/discount-codes/${discountCodeId}`, {
       method: "PATCH",
@@ -648,7 +702,7 @@ export const actions = {
   unlinkDiscountCode: async ({ request, cookies }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
     const form = await request.formData();
     const sessionToken = cookies.get("humans_session");
-    const discountCodeId = form.get("id");
+    const discountCodeId = formStr(form.get("id"));
 
     const res = await fetch(`${PUBLIC_API_URL}/api/discount-codes/${discountCodeId}`, {
       method: "PATCH",
@@ -670,7 +724,7 @@ export const actions = {
   deletePet: async ({ request, cookies }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
     const form = await request.formData();
     const sessionToken = cookies.get("humans_session");
-    const petId = form.get("id");
+    const petId = formStr(form.get("id"));
 
     const res = await fetch(`${PUBLIC_API_URL}/api/pets/${petId}`, {
       method: "DELETE",
@@ -691,15 +745,18 @@ export const actions = {
     const form = await request.formData();
     const sessionToken = cookies.get("humans_session");
 
-    const weightStr = form.get("weight") as string;
-    const petType = (form.get("type") as string) || "dog";
-    const breed = petType === "dog" ? (form.get("breed") as string) || undefined : undefined;
+    const weightStr = formStr(form.get("weight"));
+    const petTypeVal = formStr(form.get("type"));
+    const petType = petTypeVal !== "" ? petTypeVal : "dog";
+    const breedVal = formStr(form.get("breed"));
+    const breed = petType === "dog" ? (breedVal !== "" ? breedVal : undefined) : undefined;
+    const nameRaw = formStr(form.get("name")).trim();
     const payload = {
       humanId: params.id,
       type: petType,
-      name: (form.get("name") as string)?.trim() || null,
+      name: nameRaw !== "" ? nameRaw : null,
       breed,
-      weight: weightStr ? parseFloat(weightStr) : undefined,
+      weight: weightStr !== "" ? parseFloat(weightStr) : undefined,
     };
 
     const res = await fetch(`${PUBLIC_API_URL}/api/pets`, {
@@ -722,8 +779,9 @@ export const actions = {
   linkAccount: async ({ request, cookies, params }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
     const form = await request.formData();
     const sessionToken = cookies.get("humans_session");
-    const accountId = form.get("accountId") as string;
-    const labelId = (form.get("labelId") as string) || undefined;
+    const accountId = formStr(form.get("accountId"));
+    const labelIdVal = formStr(form.get("labelId"));
+    const labelId = labelIdVal !== "" ? labelIdVal : undefined;
 
     const res = await fetch(`${PUBLIC_API_URL}/api/accounts/${accountId}/humans`, {
       method: "POST",
@@ -745,8 +803,9 @@ export const actions = {
   createAndLinkAccount: async ({ request, cookies, params }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
     const form = await request.formData();
     const sessionToken = cookies.get("humans_session");
-    const accountName = form.get("accountName") as string;
-    const labelId = (form.get("labelId") as string) || undefined;
+    const accountName = formStr(form.get("accountName"));
+    const labelIdVal = formStr(form.get("labelId"));
+    const labelId = labelIdVal !== "" ? labelIdVal : undefined;
 
     // Create account
     const createRes = await fetch(`${PUBLIC_API_URL}/api/accounts`, {
@@ -766,7 +825,7 @@ export const actions = {
     const createBody: unknown = await createRes.json();
     const newAccountId = isObjData(createBody) ? (createBody.data as { id?: string }).id : undefined;
 
-    if (!newAccountId) {
+    if (newAccountId == null) {
       return fail(500, { error: "Failed to get new account ID" });
     }
 
@@ -792,7 +851,7 @@ export const actions = {
     const form = await request.formData();
     const sessionToken = cookies.get("humans_session");
     const websiteBookingRequestId = form.get("websiteBookingRequestId");
-    const id = params.id;
+    const id = params.id ?? "";
 
     const res = await fetch(`${PUBLIC_API_URL}/api/humans/${id}/website-booking-requests`, {
       method: "POST",
@@ -814,8 +873,8 @@ export const actions = {
   unlinkBookingRequest: async ({ request, cookies, params }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
     const form = await request.formData();
     const sessionToken = cookies.get("humans_session");
-    const linkId = form.get("linkId");
-    const id = params.id;
+    const linkId = formStr(form.get("linkId"));
+    const id = params.id ?? "";
 
     const res = await fetch(`${PUBLIC_API_URL}/api/humans/${id}/website-booking-requests/${linkId}`, {
       method: "DELETE",
@@ -840,13 +899,13 @@ export const actions = {
       Cookie: `humans_session=${sessionToken ?? ""}`,
     };
 
-    const passengerSeatsStr = form.get("passengerSeats") as string;
-    const petSeatsStr = form.get("petSeats") as string;
-    const petIds = form.getAll("petIds") as string[];
+    const passengerSeatsStr = formStr(form.get("passengerSeats"));
+    const petSeatsStr = formStr(form.get("petSeats"));
+    const petIds = form.getAll("petIds").map((v) => formStr(v));
 
     const payload = {
-      passengerSeats: passengerSeatsStr ? parseInt(passengerSeatsStr, 10) : 1,
-      petSeats: petSeatsStr ? parseInt(petSeatsStr, 10) : 0,
+      passengerSeats: passengerSeatsStr !== "" ? parseInt(passengerSeatsStr, 10) : 1,
+      petSeats: petSeatsStr !== "" ? parseInt(petSeatsStr, 10) : 0,
     };
 
     // 1. Create the opportunity
@@ -866,7 +925,7 @@ export const actions = {
       return fail(500, { error: "Unexpected response" });
     }
 
-    const oppId = (created.data as { id: string }).id;
+    const oppId = String(created.data.id);
 
     // 2. Link the current human as primary
     await fetch(`${PUBLIC_API_URL}/api/opportunities/${oppId}/humans`, {
@@ -877,7 +936,7 @@ export const actions = {
 
     // 3. Link pets (best-effort)
     for (const petId of petIds) {
-      if (petId) {
+      if (petId !== "") {
         await fetch(`${PUBLIC_API_URL}/api/opportunities/${oppId}/pets`, {
           method: "POST",
           headers,
@@ -892,10 +951,12 @@ export const actions = {
   addRelationship: async ({ request, cookies, params }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
     const form = await request.formData();
     const sessionToken = cookies.get("humans_session");
-    const humanId2 = form.get("humanId2") as string;
-    const labelId = (form.get("labelId") as string) || undefined;
+    const humanId2 = formStr(form.get("humanId2"));
+    const labelIdVal = formStr(form.get("labelId"));
+    const labelId = labelIdVal !== "" ? labelIdVal : undefined;
+    const id = params.id ?? "";
 
-    const res = await fetch(`${PUBLIC_API_URL}/api/humans/${params.id}/relationships`, {
+    const res = await fetch(`${PUBLIC_API_URL}/api/humans/${id}/relationships`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -915,9 +976,10 @@ export const actions = {
   removeRelationship: async ({ request, cookies, params }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
     const form = await request.formData();
     const sessionToken = cookies.get("humans_session");
-    const relationshipId = form.get("id");
+    const relationshipId = formStr(form.get("id"));
+    const id = params.id ?? "";
 
-    const res = await fetch(`${PUBLIC_API_URL}/api/humans/${params.id}/relationships/${relationshipId}`, {
+    const res = await fetch(`${PUBLIC_API_URL}/api/humans/${id}/relationships/${relationshipId}`, {
       method: "DELETE",
       headers: {
         Cookie: `humans_session=${sessionToken ?? ""}`,
@@ -935,8 +997,8 @@ export const actions = {
   unlinkAccount: async ({ request, cookies }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
     const form = await request.formData();
     const sessionToken = cookies.get("humans_session");
-    const accountId = form.get("accountId") as string;
-    const linkId = form.get("linkId") as string;
+    const accountId = formStr(form.get("accountId"));
+    const linkId = formStr(form.get("linkId"));
 
     const res = await fetch(`${PUBLIC_API_URL}/api/accounts/${accountId}/humans/${linkId}`, {
       method: "DELETE",

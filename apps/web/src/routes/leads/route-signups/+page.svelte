@@ -7,6 +7,7 @@
   import { signupStatusColors } from "$lib/constants/colors";
   import { formatRelativeTime } from "$lib/utils/format";
   import { Button } from "$lib/components/ui/button";
+  import { resolve } from "$app/paths";
 
   let { data, form }: { data: PageData; form: ActionData } = $props();
 
@@ -51,6 +52,7 @@
   );
 
   const paginationBaseUrl = $derived.by(() => {
+    // eslint-disable-next-line svelte/prefer-svelte-reactivity
     const params = new URLSearchParams();
     if (data.status) params.set("status", data.status);
     if (data.q) params.set("q", data.q);
@@ -122,16 +124,16 @@
       </div>
       <Button type="submit" size="sm">Filter</Button>
       {#if hasActiveFilters}
-        <a href="/leads/route-signups" class="btn-ghost text-sm">Clear</a>
+        <a href={resolve('/leads/route-signups')} class="btn-ghost text-sm">Clear</a>
       {/if}
     </form>
   {/snippet}
   {#snippet desktopRow(signup)}
     <td class="font-mono text-sm whitespace-nowrap">
-      <a href="/leads/route-signups/{signup.id}" class="text-accent hover:text-[var(--link-hover)]">{signup.display_id ?? "\u2014"}</a>
+      <a href={resolve(`/leads/route-signups/${signup.id}`)} class="text-accent hover:text-[var(--link-hover)]">{signup.display_id ?? "\u2014"}</a>
     </td>
     <td class="font-medium">
-      <a href="/leads/route-signups/{signup.id}" class="text-accent hover:text-[var(--link-hover)]">{displayName(signup)}</a>
+      <a href={resolve(`/leads/route-signups/${signup.id}`)} class="text-accent hover:text-[var(--link-hover)]">{displayName(signup)}</a>
     </td>
     <td class="text-text-secondary">{signup.email ?? "\u2014"}</td>
     <td class="text-text-secondary">{signup.origin ?? "\u2014"}</td>
@@ -142,7 +144,7 @@
     <td class="text-text-muted">{formatDatetime(signup.inserted_at)}</td>
   {/snippet}
   {#snippet mobileCard(signup)}
-    <a href="/leads/route-signups/{signup.id}" class="glass-card p-4 block hover:ring-1 hover:ring-accent/40 transition">
+    <a href={resolve(`/leads/route-signups/${signup.id}`)} class="glass-card p-4 block hover:ring-1 hover:ring-accent/40 transition">
       {#if signup.display_id}
         <span class="font-mono text-xs text-text-muted">{signup.display_id}</span>
       {/if}

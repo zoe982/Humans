@@ -1,8 +1,10 @@
 import { json } from "@sveltejs/kit";
+import type { RequestHandler } from "./$types";
 
-const v = __BUILD_TIMESTAMP__;
-
-export function GET() {
+export const GET: RequestHandler = () => {
+  // __BUILD_TIMESTAMP__ is injected at build time via vite.config.ts define
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+  const v: string = __BUILD_TIMESTAMP__;
   return json({
     name: "Humans CRM",
     short_name: "Humans",
@@ -19,4 +21,4 @@ export function GET() {
       "Cache-Control": "public, max-age=0, must-revalidate",
     },
   });
-}
+};

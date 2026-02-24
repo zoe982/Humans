@@ -7,6 +7,7 @@
   import { humanTypeLabels } from "$lib/constants/labels";
   import { displayName as formatDisplayName } from "$lib/utils/format";
   import { Button } from "$lib/components/ui/button";
+  import { resolve } from "$app/paths";
 
   let { data, form }: { data: PageData; form: ActionData } = $props();
 
@@ -37,6 +38,7 @@
   }
 
   const paginationBaseUrl = $derived.by(() => {
+    // eslint-disable-next-line svelte/prefer-svelte-reactivity
     const params = new URLSearchParams();
     if (data.q) params.set("q", data.q);
     const qs = params.toString();
@@ -72,16 +74,16 @@
       </div>
       <Button type="submit" size="sm">Search</Button>
       {#if data.q}
-        <a href="/humans" class="btn-ghost text-sm">Clear</a>
+        <a href={resolve('/humans')} class="btn-ghost text-sm">Clear</a>
       {/if}
     </form>
   {/snippet}
   {#snippet desktopRow(human)}
     <td class="font-mono text-sm whitespace-nowrap">
-      <a href="/humans/{human.id}" class="text-accent hover:text-[var(--link-hover)]">{human.displayId}</a>
+      <a href={resolve(`/humans/${human.id}`)} class="text-accent hover:text-[var(--link-hover)]">{human.displayId}</a>
     </td>
     <td class="font-medium">
-      <a href="/humans/{human.id}" class="text-accent hover:text-[var(--link-hover)]">{formatDisplayName(human)}</a>
+      <a href={resolve(`/humans/${human.id}`)} class="text-accent hover:text-[var(--link-hover)]">{formatDisplayName(human)}</a>
     </td>
     <td class="text-text-secondary">{primaryEmail(human)}</td>
     <td>
@@ -89,8 +91,10 @@
     </td>
     <td>
       <div class="flex gap-1 flex-wrap">
-        {#each human.types as t}
+        {#each human.types as t (t)}
+          <!-- eslint-disable-next-line security/detect-object-injection -->
           <span class="glass-badge {humanTypeColors[t] ?? 'bg-glass text-text-secondary'}">
+            <!-- eslint-disable-next-line security/detect-object-injection -->
             {humanTypeLabels[t] ?? t}
           </span>
         {/each}
@@ -99,7 +103,7 @@
     <td class="text-text-muted">{new Date(human.createdAt).toLocaleDateString()}</td>
   {/snippet}
   {#snippet mobileCard(human)}
-    <a href="/humans/{human.id}" class="glass-card p-4 block hover:ring-1 hover:ring-accent/40 transition">
+    <a href={resolve(`/humans/${human.id}`)} class="glass-card p-4 block hover:ring-1 hover:ring-accent/40 transition">
       <span class="font-mono text-xs text-text-muted">{human.displayId}</span>
       <div class="flex items-center justify-between mb-2">
         <span class="font-medium text-accent">{formatDisplayName(human)}</span>
@@ -107,8 +111,10 @@
       </div>
       <p class="text-sm text-text-secondary truncate">{primaryEmail(human)}</p>
       <div class="mt-2 flex gap-1 flex-wrap">
-        {#each human.types as t}
+        {#each human.types as t (t)}
+          <!-- eslint-disable-next-line security/detect-object-injection -->
           <span class="glass-badge text-xs {humanTypeColors[t] ?? 'bg-glass text-text-secondary'}">
+            <!-- eslint-disable-next-line security/detect-object-injection -->
             {humanTypeLabels[t] ?? t}
           </span>
         {/each}

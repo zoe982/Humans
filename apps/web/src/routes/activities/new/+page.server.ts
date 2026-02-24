@@ -3,7 +3,22 @@ import type { RequestEvent, ActionFailure } from "@sveltejs/kit";
 import { PUBLIC_API_URL } from "$env/static/public";
 import { isObjData, isListData, failFromApi } from "$lib/server/api";
 
-export const load = async ({ locals, cookies }: RequestEvent) => {
+function formStr(value: FormDataEntryValue | null): string {
+  return typeof value === "string" ? value : "";
+}
+
+function toRecord(value: unknown): Record<string, unknown> {
+  if (typeof value !== "object" || value === null) return {};
+  return Object.fromEntries(Object.entries(value));
+}
+
+export const load = async ({ locals, cookies }: RequestEvent): Promise<{
+  humans: unknown[];
+  accounts: unknown[];
+  routeSignups: unknown[];
+  websiteBookingRequests: unknown[];
+  apiUrl: string;
+}> => {
   if (locals.user == null) redirect(302, "/login");
 
   const sessionToken = cookies.get("humans_session");
@@ -51,27 +66,36 @@ export const load = async ({ locals, cookies }: RequestEvent) => {
 };
 
 export const actions = {
-  create: async ({ request, cookies }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | void> => {
+  create: async ({ request, cookies }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | undefined> => {
     const form = await request.formData();
     const sessionToken = cookies.get("humans_session");
 
-    const humanId = (form.get("humanId") as string) || undefined;
-    const accountId = (form.get("accountId") as string) || undefined;
-    const routeSignupId = (form.get("routeSignupId") as string) || undefined;
-    const websiteBookingRequestId = (form.get("websiteBookingRequestId") as string) || undefined;
+    const humanIdVal = formStr(form.get("humanId"));
+    const accountIdVal = formStr(form.get("accountId"));
+    const routeSignupIdVal = formStr(form.get("routeSignupId"));
+    const websiteBookingRequestIdVal = formStr(form.get("websiteBookingRequestId"));
+
+    const humanId = humanIdVal !== "" ? humanIdVal : undefined;
+    const accountId = accountIdVal !== "" ? accountIdVal : undefined;
+    const routeSignupId = routeSignupIdVal !== "" ? routeSignupIdVal : undefined;
+    const websiteBookingRequestId = websiteBookingRequestIdVal !== "" ? websiteBookingRequestIdVal : undefined;
+
+    const subjectVal = formStr(form.get("subject"));
+    const notesVal = formStr(form.get("notes"));
+    const activityDateVal = formStr(form.get("activityDate"));
 
     const payload = {
       type: form.get("type"),
-      subject: (form.get("subject") as string) || undefined,
-      notes: (form.get("notes") as string) || undefined,
-      activityDate: new Date(form.get("activityDate") as string).toISOString(),
+      subject: subjectVal !== "" ? subjectVal : undefined,
+      notes: notesVal !== "" ? notesVal : undefined,
+      activityDate: new Date(activityDateVal).toISOString(),
       humanId,
       accountId,
       routeSignupId,
       websiteBookingRequestId,
     };
 
-    if (!humanId && !accountId && !routeSignupId && !websiteBookingRequestId) {
+    if (humanId == null && accountId == null && routeSignupId == null && websiteBookingRequestId == null) {
       return fail(400, { error: "At least one linked entity is required." });
     }
 
@@ -96,69 +120,76 @@ export const actions = {
     }
 
     // Create geo-interest expressions from JSON array
-    const geoInterestsRaw = (form.get("geoInterestsJson") as string)?.trim();
-    if (geoInterestsRaw) {
+    const geoInterestsRaw = formStr(form.get("geoInterestsJson")).trim();
+    if (geoInterestsRaw !== "") {
       try {
-        const geoItems = JSON.parse(geoInterestsRaw) as Array<{ id?: string; city?: string; country?: string; notes?: string }>;
-        for (const geo of geoItems) {
-          const geoPayload: Record<string, unknown> = {
-            humanId,
-            activityId,
-            notes: geo.notes || undefined,
-          };
-          if (geo.id) {
-            geoPayload.geoInterestId = geo.id;
-          } else {
-            geoPayload.city = geo.city;
-            geoPayload.country = geo.country;
+        const geoParsed: unknown = JSON.parse(geoInterestsRaw);
+        if (Array.isArray(geoParsed)) {
+          for (const geoRaw of geoParsed) {
+            const geo = toRecord(geoRaw);
+            const geoId = typeof geo.id === "string" ? geo.id : "";
+            const geoNotes = typeof geo.notes === "string" && geo.notes !== "" ? geo.notes : undefined;
+            const geoPayload: Record<string, unknown> = {
+              humanId,
+              activityId,
+              notes: geoNotes,
+            };
+            if (geoId !== "") {
+              geoPayload.geoInterestId = geoId;
+            } else {
+              geoPayload.city = geo.city;
+              geoPayload.country = geo.country;
+            }
+            await fetch(`${PUBLIC_API_URL}/api/geo-interest-expressions`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Cookie: `humans_session=${sessionToken ?? ""}`,
+              },
+              body: JSON.stringify(geoPayload),
+            });
           }
-          await fetch(`${PUBLIC_API_URL}/api/geo-interest-expressions`, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Cookie: `humans_session=${sessionToken ?? ""}`,
-            },
-            body: JSON.stringify(geoPayload),
-          });
         }
       } catch { /* ignore malformed JSON */ }
     }
 
     // Create route-interest expressions from JSON array
-    const routeInterestsRaw = (form.get("routeInterestsJson") as string)?.trim();
-    if (routeInterestsRaw) {
+    const routeInterestsRaw = formStr(form.get("routeInterestsJson")).trim();
+    if (routeInterestsRaw !== "") {
       try {
-        const routeItems = JSON.parse(routeInterestsRaw) as Array<{
-          id?: string; originCity?: string; originCountry?: string;
-          destinationCity?: string; destinationCountry?: string;
-          frequency?: string; travelYear?: number; travelMonth?: number; travelDay?: number; notes?: string;
-        }>;
-        for (const route of routeItems) {
-          const routePayload: Record<string, unknown> = {
-            humanId,
-            activityId,
-            frequency: route.frequency || "one_time",
-            notes: route.notes || undefined,
-          };
-          if (route.id) {
-            routePayload.routeInterestId = route.id;
-          } else {
-            routePayload.originCity = route.originCity;
-            routePayload.originCountry = route.originCountry;
-            routePayload.destinationCity = route.destinationCity;
-            routePayload.destinationCountry = route.destinationCountry;
+        const routeParsed: unknown = JSON.parse(routeInterestsRaw);
+        if (Array.isArray(routeParsed)) {
+          for (const routeRaw of routeParsed) {
+            const route = toRecord(routeRaw);
+            const routeId = typeof route.id === "string" ? route.id : "";
+            const routeFrequency = typeof route.frequency === "string" && route.frequency !== "" ? route.frequency : "one_time";
+            const routeNotes = typeof route.notes === "string" && route.notes !== "" ? route.notes : undefined;
+            const routePayload: Record<string, unknown> = {
+              humanId,
+              activityId,
+              frequency: routeFrequency,
+              notes: routeNotes,
+            };
+            if (routeId !== "") {
+              routePayload.routeInterestId = routeId;
+            } else {
+              routePayload.originCity = route.originCity;
+              routePayload.originCountry = route.originCountry;
+              routePayload.destinationCity = route.destinationCity;
+              routePayload.destinationCountry = route.destinationCountry;
+            }
+            if (typeof route.travelYear === "number") routePayload.travelYear = route.travelYear;
+            if (typeof route.travelMonth === "number") routePayload.travelMonth = route.travelMonth;
+            if (typeof route.travelDay === "number") routePayload.travelDay = route.travelDay;
+            await fetch(`${PUBLIC_API_URL}/api/route-interest-expressions`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Cookie: `humans_session=${sessionToken ?? ""}`,
+              },
+              body: JSON.stringify(routePayload),
+            });
           }
-          if (route.travelYear) routePayload.travelYear = route.travelYear;
-          if (route.travelMonth) routePayload.travelMonth = route.travelMonth;
-          if (route.travelDay) routePayload.travelDay = route.travelDay;
-          await fetch(`${PUBLIC_API_URL}/api/route-interest-expressions`, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Cookie: `humans_session=${sessionToken ?? ""}`,
-            },
-            body: JSON.stringify(routePayload),
-          });
         }
       } catch { /* ignore malformed JSON */ }
     }

@@ -2,6 +2,7 @@
   import "../app.css";
   import type { LayoutData } from "./$types";
   import { page } from "$app/stores";
+  import { resolve } from "$app/paths";
   import { Search, Users } from "lucide-svelte";
   import MobileNav from "$lib/components/MobileNav.svelte";
   import CommandPalette from "$lib/components/CommandPalette.svelte";
@@ -52,7 +53,9 @@
 </script>
 
 <svelte:head>
+  <!-- eslint-disable-next-line no-undef -->
   <link rel="icon" href="/favicon.png?v={__BUILD_TIMESTAMP__}" />
+  <!-- eslint-disable-next-line no-undef -->
   <link rel="apple-touch-icon" href="/apple-touch-icon.png?v={__BUILD_TIMESTAMP__}" />
   <link rel="manifest" href="/manifest.webmanifest" />
 </svelte:head>
@@ -76,11 +79,11 @@
       <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div class="flex h-16 items-center justify-between">
           <div class="flex items-center gap-8">
-            <a href="/dashboard" class="text-xl font-bold text-accent inline-flex items-center gap-2">
+            <a href={resolve('/dashboard')} class="text-xl font-bold text-accent inline-flex items-center gap-2">
               <Users size={22} /> Humans
             </a>
             <div class="hidden sm:flex sm:gap-1">
-              {#each navLinks as link}
+              {#each navLinks as link (link.href)}
                 <a
                   href={link.href}
                   class="rounded-lg px-3 py-2 text-sm font-medium transition-colors

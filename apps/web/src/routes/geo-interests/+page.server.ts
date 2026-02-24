@@ -3,7 +3,12 @@ import type { RequestEvent, ActionFailure } from "@sveltejs/kit";
 import { PUBLIC_API_URL } from "$env/static/public";
 import { isListData, failFromApi } from "$lib/server/api";
 
-export const load = async ({ locals, cookies }: RequestEvent) => {
+function getFormString(form: FormData, key: string): string {
+  const raw = form.get(key);
+  return typeof raw === "string" ? raw : "";
+}
+
+export const load = async ({ locals, cookies }: RequestEvent): Promise<{ geoInterests: unknown[]; userRole: string }> => {
   if (locals.user == null) redirect(302, "/login");
 
   const sessionToken = cookies.get("humans_session");
@@ -11,19 +16,19 @@ export const load = async ({ locals, cookies }: RequestEvent) => {
     headers: { Cookie: `humans_session=${sessionToken ?? ""}` },
   });
 
-  if (!res.ok) return { geoInterests: [], userRole: locals.user?.role ?? "viewer" };
+  if (!res.ok) return { geoInterests: [], userRole: locals.user.role };
   const raw: unknown = await res.json();
-  return { geoInterests: isListData(raw) ? raw.data : [], userRole: locals.user?.role ?? "viewer" };
+  return { geoInterests: isListData(raw) ? raw.data : [], userRole: locals.user.role };
 };
 
 export const actions = {
   create: async ({ request, cookies }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
     const form = await request.formData();
     const sessionToken = cookies.get("humans_session");
-    const city = (form.get("city") as string)?.trim();
-    const country = (form.get("country") as string)?.trim();
+    const city = getFormString(form, "city").trim();
+    const country = getFormString(form, "country").trim();
 
-    if (!city || !country) {
+    if (city === "" || country === "") {
       return fail(400, { error: "City and country are required." });
     }
 
@@ -47,7 +52,7 @@ export const actions = {
   delete: async ({ request, cookies }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
     const form = await request.formData();
     const sessionToken = cookies.get("humans_session");
-    const geoInterestId = form.get("id");
+    const geoInterestId = getFormString(form, "id");
 
     const res = await fetch(`${PUBLIC_API_URL}/api/geo-interests/${geoInterestId}`, {
       method: "DELETE",

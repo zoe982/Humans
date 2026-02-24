@@ -8,6 +8,6 @@ export const handleError: HandleClientError = ({ error }) => {
   }));
 
   return {
-    message: err.message || "An unexpected error occurred",
+    message: err.message !== "" ? err.message : "An unexpected error occurred",
   };
 };

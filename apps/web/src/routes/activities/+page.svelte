@@ -8,6 +8,7 @@
   import SearchableSelect from "$lib/components/SearchableSelect.svelte";
   import { Button } from "$lib/components/ui/button";
   import { formatDate } from "$lib/utils/format";
+  import { resolve } from "$app/paths";
 
   let { data, form }: { data: PageData; form: ActionData } = $props();
 
@@ -34,6 +35,7 @@
   const activities = $derived(data.activities as Activity[]);
 
   const paginationBaseUrl = $derived.by(() => {
+    // eslint-disable-next-line svelte/prefer-svelte-reactivity
     const params = new URLSearchParams();
     if (data.q) params.set("q", data.q);
     if (data.type) params.set("type", data.type);
@@ -50,10 +52,10 @@
 
   function linkedEntities(a: Activity): { label: string; href: string }[] {
     const links: { label: string; href: string }[] = [];
-    if (a.humanName && a.humanId) links.push({ label: a.humanName, href: `/humans/${a.humanId}` });
-    if (a.accountName && a.accountId) links.push({ label: a.accountName, href: `/accounts/${a.accountId}` });
-    if (a.routeSignupId) links.push({ label: `Signup ${a.routeSignupId.slice(0, 8)}...`, href: `/leads/route-signups/${a.routeSignupId}` });
-    if (a.websiteBookingRequestId) links.push({ label: `Booking ${a.websiteBookingRequestId.slice(0, 8)}...`, href: `/leads/website-booking-requests/${a.websiteBookingRequestId}` });
+    if (a.humanName && a.humanId) links.push({ label: a.humanName, href: resolve(`/humans/${a.humanId}`) });
+    if (a.accountName && a.accountId) links.push({ label: a.accountName, href: resolve(`/accounts/${a.accountId}`) });
+    if (a.routeSignupId) links.push({ label: `Signup ${a.routeSignupId.slice(0, 8)}...`, href: resolve(`/leads/route-signups/${a.routeSignupId}`) });
+    if (a.websiteBookingRequestId) links.push({ label: `Booking ${a.websiteBookingRequestId.slice(0, 8)}...`, href: resolve(`/leads/website-booking-requests/${a.websiteBookingRequestId}`) });
     return links;
   }
 </script>
@@ -111,7 +113,7 @@
   {/snippet}
   {#snippet desktopRow(activity)}
     <td class="font-mono text-sm whitespace-nowrap">
-      <a href="/activities/{activity.id}" class="text-accent hover:text-[var(--link-hover)]">{activity.displayId}</a>
+      <a href={resolve(`/activities/${activity.id}`)} class="text-accent hover:text-[var(--link-hover)]">{activity.displayId}</a>
     </td>
     <td>
       <span class="glass-badge {activityTypeColors[activity.type] ?? 'bg-glass text-text-secondary'}">
@@ -120,11 +122,11 @@
     </td>
     <td class="text-sm text-text-secondary">{activity.ownerName ?? "\u2014"}</td>
     <td class="font-medium">
-      <a href="/activities/{activity.id}" class="text-accent hover:text-[var(--link-hover)]">{activity.subject}</a>
+      <a href={resolve(`/activities/${activity.id}`)} class="text-accent hover:text-[var(--link-hover)]">{activity.subject}</a>
     </td>
     <td class="text-text-muted max-w-xs truncate">{truncate(activity.notes ?? activity.body, 80)}</td>
     <td>
-      {#each linkedEntities(activity) as entity, i}
+      {#each linkedEntities(activity) as entity, i (entity.href)}
         {#if i > 0}<span class="text-text-muted">, </span>{/if}
         <a href={entity.href} class="text-accent hover:text-[var(--link-hover)]">{entity.label}</a>
       {:else}
@@ -134,7 +136,7 @@
     <td class="text-text-muted">{formatDate(activity.activityDate)}</td>
   {/snippet}
   {#snippet mobileCard(activity)}
-    <a href="/activities/{activity.id}" class="glass-card p-4 block hover:ring-1 hover:ring-accent/40 transition">
+    <a href={resolve(`/activities/${activity.id}`)} class="glass-card p-4 block hover:ring-1 hover:ring-accent/40 transition">
       <span class="font-mono text-xs text-text-muted">{activity.displayId}</span>
       <div class="flex items-center justify-between mb-2">
         <span class="glass-badge text-xs {activityTypeColors[activity.type] ?? 'bg-glass text-text-secondary'}">

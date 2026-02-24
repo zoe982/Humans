@@ -3,11 +3,31 @@ import type { RequestEvent, ActionFailure } from "@sveltejs/kit";
 import { PUBLIC_API_URL } from "$env/static/public";
 import { failFromApi } from "$lib/server/api";
 
+interface Colleague {
+  id: string;
+  name: string;
+  displayId: string;
+}
+
 function isDataWithId(value: unknown): value is { data: { id: string } } {
   return typeof value === "object" && value !== null && "data" in value;
 }
 
-export const load = async ({ locals, cookies }: RequestEvent) => {
+function isColleaguesData(value: unknown): value is { data: Colleague[] } {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "data" in value &&
+    Array.isArray((value as { data: unknown }).data)
+  );
+}
+
+function getFormString(form: FormData, key: string): string {
+  const raw = form.get(key);
+  return typeof raw === "string" ? raw : "";
+}
+
+export const load = async ({ locals, cookies }: RequestEvent): Promise<{ colleagues: Colleague[] }> => {
   if (locals.user == null) redirect(302, "/login");
 
   // Fetch colleagues for the owner dropdown
@@ -16,11 +36,11 @@ export const load = async ({ locals, cookies }: RequestEvent) => {
     headers: { Cookie: `humans_session=${sessionToken ?? ""}` },
   });
 
-  let colleagues: { id: string; name: string; displayId: string }[] = [];
+  let colleagues: Colleague[] = [];
   if (colleaguesRes.ok) {
     const raw: unknown = await colleaguesRes.json();
-    if (typeof raw === "object" && raw !== null && "data" in raw && Array.isArray((raw as { data: unknown }).data)) {
-      colleagues = (raw as { data: { id: string; name: string; displayId: string }[] }).data;
+    if (isColleaguesData(raw)) {
+      colleagues = raw.data;
     }
   }
 
@@ -32,12 +52,17 @@ export const actions = {
     const form = await request.formData();
     const sessionToken = cookies.get("humans_session");
 
+    const notesVal = getFormString(form, "notes");
+    const ownerIdVal = getFormString(form, "ownerId");
+    const emailVal = getFormString(form, "email");
+    const phoneVal = getFormString(form, "phone");
+
     const payload = {
       source: form.get("source"),
-      notes: form.get("notes") || undefined,
-      ownerId: form.get("ownerId") || undefined,
-      email: form.get("email") || undefined,
-      phone: form.get("phone") || undefined,
+      notes: notesVal !== "" ? notesVal : undefined,
+      ownerId: ownerIdVal !== "" ? ownerIdVal : undefined,
+      email: emailVal !== "" ? emailVal : undefined,
+      phone: phoneVal !== "" ? phoneVal : undefined,
     };
 
     const res = await fetch(`${PUBLIC_API_URL}/api/general-leads`, {

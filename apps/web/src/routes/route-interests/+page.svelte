@@ -6,6 +6,7 @@
   import { Search } from "lucide-svelte";
   import { COUNTRIES } from "@humans/shared";
   import { Button } from "$lib/components/ui/button";
+  import { resolve } from "$app/paths";
 
   let { data, form }: { data: PageData; form: ActionData } = $props();
 
@@ -170,14 +171,14 @@
     {/snippet}
     {#snippet desktopRow(ri)}
       <td class="font-mono text-sm">
-        <a href="/route-interests/{ri.id}" class="text-accent hover:text-[var(--link-hover)]">{ri.displayId}</a>
+        <a href={resolve(`/route-interests/${ri.id}`)} class="text-accent hover:text-[var(--link-hover)]">{ri.displayId}</a>
       </td>
       <td>
-        <a href="/route-interests/{ri.id}" class="text-accent hover:text-[var(--link-hover)]">{ri.originCity}</a>
+        <a href={resolve(`/route-interests/${ri.id}`)} class="text-accent hover:text-[var(--link-hover)]">{ri.originCity}</a>
         <span class="text-text-muted text-sm">, {ri.originCountry}</span>
       </td>
       <td>
-        <a href="/route-interests/{ri.id}" class="text-accent hover:text-[var(--link-hover)]">{ri.destinationCity}</a>
+        <a href={resolve(`/route-interests/${ri.id}`)} class="text-accent hover:text-[var(--link-hover)]">{ri.destinationCity}</a>
         <span class="text-text-muted text-sm">, {ri.destinationCountry}</span>
       </td>
       <td>{ri.humanCount}</td>
@@ -185,7 +186,7 @@
       <td class="text-text-muted text-sm">{new Date(ri.createdAt).toLocaleDateString()}</td>
     {/snippet}
     {#snippet mobileCard(ri)}
-      <a href="/route-interests/{ri.id}" class="glass-card p-4 block hover:ring-1 hover:ring-accent/40 transition">
+      <a href={resolve(`/route-interests/${ri.id}`)} class="glass-card p-4 block hover:ring-1 hover:ring-accent/40 transition">
         <span class="font-mono text-xs text-text-muted">{ri.displayId}</span>
         <div class="flex items-center gap-2 mb-1">
           <span class="font-medium text-accent">{ri.originCity}</span>
@@ -234,7 +235,7 @@
     <!-- Mobile card view -->
     <div class="sm:hidden space-y-3">
       {#each filteredExpressions as expr (expr.id)}
-        <a href="/route-interests/expressions/{expr.id}" class="glass-card p-4 block hover:ring-1 hover:ring-accent/40 transition">
+        <a href={resolve(`/route-interests/expressions/${expr.id}`)} class="glass-card p-4 block hover:ring-1 hover:ring-accent/40 transition">
           <div class="flex items-center justify-between mb-1">
             <span class="font-mono text-xs text-text-muted">{expr.displayId}</span>
             <span class="glass-badge inline-flex rounded-full px-2 py-0.5 text-xs font-medium {expr.frequency === 'repeat' ? 'badge-purple' : 'bg-glass text-text-secondary'}">
@@ -278,17 +279,17 @@
           {#each filteredExpressions as expr (expr.id)}
             <tr class="glass-row-hover">
               <td class="font-mono text-sm">
-                <a href="/route-interests/expressions/{expr.id}" class="text-accent hover:text-[var(--link-hover)]">{expr.displayId}</a>
+                <a href={resolve(`/route-interests/expressions/${expr.id}`)} class="text-accent hover:text-[var(--link-hover)]">{expr.displayId}</a>
               </td>
               <td>
                 {#if expr.humanName}
-                  <a href="/humans/{expr.humanId}" class="text-accent hover:text-[var(--link-hover)]">{expr.humanName}</a>
+                  <a href={resolve(`/humans/${expr.humanId}`)} class="text-accent hover:text-[var(--link-hover)]">{expr.humanName}</a>
                 {:else}
                   <span class="text-text-muted">Unknown</span>
                 {/if}
               </td>
               <td>
-                <a href="/route-interests/{expr.routeInterestId}" class="text-accent hover:text-[var(--link-hover)]">
+                <a href={resolve(`/route-interests/${expr.routeInterestId}`)} class="text-accent hover:text-[var(--link-hover)]">
                   {expr.originCity ?? "\u2014"} &rarr; {expr.destinationCity ?? "\u2014"}
                 </a>
               </td>

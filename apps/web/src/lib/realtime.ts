@@ -8,19 +8,19 @@ let currentUserId: string | null = null;
 let invalidateTimer: ReturnType<typeof setTimeout> | null = null;
 let hasConnectedBefore = false;
 
-function scheduleInvalidation() {
-  if (invalidateTimer) return;
+function scheduleInvalidation(): void {
+  if (invalidateTimer != null) return;
   invalidateTimer = setTimeout(() => {
     invalidateTimer = null;
-    invalidateAll();
+    void invalidateAll();
   }, 300);
 }
 
-export function initRealtime(userId: string, sessionToken: string) {
-  if (!browser || socket) return;
+export function initRealtime(userId: string, sessionToken: string): void {
+  if (!browser || socket != null) return;
   currentUserId = userId;
 
-  const host = PUBLIC_API_URL
+  const host = PUBLIC_API_URL !== ""
     ? new URL(PUBLIC_API_URL).host
     : window.location.host;
 
@@ -32,14 +32,14 @@ export function initRealtime(userId: string, sessionToken: string) {
   });
 
   socket.addEventListener("open", () => {
-    if (hasConnectedBefore) invalidateAll();
+    if (hasConnectedBefore) void invalidateAll();
     hasConnectedBefore = true;
   });
 
   socket.addEventListener("message", (event: MessageEvent) => {
     try {
-      const data = JSON.parse(event.data as string);
-      if (data.actorId === currentUserId) return;
+      const raw: unknown = typeof event.data === "string" ? JSON.parse(event.data) : event.data;
+      if (typeof raw === "object" && raw !== null && "actorId" in raw && (raw as { actorId: unknown }).actorId === currentUserId) return;
       scheduleInvalidation();
     } catch {
       /* ignore malformed messages */
@@ -47,12 +47,12 @@ export function initRealtime(userId: string, sessionToken: string) {
   });
 }
 
-export function destroyRealtime() {
+export function destroyRealtime(): void {
   socket?.close();
   socket = null;
   currentUserId = null;
   hasConnectedBefore = false;
-  if (invalidateTimer) {
+  if (invalidateTimer != null) {
     clearTimeout(invalidateTimer);
     invalidateTimer = null;
   }

@@ -3,11 +3,27 @@ import type { RequestEvent, ActionFailure } from "@sveltejs/kit";
 import { PUBLIC_API_URL } from "$env/static/public";
 import { isObjData, isListData, failFromApi, fetchConfigs, authHeaders } from "$lib/server/api";
 
-export const load = async ({ locals, cookies, params }: RequestEvent) => {
+function formStr(value: FormDataEntryValue | null): string {
+  return typeof value === "string" ? value : "";
+}
+
+export const load = async ({ locals, cookies, params }: RequestEvent): Promise<{
+  opportunity: Record<string, unknown>;
+  colleagues: unknown[];
+  allHumans: unknown[];
+  allPets: unknown[];
+  roleConfigs: unknown[];
+  flightSummary: unknown[];
+  bookingRequests: { linked: unknown[]; available: unknown[] };
+  cadenceConfigs: unknown[];
+  apiUrl: string;
+  userRole: string;
+  currentColleagueId: string;
+}> => {
   if (locals.user == null) redirect(302, "/login");
 
   const sessionToken = cookies.get("humans_session");
-  const id = params.id;
+  const id = params.id ?? "";
 
   const oppRes = await fetch(`${PUBLIC_API_URL}/api/opportunities/${id}`, {
     headers: { Cookie: `humans_session=${sessionToken ?? ""}` },
@@ -50,8 +66,11 @@ export const load = async ({ locals, cookies, params }: RequestEvent) => {
     fetchList(`${PUBLIC_API_URL}/api/opportunity-cadence`),
   ]);
 
-  const bookingRequests = bookingRequestsRaw
-    ? { linked: (bookingRequestsRaw as { linked?: unknown[]; available?: unknown[] }).linked ?? [], available: (bookingRequestsRaw as { linked?: unknown[]; available?: unknown[] }).available ?? [] }
+  const bookingRequests = bookingRequestsRaw != null
+    ? {
+        linked: Array.isArray(bookingRequestsRaw.linked) ? bookingRequestsRaw.linked : [],
+        available: Array.isArray(bookingRequestsRaw.available) ? bookingRequestsRaw.available : [],
+      }
     : { linked: [] as unknown[], available: [] as unknown[] };
 
   return {
@@ -64,8 +83,8 @@ export const load = async ({ locals, cookies, params }: RequestEvent) => {
     bookingRequests,
     cadenceConfigs,
     apiUrl: PUBLIC_API_URL,
-    userRole: locals.user?.role ?? "viewer",
-    currentColleagueId: locals.user?.id ?? null,
+    userRole: locals.user.role,
+    currentColleagueId: locals.user.id,
   };
 };
 
@@ -73,13 +92,13 @@ export const actions = {
   linkHuman: async ({ request, cookies, params }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
     const form = await request.formData();
     const sessionToken = cookies.get("humans_session");
-    const id = params.id;
+    const id = params.id ?? "";
 
     const payload: Record<string, unknown> = {
       humanId: form.get("humanId"),
     };
-    const roleId = form.get("roleId") as string;
-    if (roleId) payload.roleId = roleId;
+    const roleId = formStr(form.get("roleId"));
+    if (roleId !== "") payload.roleId = roleId;
 
     const res = await fetch(`${PUBLIC_API_URL}/api/opportunities/${id}/humans`, {
       method: "POST",
@@ -101,8 +120,8 @@ export const actions = {
   unlinkHuman: async ({ request, cookies, params }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
     const form = await request.formData();
     const sessionToken = cookies.get("humans_session");
-    const id = params.id;
-    const linkId = form.get("linkId");
+    const id = params.id ?? "";
+    const linkId = formStr(form.get("linkId"));
 
     const res = await fetch(`${PUBLIC_API_URL}/api/opportunities/${id}/humans/${linkId}`, {
       method: "DELETE",
@@ -120,7 +139,7 @@ export const actions = {
   linkPet: async ({ request, cookies, params }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
     const form = await request.formData();
     const sessionToken = cookies.get("humans_session");
-    const id = params.id;
+    const id = params.id ?? "";
 
     const res = await fetch(`${PUBLIC_API_URL}/api/opportunities/${id}/pets`, {
       method: "POST",
@@ -142,8 +161,8 @@ export const actions = {
   unlinkPet: async ({ request, cookies, params }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
     const form = await request.formData();
     const sessionToken = cookies.get("humans_session");
-    const id = params.id;
-    const linkId = form.get("linkId");
+    const id = params.id ?? "";
+    const linkId = formStr(form.get("linkId"));
 
     const res = await fetch(`${PUBLIC_API_URL}/api/opportunities/${id}/pets/${linkId}`, {
       method: "DELETE",
@@ -161,7 +180,7 @@ export const actions = {
   linkFlight: async ({ request, cookies, params }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
     const form = await request.formData();
     const sessionToken = cookies.get("humans_session");
-    const id = params.id;
+    const id = params.id ?? "";
     const flightId = form.get("flightId");
 
     const res = await fetch(`${PUBLIC_API_URL}/api/opportunities/${id}/flight`, {
@@ -183,7 +202,7 @@ export const actions = {
 
   unlinkFlight: async ({ cookies, params }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
     const sessionToken = cookies.get("humans_session");
-    const id = params.id;
+    const id = params.id ?? "";
 
     const res = await fetch(`${PUBLIC_API_URL}/api/opportunities/${id}/flight`, {
       method: "DELETE",
@@ -201,7 +220,7 @@ export const actions = {
   linkBookingRequest: async ({ request, cookies, params }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
     const form = await request.formData();
     const sessionToken = cookies.get("humans_session");
-    const id = params.id;
+    const id = params.id ?? "";
     const bookingRequestLinkId = form.get("bookingRequestLinkId");
 
     const res = await fetch(`${PUBLIC_API_URL}/api/opportunities/${id}/booking-requests`, {
@@ -224,8 +243,8 @@ export const actions = {
   unlinkBookingRequest: async ({ request, cookies, params }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
     const form = await request.formData();
     const sessionToken = cookies.get("humans_session");
-    const id = params.id;
-    const linkId = form.get("linkId");
+    const id = params.id ?? "";
+    const linkId = formStr(form.get("linkId"));
 
     const res = await fetch(`${PUBLIC_API_URL}/api/opportunities/${id}/booking-requests/${linkId}`, {
       method: "DELETE",
@@ -244,11 +263,14 @@ export const actions = {
     const form = await request.formData();
     const sessionToken = cookies.get("humans_session");
 
+    const typeVal = formStr(form.get("type"));
+    const notesVal = formStr(form.get("notes"));
+    const activityDateVal = formStr(form.get("activityDate"));
     const payload = {
-      type: form.get("type") || "email",
+      type: typeVal !== "" ? typeVal : "email",
       subject: form.get("subject"),
-      notes: form.get("notes") || undefined,
-      activityDate: (() => { const v = form.get("activityDate") as string; return v ? new Date(v).toISOString() : new Date().toISOString(); })(),
+      notes: notesVal !== "" ? notesVal : undefined,
+      activityDate: activityDateVal !== "" ? new Date(activityDateVal).toISOString() : new Date().toISOString(),
       opportunityId: params.id,
     };
 

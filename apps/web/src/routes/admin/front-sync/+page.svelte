@@ -87,6 +87,7 @@
     let cursor: string | undefined;
     try {
       while (true) {
+        // eslint-disable-next-line svelte/prefer-svelte-reactivity
         const params = new URLSearchParams();
         if (cursor) params.set("cursor", cursor);
         const res = (await api(
@@ -168,6 +169,7 @@
     sheetOpen = true;
 
     try {
+      // eslint-disable-next-line svelte/prefer-svelte-reactivity
       const params = new URLSearchParams({ handle: contact.handle });
       const res = (await api(
         `/api/admin/front/conversations/${contact.conversationId}/debug?${params.toString()}`,
@@ -205,6 +207,7 @@
 
   async function continueSyncing(cursor: string) {
     try {
+      // eslint-disable-next-line svelte/prefer-svelte-reactivity
       const params = new URLSearchParams({ limit: "20", cursor });
       if (currentSyncRunId) params.set("syncRunId", currentSyncRunId);
       const res = (await api(`/api/admin/front/sync?${params.toString()}`, {
@@ -335,7 +338,7 @@
               </tr>
             </thead>
             <tbody>
-              {#each lastRunUnmatched as contact}
+              {#each lastRunUnmatched as contact (contact.conversationId)}
                 <tr
                   class="glass-row-hover cursor-pointer"
                   onclick={() => openDebugSheet(contact)}
@@ -450,7 +453,7 @@
                           </tr>
                         </thead>
                         <tbody>
-                          {#each runUnmatched as contact}
+                          {#each runUnmatched as contact (contact.conversationId)}
                             <tr
                               class="border-t border-yellow-500/10 hover:bg-yellow-500/10 cursor-pointer transition-colors"
                               onclick={() => openDebugSheet(contact)}
@@ -522,7 +525,7 @@
         {#if reclassifyErrors.length > 0}
           <p class="text-xs text-destructive-foreground mt-2">{reclassifyErrors.length} errors:</p>
           <ul class="text-xs text-destructive-foreground font-mono mt-1 max-h-32 overflow-y-auto">
-            {#each reclassifyErrors as err}
+            {#each reclassifyErrors as err (err)}
               <li>{err}</li>
             {/each}
           </ul>
@@ -607,7 +610,7 @@
                 </tr>
               </thead>
               <tbody>
-                {#each unmatchedContacts as contact}
+                {#each unmatchedContacts as contact (contact.conversationId)}
                   <tr class="border-t border-yellow-500/10">
                     <td class="py-1 pr-3 font-mono">{contact.handle}</td>
                     <td class="py-1 pr-3 text-text-secondary">{contact.name ?? "—"}</td>
@@ -626,7 +629,7 @@
         <div class="mt-4 rounded-lg border border-red-500/30 bg-red-500/10 p-4">
           <p class="text-sm font-medium text-destructive-foreground mb-2">Errors ({errorMessages.length}):</p>
           <ul class="space-y-1 text-xs text-destructive-foreground max-h-40 overflow-y-auto">
-            {#each errorMessages as err}
+            {#each errorMessages as err (err)}
               <li class="font-mono">{err}</li>
             {/each}
           </ul>
@@ -711,7 +714,7 @@
         <div class="mt-6 space-y-3">
           <h3 class="text-sm font-semibold text-text-primary">Matching Attempts</h3>
           <div class="space-y-2">
-            {#each sheetDebug.matchAttempts as attempt}
+            {#each sheetDebug.matchAttempts as attempt (attempt.source)}
               <div class="flex items-start gap-2 rounded-lg border border-glass-border p-2.5">
                 {#if attempt.found}
                   <CheckCircle2 size={16} class="text-[var(--badge-green-text)] mt-0.5 shrink-0" />

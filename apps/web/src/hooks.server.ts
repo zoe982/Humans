@@ -56,6 +56,6 @@ export const handleError: HandleServerError = ({ error }) => {
   }));
 
   return {
-    message: err.message || "An unexpected error occurred",
+    message: err.message !== "" ? err.message : "An unexpected error occurred",
   };
 };

@@ -5,6 +5,7 @@
   import { activityTypeLabels } from "$lib/constants/labels";
   import { Button } from "$lib/components/ui/button";
   import { formatDate } from "$lib/utils/format";
+  import { resolve } from "$app/paths";
 
   let { data }: { data: PageData } = $props();
 
@@ -89,10 +90,10 @@
       <ul class="mt-3 glass-card divide-y divide-glass-border">
         {#each accounts as account (account.id)}
           <li>
-            <a href="/accounts/{account.id}" class="block px-6 py-4 hover:bg-glass-hover transition-colors">
+            <a href={resolve(`/accounts/${account.id}`)} class="block px-6 py-4 hover:bg-glass-hover transition-colors">
               <div class="flex items-center gap-2">
                 <p class="text-sm font-medium text-accent">{account.name}</p>
-                {#each account.types as t}
+                {#each account.types as t (t.id)}
                   <span class="glass-badge badge-purple text-xs">{t.name}</span>
                 {/each}
               </div>
@@ -109,7 +110,7 @@
       <ul class="mt-3 glass-card divide-y divide-glass-border">
         {#each humans as human (human.id)}
           <li>
-            <a href="/humans/{human.id}" class="block px-6 py-4 hover:bg-glass-hover transition-colors">
+            <a href={resolve(`/humans/${human.id}`)} class="block px-6 py-4 hover:bg-glass-hover transition-colors">
               <p class="text-sm font-medium text-accent">{human.firstName} {human.lastName}</p>
               {#if human.emails?.length > 0}
                 <p class="text-xs text-text-muted">{human.emails.map((e) => e.email).join(", ")}</p>
@@ -127,7 +128,7 @@
       <ul class="mt-3 glass-card divide-y divide-glass-border">
         {#each routeSignups as signup (signup.id)}
           <li>
-            <a href="/leads/route-signups/{signup.id}" class="block px-6 py-4 hover:bg-glass-hover transition-colors">
+            <a href={resolve(`/leads/route-signups/${signup.id}`)} class="block px-6 py-4 hover:bg-glass-hover transition-colors">
               <div class="flex items-center justify-between">
                 <p class="text-sm font-medium text-accent">
                   {[signup.first_name, signup.last_name].filter(Boolean).join(" ") || signup.email || "—"}
@@ -164,9 +165,9 @@
             </div>
             <div class="mt-1">
               {#if activity.humanId}
-                <a href="/humans/{activity.humanId}" class="text-xs text-accent hover:text-[var(--link-hover)]">View Human</a>
+                <a href={resolve(`/humans/${activity.humanId}`)} class="text-xs text-accent hover:text-[var(--link-hover)]">View Human</a>
               {:else if activity.routeSignupId}
-                <a href="/leads/route-signups/{activity.routeSignupId}" class="text-xs text-accent hover:text-[var(--link-hover)]">View Signup</a>
+                <a href={resolve(`/leads/route-signups/${activity.routeSignupId}`)} class="text-xs text-accent hover:text-[var(--link-hover)]">View Signup</a>
               {/if}
             </div>
           </li>
@@ -181,7 +182,7 @@
       <ul class="mt-3 glass-card divide-y divide-glass-border">
         {#each geoInterests as gi (gi.id)}
           <li>
-            <a href="/geo-interests/{gi.id}" class="block px-6 py-4 hover:bg-glass-hover transition-colors">
+            <a href={resolve(`/geo-interests/${gi.id}`)} class="block px-6 py-4 hover:bg-glass-hover transition-colors">
               <p class="text-sm font-medium text-accent">{gi.city}, {gi.country}</p>
               <p class="text-xs text-text-muted">
                 {gi.humanCount} human{gi.humanCount !== 1 ? "s" : ""} &middot;

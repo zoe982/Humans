@@ -11,6 +11,7 @@
   import SearchableSelect from "$lib/components/SearchableSelect.svelte";
   import NextActionSection from "$lib/components/NextActionSection.svelte";
   import { Button } from "$lib/components/ui/button";
+  import { resolve } from "$app/paths";
   import { formatDateTime, formatRelativeTime } from "$lib/utils/format";
   import { routeSignupStatuses } from "@humans/shared";
 
@@ -221,7 +222,7 @@
           </div>
           {#if searchResults.length > 0}
             <ul class="mt-2 divide-y divide-glass-border rounded-xl border border-glass-border overflow-hidden">
-              {#each searchResults as human}
+              {#each searchResults as human (human.id)}
                 <li class="flex items-center justify-between px-4 py-3 bg-glass hover:bg-glass-hover transition-colors">
                   <div>
                     <p class="text-sm font-medium text-text-primary">{human.firstName} {human.lastName}</p>
@@ -283,10 +284,12 @@
     >
       {#snippet row(activity, searchQuery)}
         <td class="font-mono text-sm whitespace-nowrap">
-          <a href="/activities/{activity.id}" class="text-accent hover:text-[var(--link-hover)]">{activity.displayId}</a>
+          <a href={resolve(`/activities/${activity.id}`)} class="text-accent hover:text-[var(--link-hover)]">{activity.displayId}</a>
         </td>
         <td>
+          <!-- eslint-disable-next-line security/detect-object-injection -->
           <span class="glass-badge inline-flex rounded-full px-2 py-0.5 text-xs font-medium {activityTypeColors[activity.type] ?? 'bg-glass text-text-secondary'}">
+            <!-- eslint-disable-next-line security/detect-object-injection -->
             <HighlightText text={activityTypeLabels[activity.type] ?? activity.type} query={searchQuery} />
           </span>
         </td>

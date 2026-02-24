@@ -27,11 +27,11 @@
 			</CalendarPrimitive.NextButton>
 		</CalendarPrimitive.Header>
 
-		{#each months as month}
+		{#each months as month (month.value)}
 			<CalendarPrimitive.Grid class="mt-3 w-full border-collapse">
 				<CalendarPrimitive.GridHead>
 					<CalendarPrimitive.GridRow class="flex">
-						{#each weekdays as day}
+						{#each weekdays as day (day)}
 							<CalendarPrimitive.HeadCell
 								class="w-8 text-center text-xs font-normal text-text-muted"
 							>
@@ -41,9 +41,9 @@
 					</CalendarPrimitive.GridRow>
 				</CalendarPrimitive.GridHead>
 				<CalendarPrimitive.GridBody>
-					{#each month.weeks as weekDates}
+					{#each month.weeks as weekDates, wi (wi)}
 						<CalendarPrimitive.GridRow class="mt-1 flex">
-							{#each weekDates as date}
+							{#each weekDates as date (date.toString())}
 								<CalendarPrimitive.Cell
 									{date}
 									month={month.value}

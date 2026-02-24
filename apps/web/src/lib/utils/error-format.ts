@@ -17,9 +17,9 @@ export function formatErrorForClipboard(entry: ErrorEntry): string {
   const lines = [
     `Error: ${entry.displayId}`,
     `Code: ${entry.code}`,
-    `HTTP Status: ${entry.status}`,
+    `HTTP Status: ${String(entry.status)}`,
     `Message: ${entry.message}`,
-    `Path: ${entry.method ?? ""} ${entry.path ?? ""}`.trim() || "—",
+    `Path: ${entry.method ?? ""} ${entry.path ?? ""}`.trim() !== "" ? `Path: ${entry.method ?? ""} ${entry.path ?? ""}`.trim() : "—",
     `Time: ${entry.createdAt}`,
     `Request ID: ${entry.requestId}`,
     `User ID: ${entry.userId ?? "—"}`,
@@ -29,11 +29,11 @@ export function formatErrorForClipboard(entry: ErrorEntry): string {
     try {
       lines.push(`Details:\n${JSON.stringify(entry.details, null, 2)}`);
     } catch {
-      lines.push(`Details:\n${String(entry.details)}`);
+      lines.push(`Details:\n[unstringifiable]`);
     }
   }
 
-  if (entry.stack) {
+  if (entry.stack != null && entry.stack !== "") {
     lines.push(`Stack Trace:\n${entry.stack}`);
   }
 

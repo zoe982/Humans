@@ -3,7 +3,7 @@ import type { RequestEvent, ActionFailure } from "@sveltejs/kit";
 import { PUBLIC_API_URL } from "$env/static/public";
 import { isListData, isObjData, failFromApi, fetchConfigs, authHeaders } from "$lib/server/api";
 
-export const load = async ({ locals, cookies }: RequestEvent) => {
+export const load = async ({ locals, cookies }: RequestEvent): Promise<{ allHumans: unknown[]; platformConfigs: unknown[] }> => {
   if (locals.user == null) redirect(302, "/login");
 
   const sessionToken = cookies.get("humans_session") ?? "";
@@ -29,10 +29,12 @@ export const actions = {
     const form = await request.formData();
     const sessionToken = cookies.get("humans_session");
 
+    const platformIdRaw = form.get("platformId");
+    const humanIdRaw = form.get("humanId");
     const payload = {
       handle: form.get("handle"),
-      platformId: form.get("platformId") || undefined,
-      humanId: form.get("humanId") || undefined,
+      platformId: typeof platformIdRaw === "string" && platformIdRaw !== "" ? platformIdRaw : undefined,
+      humanId: typeof humanIdRaw === "string" && humanIdRaw !== "" ? humanIdRaw : undefined,
     };
 
     const res = await fetch(`${PUBLIC_API_URL}/api/social-ids`, {
@@ -54,6 +56,7 @@ export const actions = {
       return fail(500, { error: "Unexpected response" });
     }
 
-    redirect(302, `/social-ids/${(created.data as { id: string }).id}`);
+    const createdId = "id" in created.data ? String(created.data["id"]) : "";
+    redirect(302, `/social-ids/${createdId}`);
   },
 };

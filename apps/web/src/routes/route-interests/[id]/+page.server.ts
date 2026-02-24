@@ -3,11 +3,19 @@ import type { RequestEvent, ActionFailure } from "@sveltejs/kit";
 import { PUBLIC_API_URL } from "$env/static/public";
 import { isObjData, isListData, failFromApi } from "$lib/server/api";
 
-export const load = async ({ locals, cookies, params }: RequestEvent) => {
+function formStr(value: FormDataEntryValue | null): string {
+  return typeof value === "string" ? value : "";
+}
+
+export const load = async ({ locals, cookies, params }: RequestEvent): Promise<{
+  routeInterest: Record<string, unknown>;
+  humans: unknown[];
+  reverseRoute: Record<string, unknown> | null;
+}> => {
   if (locals.user == null) redirect(302, "/login");
 
   const sessionToken = cookies.get("humans_session");
-  const id = params.id;
+  const id = params.id ?? "";
   const headers = { Cookie: `humans_session=${sessionToken ?? ""}` };
 
   const [riRes, humansRes, listRes] = await Promise.all([
@@ -25,22 +33,27 @@ export const load = async ({ locals, cookies, params }: RequestEvent) => {
   const humans = isListData(humansRaw) ? humansRaw.data : [];
 
   // Find reverse route (swap origin/destination)
-  const ri = routeInterest as { id: string; originCity: string; originCountry: string; destinationCity: string; destinationCountry: string };
+  // routeInterest is Record<string, unknown> from isObjData — access fields directly
+  const riId = routeInterest.id;
+  const riOriginCity = routeInterest.originCity;
+  const riOriginCountry = routeInterest.originCountry;
+  const riDestCity = routeInterest.destinationCity;
+  const riDestCountry = routeInterest.destinationCountry;
   let reverseRoute: Record<string, unknown> | null = null;
 
   if (listRes.ok) {
     const listRaw: unknown = await listRes.json();
     if (isListData(listRaw)) {
-      const reverseEntry = (listRaw.data as Array<Record<string, unknown>>).find(
-        (r) =>
-          r.id !== ri.id &&
-          r.originCity === ri.destinationCity &&
-          r.originCountry === ri.destinationCountry &&
-          r.destinationCity === ri.originCity &&
-          r.destinationCountry === ri.originCountry,
-      );
-      if (reverseEntry) {
-        const reverseRes = await fetch(`${PUBLIC_API_URL}/api/route-interests/${reverseEntry.id as string}`, { headers });
+      const reverseEntry = listRaw.data.find((item) => {
+        if (typeof item !== "object" || item === null) return false;
+        return "id" in item && item.id !== riId &&
+          "originCity" in item && item.originCity === riDestCity &&
+          "originCountry" in item && item.originCountry === riDestCountry &&
+          "destinationCity" in item && item.destinationCity === riOriginCity &&
+          "destinationCountry" in item && item.destinationCountry === riOriginCountry;
+      });
+      if (reverseEntry != null && typeof reverseEntry === "object" && "id" in reverseEntry) {
+        const reverseRes = await fetch(`${PUBLIC_API_URL}/api/route-interests/${String(reverseEntry.id)}`, { headers });
         if (reverseRes.ok) {
           const reverseRaw: unknown = await reverseRes.json();
           if (isObjData(reverseRaw)) {
@@ -55,9 +68,9 @@ export const load = async ({ locals, cookies, params }: RequestEvent) => {
 };
 
 export const actions = {
-  delete: async ({ cookies, params }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | void> => {
+  delete: async ({ cookies, params }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | undefined> => {
     const sessionToken = cookies.get("humans_session");
-    const id = params.id;
+    const id = params.id ?? "";
 
     const res = await fetch(`${PUBLIC_API_URL}/api/route-interests/${id}`, {
       method: "DELETE",
@@ -77,7 +90,7 @@ export const actions = {
   deleteExpression: async ({ request, cookies }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
     const form = await request.formData();
     const sessionToken = cookies.get("humans_session");
-    const expressionId = form.get("expressionId");
+    const expressionId = formStr(form.get("expressionId"));
 
     const res = await fetch(`${PUBLIC_API_URL}/api/route-interest-expressions/${expressionId}`, {
       method: "DELETE",
@@ -97,11 +110,13 @@ export const actions = {
   createExpression: async ({ request, cookies, params }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
     const form = await request.formData();
     const sessionToken = cookies.get("humans_session");
-    const humanId = (form.get("humanId") as string)?.trim();
-    const notes = (form.get("notes") as string)?.trim() || undefined;
-    const frequency = (form.get("frequency") as string) || "one_time";
+    const humanId = formStr(form.get("humanId")).trim();
+    const notesRaw = formStr(form.get("notes")).trim();
+    const notes = notesRaw !== "" ? notesRaw : undefined;
+    const frequencyVal = formStr(form.get("frequency"));
+    const frequency = frequencyVal !== "" ? frequencyVal : "one_time";
 
-    if (!humanId) {
+    if (humanId === "") {
       return fail(400, { error: "Please select a human." });
     }
 
@@ -112,12 +127,12 @@ export const actions = {
       frequency,
     };
 
-    const travelYearStr = form.get("travelYear") as string;
-    if (travelYearStr) payload.travelYear = parseInt(travelYearStr, 10);
-    const travelMonthStr = form.get("travelMonth") as string;
-    if (travelMonthStr) payload.travelMonth = parseInt(travelMonthStr, 10);
-    const travelDayStr = form.get("travelDay") as string;
-    if (travelDayStr) payload.travelDay = parseInt(travelDayStr, 10);
+    const travelYearStr = formStr(form.get("travelYear"));
+    if (travelYearStr !== "") payload.travelYear = parseInt(travelYearStr, 10);
+    const travelMonthStr = formStr(form.get("travelMonth"));
+    if (travelMonthStr !== "") payload.travelMonth = parseInt(travelMonthStr, 10);
+    const travelDayStr = formStr(form.get("travelDay"));
+    if (travelDayStr !== "") payload.travelDay = parseInt(travelDayStr, 10);
 
     const res = await fetch(`${PUBLIC_API_URL}/api/route-interest-expressions`, {
       method: "POST",

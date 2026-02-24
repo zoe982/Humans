@@ -16,10 +16,10 @@ export const load = async ({ locals, cookies, url }: RequestEvent): Promise<{ er
   const sessionToken = cookies.get("humans_session");
 
   const params = new URLSearchParams({ limit: String(limit), offset: String(offset) });
-  if (codeFilter) params.set("code", codeFilter);
-  if (dateFrom) params.set("dateFrom", dateFrom);
-  if (dateTo) params.set("dateTo", dateTo);
-  if (resolutionStatus) params.set("resolutionStatus", resolutionStatus);
+  if (codeFilter !== "") params.set("code", codeFilter);
+  if (dateFrom !== "") params.set("dateFrom", dateFrom);
+  if (dateTo !== "") params.set("dateTo", dateTo);
+  if (resolutionStatus !== "") params.set("resolutionStatus", resolutionStatus);
 
   const res = await fetch(
     `${PUBLIC_API_URL}/api/admin/error-log?${params.toString()}`,
@@ -36,13 +36,15 @@ export const load = async ({ locals, cookies, url }: RequestEvent): Promise<{ er
 };
 
 export const actions = {
-  toggleResolution: async ({ request, locals, cookies }: RequestEvent) => {
+  toggleResolution: async ({ request, locals, cookies }: RequestEvent): Promise<{ success: true }> => {
     if (locals.user == null) redirect(302, "/login");
     if (locals.user.role !== "admin") redirect(302, "/dashboard");
 
     const form = await request.formData();
-    const id = form.get("id") as string;
-    const resolutionStatus = form.get("resolutionStatus") as string;
+    const idRaw = form.get("id");
+    const id = typeof idRaw === "string" ? idRaw : "";
+    const resolutionStatusRaw = form.get("resolutionStatus");
+    const resolutionStatus = typeof resolutionStatusRaw === "string" ? resolutionStatusRaw : "";
     const sessionToken = cookies.get("humans_session");
 
     await fetch(`${PUBLIC_API_URL}/api/admin/error-log/${id}/resolution`, {

@@ -21,6 +21,7 @@
   import { formatRelativeTime, formatDateTime, formatDate, summarizeChanges } from "$lib/utils/format";
   import { onDestroy } from "svelte";
   import { Button } from "$lib/components/ui/button";
+  import { resolve } from "$app/paths";
 
   let { data, form }: { data: PageData; form: ActionData } = $props();
 
@@ -183,6 +184,7 @@
   let historyEntries = $state<AuditEntry[]>([]);
   let historyLoaded = $state(false);
 
+  // eslint-disable-next-line svelte/prefer-writable-derived
   let activities = $state<Activity[]>([]);
   $effect(() => { activities = opportunity.activities; });
 
@@ -457,7 +459,7 @@
         <label for="linkedFlight" class="block text-sm font-medium text-text-secondary">Linked Flight</label>
         {#if linkedFlight}
           <div class="flex items-center gap-2 mt-1 h-10">
-            <a href="/flights/{linkedFlight.id}" class="font-mono text-sm text-accent hover:text-[var(--link-hover)]">{linkedFlight.crm_display_id ?? "Flight"}</a>
+            <a href={resolve(`/flights/${linkedFlight.id}`)} class="font-mono text-sm text-accent hover:text-[var(--link-hover)]">{linkedFlight.crm_display_id ?? "Flight"}</a>
             <span class="text-text-secondary text-sm truncate">{linkedFlight.origin_city ?? "?"} &rarr; {linkedFlight.destination_city ?? "?"}</span>
             <form method="POST" action="?/unlinkFlight" class="ml-auto shrink-0">
               <Button type="submit" variant="ghost" size="sm">Unlink</Button>
@@ -524,10 +526,10 @@
     >
       {#snippet row(link, _searchQuery)}
         <td class="font-mono text-sm whitespace-nowrap">
-          <a href="/humans/{link.humanId}" class="text-accent hover:text-[var(--link-hover)]">{link.humanDisplayId}</a>
+          <a href={resolve(`/humans/${link.humanId}`)} class="text-accent hover:text-[var(--link-hover)]">{link.humanDisplayId}</a>
         </td>
         <td>
-          <a href="/humans/{link.humanId}" class="text-sm font-medium text-accent hover:text-[var(--link-hover)]">{link.humanName}</a>
+          <a href={resolve(`/humans/${link.humanId}`)} class="text-sm font-medium text-accent hover:text-[var(--link-hover)]">{link.humanName}</a>
         </td>
         <td>
           {#if link.roleName}
@@ -609,10 +611,10 @@
     >
       {#snippet row(link, _searchQuery)}
         <td class="font-mono text-sm whitespace-nowrap">
-          <a href="/pets/{link.petId}" class="text-accent hover:text-[var(--link-hover)]">{link.petDisplayId}</a>
+          <a href={resolve(`/pets/${link.petId}`)} class="text-accent hover:text-[var(--link-hover)]">{link.petDisplayId}</a>
         </td>
         <td>
-          <a href="/pets/{link.petId}" class="text-sm font-medium text-accent hover:text-[var(--link-hover)]">{link.petName}</a>
+          <a href={resolve(`/pets/${link.petId}`)} class="text-sm font-medium text-accent hover:text-[var(--link-hover)]">{link.petName}</a>
         </td>
         <td>
           <span class="glass-badge inline-flex rounded-full px-2 py-0.5 text-xs font-medium {link.petType === 'cat' ? 'badge-purple' : 'badge-blue'}">
@@ -716,10 +718,11 @@
               <input type="hidden" name="type" value={newActivityType} />
               <Select.Root type="single" value={newActivityType} onValueChange={(v) => { if (v) newActivityType = v; }}>
                 <Select.Trigger>
+                  <!-- eslint-disable-next-line security/detect-object-injection -->
                   {activityTypeLabels[newActivityType] ?? "Select type..."}
                 </Select.Trigger>
                 <Select.Content>
-                  {#each ACTIVITY_TYPE_OPTIONS as opt}
+                  {#each ACTIVITY_TYPE_OPTIONS as opt (opt.value)}
                     <Select.Item value={opt.value}>{opt.label}</Select.Item>
                   {/each}
                 </Select.Content>
@@ -803,6 +806,7 @@
           </div>
           <div>
             <span class="block text-xs font-medium text-text-muted uppercase tracking-wide">Type</span>
+            <!-- eslint-disable-next-line security/detect-object-injection -->
             <p class="mt-1 text-sm text-text-primary">{activityTypeLabels[naType] ?? naType}</p>
           </div>
           <div>
@@ -855,6 +859,7 @@
             <input type="hidden" name="naType" value={naType} />
             <Select.Root type="single" value={naType} onValueChange={(v) => { if (v) { naType = v; triggerNaSave(); } }}>
               <Select.Trigger>
+                <!-- eslint-disable-next-line security/detect-object-injection -->
                 {activityTypeLabels[naType] ?? "Select type..."}
               </Select.Trigger>
               <Select.Content>

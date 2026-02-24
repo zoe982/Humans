@@ -2,6 +2,14 @@ import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
 import { PUBLIC_API_URL } from "$env/static/public";
 
+interface ApiSearchResponse {
+  humans?: unknown[];
+}
+
+function isApiSearchResponse(value: unknown): value is ApiSearchResponse {
+  return typeof value === "object" && value !== null;
+}
+
 export const GET: RequestHandler = async ({ url, cookies }) => {
   const q = url.searchParams.get("q") ?? "";
   if (q.trim().length === 0) {
@@ -17,6 +25,7 @@ export const GET: RequestHandler = async ({ url, cookies }) => {
     return json({ humans: [] });
   }
 
-  const data = await res.json();
+  const raw: unknown = await res.json();
+  const data: ApiSearchResponse = isApiSearchResponse(raw) ? raw : {};
   return json({ humans: data.humans ?? [] });
 };

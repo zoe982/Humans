@@ -56,12 +56,72 @@ export function classifyChannel(
   return "social_message";
 }
 
+// --- Author name resolution ---
+
+/**
+ * Resolve the human-readable author name for a Front message.
+ * Fallback chain:
+ * 1. message.author.name
+ * 2. message.author.handle → colleague name (outbound) or raw handle
+ * 3. recipients "from" role name
+ * 4. recipients "from" role handle → colleague name (outbound) or raw handle
+ * 5. conversation.recipient.name (inbound only)
+ * 6. "Unknown"
+ */
+export function resolveAuthorName(
+  message: {
+    is_inbound: boolean;
+    author?: { handle: string; name?: string };
+    recipients: { handle: string; role: string; name?: string }[];
+  },
+  conversation: { recipient?: { handle: string; name?: string } },
+  colleagues: { id: string; email: string; name: string }[],
+): string {
+  // 1. message.author.name
+  if (message.author?.name != null && message.author.name !== "") {
+    return message.author.name;
+  }
+
+  // 2. message.author.handle → colleague name or raw handle
+  if (message.author?.handle != null && message.author.handle !== "") {
+    const authorHandle = message.author.handle;
+    const colleague = colleagues.find(
+      (c) => c.email.toLowerCase() === authorHandle.toLowerCase(),
+    );
+    if (colleague != null) return colleague.name;
+    return message.author.handle;
+  }
+
+  // 3. recipients "from" role name
+  const fromRecipient = message.recipients.find((r) => r.role === "from");
+  if (fromRecipient?.name != null && fromRecipient.name !== "") {
+    return fromRecipient.name;
+  }
+
+  // 4. recipients "from" role handle → colleague name or raw handle
+  if (fromRecipient?.handle != null && fromRecipient.handle !== "") {
+    const colleague = colleagues.find(
+      (c) => c.email.toLowerCase() === fromRecipient.handle.toLowerCase(),
+    );
+    if (colleague != null) return colleague.name;
+    return fromRecipient.handle;
+  }
+
+  // 5. conversation.recipient.name (inbound only)
+  if (message.is_inbound && conversation.recipient?.name != null && conversation.recipient.name !== "") {
+    return conversation.recipient.name;
+  }
+
+  // 6. Fallback
+  return "Unknown";
+}
+
 // --- Cached reference data (fixes subrequest limits) ---
 
 interface CachedReferenceData {
   allEmails: { id: string; email: string; ownerType: string; ownerId: string }[];
   allPhones: { id: string; phoneNumber: string; ownerType: string; ownerId: string }[];
-  allColleagues: { id: string; email: string }[];
+  allColleagues: { id: string; email: string; name: string }[];
   allLeads: { id: string; email: string | null; phone: string | null }[];
   allAccountHumans: { accountId: string; humanId: string }[];
   allSignups: { id: string; email?: string | null; phone?: string | null; whatsapp_phone?: string | null }[];
@@ -84,7 +144,7 @@ async function preloadReferenceData(db: DB, supabase: SupabaseClient): Promise<C
   ] = await Promise.all([
     db.select({ id: emails.id, email: emails.email, ownerType: emails.ownerType, ownerId: emails.ownerId }).from(emails),
     db.select({ id: phones.id, phoneNumber: phones.phoneNumber, ownerType: phones.ownerType, ownerId: phones.ownerId }).from(phones),
-    db.select({ id: colleagues.id, email: colleagues.email }).from(colleagues),
+    db.select({ id: colleagues.id, email: colleagues.email, name: colleagues.name }).from(colleagues),
     db.select({ id: generalLeads.id, email: generalLeads.email, phone: generalLeads.phone }).from(generalLeads),
     db.select({ accountId: accountHumans.accountId, humanId: accountHumans.humanId }).from(accountHumans),
     supabase.from("announcement_signups").select("id, email, phone, whatsapp_phone"),
@@ -138,6 +198,16 @@ function findAccountForHuman(cache: CachedReferenceData, humanId: string): strin
 
 function findColleagueByEmail(cache: CachedReferenceData, email: string): string | null {
   const match = cache.allColleagues.find(
+    (c) => c.email.toLowerCase() === email.toLowerCase(),
+  );
+  return match?.id ?? null;
+}
+
+function findColleagueIdByEmail(
+  colleagueRows: { id: string; email: string; name: string }[],
+  email: string,
+): string | null {
+  const match = colleagueRows.find(
     (c) => c.email.toLowerCase() === email.toLowerCase(),
   );
   return match?.id ?? null;
@@ -335,7 +405,7 @@ interface FrontMessage {
   body: string;
   text: string;
   author?: { handle: string; name?: string };
-  recipients: { handle: string; role: string }[];
+  recipients: { handle: string; role: string; name?: string }[];
 }
 
 interface FrontConversation {
@@ -396,6 +466,10 @@ export interface UnmatchedContact {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
+function isFrontConversation(value: unknown): value is FrontConversation {
+  return isRecord(value) && typeof value["id"] === "string";
 }
 
 function isPaginated<T>(value: unknown): value is FrontPaginatedResponse<T> {
@@ -593,9 +667,18 @@ async function processConversation(
 
     // Auto-link colleague based on message author
     let colleagueId: string | null = null;
-    if (!message.is_inbound && message.author?.handle != null) {
-      colleagueId = findColleagueByEmail(cache, message.author.handle);
-    } else if (message.is_inbound) {
+    if (!message.is_inbound) {
+      // Try author handle first, then from-recipient handle
+      if (message.author?.handle != null) {
+        colleagueId = findColleagueByEmail(cache, message.author.handle);
+      }
+      if (colleagueId == null) {
+        const fromR = message.recipients.find(r => r.role === "from");
+        if (fromR != null) {
+          colleagueId = findColleagueByEmail(cache, fromR.handle);
+        }
+      }
+    } else {
       for (const recipient of message.recipients) {
         if (recipient.role === "to" || recipient.role === "cc") {
           const cid = findColleagueByEmail(cache, recipient.handle);
@@ -620,7 +703,7 @@ async function processConversation(
 
     // Build notes with metadata
     const direction = message.is_inbound ? "Inbound" : "Outbound";
-    const authorInfo = message.author?.name ?? message.author?.handle ?? "Unknown";
+    const authorInfo = resolveAuthorName(message, conversation, cache.allColleagues);
     const noteLines: string[] = [];
 
     noteLines.push(`${direction} from ${authorInfo}`);
@@ -654,6 +737,7 @@ async function processConversation(
       frontId: message.id,
       frontConversationId: conversation.id,
       frontContactHandle: effectiveContactHandle !== "" ? effectiveContactHandle : null,
+      senderName: authorInfo !== "Unknown" ? authorInfo : null,
       direction: message.is_inbound ? "inbound" : "outbound",
       syncRunId,
       colleagueId,
@@ -1306,6 +1390,163 @@ export async function reclassifyActivities(
               sql`${activities.type} != ${correctType}`,
             ),
           );
+        updated++;
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      errors.push(`${convId}: ${msg}`);
+    }
+  }
+
+  return { updated, checked, errors, nextCursor };
+}
+
+// --- Backfill author names for existing activities ---
+
+export async function backfillAuthorNames(
+  db: DB,
+  frontToken: string,
+  cursor?: string,
+): Promise<{
+  updated: number;
+  checked: number;
+  errors: string[];
+  nextCursor: string | null;
+}> {
+  const BATCH_SIZE = 20;
+
+  // Load colleague data for author resolution
+  const colleagueRows = await db
+    .select({ id: colleagues.id, email: colleagues.email, name: colleagues.name })
+    .from(colleagues);
+
+  // Get activities that need backfilling: no sender_name but have a front_id
+  const rows = await db
+    .select({
+      id: activities.id,
+      frontId: activities.frontId,
+      frontConversationId: activities.frontConversationId,
+      direction: activities.direction,
+      senderName: activities.senderName,
+    })
+    .from(activities)
+    .where(
+      and(
+        sql`${activities.senderName} IS NULL`,
+        sql`${activities.frontId} IS NOT NULL`,
+      ),
+    )
+    .orderBy(activities.frontConversationId);
+
+  let updated = 0;
+  let checked = 0;
+  const errors: string[] = [];
+  let nextCursor: string | null = null;
+
+  // Group activities by conversation for batch processing
+  const conversationGroups = new Map<string, typeof rows>();
+  for (const row of rows) {
+    if (row.frontConversationId == null) continue;
+    const group = conversationGroups.get(row.frontConversationId);
+    if (group != null) {
+      group.push(row);
+    } else {
+      conversationGroups.set(row.frontConversationId, [row]);
+    }
+  }
+
+  const conversationIds = [...conversationGroups.keys()];
+
+  // Handle cursor-based pagination
+  let startIdx = 0;
+  if (cursor != null) {
+    const cursorIdx = conversationIds.indexOf(cursor);
+    startIdx = cursorIdx >= 0 ? cursorIdx + 1 : 0;
+  }
+
+  let processed = 0;
+
+  for (let i = startIdx; i < conversationIds.length; i++) {
+    if (processed >= BATCH_SIZE) {
+      // eslint-disable-next-line security/detect-object-injection
+      nextCursor = conversationIds[i];
+      break;
+    }
+
+    // eslint-disable-next-line security/detect-object-injection
+    const convId = conversationIds[i];
+    if (convId == null) continue;
+    const convActivities = conversationGroups.get(convId);
+    if (convActivities == null) continue;
+
+    processed++;
+
+    try {
+      // Fetch conversation for recipient info
+      const convRaw = assertRecord(
+        await frontFetch(`https://api2.frontapp.com/conversations/${convId}`, frontToken),
+        "backfill-conversation",
+      );
+      if (!isFrontConversation(convRaw)) {
+        throw new Error(`Invalid Front conversation response for ${convId}`);
+      }
+      const conversation = convRaw;
+
+      // Fetch messages
+      const msgResponse = assertPaginated<FrontMessage>(
+        await frontFetch(
+          `https://api2.frontapp.com/conversations/${convId}/messages`,
+          frontToken,
+        ),
+        "backfill-messages",
+      );
+
+      // Build a map of front message ID → message
+      const messageMap = new Map<string, FrontMessage>();
+      for (const msg of msgResponse._results) {
+        messageMap.set(msg.id, msg);
+      }
+
+      // Update each activity
+      for (const act of convActivities) {
+        checked++;
+        if (act.frontId == null) continue;
+
+        const message = messageMap.get(act.frontId);
+        if (message == null) continue;
+
+        const authorName = resolveAuthorName(message, conversation, colleagueRows);
+
+        // Also try to fix colleague linking for outbound messages
+        let colleagueId: string | null = null;
+        if (!message.is_inbound) {
+          if (message.author?.handle != null) {
+            colleagueId = findColleagueIdByEmail(colleagueRows, message.author.handle);
+          }
+          if (colleagueId == null) {
+            const fromR = message.recipients.find(r => r.role === "from");
+            if (fromR != null) {
+              colleagueId = findColleagueIdByEmail(colleagueRows, fromR.handle);
+            }
+          }
+        }
+
+        const updates: Record<string, string> = {
+          updatedAt: new Date().toISOString(),
+        };
+        if (authorName !== "Unknown") {
+          updates["senderName"] = authorName;
+        }
+
+        await db
+          .update(activities)
+          .set({
+            senderName: authorName !== "Unknown" ? authorName : null,
+            ...(colleagueId != null ? { colleagueId } : {}),
+            updatedAt: new Date().toISOString(),
+          })
+          .where(eq(activities.id, act.id));
+
         updated++;
       }
     } catch (err) {

@@ -3,13 +3,25 @@ import type { RequestHandler } from "./$types";
 import { PUBLIC_API_URL } from "$env/static/public";
 import { formatDate } from "$lib/utils/format";
 
-type SearchResult = {
+interface SearchResult {
   id: string;
   label: string;
   sublabel?: string;
   href: string;
   category: string;
-};
+}
+
+interface ApiSearchData {
+  humans?: { id: string; firstName: string; lastName: string; emails?: { email: string }[] }[];
+  accounts?: { id: string; name: string; status: string }[];
+  activities?: { id: string; type: string; subject: string; activityDate: string }[];
+  geoInterests?: { id: string; city: string; country: string }[];
+  routeSignups?: { id: string; first_name?: string | null; last_name?: string | null; email?: string | null; origin?: string | null; destination?: string | null }[];
+}
+
+function isApiSearchData(value: unknown): value is ApiSearchData {
+  return typeof value === "object" && value !== null;
+}
 
 export const GET: RequestHandler = async ({ url, cookies }) => {
   const q = url.searchParams.get("q") ?? "";
@@ -26,13 +38,8 @@ export const GET: RequestHandler = async ({ url, cookies }) => {
     return json({ results: [] });
   }
 
-  const data = (await res.json()) as {
-    humans?: { id: string; firstName: string; lastName: string; emails?: { email: string }[] }[];
-    accounts?: { id: string; name: string; status: string }[];
-    activities?: { id: string; type: string; subject: string; activityDate: string }[];
-    geoInterests?: { id: string; city: string; country: string }[];
-    routeSignups?: { id: string; first_name?: string | null; last_name?: string | null; email?: string | null; origin?: string | null; destination?: string | null }[];
-  };
+  const raw: unknown = await res.json();
+  const data: ApiSearchData = isApiSearchData(raw) ? raw : {};
 
   const results: SearchResult[] = [];
 
@@ -57,12 +64,13 @@ export const GET: RequestHandler = async ({ url, cookies }) => {
   }
 
   for (const s of data.routeSignups ?? []) {
-    const name = [s.first_name, s.last_name].filter(Boolean).join(" ") || s.email || "—";
+    const nameParts = [s.first_name, s.last_name].filter(Boolean).join(" ");
+    const name = nameParts !== "" ? nameParts : (s.email ?? "—");
     const route = [s.origin, s.destination].filter(Boolean).join(" → ");
     results.push({
       id: `signup-${s.id}`,
       label: name,
-      sublabel: route || undefined,
+      sublabel: route !== "" ? route : undefined,
       href: `/leads/route-signups/${s.id}`,
       category: "Route Signups",
     });

@@ -1,5 +1,6 @@
 /// <reference types="@sveltejs/kit" />
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 declare const __BUILD_TIMESTAMP__: string;
 
 declare global {

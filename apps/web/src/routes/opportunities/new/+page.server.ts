@@ -7,7 +7,12 @@ function isDataWithId(value: unknown): value is { data: { id: string } } {
   return typeof value === "object" && value !== null && "data" in value;
 }
 
-export const load = async ({ locals, cookies }: RequestEvent) => {
+function getFormString(form: FormData, key: string): string {
+  const raw = form.get(key);
+  return typeof raw === "string" ? raw : "";
+}
+
+export const load = async ({ locals, cookies }: RequestEvent): Promise<{ allHumans: unknown[]; allPets: unknown[]; apiUrl: string }> => {
   if (locals.user == null) redirect(302, "/login");
 
   const sessionToken = cookies.get("humans_session");
@@ -42,14 +47,14 @@ export const actions = {
       Cookie: `humans_session=${sessionToken ?? ""}`,
     };
 
-    const passengerSeatsStr = form.get("passengerSeats") as string;
-    const petSeatsStr = form.get("petSeats") as string;
-    const humanId = form.get("humanId") as string;
-    const petIds = form.getAll("petIds") as string[];
+    const passengerSeatsStr = getFormString(form, "passengerSeats");
+    const petSeatsStr = getFormString(form, "petSeats");
+    const humanId = getFormString(form, "humanId");
+    const petIds = form.getAll("petIds").map((v) => (typeof v === "string" ? v : ""));
 
     const payload = {
-      passengerSeats: passengerSeatsStr ? parseInt(passengerSeatsStr, 10) : 1,
-      petSeats: petSeatsStr ? parseInt(petSeatsStr, 10) : 0,
+      passengerSeats: passengerSeatsStr !== "" ? parseInt(passengerSeatsStr, 10) : 1,
+      petSeats: petSeatsStr !== "" ? parseInt(petSeatsStr, 10) : 0,
     };
 
     // 1. Create the opportunity
@@ -72,7 +77,7 @@ export const actions = {
     const oppId = created.data.id;
 
     // 2. Link primary human (if provided)
-    if (humanId) {
+    if (humanId !== "") {
       await fetch(`${PUBLIC_API_URL}/api/opportunities/${oppId}/humans`, {
         method: "POST",
         headers,
@@ -82,7 +87,7 @@ export const actions = {
 
     // 3. Link pets (if any selected)
     for (const petId of petIds) {
-      if (petId) {
+      if (petId !== "") {
         await fetch(`${PUBLIC_API_URL}/api/opportunities/${oppId}/pets`, {
           method: "POST",
           headers,

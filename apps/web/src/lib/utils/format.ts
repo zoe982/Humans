@@ -26,20 +26,31 @@ export function formatRelativeTime(dateStr: string): string {
   const diffMs = now.getTime() - date.getTime();
   const diffMins = Math.floor(diffMs / 60000);
   if (diffMins < 1) return "just now";
-  if (diffMins < 60) return `${diffMins}m ago`;
+  if (diffMins < 60) return `${String(diffMins)}m ago`;
   const diffHours = Math.floor(diffMins / 60);
-  if (diffHours < 24) return `${diffHours}h ago`;
+  if (diffHours < 24) return `${String(diffHours)}h ago`;
   const diffDays = Math.floor(diffHours / 24);
-  return `${diffDays}d ago`;
+  return `${String(diffDays)}d ago`;
+}
+
+function unknownToString(value: unknown): string {
+  if (Array.isArray(value)) return (value as unknown[]).join(", ");
+  if (typeof value === "object" && value !== null) return JSON.stringify(value);
+  if (value == null) return "empty";
+  if (typeof value === "string") return value;
+  if (typeof value === "number") return String(value);
+  if (typeof value === "boolean") return String(value);
+  if (typeof value === "bigint") return String(value);
+  return "empty";
 }
 
 /** Summarize audit log changes into a readable string */
 export function summarizeChanges(changes: Record<string, { old: unknown; new: unknown }> | null): string {
-  if (!changes) return "No details";
+  if (changes == null) return "No details";
   return Object.entries(changes)
     .map(([field, diff]) => {
-      const oldVal = Array.isArray(diff.old) ? diff.old.join(", ") : String(diff.old ?? "empty");
-      const newVal = Array.isArray(diff.new) ? diff.new.join(", ") : String(diff.new ?? "empty");
+      const oldVal = unknownToString(diff.old);
+      const newVal = unknownToString(diff.new);
       return `${field}: "${oldVal}" \u2192 "${newVal}"`;
     })
     .join("; ");

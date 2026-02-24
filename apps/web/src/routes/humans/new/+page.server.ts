@@ -7,7 +7,12 @@ function isDataWithId(value: unknown): value is { data: { id: string } } {
   return typeof value === "object" && value !== null && "data" in value;
 }
 
-export const load = async ({ locals, url }: RequestEvent) => {
+function getFormString(form: FormData, key: string): string {
+  const raw = form.get(key);
+  return typeof raw === "string" ? raw : "";
+}
+
+export const load = ({ locals, url }: RequestEvent): { prefill: { fromSignup: string; fromGeneralLead: string; firstName: string; middleName: string; lastName: string; notes: string } } => {
   if (locals.user == null) redirect(302, "/login");
 
   return {
@@ -28,18 +33,20 @@ export const actions = {
     const sessionToken = cookies.get("humans_session");
 
     // Collect types
-    const types = form.getAll("types") as string[];
+    const types = form.getAll("types").map((v) => (typeof v === "string" ? v : ""));
+
+    const middleNameVal = getFormString(form, "middleName");
 
     const payload = {
       firstName: form.get("firstName"),
-      middleName: form.get("middleName") || undefined,
+      middleName: middleNameVal !== "" ? middleNameVal : undefined,
       lastName: form.get("lastName"),
       emails: [],
       types: types.length > 0 ? types : [],
     };
 
-    const fromSignup = form.get("fromSignup") as string;
-    const fromGeneralLead = form.get("fromGeneralLead") as string;
+    const fromSignup = getFormString(form, "fromSignup");
+    const fromGeneralLead = getFormString(form, "fromGeneralLead");
 
     // Create the human
     const res = await fetch(`${PUBLIC_API_URL}/api/humans`, {
@@ -64,7 +71,7 @@ export const actions = {
     const humanId = created.data.id;
 
     // If converting from a signup, call the convert endpoint
-    if (fromSignup) {
+    if (fromSignup !== "") {
       const convertRes = await fetch(`${PUBLIC_API_URL}/api/humans/${humanId}/convert-from-signup`, {
         method: "POST",
         headers: {
@@ -81,7 +88,7 @@ export const actions = {
     }
 
     // If converting from a general lead, call the convert endpoint
-    if (fromGeneralLead) {
+    if (fromGeneralLead !== "") {
       const convertRes = await fetch(`${PUBLIC_API_URL}/api/general-leads/${fromGeneralLead}/convert`, {
         method: "POST",
         headers: {

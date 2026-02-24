@@ -25,6 +25,7 @@
   import { PET_BREEDS } from "@humans/shared/constants";
   import { onDestroy } from "svelte";
   import { Button } from "$lib/components/ui/button";
+  import { resolve } from "$app/paths";
 
   let { data, form }: { data: PageData; form: ActionData } = $props();
 
@@ -142,6 +143,7 @@
   };
 
   const human = $derived(data.human as Human);
+  // eslint-disable-next-line svelte/prefer-writable-derived
   let activities = $state<Activity[]>(data.activities as Activity[]);
   $effect(() => { activities = data.activities as Activity[]; });
   const apiUrl = $derived(data.apiUrl as string);
@@ -366,8 +368,10 @@
   >
     {#snippet actions()}
       <div class="flex gap-1">
-        {#each human.types as t}
+        {#each human.types as t (t)}
+          <!-- eslint-disable-next-line security/detect-object-injection -->
           <span class="glass-badge inline-flex rounded-full px-2 py-0.5 text-xs font-medium {typeColors[t] ?? 'bg-glass text-text-secondary'}">
+            <!-- eslint-disable-next-line security/detect-object-injection -->
             {typeLabels[t] ?? t}
           </span>
         {/each}
@@ -379,7 +383,7 @@
   {#if convertedFromLead}
     <div class="mt-4 rounded-xl bg-glass/50 border border-glass-border px-4 py-3 text-sm text-text-muted">
       Converted from general lead
-      <a href="/leads/general-leads/{convertedFromLead.id}" class="text-accent hover:text-[var(--link-hover)] font-mono ml-1">{convertedFromLead.displayId}</a>
+      <a href={resolve(`/leads/general-leads/${convertedFromLead.id}`)} class="text-accent hover:text-[var(--link-hover)] font-mono ml-1">{convertedFromLead.displayId}</a>
     </div>
   {/if}
 
@@ -479,7 +483,7 @@
     >
       {#snippet row(link, _searchQuery)}
         <td>
-          <a href="/accounts/{link.accountId}" class="text-sm font-medium text-accent hover:text-[var(--link-hover)]">
+          <a href={resolve(`/accounts/${link.accountId}`)} class="text-sm font-medium text-accent hover:text-[var(--link-hover)]">
             {link.accountName}
           </a>
         </td>
@@ -596,7 +600,7 @@
     >
       {#snippet row(rel, _searchQuery)}
         <td>
-          <a href="/humans/{rel.otherHumanId}" class="text-sm font-medium text-accent hover:text-[var(--link-hover)]">
+          <a href={resolve(`/humans/${rel.otherHumanId}`)} class="text-sm font-medium text-accent hover:text-[var(--link-hover)]">
             {rel.otherHumanName}
           </a>
           {#if rel.otherHumanDisplayId}
@@ -685,10 +689,10 @@
     >
       {#snippet row(email, _searchQuery)}
         <td class="font-mono text-sm whitespace-nowrap">
-          <a href="/emails/{email.id}" class="text-accent hover:text-[var(--link-hover)]">{email.displayId}</a>
+          <a href={resolve(`/emails/${email.id}`)} class="text-accent hover:text-[var(--link-hover)]">{email.displayId}</a>
         </td>
         <td>
-          <a href="/emails/{email.id}" class="text-sm font-medium text-accent hover:text-[var(--link-hover)]">{email.email}</a>
+          <a href={resolve(`/emails/${email.id}`)} class="text-sm font-medium text-accent hover:text-[var(--link-hover)]">{email.email}</a>
         </td>
         <td>
           <div class="w-44">
@@ -781,10 +785,10 @@
     >
       {#snippet row(phone, _searchQuery)}
         <td class="font-mono text-sm whitespace-nowrap">
-          <a href="/phone-numbers/{phone.id}" class="text-accent hover:text-[var(--link-hover)]">{phone.displayId}</a>
+          <a href={resolve(`/phone-numbers/${phone.id}`)} class="text-accent hover:text-[var(--link-hover)]">{phone.displayId}</a>
         </td>
         <td>
-          <a href="/phone-numbers/{phone.id}" class="text-sm font-medium text-accent hover:text-[var(--link-hover)]">{phone.phoneNumber}</a>
+          <a href={resolve(`/phone-numbers/${phone.id}`)} class="text-sm font-medium text-accent hover:text-[var(--link-hover)]">{phone.phoneNumber}</a>
         </td>
         <td>
           <div class="w-44">
@@ -881,10 +885,10 @@
     >
       {#snippet row(sid, _searchQuery)}
         <td class="font-mono text-sm whitespace-nowrap">
-          <a href="/social-ids/{sid.id}" class="text-accent hover:text-[var(--link-hover)]">{sid.displayId}</a>
+          <a href={resolve(`/social-ids/${sid.id}`)} class="text-accent hover:text-[var(--link-hover)]">{sid.displayId}</a>
         </td>
         <td>
-          <a href="/social-ids/{sid.id}" class="text-sm font-medium text-accent hover:text-[var(--link-hover)]">{sid.handle}</a>
+          <a href={resolve(`/social-ids/${sid.id}`)} class="text-sm font-medium text-accent hover:text-[var(--link-hover)]">{sid.handle}</a>
         </td>
         <td>
           {#if sid.platformName}
@@ -950,7 +954,7 @@
     >
       {#snippet row(w, _searchQuery)}
         <td class="font-mono text-sm whitespace-nowrap">
-          <a href="/websites/{w.id}" class="text-accent hover:text-[var(--link-hover)]">{w.displayId}</a>
+          <a href={resolve(`/websites/${w.id}`)} class="text-accent hover:text-[var(--link-hover)]">{w.displayId}</a>
         </td>
         <td>
           <a href={w.url} target="_blank" rel="noopener noreferrer" class="text-sm font-medium text-accent hover:text-[var(--link-hover)]">{w.url}</a>
@@ -1002,10 +1006,10 @@
     >
       {#snippet row(rc, _searchQuery)}
         <td class="font-mono text-sm whitespace-nowrap">
-          <a href="/referral-codes/{rc.id}" class="text-accent hover:text-[var(--link-hover)]">{rc.displayId}</a>
+          <a href={resolve(`/referral-codes/${rc.id}`)} class="text-accent hover:text-[var(--link-hover)]">{rc.displayId}</a>
         </td>
         <td>
-          <a href="/referral-codes/{rc.id}" class="text-sm font-medium text-accent hover:text-[var(--link-hover)]">{rc.code}</a>
+          <a href={resolve(`/referral-codes/${rc.id}`)} class="text-sm font-medium text-accent hover:text-[var(--link-hover)]">{rc.code}</a>
         </td>
         <td class="text-sm text-text-secondary max-w-xs truncate">{rc.description ?? "\u2014"}</td>
         <td>
@@ -1072,10 +1076,10 @@
     >
       {#snippet row(dc, _searchQuery)}
         <td class="font-mono text-sm whitespace-nowrap">
-          <a href="/discount-codes/{dc.id}" class="text-accent hover:text-[var(--link-hover)]">{dc.crmDisplayId ?? "\u2014"}</a>
+          <a href={resolve(`/discount-codes/${dc.id}`)} class="text-accent hover:text-[var(--link-hover)]">{dc.crmDisplayId ?? "\u2014"}</a>
         </td>
         <td>
-          <a href="/discount-codes/{dc.id}" class="text-sm font-medium text-accent hover:text-[var(--link-hover)]">{dc.code}</a>
+          <a href={resolve(`/discount-codes/${dc.id}`)} class="text-sm font-medium text-accent hover:text-[var(--link-hover)]">{dc.code}</a>
         </td>
         <td class="text-sm">{dc.percentOff}%</td>
         <td class="text-sm text-text-secondary max-w-xs truncate">{dc.description ?? "\u2014"}</td>
@@ -1101,7 +1105,7 @@
             <label for="discountCodeId" class="block text-sm font-medium text-text-secondary">Discount Code</label>
             <select id="discountCodeId" name="discountCodeId" required class="glass-input mt-1 block w-full">
               <option value="">Select a discount code...</option>
-              {#each data.allDiscountCodes as dc}
+              {#each data.allDiscountCodes as dc (dc.id)}
                 <option value={dc.id}>{dc.code} ({dc.crmDisplayId ?? dc.id})</option>
               {/each}
             </select>
@@ -1135,10 +1139,10 @@
     >
       {#snippet row(pet, _searchQuery)}
         <td class="font-mono text-sm whitespace-nowrap">
-          <a href="/pets/{pet.id}" class="text-accent hover:text-[var(--link-hover)]">{pet.displayId}</a>
+          <a href={resolve(`/pets/${pet.id}`)} class="text-accent hover:text-[var(--link-hover)]">{pet.displayId}</a>
         </td>
         <td>
-          <a href="/pets/{pet.id}" class="text-sm font-medium text-accent hover:text-[var(--link-hover)]">{pet.name ?? pet.displayId}</a>
+          <a href={resolve(`/pets/${pet.id}`)} class="text-sm font-medium text-accent hover:text-[var(--link-hover)]">{pet.name ?? pet.displayId}</a>
         </td>
         <td>
           <span class="glass-badge inline-flex rounded-full px-2 py-0.5 text-xs font-medium {pet.type === 'cat' ? 'badge-purple' : 'badge-blue'}">
@@ -1237,7 +1241,7 @@
                   {activityTypeLabels[newActivityType] ?? "Select type..."}
                 </Select.Trigger>
                 <Select.Content>
-                  {#each ACTIVITY_TYPE_OPTIONS as opt}
+                  {#each ACTIVITY_TYPE_OPTIONS as opt (opt.value)}
                     <Select.Item value={opt.value}>{opt.label}</Select.Item>
                   {/each}
                 </Select.Content>
@@ -1272,13 +1276,13 @@
           {/if}
           {#if geoInterests.length > 0 || routeInterests.length > 0}
             <div class="flex flex-wrap gap-2">
-              {#each geoInterests as geo, i}
+              {#each geoInterests as geo, i (i)}
                 <span class="inline-flex items-center gap-1 rounded-full bg-[rgba(6,182,212,0.15)] text-accent px-2 py-0.5 text-xs">
                   {geo.city ?? "New"}{geo.country ? `, ${geo.country}` : ""}
                   <button type="button" class="ml-0.5 hover:text-[var(--link-hover)]" onclick={() => { geoInterests = geoInterests.filter((_, idx) => idx !== i); }}>&times;</button>
                 </span>
               {/each}
-              {#each routeInterests as route, i}
+              {#each routeInterests as route, i (i)}
                 <span class="inline-flex items-center gap-1 rounded-full badge-purple px-2 py-0.5 text-xs">
                   {route.originCity ?? "?"} &rarr; {route.destinationCity ?? "?"}
                   <button type="button" class="ml-0.5 hover:opacity-80" onclick={() => { routeInterests = routeInterests.filter((_, idx) => idx !== i); }}>&times;</button>
@@ -1442,9 +1446,10 @@
     >
       {#snippet row(opp, _searchQuery)}
         <td class="font-mono text-sm whitespace-nowrap">
-          <a href="/opportunities/{opp.id}" class="text-accent hover:text-[var(--link-hover)]">{opp.displayId}</a>
+          <a href={resolve(`/opportunities/${opp.id}`)} class="text-accent hover:text-[var(--link-hover)]">{opp.displayId}</a>
         </td>
         <td>
+          <!-- eslint-disable-next-line security/detect-object-injection -->
           <span class="glass-badge inline-flex rounded-full px-2 py-0.5 text-xs font-medium {opportunityStageColors[opp.stage] ?? 'bg-glass text-text-secondary'}">
             {opportunityStageLabels[opp.stage] ?? opp.stage}
           </span>
@@ -1460,7 +1465,7 @@
               <label for="oppPetSelect" class="block text-sm font-medium text-text-secondary mb-1">Pet(s)</label>
               {#if newOppPetIds.length > 0}
                 <div class="flex flex-wrap gap-2 mb-2">
-                  {#each selectedOppPetLabels as label, i}
+                  {#each selectedOppPetLabels as label, i (i)}
                     <span class="inline-flex items-center gap-1 rounded-full bg-surface-secondary px-3 py-1 text-sm">
                       {label}
                       <button type="button" class="ml-1 text-text-muted hover:text-text-primary" onclick={() => { newOppPetIds = newOppPetIds.filter((_, idx) => idx !== i); }}>
@@ -1480,7 +1485,7 @@
                   onSelect={(v) => { if (v && !newOppPetIds.includes(v)) { newOppPetIds = [...newOppPetIds, v]; newOppPetSelectKey++; } }}
                 />
               {/key}
-              {#each newOppPetIds as petId}
+              {#each newOppPetIds as petId (petId)}
                 <input type="hidden" name="petIds" value={petId} />
               {/each}
             </div>
@@ -1527,10 +1532,10 @@
     >
       {#snippet row(expr, _searchQuery)}
         <td class="font-mono text-sm whitespace-nowrap">
-          <a href="/geo-interests/expressions/{expr.id}" class="text-accent hover:text-[var(--link-hover)]">{expr.displayId}</a>
+          <a href={resolve(`/geo-interests/expressions/${expr.id}`)} class="text-accent hover:text-[var(--link-hover)]">{expr.displayId}</a>
         </td>
         <td>
-          <a href="/geo-interests/{expr.geoInterestId}" class="text-sm font-medium text-accent hover:text-[var(--link-hover)]">
+          <a href={resolve(`/geo-interests/${expr.geoInterestId}`)} class="text-sm font-medium text-accent hover:text-[var(--link-hover)]">
             {expr.city ?? "\u2014"}, {expr.country ?? "\u2014"}
           </a>
         </td>
@@ -1576,10 +1581,10 @@
     >
       {#snippet row(expr, _searchQuery)}
         <td class="font-mono text-sm whitespace-nowrap">
-          <a href="/route-interests/expressions/{expr.id}" class="text-accent hover:text-[var(--link-hover)]">{expr.displayId}</a>
+          <a href={resolve(`/route-interests/expressions/${expr.id}`)} class="text-accent hover:text-[var(--link-hover)]">{expr.displayId}</a>
         </td>
         <td>
-          <a href="/route-interests/{expr.routeInterestId}" class="text-sm font-medium text-accent hover:text-[var(--link-hover)]">
+          <a href={resolve(`/route-interests/${expr.routeInterestId}`)} class="text-sm font-medium text-accent hover:text-[var(--link-hover)]">
             {expr.originCity ?? "\u2014"}, {expr.originCountry ?? "\u2014"} &rarr; {expr.destinationCity ?? "\u2014"}, {expr.destinationCountry ?? "\u2014"}
           </a>
         </td>
@@ -1636,7 +1641,7 @@
     >
       {#snippet row(link, _searchQuery)}
         <td class="font-mono text-sm whitespace-nowrap">
-          <a href="/leads/route-signups/{link.routeSignupId}" class="text-accent hover:text-[var(--link-hover)]">{link.displayId ?? "\u2014"}</a>
+          <a href={resolve(`/leads/route-signups/${link.routeSignupId}`)} class="text-accent hover:text-[var(--link-hover)]">{link.displayId ?? "\u2014"}</a>
         </td>
         <td class="text-sm text-text-secondary">{link.passengerName ?? "\u2014"}</td>
         <td class="text-sm text-text-secondary">
@@ -1695,7 +1700,7 @@
     >
       {#snippet row(link, _searchQuery)}
         <td class="font-mono text-sm whitespace-nowrap">
-          <a href="/leads/website-booking-requests/{link.websiteBookingRequestId}" class="text-accent hover:text-[var(--link-hover)]">{link.displayId ?? "\u2014"}</a>
+          <a href={resolve(`/leads/website-booking-requests/${link.websiteBookingRequestId}`)} class="text-accent hover:text-[var(--link-hover)]">{link.displayId ?? "\u2014"}</a>
         </td>
         <td class="text-sm text-text-secondary">{link.passengerName ?? "\u2014"}</td>
         <td class="text-sm text-text-secondary">
@@ -1752,7 +1757,7 @@
     >
       {#snippet row(lead, _searchQuery)}
         <td class="font-mono text-sm whitespace-nowrap">
-          <a href="/leads/general-leads/{lead.id}" class="text-accent hover:text-[var(--link-hover)]">{lead.displayId}</a>
+          <a href={resolve(`/leads/general-leads/${lead.id}`)} class="text-accent hover:text-[var(--link-hover)]">{lead.displayId}</a>
         </td>
         <td class="text-sm text-text-secondary">{lead.source}</td>
         <td>

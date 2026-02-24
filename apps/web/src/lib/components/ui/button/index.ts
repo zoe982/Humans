@@ -11,7 +11,7 @@ export function buttonVariants({
 	variant?: ButtonVariant;
 	size?: ButtonSize;
 	class?: string;
-} = {}) {
+} = {}): string {
 	const base = "inline-flex items-center justify-center whitespace-nowrap font-medium transition-colors focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50";
 
 	const variants: Record<ButtonVariant, string> = {
@@ -30,6 +30,7 @@ export function buttonVariants({
 		icon: "h-10 w-10 rounded-[0.625rem]",
 	};
 
+	// eslint-disable-next-line security/detect-object-injection
 	return [base, variants[variant], sizes[size], className].filter(Boolean).join(" ");
 }
 

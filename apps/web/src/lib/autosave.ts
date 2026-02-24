@@ -21,23 +21,33 @@ interface SaveResult {
   auditEntryId?: string;
 }
 
-export function createAutoSaver(options: AutoSaverOptions) {
+function isSaveResult(value: unknown): value is SaveResult {
+  return typeof value === "object" && value !== null;
+}
+
+export function createAutoSaver(options: AutoSaverOptions): {
+  init: (currentValues: Record<string, unknown>) => void;
+  save: (payload: Record<string, unknown>) => void;
+  saveImmediate: (payload: Record<string, unknown>) => void;
+  destroy: () => void;
+} {
   const { endpoint, debounceMs = 1000, onStatusChange, onSaved, onError } = options;
 
   let timer: ReturnType<typeof setTimeout> | null = null;
   let baseline: Record<string, unknown> = {};
 
-  function init(currentValues: Record<string, unknown>) {
+  function init(currentValues: Record<string, unknown>): void {
     baseline = { ...currentValues };
   }
 
-  async function doSave(payload: Record<string, unknown>) {
+  async function doSave(payload: Record<string, unknown>): Promise<void> {
     onStatusChange?.("saving");
     try {
-      const result = (await api(endpoint, {
+      const raw = await api(endpoint, {
         method: "PATCH",
         body: JSON.stringify(payload),
-      })) as SaveResult;
+      });
+      const result: SaveResult = isSaveResult(raw) ? raw : {};
 
       // Update baseline to new values
       baseline = { ...baseline, ...payload };
@@ -53,22 +63,22 @@ export function createAutoSaver(options: AutoSaverOptions) {
     }
   }
 
-  function save(payload: Record<string, unknown>) {
-    if (timer) clearTimeout(timer);
+  function save(payload: Record<string, unknown>): void {
+    if (timer != null) clearTimeout(timer);
     timer = setTimeout(() => {
       timer = null;
-      doSave(payload);
+      void doSave(payload);
     }, debounceMs);
   }
 
-  function saveImmediate(payload: Record<string, unknown>) {
-    if (timer) clearTimeout(timer);
+  function saveImmediate(payload: Record<string, unknown>): void {
+    if (timer != null) clearTimeout(timer);
     timer = null;
-    doSave(payload);
+    void doSave(payload);
   }
 
-  function destroy() {
-    if (timer) {
+  function destroy(): void {
+    if (timer != null) {
       clearTimeout(timer);
       timer = null;
     }

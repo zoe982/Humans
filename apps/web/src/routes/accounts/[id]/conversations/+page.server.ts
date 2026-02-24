@@ -3,11 +3,11 @@ import type { RequestEvent } from "@sveltejs/kit";
 import { PUBLIC_API_URL } from "$env/static/public";
 import { isObjData, isListData, authHeaders } from "$lib/server/api";
 
-export const load = async ({ locals, cookies, params }: RequestEvent) => {
+export const load = async ({ locals, cookies, params }: RequestEvent): Promise<{ account: Record<string, unknown>; activities: unknown[] }> => {
   if (locals.user == null) redirect(302, "/login");
 
   const sessionToken = cookies.get("humans_session") ?? "";
-  const id = params.id;
+  const id = params.id ?? "";
   const headers = authHeaders(sessionToken);
 
   const [accountRes, activitiesRes] = await Promise.all([

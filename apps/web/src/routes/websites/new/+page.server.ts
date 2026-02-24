@@ -7,7 +7,7 @@ function isDataWithId(value: unknown): value is { data: { id: string } } {
   return typeof value === "object" && value !== null && "data" in value;
 }
 
-export const load = async ({ locals, cookies }: RequestEvent) => {
+export const load = async ({ locals, cookies }: RequestEvent): Promise<{ allHumans: unknown[]; allAccounts: unknown[] }> => {
   if (locals.user == null) redirect(302, "/login");
 
   const sessionToken = cookies.get("humans_session") ?? "";
@@ -21,7 +21,7 @@ export const load = async ({ locals, cookies }: RequestEvent) => {
     }),
   ]);
 
-  const parseList = async (res: Response) => {
+  const parseList = async (res: Response): Promise<unknown[]> => {
     if (!res.ok) return [];
     const raw: unknown = await res.json();
     return isListData(raw) ? raw.data : [];
@@ -40,10 +40,12 @@ export const actions = {
     const form = await request.formData();
     const sessionToken = cookies.get("humans_session");
 
+    const humanIdRaw = form.get("humanId");
+    const accountIdRaw = form.get("accountId");
     const payload = {
       url: form.get("url"),
-      humanId: form.get("humanId") || undefined,
-      accountId: form.get("accountId") || undefined,
+      humanId: typeof humanIdRaw === "string" && humanIdRaw !== "" ? humanIdRaw : undefined,
+      accountId: typeof accountIdRaw === "string" && accountIdRaw !== "" ? accountIdRaw : undefined,
     };
 
     const res = await fetch(`${PUBLIC_API_URL}/api/websites`, {

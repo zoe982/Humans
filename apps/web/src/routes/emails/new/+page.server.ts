@@ -3,7 +3,7 @@ import type { RequestEvent, ActionFailure } from "@sveltejs/kit";
 import { PUBLIC_API_URL } from "$env/static/public";
 import { isListData, isObjData, failFromApi, fetchConfigs, authHeaders } from "$lib/server/api";
 
-export const load = async ({ locals, cookies }: RequestEvent) => {
+export const load = async ({ locals, cookies }: RequestEvent): Promise<{ allHumans: unknown[]; emailLabelConfigs: unknown[] }> => {
   if (locals.user == null) redirect(302, "/login");
 
   const sessionToken = cookies.get("humans_session") ?? "";
@@ -29,10 +29,11 @@ export const actions = {
     const form = await request.formData();
     const sessionToken = cookies.get("humans_session");
 
+    const labelIdRaw = form.get("labelId");
     const payload = {
       humanId: form.get("humanId"),
       email: form.get("email"),
-      labelId: form.get("labelId") || undefined,
+      labelId: typeof labelIdRaw === "string" && labelIdRaw !== "" ? labelIdRaw : undefined,
       isPrimary: form.get("isPrimary") === "on",
     };
 
@@ -55,6 +56,7 @@ export const actions = {
       return fail(500, { error: "Unexpected response" });
     }
 
-    redirect(302, `/emails/${(created.data as { id: string }).id}`);
+    const createdId = "id" in created.data ? String(created.data["id"]) : "";
+    redirect(302, `/emails/${createdId}`);
   },
 };

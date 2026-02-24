@@ -7,6 +7,7 @@
   import { opportunityStageColors } from "$lib/constants/colors";
   import { opportunityStageLabels, OPPORTUNITY_STAGE_OPTIONS } from "$lib/constants/labels";
   import { Button } from "$lib/components/ui/button";
+  import { resolve } from "$app/paths";
 
   let { data, form }: { data: PageData; form: ActionData } = $props();
 
@@ -36,6 +37,7 @@
   const stageFilterOptions = $derived(OPPORTUNITY_STAGE_OPTIONS.map((s) => ({ value: s.value, label: s.label })));
 
   const paginationBaseUrl = $derived.by(() => {
+    // eslint-disable-next-line svelte/prefer-svelte-reactivity
     const params = new URLSearchParams();
     if (data.q) params.set("q", data.q);
     if (data.stage) params.set("stage", data.stage);
@@ -113,13 +115,13 @@
       </label>
       <Button type="submit" size="sm">Search</Button>
       {#if data.q || data.stage || data.ownerId || data.dealOwnerId || data.overdueOnly}
-        <a href="/opportunities" class="btn-ghost text-sm">Clear</a>
+        <a href={resolve('/opportunities')} class="btn-ghost text-sm">Clear</a>
       {/if}
     </form>
   {/snippet}
   {#snippet desktopRow(opp)}
     <td class="font-mono text-sm whitespace-nowrap">
-      <a href="/opportunities/{opp.id}" class="text-accent hover:text-[var(--link-hover)]">{opp.displayId}</a>
+      <a href={resolve(`/opportunities/${opp.id}`)} class="text-accent hover:text-[var(--link-hover)]">{opp.displayId}</a>
     </td>
     <td>
       <StatusBadge status={opportunityStageLabels[opp.stage] ?? opp.stage} colorMap={Object.fromEntries(Object.entries(opportunityStageColors).map(([k, v]) => [opportunityStageLabels[k] ?? k, v]))} />
@@ -157,7 +159,7 @@
     <td class="text-text-muted text-sm">{opp.updatedAt ? new Date(opp.updatedAt).toLocaleDateString() : "—"}</td>
   {/snippet}
   {#snippet mobileCard(opp)}
-    <a href="/opportunities/{opp.id}" class="glass-card p-4 block hover:ring-1 hover:ring-accent/40 transition">
+    <a href={resolve(`/opportunities/${opp.id}`)} class="glass-card p-4 block hover:ring-1 hover:ring-accent/40 transition">
       <span class="font-mono text-xs text-text-muted">{opp.displayId}</span>
       <div class="flex items-center justify-between mb-2">
         <span class="font-medium text-accent">{opp.primaryHumanName ?? "No primary human"}</span>

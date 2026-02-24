@@ -24,7 +24,7 @@ export const actions = {
     const raw = {
       email: form.get("email"),
       firstName: form.get("firstName"),
-      middleNames: form.get("middleNames") || undefined,
+      middleNames: form.get("middleNames") !== "" && form.get("middleNames") !== null ? form.get("middleNames") : undefined,
       lastName: form.get("lastName"),
       role: form.get("role"),
     };

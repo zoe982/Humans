@@ -7,7 +7,12 @@ function isDataWithId(value: unknown): value is { data: { id: string } } {
   return typeof value === "object" && value !== null && "data" in value;
 }
 
-export const load = async ({ locals, cookies }: RequestEvent) => {
+function getFormString(form: FormData, key: string): string {
+  const raw = form.get(key);
+  return typeof raw === "string" ? raw : "";
+}
+
+export const load = async ({ locals, cookies }: RequestEvent): Promise<{ allHumans: unknown[] }> => {
   if (locals.user == null) redirect(302, "/login");
 
   const sessionToken = cookies.get("humans_session") ?? "";
@@ -29,13 +34,17 @@ export const actions = {
     const form = await request.formData();
     const sessionToken = cookies.get("humans_session");
 
+    const weightStr = getFormString(form, "weight");
+    const breedVal = getFormString(form, "breed");
+    const notesVal = getFormString(form, "notes");
+
     const payload = {
       humanId: form.get("humanId"),
       name: form.get("name"),
-      type: form.get("type") || "dog",
-      breed: form.get("breed") || null,
-      weight: form.get("weight") ? parseFloat(form.get("weight") as string) : null,
-      notes: form.get("notes") || null,
+      type: getFormString(form, "type") !== "" ? getFormString(form, "type") : "dog",
+      breed: breedVal !== "" ? breedVal : null,
+      weight: weightStr !== "" ? parseFloat(weightStr) : null,
+      notes: notesVal !== "" ? notesVal : null,
     };
 
     const res = await fetch(`${PUBLIC_API_URL}/api/pets`, {

@@ -8,6 +8,7 @@
   import { activityTypeLabels } from "$lib/constants/labels";
   import { activityTypeColors } from "$lib/constants/colors";
   import { formatDate } from "$lib/utils/format";
+  import { resolve } from "$app/paths";
 
   let { data }: { data: PageData } = $props();
 
@@ -51,28 +52,28 @@
 
   <!-- Stats -->
   <div class="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-    <a href="/humans" class="glass-card p-6 transition hover:ring-1 hover:ring-accent/40">
+    <a href={resolve('/humans')} class="glass-card p-6 transition hover:ring-1 hover:ring-accent/40">
       <div class="flex items-center justify-between">
         <h3 class="text-sm font-medium text-text-muted">Humans</h3>
         <Users size={20} class="text-text-muted" />
       </div>
       <p class="mt-2 text-3xl font-bold text-text-primary">{data.counts.humans}</p>
     </a>
-    <a href="/humans" class="glass-card p-6 transition hover:ring-1 hover:ring-accent/40">
+    <a href={resolve('/humans')} class="glass-card p-6 transition hover:ring-1 hover:ring-accent/40">
       <div class="flex items-center justify-between">
         <h3 class="text-sm font-medium text-text-muted">Pets</h3>
         <PawPrint size={20} class="text-text-muted" />
       </div>
       <p class="mt-2 text-3xl font-bold text-text-primary">{data.counts.pets}</p>
     </a>
-    <a href="/activities" class="glass-card p-6 transition hover:ring-1 hover:ring-accent/40">
+    <a href={resolve('/activities')} class="glass-card p-6 transition hover:ring-1 hover:ring-accent/40">
       <div class="flex items-center justify-between">
         <h3 class="text-sm font-medium text-text-muted">Total Activities</h3>
         <Activity size={20} class="text-text-muted" />
       </div>
       <p class="mt-2 text-3xl font-bold text-text-primary">{data.counts.activities}</p>
     </a>
-    <a href="/geo-interests" class="glass-card p-6 transition hover:ring-1 hover:ring-accent/40">
+    <a href={resolve('/geo-interests')} class="glass-card p-6 transition hover:ring-1 hover:ring-accent/40">
       <div class="flex items-center justify-between">
         <h3 class="text-sm font-medium text-text-muted">Geo-Interests</h3>
         <Globe2 size={20} class="text-text-muted" />
@@ -93,13 +94,13 @@
   <div class="mt-8">
     <h2 class="text-lg font-semibold text-text-primary mb-3">Quick Actions</h2>
     <div class="flex flex-wrap gap-3">
-      <a href="/humans/new" class="btn-ghost inline-flex items-center gap-2 text-sm">
+      <a href={resolve('/humans/new')} class="btn-ghost inline-flex items-center gap-2 text-sm">
         <Plus size={16} /> New Human
       </a>
-      <a href="/activities/new" class="btn-ghost inline-flex items-center gap-2 text-sm">
+      <a href={resolve('/activities/new')} class="btn-ghost inline-flex items-center gap-2 text-sm">
         <ClipboardList size={16} /> Log Activity
       </a>
-      <a href="/search" class="btn-ghost inline-flex items-center gap-2 text-sm">
+      <a href={resolve('/search')} class="btn-ghost inline-flex items-center gap-2 text-sm">
         <Search size={16} /> Search Records
       </a>
     </div>
@@ -133,7 +134,7 @@
     >
       {#snippet row(activity, searchQuery)}
         <td class="font-mono text-sm whitespace-nowrap">
-          <a href="/activities/{activity.id}" class="text-accent hover:text-[var(--link-hover)]">
+          <a href={resolve(`/activities/${activity.id}`)} class="text-accent hover:text-[var(--link-hover)]">
             <HighlightText text={activity.displayId ?? activity.id.slice(0, 8)} query={searchQuery} />
           </a>
         </td>
@@ -165,7 +166,7 @@
       {/snippet}
     </RelatedListTable>
     <div class="mt-3 text-right">
-      <a href="/activities" class="text-sm text-accent hover:text-[var(--link-hover)]">View all activities</a>
+      <a href={resolve('/activities')} class="text-sm text-accent hover:text-[var(--link-hover)]">View all activities</a>
     </div>
   </div>
 </div>

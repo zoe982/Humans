@@ -3,14 +3,19 @@ import type { RequestEvent, ActionFailure } from "@sveltejs/kit";
 import { PUBLIC_API_URL } from "$env/static/public";
 import { isObjData, isListData, failFromApi } from "$lib/server/api";
 
-export const load = async ({ locals, cookies, params }: RequestEvent) => {
+function getFormString(form: FormData, key: string): string {
+  const raw = form.get(key);
+  return typeof raw === "string" ? raw : "";
+}
+
+export const load = async ({ locals, cookies, params }: RequestEvent): Promise<{ geoInterest: unknown; humans: unknown[] }> => {
   if (locals.user == null) redirect(302, "/login");
 
   const sessionToken = cookies.get("humans_session");
   const id = params.id;
 
   const [giRes, humansRes] = await Promise.all([
-    fetch(`${PUBLIC_API_URL}/api/geo-interests/${id}`, {
+    fetch(`${PUBLIC_API_URL}/api/geo-interests/${id ?? ""}`, {
       headers: { Cookie: `humans_session=${sessionToken ?? ""}` },
     }),
     fetch(`${PUBLIC_API_URL}/api/humans`, {
@@ -30,11 +35,11 @@ export const load = async ({ locals, cookies, params }: RequestEvent) => {
 };
 
 export const actions = {
-  delete: async ({ cookies, params }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | void> => {
+  delete: async ({ cookies, params }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
     const sessionToken = cookies.get("humans_session");
     const id = params.id;
 
-    const res = await fetch(`${PUBLIC_API_URL}/api/geo-interests/${id}`, {
+    const res = await fetch(`${PUBLIC_API_URL}/api/geo-interests/${id ?? ""}`, {
       method: "DELETE",
       headers: {
         Cookie: `humans_session=${sessionToken ?? ""}`,
@@ -52,7 +57,7 @@ export const actions = {
   deleteExpression: async ({ request, cookies }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
     const form = await request.formData();
     const sessionToken = cookies.get("humans_session");
-    const expressionId = form.get("expressionId");
+    const expressionId = getFormString(form, "expressionId");
 
     const res = await fetch(`${PUBLIC_API_URL}/api/geo-interest-expressions/${expressionId}`, {
       method: "DELETE",
@@ -72,10 +77,11 @@ export const actions = {
   createExpression: async ({ request, cookies, params }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
     const form = await request.formData();
     const sessionToken = cookies.get("humans_session");
-    const humanId = (form.get("humanId") as string)?.trim();
-    const notes = (form.get("notes") as string)?.trim() || undefined;
+    const humanId = getFormString(form, "humanId").trim();
+    const notesRaw = getFormString(form, "notes").trim();
+    const notes = notesRaw !== "" ? notesRaw : undefined;
 
-    if (!humanId) {
+    if (humanId === "") {
       return fail(400, { error: "Please select a human." });
     }
 

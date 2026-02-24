@@ -3,11 +3,21 @@ import type { RequestEvent } from "@sveltejs/kit";
 import { PUBLIC_API_URL } from "$env/static/public";
 import { isObjData } from "$lib/server/api";
 
-export const load = async ({ locals, cookies, params }: RequestEvent) => {
+interface FlightResponse {
+  data: Record<string, unknown>;
+  linkedOpportunities?: unknown[];
+  linkedDiscountCodes?: unknown[];
+}
+
+function isFlightResponse(value: unknown): value is FlightResponse {
+  return isObjData(value);
+}
+
+export const load = async ({ locals, cookies, params }: RequestEvent): Promise<{ flight: Record<string, unknown>; linkedOpportunities: unknown[]; linkedDiscountCodes: unknown[] }> => {
   if (locals.user == null) redirect(302, "/login");
 
   const sessionToken = cookies.get("humans_session");
-  const id = params.id;
+  const id = params.id ?? "";
 
   const res = await fetch(`${PUBLIC_API_URL}/api/flights/${id}`, {
     headers: { Cookie: `humans_session=${sessionToken ?? ""}` },
@@ -15,12 +25,11 @@ export const load = async ({ locals, cookies, params }: RequestEvent) => {
 
   if (!res.ok) redirect(302, "/flights");
   const raw: unknown = await res.json();
-  if (!isObjData(raw)) redirect(302, "/flights");
+  if (!isFlightResponse(raw)) redirect(302, "/flights");
 
-  const rawTyped = raw as { data: Record<string, unknown>; linkedOpportunities?: unknown[]; linkedDiscountCodes?: unknown[] };
   return {
-    flight: rawTyped.data,
-    linkedOpportunities: rawTyped.linkedOpportunities ?? [],
-    linkedDiscountCodes: rawTyped.linkedDiscountCodes ?? [],
+    flight: raw.data,
+    linkedOpportunities: raw.linkedOpportunities ?? [],
+    linkedDiscountCodes: raw.linkedDiscountCodes ?? [],
   };
 };

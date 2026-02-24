@@ -3,6 +3,7 @@
   import EntityListPage from "$lib/components/EntityListPage.svelte";
   import StatusBadge from "$lib/components/StatusBadge.svelte";
   import { statusColors } from "$lib/constants/colors";
+  import { resolve } from "$app/paths";
 
   let { data, form }: { data: PageData; form: ActionData } = $props();
 
@@ -46,17 +47,17 @@
 >
   {#snippet desktopRow(account)}
     <td class="font-mono text-sm whitespace-nowrap">
-      <a href="/accounts/{account.id}" class="text-accent hover:text-[var(--link-hover)]">{account.displayId}</a>
+      <a href={resolve(`/accounts/${account.id}`)} class="text-accent hover:text-[var(--link-hover)]">{account.displayId}</a>
     </td>
     <td class="font-medium">
-      <a href="/accounts/{account.id}" class="text-accent hover:text-[var(--link-hover)]">{account.name}</a>
+      <a href={resolve(`/accounts/${account.id}`)} class="text-accent hover:text-[var(--link-hover)]">{account.name}</a>
     </td>
     <td>
       <StatusBadge status={account.status ?? "open"} colorMap={statusColors} />
     </td>
     <td>
       <div class="flex gap-1 flex-wrap">
-        {#each account.types as t}
+        {#each account.types as t (t.id)}
           <span class="glass-badge badge-purple">
             {t.name}
           </span>
@@ -66,14 +67,14 @@
     <td class="text-text-muted">{new Date(account.createdAt).toLocaleDateString()}</td>
   {/snippet}
   {#snippet mobileCard(account)}
-    <a href="/accounts/{account.id}" class="glass-card p-4 block hover:ring-1 hover:ring-accent/40 transition">
+    <a href={resolve(`/accounts/${account.id}`)} class="glass-card p-4 block hover:ring-1 hover:ring-accent/40 transition">
       <span class="font-mono text-xs text-text-muted">{account.displayId}</span>
       <div class="flex items-center justify-between mb-2">
         <span class="font-medium text-accent">{account.name}</span>
         <StatusBadge status={account.status ?? "open"} colorMap={statusColors} />
       </div>
       <div class="flex gap-1 flex-wrap">
-        {#each account.types as t}
+        {#each account.types as t (t.id)}
           <span class="glass-badge text-xs badge-purple">{t.name}</span>
         {/each}
       </div>

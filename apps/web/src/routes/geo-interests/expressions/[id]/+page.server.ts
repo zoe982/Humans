@@ -4,11 +4,11 @@ import { PUBLIC_API_URL } from "$env/static/public";
 import { extractApiErrorInfo } from "$lib/api";
 import { isObjData } from "$lib/server/api";
 
-export const load = async ({ locals, cookies, params }: RequestEvent) => {
+export const load = async ({ locals, cookies, params }: RequestEvent): Promise<{ expression: Record<string, unknown>; apiUrl: string }> => {
   if (locals.user == null) redirect(302, "/login");
 
   const sessionToken = cookies.get("humans_session");
-  const id = params.id;
+  const id = params.id ?? "";
 
   const res = await fetch(`${PUBLIC_API_URL}/api/geo-interest-expressions/${id}`, {
     headers: { Cookie: `humans_session=${sessionToken ?? ""}` },
@@ -23,11 +23,12 @@ export const load = async ({ locals, cookies, params }: RequestEvent) => {
 };
 
 export const actions = {
-  delete: async ({ request, cookies, params }: RequestEvent): Promise<ActionFailure<{ error: string }> | void> => {
+  delete: async ({ request, cookies, params }: RequestEvent): Promise<ActionFailure<{ error: string }> | { success: true }> => {
     const formData = await request.formData();
     const sessionToken = cookies.get("humans_session");
-    const id = params.id;
-    const geoInterestId = formData.get("geoInterestId") as string;
+    const id = params.id ?? "";
+    const geoInterestIdRaw = formData.get("geoInterestId");
+    const geoInterestId = typeof geoInterestIdRaw === "string" ? geoInterestIdRaw : "";
 
     const res = await fetch(`${PUBLIC_API_URL}/api/geo-interest-expressions/${id}`, {
       method: "DELETE",

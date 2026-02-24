@@ -3,13 +3,19 @@ import type { RequestEvent } from "@sveltejs/kit";
 import { PUBLIC_API_URL } from "$env/static/public";
 import { isListData } from "$lib/server/api";
 
-type PaginatedMeta = { meta: { page: number; limit: number; total: number } };
+interface PaginatedMeta { meta: { page: number; limit: number; total: number } }
 
 function hasMeta(value: unknown): value is PaginatedMeta {
   return typeof value === "object" && value !== null && "meta" in value && typeof (value as { meta: unknown }).meta === "object";
 }
 
-export const load = async ({ locals, cookies }: RequestEvent) => {
+function isPetsCountResponse(value: unknown): value is { data: { total: number } } {
+  if (typeof value !== "object" || value === null || !("data" in value)) return false;
+  const inner = (value as { data: unknown }).data;
+  return typeof inner === "object" && inner !== null && "total" in inner;
+}
+
+export const load = async ({ locals, cookies }: RequestEvent): Promise<{ user: App.Locals["user"]; counts: { humans: number; pets: number; activities: number; geoInterests: number }; recentActivities: unknown[]; dailyCounts: unknown[] }> => {
   if (locals.user == null) redirect(302, "/login");
 
   const sessionToken = cookies.get("humans_session");
@@ -44,7 +50,7 @@ export const load = async ({ locals, cookies }: RequestEvent) => {
   const humansTotal = hasMeta(humansRaw) ? humansRaw.meta.total : 0;
   const activitiesTotal = hasMeta(activitiesRaw) ? activitiesRaw.meta.total : 0;
   const geoInterestsList = isListData(geoInterestsRaw) ? geoInterestsRaw.data : [];
-  const petsTotal = (petsCountRaw as { data?: { total?: number } } | null)?.data?.total ?? 0;
+  const petsTotal = isPetsCountResponse(petsCountRaw) ? petsCountRaw.data.total : 0;
 
   const recentRaw = recent.ok ? recent.data : null;
   const recentActivities = isListData(recentRaw) ? recentRaw.data : [];

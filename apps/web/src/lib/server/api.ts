@@ -36,15 +36,19 @@ export async function fetchObj(url: string, sessionToken: string): Promise<Recor
 
 type BatchConfigResult = Record<string, unknown[]>;
 
+function isBatchConfigResponse(value: unknown): value is { data: BatchConfigResult } {
+  return typeof value === "object" && value !== null && "data" in value && typeof (value as { data: unknown }).data === "object" && (value as { data: unknown }).data !== null;
+}
+
 export async function fetchConfigs(sessionToken: string, types?: string[]): Promise<BatchConfigResult> {
-  const params = types ? `?types=${types.join(",")}` : "";
+  const params = types != null ? `?types=${types.join(",")}` : "";
   const res = await fetch(`${PUBLIC_API_URL}/api/admin/account-config/batch${params}`, {
     headers: authHeaders(sessionToken),
   });
   if (!res.ok) return {};
   const raw: unknown = await res.json();
-  if (typeof raw === "object" && raw !== null && "data" in raw) {
-    return (raw as { data: BatchConfigResult }).data;
+  if (isBatchConfigResponse(raw)) {
+    return raw.data;
   }
   return {};
 }

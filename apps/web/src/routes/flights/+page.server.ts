@@ -7,12 +7,14 @@ function isPaginatedData(value: unknown): value is { meta: { page: number; limit
   return typeof value === "object" && value !== null && "meta" in value && typeof (value as { meta: unknown }).meta === "object";
 }
 
-export const load = async ({ locals, cookies, url }: RequestEvent) => {
+export const load = async ({ locals, cookies, url }: RequestEvent): Promise<{ flights: unknown[]; page: number; limit: number; total: number; userRole: string }> => {
   if (locals.user == null) redirect(302, "/login");
 
   const sessionToken = cookies.get("humans_session");
-  const page = Number(url.searchParams.get("page")) || 1;
-  const limit = Number(url.searchParams.get("limit")) || 25;
+  const pageParam = Number(url.searchParams.get("page"));
+  const limitParam = Number(url.searchParams.get("limit"));
+  const page = pageParam > 0 ? pageParam : 1;
+  const limit = limitParam > 0 ? limitParam : 25;
 
   const params = new URLSearchParams();
   params.set("page", String(page));
@@ -35,6 +37,6 @@ export const load = async ({ locals, cookies, url }: RequestEvent) => {
     page: meta.page,
     limit: meta.limit,
     total: meta.total,
-    userRole: locals.user?.role ?? "viewer",
+    userRole: locals.user.role,
   };
 };

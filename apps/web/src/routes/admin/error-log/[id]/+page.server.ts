@@ -6,12 +6,13 @@ function isDataResponse(value: unknown): value is { data: Record<string, unknown
   return typeof value === "object" && value !== null && "data" in value && typeof (value as { data: unknown }).data === "object";
 }
 
-export const load = async ({ locals, cookies, params }: RequestEvent) => {
+export const load = async ({ locals, cookies, params }: RequestEvent): Promise<{ entry: Record<string, unknown> }> => {
   if (locals.user == null) redirect(302, "/login");
   if (locals.user.role !== "admin") redirect(302, "/dashboard");
 
   const sessionToken = cookies.get("humans_session");
-  const res = await fetch(`${PUBLIC_API_URL}/api/admin/error-log/${params.id}`, {
+  const id = params.id ?? "";
+  const res = await fetch(`${PUBLIC_API_URL}/api/admin/error-log/${id}`, {
     headers: { Cookie: `humans_session=${sessionToken ?? ""}` },
   });
 
@@ -28,15 +29,17 @@ export const load = async ({ locals, cookies, params }: RequestEvent) => {
 };
 
 export const actions = {
-  toggleResolution: async ({ request, locals, cookies, params }: RequestEvent) => {
+  toggleResolution: async ({ request, locals, cookies, params }: RequestEvent): Promise<{ success: true }> => {
     if (locals.user == null) redirect(302, "/login");
     if (locals.user.role !== "admin") redirect(302, "/dashboard");
 
     const form = await request.formData();
-    const status = form.get("status") as string;
+    const statusRaw = form.get("status");
+    const status = typeof statusRaw === "string" ? statusRaw : "";
     const sessionToken = cookies.get("humans_session");
+    const id = params.id ?? "";
 
-    await fetch(`${PUBLIC_API_URL}/api/admin/error-log/${params.id}/resolution`, {
+    await fetch(`${PUBLIC_API_URL}/api/admin/error-log/${id}/resolution`, {
       method: "PATCH",
       headers: {
         "Content-Type": "application/json",

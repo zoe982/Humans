@@ -3,7 +3,21 @@ import type { RequestEvent, ActionFailure } from "@sveltejs/kit";
 import { PUBLIC_API_URL } from "$env/static/public";
 import { fetchConfigs, failFromApi } from "$lib/server/api";
 
-export const load = async ({ locals, cookies }: RequestEvent) => {
+function getFormString(form: FormData, key: string): string {
+  const raw = form.get(key);
+  return typeof raw === "string" ? raw : "";
+}
+
+export const load = async ({ locals, cookies }: RequestEvent): Promise<{
+  accountTypes: unknown[];
+  humanLabels: unknown[];
+  emailLabels: unknown[];
+  phoneLabels: unknown[];
+  humanEmailLabels: unknown[];
+  humanPhoneLabels: unknown[];
+  opportunityHumanRoles: unknown[];
+  humanRelationshipLabels: unknown[];
+}> => {
   if (locals.user == null) redirect(302, "/login");
   if (locals.user.role !== "admin") redirect(302, "/dashboard");
 
@@ -27,7 +41,7 @@ export const actions = {
   createAccountType: async ({ request, cookies }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
     const form = await request.formData();
     const sessionToken = cookies.get("humans_session") ?? "";
-    const name = form.get("name") as string;
+    const name = getFormString(form, "name");
 
     const res = await fetch(`${PUBLIC_API_URL}/api/admin/account-config/account-types`, {
       method: "POST",
@@ -45,7 +59,7 @@ export const actions = {
   deleteAccountType: async ({ request, cookies }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
     const form = await request.formData();
     const sessionToken = cookies.get("humans_session") ?? "";
-    const id = form.get("id") as string;
+    const id = getFormString(form, "id");
 
     const res = await fetch(`${PUBLIC_API_URL}/api/admin/account-config/account-types/${id}`, {
       method: "DELETE",
@@ -62,7 +76,7 @@ export const actions = {
   createHumanLabel: async ({ request, cookies }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
     const form = await request.formData();
     const sessionToken = cookies.get("humans_session") ?? "";
-    const name = form.get("name") as string;
+    const name = getFormString(form, "name");
 
     const res = await fetch(`${PUBLIC_API_URL}/api/admin/account-config/account-human-labels`, {
       method: "POST",
@@ -80,7 +94,7 @@ export const actions = {
   deleteHumanLabel: async ({ request, cookies }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
     const form = await request.formData();
     const sessionToken = cookies.get("humans_session") ?? "";
-    const id = form.get("id") as string;
+    const id = getFormString(form, "id");
 
     const res = await fetch(`${PUBLIC_API_URL}/api/admin/account-config/account-human-labels/${id}`, {
       method: "DELETE",
@@ -97,7 +111,7 @@ export const actions = {
   createEmailLabel: async ({ request, cookies }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
     const form = await request.formData();
     const sessionToken = cookies.get("humans_session") ?? "";
-    const name = form.get("name") as string;
+    const name = getFormString(form, "name");
 
     const res = await fetch(`${PUBLIC_API_URL}/api/admin/account-config/account-email-labels`, {
       method: "POST",
@@ -115,7 +129,7 @@ export const actions = {
   deleteEmailLabel: async ({ request, cookies }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
     const form = await request.formData();
     const sessionToken = cookies.get("humans_session") ?? "";
-    const id = form.get("id") as string;
+    const id = getFormString(form, "id");
 
     const res = await fetch(`${PUBLIC_API_URL}/api/admin/account-config/account-email-labels/${id}`, {
       method: "DELETE",
@@ -132,7 +146,7 @@ export const actions = {
   createPhoneLabel: async ({ request, cookies }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
     const form = await request.formData();
     const sessionToken = cookies.get("humans_session") ?? "";
-    const name = form.get("name") as string;
+    const name = getFormString(form, "name");
 
     const res = await fetch(`${PUBLIC_API_URL}/api/admin/account-config/account-phone-labels`, {
       method: "POST",
@@ -150,7 +164,7 @@ export const actions = {
   deletePhoneLabel: async ({ request, cookies }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
     const form = await request.formData();
     const sessionToken = cookies.get("humans_session") ?? "";
-    const id = form.get("id") as string;
+    const id = getFormString(form, "id");
 
     const res = await fetch(`${PUBLIC_API_URL}/api/admin/account-config/account-phone-labels/${id}`, {
       method: "DELETE",
@@ -167,7 +181,7 @@ export const actions = {
   createHumanEmailLabel: async ({ request, cookies }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
     const form = await request.formData();
     const sessionToken = cookies.get("humans_session") ?? "";
-    const name = form.get("name") as string;
+    const name = getFormString(form, "name");
 
     const res = await fetch(`${PUBLIC_API_URL}/api/admin/account-config/human-email-labels`, {
       method: "POST",
@@ -185,7 +199,7 @@ export const actions = {
   deleteHumanEmailLabel: async ({ request, cookies }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
     const form = await request.formData();
     const sessionToken = cookies.get("humans_session") ?? "";
-    const id = form.get("id") as string;
+    const id = getFormString(form, "id");
 
     const res = await fetch(`${PUBLIC_API_URL}/api/admin/account-config/human-email-labels/${id}`, {
       method: "DELETE",
@@ -202,7 +216,7 @@ export const actions = {
   createHumanPhoneLabel: async ({ request, cookies }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
     const form = await request.formData();
     const sessionToken = cookies.get("humans_session") ?? "";
-    const name = form.get("name") as string;
+    const name = getFormString(form, "name");
 
     const res = await fetch(`${PUBLIC_API_URL}/api/admin/account-config/human-phone-labels`, {
       method: "POST",
@@ -220,7 +234,7 @@ export const actions = {
   deleteHumanPhoneLabel: async ({ request, cookies }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
     const form = await request.formData();
     const sessionToken = cookies.get("humans_session") ?? "";
-    const id = form.get("id") as string;
+    const id = getFormString(form, "id");
 
     const res = await fetch(`${PUBLIC_API_URL}/api/admin/account-config/human-phone-labels/${id}`, {
       method: "DELETE",
@@ -237,7 +251,7 @@ export const actions = {
   createOpportunityHumanRole: async ({ request, cookies }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
     const form = await request.formData();
     const sessionToken = cookies.get("humans_session") ?? "";
-    const name = form.get("name") as string;
+    const name = getFormString(form, "name");
 
     const res = await fetch(`${PUBLIC_API_URL}/api/admin/account-config/opportunity-human-roles`, {
       method: "POST",
@@ -255,7 +269,7 @@ export const actions = {
   deleteOpportunityHumanRole: async ({ request, cookies }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
     const form = await request.formData();
     const sessionToken = cookies.get("humans_session") ?? "";
-    const id = form.get("id") as string;
+    const id = getFormString(form, "id");
 
     const res = await fetch(`${PUBLIC_API_URL}/api/admin/account-config/opportunity-human-roles/${id}`, {
       method: "DELETE",
@@ -272,7 +286,7 @@ export const actions = {
   createHumanRelationshipLabel: async ({ request, cookies }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
     const form = await request.formData();
     const sessionToken = cookies.get("humans_session") ?? "";
-    const name = form.get("name") as string;
+    const name = getFormString(form, "name");
 
     const res = await fetch(`${PUBLIC_API_URL}/api/admin/account-config/human-relationship-labels`, {
       method: "POST",
@@ -290,7 +304,7 @@ export const actions = {
   deleteHumanRelationshipLabel: async ({ request, cookies }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
     const form = await request.formData();
     const sessionToken = cookies.get("humans_session") ?? "";
-    const id = form.get("id") as string;
+    const id = getFormString(form, "id");
 
     const res = await fetch(`${PUBLIC_API_URL}/api/admin/account-config/human-relationship-labels/${id}`, {
       method: "DELETE",

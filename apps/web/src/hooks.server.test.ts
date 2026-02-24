@@ -8,9 +8,10 @@ vi.mock("$env/dynamic/private", () => ({
 import { handle, handleError } from "./hooks.server";
 import { env } from "$env/dynamic/private";
 
-function createMockEvent(cookies: Record<string, string> = {}) {
+function createMockEvent(cookies: Record<string, string> = {}): Record<string, unknown> {
   return {
     cookies: {
+      // eslint-disable-next-line security/detect-object-injection
       get: (name: string) => cookies[name],
     },
     locals: {} as Record<string, unknown>,
@@ -19,7 +20,7 @@ function createMockEvent(cookies: Record<string, string> = {}) {
   };
 }
 
-function createMockResolve() {
+function createMockResolve(): ReturnType<typeof vi.fn> {
   return vi.fn().mockResolvedValue(new Response("OK"));
 }
 
@@ -33,6 +34,7 @@ describe("handle hook", () => {
     const event = createMockEvent();
     const resolve = createMockResolve();
 
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
     await handle({ event, resolve } as never);
     expect(event.locals.user).toBeNull();
     expect(resolve).toHaveBeenCalledOnce();
@@ -42,6 +44,7 @@ describe("handle hook", () => {
     const event = createMockEvent({ humans_session: "" });
     const resolve = createMockResolve();
 
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
     await handle({ event, resolve } as never);
     expect(event.locals.user).toBeNull();
   });
@@ -50,12 +53,14 @@ describe("handle hook", () => {
     const mockUser = { id: "u-1", name: "Jane", email: "jane@test.com", role: "admin", avatarUrl: null };
     global.fetch = vi.fn().mockResolvedValue({
       ok: true,
+      // eslint-disable-next-line @typescript-eslint/require-await
       json: async () => ({ user: mockUser }),
     });
 
     const event = createMockEvent({ humans_session: "valid-token" });
     const resolve = createMockResolve();
 
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
     await handle({ event, resolve } as never);
     expect(event.locals.user).toStrictEqual(mockUser);
   });
@@ -69,6 +74,7 @@ describe("handle hook", () => {
     const event = createMockEvent({ humans_session: "expired-token" });
     const resolve = createMockResolve();
 
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
     await handle({ event, resolve } as never);
     expect(event.locals.user).toBeNull();
   });
@@ -80,6 +86,7 @@ describe("handle hook", () => {
     const event = createMockEvent({ humans_session: "some-token" });
     const resolve = createMockResolve();
 
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
     await handle({ event, resolve } as never);
     expect(event.locals.user).toBeNull();
     consoleSpy.mockRestore();
@@ -91,6 +98,7 @@ describe("handle hook", () => {
     const event = createMockEvent();
     const resolve = createMockResolve();
 
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
     await handle({ event, resolve } as never);
     expect(event.locals.user).toStrictEqual({
       id: "test-user-id",
@@ -104,12 +112,14 @@ describe("handle hook", () => {
   it("sets user to null when response body is not a user object", async () => {
     global.fetch = vi.fn().mockResolvedValue({
       ok: true,
+      // eslint-disable-next-line @typescript-eslint/require-await
       json: async () => ({ something: "else" }),
     });
 
     const event = createMockEvent({ humans_session: "valid-token" });
     const resolve = createMockResolve();
 
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
     await handle({ event, resolve } as never);
     expect(event.locals.user).toBeNull();
   });
@@ -118,6 +128,7 @@ describe("handle hook", () => {
 describe("handleError", () => {
   it("returns error message from Error instance", () => {
     const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
     const result = handleError({ error: new Error("test error"), event: {} as never, status: 500, message: "" });
     expect(result?.message).toBe("test error");
     consoleSpy.mockRestore();
@@ -125,6 +136,7 @@ describe("handleError", () => {
 
   it("returns default message for non-Error", () => {
     const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
     const result = handleError({ error: "string error", event: {} as never, status: 500, message: "" });
     expect(result?.message).toBe("string error");
     consoleSpy.mockRestore();
@@ -132,6 +144,7 @@ describe("handleError", () => {
 
   it("returns fallback message when error has no message", () => {
     const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
     const result = handleError({ error: new Error(""), event: {} as never, status: 500, message: "" });
     expect(result?.message).toBe("An unexpected error occurred");
     consoleSpy.mockRestore();

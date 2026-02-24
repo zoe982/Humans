@@ -3,11 +3,11 @@ import type { RequestEvent } from "@sveltejs/kit";
 import { PUBLIC_API_URL } from "$env/static/public";
 import { isObjData, isListData, fetchConfigs, authHeaders } from "$lib/server/api";
 
-export const load = async ({ locals, cookies, params }: RequestEvent) => {
+export const load = async ({ locals, cookies, params }: RequestEvent): Promise<{ email: Record<string, unknown>; humanEmailLabelConfigs: unknown[]; accountEmailLabelConfigs: unknown[]; allHumans: unknown[]; allAccounts: unknown[] }> => {
   if (locals.user == null) redirect(302, "/login");
 
   const sessionToken = cookies.get("humans_session") ?? "";
-  const id = params.id;
+  const id = params.id ?? "";
 
   const emailRes = await fetch(`${PUBLIC_API_URL}/api/emails/${id}`, {
     headers: authHeaders(sessionToken),
@@ -25,7 +25,7 @@ export const load = async ({ locals, cookies, params }: RequestEvent) => {
     fetch(`${PUBLIC_API_URL}/api/accounts`, { headers }),
   ]);
 
-  const parseList = async (res: Response) => {
+  const parseList = async (res: Response): Promise<unknown[]> => {
     if (!res.ok) return [];
     const raw: unknown = await res.json();
     return isListData(raw) ? raw.data : [];

@@ -1,16 +1,21 @@
-import { redirect, fail } from "@sveltejs/kit";
+import { redirect } from "@sveltejs/kit";
 import type { RequestEvent, ActionFailure } from "@sveltejs/kit";
 import { PUBLIC_API_URL } from "$env/static/public";
 import { isObjData, isListData, failFromApi } from "$lib/server/api";
 
-export const load = async ({ locals, cookies, params }: RequestEvent) => {
+function getFormString(form: FormData, key: string): string {
+  const raw = form.get(key);
+  return typeof raw === "string" ? raw : "";
+}
+
+export const load = async ({ locals, cookies, params }: RequestEvent): Promise<{ booking: unknown; activities: unknown[]; colleagues: unknown[]; user: NonNullable<typeof locals.user> }> => {
   if (locals.user == null) redirect(302, "/login");
 
   const sessionToken = cookies.get("humans_session");
   const id = params.id;
 
   // Fetch single booking request
-  const bookingRes = await fetch(`${PUBLIC_API_URL}/api/website-booking-requests/${id}`, {
+  const bookingRes = await fetch(`${PUBLIC_API_URL}/api/website-booking-requests/${id ?? ""}`, {
     headers: { Cookie: `humans_session=${sessionToken ?? ""}` },
   });
 
@@ -21,7 +26,7 @@ export const load = async ({ locals, cookies, params }: RequestEvent) => {
 
   // Fetch activities and colleagues concurrently
   const [activitiesRes, colleaguesRes] = await Promise.all([
-    fetch(`${PUBLIC_API_URL}/api/activities?websiteBookingRequestId=${id}`, {
+    fetch(`${PUBLIC_API_URL}/api/activities?websiteBookingRequestId=${id ?? ""}`, {
       headers: { Cookie: `humans_session=${sessionToken ?? ""}` },
     }),
     fetch(`${PUBLIC_API_URL}/api/colleagues`, {
@@ -48,9 +53,9 @@ export const actions = {
   updateStatus: async ({ request, cookies, params }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
     const form = await request.formData();
     const sessionToken = cookies.get("humans_session");
-    const status = form.get("status") as string;
+    const status = getFormString(form, "status");
 
-    const res = await fetch(`${PUBLIC_API_URL}/api/website-booking-requests/${params.id}`, {
+    const res = await fetch(`${PUBLIC_API_URL}/api/website-booking-requests/${params.id ?? ""}`, {
       method: "PATCH",
       headers: {
         "Content-Type": "application/json",
@@ -71,7 +76,7 @@ export const actions = {
     const form = await request.formData();
     const sessionToken = cookies.get("humans_session");
 
-    const res = await fetch(`${PUBLIC_API_URL}/api/website-booking-requests/${params.id}`, {
+    const res = await fetch(`${PUBLIC_API_URL}/api/website-booking-requests/${params.id ?? ""}`, {
       method: "PATCH",
       headers: {
         "Content-Type": "application/json",
@@ -91,7 +96,7 @@ export const actions = {
   delete: async ({ cookies, params }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
     const sessionToken = cookies.get("humans_session");
 
-    const res = await fetch(`${PUBLIC_API_URL}/api/website-booking-requests/${params.id}`, {
+    const res = await fetch(`${PUBLIC_API_URL}/api/website-booking-requests/${params.id ?? ""}`, {
       method: "DELETE",
       headers: {
         Cookie: `humans_session=${sessionToken ?? ""}`,
@@ -111,10 +116,10 @@ export const actions = {
     const sessionToken = cookies.get("humans_session");
 
     const payload = {
-      type: form.get("type") || "email",
+      type: form.get("type") ?? "email",
       subject: form.get("subject"),
-      notes: form.get("notes") || undefined,
-      activityDate: form.get("activityDate") || new Date().toISOString(),
+      notes: form.get("notes") ?? undefined,
+      activityDate: form.get("activityDate") ?? new Date().toISOString(),
       websiteBookingRequestId: params.id,
     };
 
@@ -138,7 +143,7 @@ export const actions = {
   convertToHuman: async ({ request, cookies, params }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
     const form = await request.formData();
     const sessionToken = cookies.get("humans_session");
-    const humanId = form.get("humanId") as string;
+    const humanId = getFormString(form, "humanId");
 
     const res = await fetch(`${PUBLIC_API_URL}/api/humans/${humanId}/convert-from-booking-request`, {
       method: "POST",

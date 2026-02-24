@@ -67,13 +67,15 @@ describe("api", () => {
   it("makes GET request and returns JSON", async () => {
     const mockFetch = vi.fn().mockResolvedValue({
       ok: true,
+      // eslint-disable-next-line @typescript-eslint/require-await
       json: async () => ({ data: [1, 2, 3] }),
     });
 
     const result = await api("/test", {}, mockFetch);
     expect(result).toStrictEqual({ data: [1, 2, 3] });
     expect(mockFetch).toHaveBeenCalledOnce();
-    const [url, opts] = mockFetch.mock.calls[0] as [string, RequestInit];
+    const firstCall = mockFetch.mock.calls[0] as unknown as [string, RequestInit];
+    const [url, opts] = firstCall;
     expect(url).toBe("http://localhost:8787/test");
     expect(opts.credentials).toBe("include");
   });
@@ -81,11 +83,13 @@ describe("api", () => {
   it("appends query params", async () => {
     const mockFetch = vi.fn().mockResolvedValue({
       ok: true,
+      // eslint-disable-next-line @typescript-eslint/require-await
       json: async () => ({}),
     });
 
     await api("/search", { params: { q: "hello" } }, mockFetch);
-    const [url] = mockFetch.mock.calls[0] as [string];
+    const firstCall = mockFetch.mock.calls[0] as unknown as [string];
+    const [url] = firstCall;
     expect(url).toBe("http://localhost:8787/search?q=hello");
   });
 
@@ -93,17 +97,22 @@ describe("api", () => {
     const mockFetch = vi.fn().mockResolvedValue({
       ok: false,
       status: 404,
+      // eslint-disable-next-line @typescript-eslint/require-await
       json: async () => ({ error: "Not found", code: "NOT_FOUND", requestId: "req-1" }),
     });
 
-    await expect(api("/missing", {}, mockFetch)).rejects.toThrow(ApiRequestError);
+    await expect(api("/missing", {}, mockFetch)).rejects.toThrowError(ApiRequestError);
+    let caughtErr: unknown;
     try {
       await api("/missing", {}, mockFetch);
     } catch (e) {
-      const err = e as ApiRequestError;
-      expect(err.status).toBe(404);
-      expect(err.code).toBe("NOT_FOUND");
-      expect(err.requestId).toBe("req-1");
+      caughtErr = e;
+    }
+    expect(caughtErr).toBeInstanceOf(ApiRequestError);
+    if (caughtErr instanceof ApiRequestError) {
+      expect(caughtErr.status).toBe(404);
+      expect(caughtErr.code).toBe("NOT_FOUND");
+      expect(caughtErr.requestId).toBe("req-1");
     }
   });
 
@@ -116,18 +125,21 @@ describe("api", () => {
       },
     });
 
-    await expect(api("/bad", {}, mockFetch)).rejects.toThrow(ApiRequestError);
+    await expect(api("/bad", {}, mockFetch)).rejects.toThrowError(ApiRequestError);
   });
 
   it("passes custom headers", async () => {
     const mockFetch = vi.fn().mockResolvedValue({
       ok: true,
+      // eslint-disable-next-line @typescript-eslint/require-await
       json: async () => ({}),
     });
 
     await api("/test", { headers: { "X-Custom": "val" } }, mockFetch);
-    const [, opts] = mockFetch.mock.calls[0] as [string, RequestInit];
+    const firstCall = mockFetch.mock.calls[0] as unknown as [string, RequestInit];
+    const [, opts] = firstCall;
     const headers = opts.headers as Record<string, string>;
+    // eslint-disable-next-line security/detect-object-injection
     expect(headers["X-Custom"]).toBe("val");
     expect(headers["Content-Type"]).toBe("application/json");
   });
@@ -135,11 +147,13 @@ describe("api", () => {
   it("passes method and body for POST", async () => {
     const mockFetch = vi.fn().mockResolvedValue({
       ok: true,
+      // eslint-disable-next-line @typescript-eslint/require-await
       json: async () => ({ id: "1" }),
     });
 
     await api("/create", { method: "POST", body: JSON.stringify({ name: "test" }) }, mockFetch);
-    const [, opts] = mockFetch.mock.calls[0] as [string, RequestInit];
+    const firstCall = mockFetch.mock.calls[0] as unknown as [string, RequestInit];
+    const [, opts] = firstCall;
     expect(opts.method).toBe("POST");
     expect(opts.body).toBe('{"name":"test"}');
   });
@@ -147,26 +161,32 @@ describe("api", () => {
   it("handles Headers instance", async () => {
     const mockFetch = vi.fn().mockResolvedValue({
       ok: true,
+      // eslint-disable-next-line @typescript-eslint/require-await
       json: async () => ({}),
     });
 
     const headers = new Headers();
     headers.set("X-Test", "value");
     await api("/test", { headers }, mockFetch);
-    const [, opts] = mockFetch.mock.calls[0] as [string, RequestInit];
+    const firstCall = mockFetch.mock.calls[0] as unknown as [string, RequestInit];
+    const [, opts] = firstCall;
     const h = opts.headers as Record<string, string>;
+    // eslint-disable-next-line security/detect-object-injection
     expect(h["X-Test"]).toBe("value");
   });
 
   it("handles array headers", async () => {
     const mockFetch = vi.fn().mockResolvedValue({
       ok: true,
+      // eslint-disable-next-line @typescript-eslint/require-await
       json: async () => ({}),
     });
 
     await api("/test", { headers: [["X-Arr", "val"]] }, mockFetch);
-    const [, opts] = mockFetch.mock.calls[0] as [string, RequestInit];
+    const firstCall = mockFetch.mock.calls[0] as unknown as [string, RequestInit];
+    const [, opts] = firstCall;
     const h = opts.headers as Record<string, string>;
+    // eslint-disable-next-line security/detect-object-injection
     expect(h["X-Arr"]).toBe("val");
   });
 });

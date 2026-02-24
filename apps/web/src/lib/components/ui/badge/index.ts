@@ -8,7 +8,7 @@ export function badgeVariants({
 }: {
 	variant?: BadgeVariant;
 	class?: string;
-} = {}) {
+} = {}): string {
 	const base = "glass-badge";
 
 	const variants: Record<BadgeVariant, string> = {
@@ -18,6 +18,7 @@ export function badgeVariants({
 		outline: "border-glass-border text-text-primary",
 	};
 
+	// eslint-disable-next-line security/detect-object-injection
 	return [base, variants[variant], className].filter(Boolean).join(" ");
 }
 

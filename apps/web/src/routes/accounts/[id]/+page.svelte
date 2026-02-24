@@ -18,6 +18,7 @@
   import SearchableSelect from "$lib/components/SearchableSelect.svelte";
   import { formatRelativeTime, formatDateTime, summarizeChanges } from "$lib/utils/format";
   import { Button } from "$lib/components/ui/button";
+  import { resolve } from "$app/paths";
 
   let { data, form }: { data: PageData; form: ActionData } = $props();
 
@@ -235,7 +236,7 @@
   >
     {#snippet actions()}
       <div class="flex gap-1">
-        {#each account.types as t}
+        {#each account.types as t (t.id)}
           <span class="glass-badge inline-flex rounded-full px-2 py-0.5 text-xs font-medium badge-purple">
             {t.name}
           </span>
@@ -308,7 +309,7 @@
     >
       {#snippet row(email, _searchQuery)}
         <td>
-          <a href="/emails/{email.id}" class="text-sm font-medium text-accent hover:text-[var(--link-hover)]">{email.email}</a>
+          <a href={resolve(`/emails/${email.id}`)} class="text-sm font-medium text-accent hover:text-[var(--link-hover)]">{email.email}</a>
         </td>
         <td>
           <div class="w-36">
@@ -401,7 +402,7 @@
     >
       {#snippet row(phone, _searchQuery)}
         <td>
-          <a href="/phone-numbers/{phone.id}" class="text-sm font-medium text-accent hover:text-[var(--link-hover)]">{phone.phoneNumber}</a>
+          <a href={resolve(`/phone-numbers/${phone.id}`)} class="text-sm font-medium text-accent hover:text-[var(--link-hover)]">{phone.phoneNumber}</a>
         </td>
         <td>
           <div class="w-36">
@@ -498,7 +499,7 @@
     >
       {#snippet row(sid, _searchQuery)}
         <td>
-          <a href="/social-ids/{sid.id}" class="text-sm font-medium text-accent hover:text-[var(--link-hover)]">{sid.handle}</a>
+          <a href={resolve(`/social-ids/${sid.id}`)} class="text-sm font-medium text-accent hover:text-[var(--link-hover)]">{sid.handle}</a>
         </td>
         <td>
           {#if sid.platformName}
@@ -562,7 +563,7 @@
     >
       {#snippet row(w, _searchQuery)}
         <td class="font-mono text-sm whitespace-nowrap">
-          <a href="/websites/{w.id}" class="text-accent hover:text-[var(--link-hover)]">{w.displayId}</a>
+          <a href={resolve(`/websites/${w.id}`)} class="text-accent hover:text-[var(--link-hover)]">{w.displayId}</a>
         </td>
         <td>
           <a href={w.url} target="_blank" rel="noopener noreferrer" class="text-sm font-medium text-accent hover:text-[var(--link-hover)]">{w.url}</a>
@@ -612,10 +613,10 @@
     >
       {#snippet row(rc, _searchQuery)}
         <td class="font-mono text-sm whitespace-nowrap">
-          <a href="/referral-codes/{rc.id}" class="text-accent hover:text-[var(--link-hover)]">{rc.displayId}</a>
+          <a href={resolve(`/referral-codes/${rc.id}`)} class="text-accent hover:text-[var(--link-hover)]">{rc.displayId}</a>
         </td>
         <td>
-          <a href="/referral-codes/{rc.id}" class="text-sm font-medium text-accent hover:text-[var(--link-hover)]">{rc.code}</a>
+          <a href={resolve(`/referral-codes/${rc.id}`)} class="text-sm font-medium text-accent hover:text-[var(--link-hover)]">{rc.code}</a>
         </td>
         <td class="text-sm text-text-secondary max-w-xs truncate">{rc.description ?? "\u2014"}</td>
         <td>
@@ -680,10 +681,10 @@
     >
       {#snippet row(dc, _searchQuery)}
         <td class="font-mono text-sm whitespace-nowrap">
-          <a href="/discount-codes/{dc.id}" class="text-accent hover:text-[var(--link-hover)]">{dc.crmDisplayId ?? "\u2014"}</a>
+          <a href={resolve(`/discount-codes/${dc.id}`)} class="text-accent hover:text-[var(--link-hover)]">{dc.crmDisplayId ?? "\u2014"}</a>
         </td>
         <td>
-          <a href="/discount-codes/{dc.id}" class="text-sm font-medium text-accent hover:text-[var(--link-hover)]">{dc.code}</a>
+          <a href={resolve(`/discount-codes/${dc.id}`)} class="text-sm font-medium text-accent hover:text-[var(--link-hover)]">{dc.code}</a>
         </td>
         <td class="text-sm">{dc.percentOff}%</td>
         <td class="text-sm text-text-secondary max-w-xs truncate">{dc.description ?? "\u2014"}</td>
@@ -709,7 +710,7 @@
             <label for="discountCodeId" class="block text-sm font-medium text-text-secondary">Discount Code</label>
             <select id="discountCodeId" name="discountCodeId" required class="glass-input mt-1 block w-full">
               <option value="">Select a discount code...</option>
-              {#each data.allDiscountCodes as dc}
+              {#each data.allDiscountCodes as dc (dc.id)}
                 <option value={dc.id}>{dc.code} ({dc.crmDisplayId ?? dc.id})</option>
               {/each}
             </select>
@@ -745,10 +746,10 @@
     >
       {#snippet row(link, _searchQuery)}
         <td class="font-mono text-sm whitespace-nowrap">
-          <a href="/humans/{link.humanId}" class="text-accent hover:text-[var(--link-hover)]">{link.humanDisplayId ?? "\u2014"}</a>
+          <a href={resolve(`/humans/${link.humanId}`)} class="text-accent hover:text-[var(--link-hover)]">{link.humanDisplayId ?? "\u2014"}</a>
         </td>
         <td>
-          <a href="/humans/{link.humanId}" class="text-sm font-medium text-accent hover:text-[var(--link-hover)]">
+          <a href={resolve(`/humans/${link.humanId}`)} class="text-sm font-medium text-accent hover:text-[var(--link-hover)]">
             {link.humanName}
           </a>
         </td>
@@ -762,14 +763,14 @@
           {/if}
         </td>
         <td class="text-xs text-text-muted">
-          {#each link.emails as e, i}
+          {#each link.emails as e, i (e.id)}
             {#if i > 0}, {/if}{e.email}
           {:else}
             &mdash;
           {/each}
         </td>
         <td class="text-xs text-text-muted">
-          {#each link.phoneNumbers as p, i}
+          {#each link.phoneNumbers as p, i (p.id)}
             {#if i > 0}, {/if}{p.phoneNumber}
           {:else}
             &mdash;

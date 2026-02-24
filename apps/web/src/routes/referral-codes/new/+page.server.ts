@@ -7,7 +7,12 @@ function isDataWithId(value: unknown): value is { data: { id: string } } {
   return typeof value === "object" && value !== null && "data" in value;
 }
 
-export const load = async ({ locals, cookies }: RequestEvent) => {
+function getFormString(form: FormData, key: string): string {
+  const raw = form.get(key);
+  return typeof raw === "string" ? raw : "";
+}
+
+export const load = async ({ locals, cookies }: RequestEvent): Promise<{ allHumans: unknown[]; allAccounts: unknown[] }> => {
   if (locals.user == null) redirect(302, "/login");
 
   const sessionToken = cookies.get("humans_session") ?? "";
@@ -21,7 +26,7 @@ export const load = async ({ locals, cookies }: RequestEvent) => {
     }),
   ]);
 
-  const parseList = async (res: Response) => {
+  const parseList = async (res: Response): Promise<unknown[]> => {
     if (!res.ok) return [];
     const raw: unknown = await res.json();
     return isListData(raw) ? raw.data : [];
@@ -40,11 +45,15 @@ export const actions = {
     const form = await request.formData();
     const sessionToken = cookies.get("humans_session");
 
+    const descriptionVal = getFormString(form, "description");
+    const humanIdVal = getFormString(form, "humanId");
+    const accountIdVal = getFormString(form, "accountId");
+
     const payload = {
       code: form.get("code"),
-      description: form.get("description") || undefined,
-      humanId: form.get("humanId") || undefined,
-      accountId: form.get("accountId") || undefined,
+      description: descriptionVal !== "" ? descriptionVal : undefined,
+      humanId: humanIdVal !== "" ? humanIdVal : undefined,
+      accountId: accountIdVal !== "" ? accountIdVal : undefined,
     };
 
     const res = await fetch(`${PUBLIC_API_URL}/api/referral-codes`, {

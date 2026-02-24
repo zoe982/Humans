@@ -5,6 +5,7 @@
   import { generalLeadStatusLabels, generalLeadSourceLabels } from "$lib/constants/labels";
   import { generalLeadStatusColors, generalLeadSourceColors } from "$lib/constants/colors";
   import { Button } from "$lib/components/ui/button";
+  import { resolve } from "$app/paths";
 
   let { data, form }: { data: PageData; form: ActionData } = $props();
 
@@ -26,6 +27,7 @@
   const leads = $derived(data.leads as Lead[]);
 
   const paginationBaseUrl = $derived.by(() => {
+    // eslint-disable-next-line svelte/prefer-svelte-reactivity
     const params = new URLSearchParams();
     if (data.status) params.set("status", data.status);
     if (data.source) params.set("source", data.source);
@@ -87,21 +89,25 @@
       </div>
       <Button type="submit" size="sm">Filter</Button>
       {#if data.status || data.source || data.q}
-        <a href="/leads/general-leads" class="btn-ghost text-sm">Clear</a>
+        <a href={resolve('/leads/general-leads')} class="btn-ghost text-sm">Clear</a>
       {/if}
     </form>
   {/snippet}
   {#snippet desktopRow(lead)}
     <td class="font-mono text-sm whitespace-nowrap">
-      <a href="/leads/general-leads/{lead.id}" class="text-accent hover:text-[var(--link-hover)]">{lead.displayId}</a>
+      <a href={resolve(`/leads/general-leads/${lead.id}`)} class="text-accent hover:text-[var(--link-hover)]">{lead.displayId}</a>
     </td>
     <td>
+      <!-- eslint-disable-next-line security/detect-object-injection -->
       <span class="glass-badge inline-flex rounded-full px-2 py-0.5 text-xs font-medium {generalLeadStatusColors[lead.status] ?? 'bg-glass text-text-secondary'}">
+        <!-- eslint-disable-next-line security/detect-object-injection -->
         {generalLeadStatusLabels[lead.status] ?? lead.status}
       </span>
     </td>
     <td>
+      <!-- eslint-disable-next-line security/detect-object-injection -->
       <span class="glass-badge inline-flex rounded-full px-2 py-0.5 text-xs font-medium {generalLeadSourceColors[lead.source] ?? 'bg-glass text-text-secondary'}">
+        <!-- eslint-disable-next-line security/detect-object-injection -->
         {generalLeadSourceLabels[lead.source] ?? lead.source}
       </span>
     </td>
@@ -111,7 +117,7 @@
     <td class="text-text-muted whitespace-nowrap">{new Date(lead.createdAt).toLocaleDateString()}</td>
     <td>
       {#if lead.convertedHumanId}
-        <a href="/humans/{lead.convertedHumanId}" class="text-accent hover:text-[var(--link-hover)] font-mono text-sm">
+        <a href={resolve(`/humans/${lead.convertedHumanId}`)} class="text-accent hover:text-[var(--link-hover)] font-mono text-sm">
           {lead.convertedHumanDisplayId}
         </a>
       {:else}
@@ -120,13 +126,17 @@
     </td>
   {/snippet}
   {#snippet mobileCard(lead)}
-    <a href="/leads/general-leads/{lead.id}" class="glass-card p-4 block hover:ring-1 hover:ring-accent/40 transition">
+    <a href={resolve(`/leads/general-leads/${lead.id}`)} class="glass-card p-4 block hover:ring-1 hover:ring-accent/40 transition">
       <span class="font-mono text-xs text-text-muted">{lead.displayId}</span>
       <div class="flex items-center justify-between mb-2 mt-1">
+        <!-- eslint-disable-next-line security/detect-object-injection -->
         <span class="glass-badge inline-flex rounded-full px-2 py-0.5 text-xs font-medium {generalLeadStatusColors[lead.status] ?? 'bg-glass text-text-secondary'}">
+          <!-- eslint-disable-next-line security/detect-object-injection -->
           {generalLeadStatusLabels[lead.status] ?? lead.status}
         </span>
+        <!-- eslint-disable-next-line security/detect-object-injection -->
         <span class="glass-badge inline-flex rounded-full px-2 py-0.5 text-xs font-medium {generalLeadSourceColors[lead.source] ?? 'bg-glass text-text-secondary'}">
+          <!-- eslint-disable-next-line security/detect-object-injection -->
           {generalLeadSourceLabels[lead.source] ?? lead.source}
         </span>
       </div>

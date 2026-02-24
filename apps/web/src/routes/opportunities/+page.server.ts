@@ -1,4 +1,4 @@
-import { redirect, fail } from "@sveltejs/kit";
+import { redirect } from "@sveltejs/kit";
 import type { RequestEvent, ActionFailure } from "@sveltejs/kit";
 import { PUBLIC_API_URL } from "$env/static/public";
 import { isListData, failFromApi } from "$lib/server/api";
@@ -7,12 +7,19 @@ function isPaginatedData(value: unknown): value is { meta: { page: number; limit
   return typeof value === "object" && value !== null && "meta" in value && typeof (value as { meta: unknown }).meta === "object";
 }
 
-export const load = async ({ locals, cookies, url }: RequestEvent) => {
+function getFormString(form: FormData, key: string): string {
+  const raw = form.get(key);
+  return typeof raw === "string" ? raw : "";
+}
+
+export const load = async ({ locals, cookies, url }: RequestEvent): Promise<{ opportunities: unknown[]; colleagues: unknown[]; page: number; limit: number; total: number; q: string; stage: string; ownerId: string; dealOwnerId: string; overdueOnly: boolean; userRole: string }> => {
   if (locals.user == null) redirect(302, "/login");
 
   const sessionToken = cookies.get("humans_session");
-  const page = Number(url.searchParams.get("page")) || 1;
-  const limit = Number(url.searchParams.get("limit")) || 25;
+  const pageRaw = Number(url.searchParams.get("page"));
+  const limitRaw = Number(url.searchParams.get("limit"));
+  const page = pageRaw !== 0 ? pageRaw : 1;
+  const limit = limitRaw !== 0 ? limitRaw : 25;
   const q = url.searchParams.get("q") ?? "";
   const stage = url.searchParams.get("stage") ?? "";
   const ownerId = url.searchParams.get("ownerId") ?? "";
@@ -22,10 +29,10 @@ export const load = async ({ locals, cookies, url }: RequestEvent) => {
   const params = new URLSearchParams();
   params.set("page", String(page));
   params.set("limit", String(limit));
-  if (q) params.set("q", q);
-  if (stage) params.set("stage", stage);
-  if (ownerId) params.set("ownerId", ownerId);
-  if (dealOwnerId) params.set("dealOwnerId", dealOwnerId);
+  if (q !== "") params.set("q", q);
+  if (stage !== "") params.set("stage", stage);
+  if (ownerId !== "") params.set("ownerId", ownerId);
+  if (dealOwnerId !== "") params.set("dealOwnerId", dealOwnerId);
   if (overdueOnly) params.set("overdueOnly", "true");
 
   const headers = { Cookie: `humans_session=${sessionToken ?? ""}` };
@@ -60,7 +67,7 @@ export const load = async ({ locals, cookies, url }: RequestEvent) => {
     ownerId,
     dealOwnerId,
     overdueOnly,
-    userRole: locals.user?.role ?? "viewer",
+    userRole: locals.user.role,
   };
 };
 
@@ -68,7 +75,7 @@ export const actions = {
   delete: async ({ request, cookies }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
     const form = await request.formData();
     const sessionToken = cookies.get("humans_session");
-    const id = form.get("id");
+    const id = getFormString(form, "id");
 
     const res = await fetch(`${PUBLIC_API_URL}/api/opportunities/${id}`, {
       method: "DELETE",
