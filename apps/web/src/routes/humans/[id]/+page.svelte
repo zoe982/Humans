@@ -37,6 +37,7 @@
   type PhoneNumber = { id: string; displayId: string; phoneNumber: string; labelId: string | null; labelName: string | null; hasWhatsapp: boolean; isPrimary: boolean };
   type SocialIdItem = { id: string; displayId: string; handle: string; platformId: string | null; platformName: string | null };
   type ReferralCodeItem = { id: string; displayId: string; code: string; description: string | null; isActive: boolean };
+  type DiscountCodeItem = { id: string; crmDisplayId: string | null; code: string; description: string | null; percentOff: number; isActive: boolean };
   type ConfigItem = { id: string; name: string; createdAt: string };
   type Pet = { id: string; displayId: string; name: string | null; type: string; breed: string | null; weight: number | null };
   type GeoInterestExpression = {
@@ -110,6 +111,7 @@
     linkedAccounts: LinkedAccount[];
     socialIds: SocialIdItem[];
     referralCodes: ReferralCodeItem[];
+    discountCodes: DiscountCodeItem[];
     createdAt: string;
     updatedAt: string;
   };
@@ -849,6 +851,68 @@
           </div>
           <Button type="submit" size="sm">
             Add Referral Code
+          </Button>
+        </form>
+      {/snippet}
+    </RelatedListTable>
+  </div>
+
+  <!-- Discount Codes Section -->
+  <div class="mt-6">
+    <RelatedListTable
+      title="Discount Codes"
+      items={human.discountCodes}
+      columns={[
+        { key: "id", label: "ID" },
+        { key: "code", label: "Code", sortable: true, sortValue: (dc) => dc.code },
+        { key: "percentOff", label: "% Off" },
+        { key: "description", label: "Description" },
+        { key: "active", label: "Active" },
+        { key: "unlink", label: "", headerClass: "w-10" },
+      ]}
+      defaultSortKey="code"
+      defaultSortDirection="asc"
+      searchFilter={(dc, q) => dc.code.toLowerCase().includes(q) || (dc.description ?? "").toLowerCase().includes(q)}
+      emptyMessage="No discount codes yet."
+    >
+      {#snippet row(dc, _searchQuery)}
+        <td class="font-mono text-sm whitespace-nowrap">
+          <a href="/discount-codes/{dc.id}" class="text-accent hover:text-[var(--link-hover)]">{dc.crmDisplayId ?? "\u2014"}</a>
+        </td>
+        <td>
+          <a href="/discount-codes/{dc.id}" class="text-sm font-medium text-accent hover:text-[var(--link-hover)]">{dc.code}</a>
+        </td>
+        <td class="text-sm">{dc.percentOff}%</td>
+        <td class="text-sm text-text-secondary max-w-xs truncate">{dc.description ?? "\u2014"}</td>
+        <td>
+          {#if dc.isActive}
+            <span class="glass-badge inline-flex rounded-full px-2 py-0.5 text-xs font-medium badge-green">Active</span>
+          {:else}
+            <span class="glass-badge inline-flex rounded-full px-2 py-0.5 text-xs font-medium bg-glass text-text-muted">Inactive</span>
+          {/if}
+        </td>
+        <td>
+          <form method="POST" action="?/unlinkDiscountCode">
+            <input type="hidden" name="id" value={dc.id} />
+            <button type="submit" class="flex items-center justify-center w-7 h-7 rounded-lg text-text-muted hover:text-destructive-foreground hover:bg-destructive transition-colors duration-150" aria-label="Unlink discount code">
+              <Trash2 size={14} />
+            </button>
+          </form>
+        </td>
+      {/snippet}
+      {#snippet addForm()}
+        <form method="POST" action="?/linkDiscountCode" class="space-y-3">
+          <div>
+            <label for="discountCodeId" class="block text-sm font-medium text-text-secondary">Discount Code</label>
+            <select id="discountCodeId" name="discountCodeId" required class="glass-input mt-1 block w-full">
+              <option value="">Select a discount code...</option>
+              {#each data.allDiscountCodes as dc}
+                <option value={dc.id}>{dc.code} ({dc.crmDisplayId ?? dc.id})</option>
+              {/each}
+            </select>
+          </div>
+          <Button type="submit" size="sm">
+            Link Discount Code
           </Button>
         </form>
       {/snippet}

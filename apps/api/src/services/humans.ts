@@ -106,6 +106,21 @@ export async function getHumanDetail(supabase: SupabaseClient, db: DB, humanId: 
     isActive: rc.is_active,
   }));
 
+  // Fetch discount codes from Supabase
+  const { data: supaDiscountCodes } = await supabase
+    .from("discount_codes")
+    .select("id, crm_display_id, code, description, percent_off, is_active")
+    .eq("human_id", human.id);
+
+  const humanDiscountCodes = (supaDiscountCodes ?? []).map((dc: { id: string; crm_display_id: string | null; code: string; description: string | null; percent_off: number; is_active: boolean }) => ({
+    id: dc.id,
+    crmDisplayId: dc.crm_display_id,
+    code: dc.code,
+    description: dc.description,
+    percentOff: dc.percent_off,
+    isActive: dc.is_active,
+  }));
+
   const allGeoInterests = geoExpressions.length > 0
     ? await db.select().from(geoInterests)
     : [];
@@ -184,6 +199,7 @@ export async function getHumanDetail(supabase: SupabaseClient, db: DB, humanId: 
     linkedAccounts,
     socialIds: socialIdsWithPlatforms,
     referralCodes: humanReferralCodes,
+    discountCodes: humanDiscountCodes,
   };
 }
 
@@ -407,6 +423,7 @@ export async function deleteHuman(supabase: SupabaseClient, db: DB, id: string) 
   await db.delete(accountHumans).where(eq(accountHumans.humanId, id));
   await db.update(socialIds).set({ humanId: null }).where(eq(socialIds.humanId, id));
   await supabase.from("referral_codes").update({ human_id: null }).eq("human_id", id);
+  await supabase.from("discount_codes").update({ human_id: null }).eq("human_id", id);
   await db.delete(humans).where(eq(humans.id, id));
 }
 

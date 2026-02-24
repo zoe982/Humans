@@ -3,6 +3,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { eq } from "drizzle-orm";
 import { ERROR_CODES } from "@humans/shared";
 import { opportunities, opportunityHumans, humans, opportunityHumanRolesConfig } from "@humans/db/schema";
+import { getDiscountCodesForFlight } from "../services/discount-codes";
 import { authMiddleware } from "../middleware/auth";
 import { requirePermission } from "../middleware/rbac";
 import { supabaseMiddleware } from "../middleware/supabase";
@@ -167,7 +168,10 @@ flightRoutes.get(
       primaryHuman: primaryHumans[opp.id] ?? null,
     }));
 
-    return c.json({ data, linkedOpportunities });
+    // Fetch linked discount codes
+    const linkedDiscountCodes = await getDiscountCodesForFlight(supabase, db, flightId);
+
+    return c.json({ data, linkedOpportunities, linkedDiscountCodes });
   },
 );
 

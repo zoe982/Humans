@@ -20,8 +20,10 @@ export const load = async ({ locals, cookies, params }: RequestEvent) => {
   const raw: unknown = await res.json();
   if (!isObjData(raw)) redirect(302, "/flights");
 
+  const rawTyped = raw as { data: Record<string, unknown>; linkedOpportunities?: unknown[]; linkedDiscountCodes?: unknown[] };
   return {
-    flight: raw.data,
-    linkedOpportunities: raw.linkedOpportunities ?? [],
+    flight: rawTyped.data,
+    linkedOpportunities: rawTyped.linkedOpportunities ?? [],
+    linkedDiscountCodes: rawTyped.linkedDiscountCodes ?? [],
   };
 };

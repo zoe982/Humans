@@ -110,6 +110,11 @@ export {
 } from "./referral-codes";
 
 export {
+  updateDiscountCodeSchema,
+  type UpdateDiscountCodeInput,
+} from "./discount-codes";
+
+export {
   opportunityStageEnum,
   createOpportunitySchema,
   updateOpportunitySchema,

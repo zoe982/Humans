@@ -33,7 +33,7 @@ export const load = async ({ locals, cookies, params }: RequestEvent) => {
   if (account == null) redirect(302, "/accounts");
 
   // Fetch config lists for dropdowns + humans list for linking
-  const [typesRes, humanLabelsRes, emailLabelsRes, phoneLabelsRes, humansRes, socialIdPlatformsRes] = await Promise.all([
+  const [typesRes, humanLabelsRes, emailLabelsRes, phoneLabelsRes, humansRes, socialIdPlatformsRes, discountCodesRes] = await Promise.all([
     fetch(`${PUBLIC_API_URL}/api/admin/account-config/account-types`, {
       headers: { Cookie: `humans_session=${sessionToken}` },
     }),
@@ -52,6 +52,9 @@ export const load = async ({ locals, cookies, params }: RequestEvent) => {
     fetch(`${PUBLIC_API_URL}/api/admin/account-config/social-id-platforms`, {
       headers: { Cookie: `humans_session=${sessionToken}` },
     }),
+    fetch(`${PUBLIC_API_URL}/api/discount-codes`, {
+      headers: { Cookie: `humans_session=${sessionToken}` },
+    }),
   ]);
 
   const parseList = async (res: Response) => {
@@ -60,13 +63,14 @@ export const load = async ({ locals, cookies, params }: RequestEvent) => {
     return isListData(raw) ? raw.data : [];
   };
 
-  const [typeConfigs, humanLabelConfigs, emailLabelConfigs, phoneLabelConfigs, allHumans, socialIdPlatformConfigs] = await Promise.all([
+  const [typeConfigs, humanLabelConfigs, emailLabelConfigs, phoneLabelConfigs, allHumans, socialIdPlatformConfigs, allDiscountCodes] = await Promise.all([
     parseList(typesRes),
     parseList(humanLabelsRes),
     parseList(emailLabelsRes),
     parseList(phoneLabelsRes),
     parseList(humansRes),
     parseList(socialIdPlatformsRes),
+    parseList(discountCodesRes),
   ]);
 
   return {
@@ -77,6 +81,7 @@ export const load = async ({ locals, cookies, params }: RequestEvent) => {
     phoneLabelConfigs,
     allHumans,
     socialIdPlatformConfigs,
+    allDiscountCodes,
   };
 };
 
@@ -379,6 +384,50 @@ export const actions = {
     if (!res.ok) {
       const resBody: unknown = await res.json().catch(() => ({}));
       return failFromApi(resBody, res.status, "Failed to delete referral code");
+    }
+
+    return { success: true };
+  },
+
+  linkDiscountCode: async ({ request, cookies, params }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
+    const form = await request.formData();
+    const sessionToken = cookies.get("humans_session") ?? "";
+    const discountCodeId = form.get("discountCodeId");
+
+    const res = await fetch(`${PUBLIC_API_URL}/api/discount-codes/${discountCodeId}`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        Cookie: `humans_session=${sessionToken}`,
+      },
+      body: JSON.stringify({ accountId: params.id }),
+    });
+
+    if (!res.ok) {
+      const resBody: unknown = await res.json().catch(() => ({}));
+      return failFromApi(resBody, res.status, "Failed to link discount code");
+    }
+
+    return { success: true };
+  },
+
+  unlinkDiscountCode: async ({ request, cookies }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
+    const form = await request.formData();
+    const sessionToken = cookies.get("humans_session") ?? "";
+    const discountCodeId = form.get("id");
+
+    const res = await fetch(`${PUBLIC_API_URL}/api/discount-codes/${discountCodeId}`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        Cookie: `humans_session=${sessionToken}`,
+      },
+      body: JSON.stringify({ accountId: null }),
+    });
+
+    if (!res.ok) {
+      const resBody: unknown = await res.json().catch(() => ({}));
+      return failFromApi(resBody, res.status, "Failed to unlink discount code");
     }
 
     return { success: true };

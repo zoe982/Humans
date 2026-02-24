@@ -44,8 +44,19 @@
     primaryHuman: { firstName: string; lastName: string; displayId: string } | null;
   };
 
+  type LinkedDiscountCode = {
+    id: string;
+    crmDisplayId: string | null;
+    code: string;
+    percentOff: number;
+    isActive: boolean;
+    description: string | null;
+    humanName: string | null;
+  };
+
   const flight = $derived(data.flight as Flight);
   const linkedOpportunities = $derived(data.linkedOpportunities as LinkedOpp[]);
+  const linkedDiscountCodes = $derived(data.linkedDiscountCodes as LinkedDiscountCode[]);
 
   function formatPrice(val: number | null): string {
     if (val == null) return "\u2014";
@@ -200,6 +211,40 @@
         </td>
         <td class="text-sm text-text-secondary">{opp.passengerSeats}</td>
         <td class="text-sm text-text-secondary">{opp.petSeats}</td>
+      {/snippet}
+    </RelatedListTable>
+  </div>
+
+  <!-- Linked Discount Codes -->
+  <div class="mt-6">
+    <RelatedListTable
+      title="Linked Discount Codes"
+      items={linkedDiscountCodes}
+      columns={[
+        { key: "id", label: "ID" },
+        { key: "code", label: "Code" },
+        { key: "percentOff", label: "% Off" },
+        { key: "active", label: "Active" },
+        { key: "description", label: "Description" },
+        { key: "human", label: "Human" },
+      ]}
+      emptyMessage="No discount codes linked to this flight."
+    >
+      {#snippet row(dc, _searchQuery)}
+        <td class="font-mono text-sm">
+          <a href="/discount-codes/{dc.id}" class="text-accent hover:text-[var(--link-hover)]">{dc.crmDisplayId ?? "—"}</a>
+        </td>
+        <td class="font-mono text-sm">{dc.code}</td>
+        <td class="text-sm">{dc.percentOff}%</td>
+        <td>
+          {#if dc.isActive}
+            <span class="glass-badge inline-flex rounded-full px-2 py-0.5 text-xs font-medium badge-green">Active</span>
+          {:else}
+            <span class="glass-badge inline-flex rounded-full px-2 py-0.5 text-xs font-medium bg-glass text-text-muted">Inactive</span>
+          {/if}
+        </td>
+        <td class="text-sm text-text-secondary max-w-xs truncate">{dc.description ?? "\u2014"}</td>
+        <td class="text-sm text-text-secondary">{dc.humanName ?? "\u2014"}</td>
       {/snippet}
     </RelatedListTable>
   </div>

@@ -54,6 +54,7 @@ export const load = async ({ locals, cookies, params }: RequestEvent) => {
     accountHumanLabelConfigs,
     generalLeadsRes,
     opportunitiesRes,
+    discountCodesRes,
   ] = await Promise.all([
     fetch(`${PUBLIC_API_URL}/api/activities?humanId=${id}`, { headers }),
     fetchConfig(sessionToken ?? "", "human-email-labels"),
@@ -65,6 +66,7 @@ export const load = async ({ locals, cookies, params }: RequestEvent) => {
     fetchConfig(sessionToken ?? "", "account-human-labels"),
     fetch(`${PUBLIC_API_URL}/api/general-leads?convertedHumanId=${id}&limit=50`, { headers }),
     fetch(`${PUBLIC_API_URL}/api/opportunities?humanId=${id}&limit=50`, { headers }),
+    fetch(`${PUBLIC_API_URL}/api/discount-codes`, { headers }),
   ]);
 
   let activities: unknown[] = [];
@@ -101,6 +103,12 @@ export const load = async ({ locals, cookies, params }: RequestEvent) => {
   if (opportunitiesRes.ok) {
     const raw: unknown = await opportunitiesRes.json();
     humanOpportunities = isListData(raw) ? (raw as { data: unknown[] }).data : [];
+  }
+
+  let allDiscountCodes: unknown[] = [];
+  if (discountCodesRes.ok) {
+    const raw: unknown = await discountCodesRes.json();
+    allDiscountCodes = isListData(raw) ? raw.data : [];
   }
 
   // Derive convertedFromLead from the first general lead (backwards compat)
@@ -156,6 +164,7 @@ export const load = async ({ locals, cookies, params }: RequestEvent) => {
     convertedFromLead,
     generalLeads,
     humanOpportunities,
+    allDiscountCodes,
   };
 };
 
@@ -617,6 +626,50 @@ export const actions = {
     if (!res.ok) {
       const resBody: unknown = await res.json();
       return failFromApi(resBody, res.status, "Failed to delete referral code");
+    }
+
+    return { success: true };
+  },
+
+  linkDiscountCode: async ({ request, cookies, params }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
+    const form = await request.formData();
+    const sessionToken = cookies.get("humans_session");
+    const discountCodeId = form.get("discountCodeId");
+
+    const res = await fetch(`${PUBLIC_API_URL}/api/discount-codes/${discountCodeId}`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        Cookie: `humans_session=${sessionToken ?? ""}`,
+      },
+      body: JSON.stringify({ humanId: params.id }),
+    });
+
+    if (!res.ok) {
+      const resBody: unknown = await res.json();
+      return failFromApi(resBody, res.status, "Failed to link discount code");
+    }
+
+    return { success: true };
+  },
+
+  unlinkDiscountCode: async ({ request, cookies }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
+    const form = await request.formData();
+    const sessionToken = cookies.get("humans_session");
+    const discountCodeId = form.get("id");
+
+    const res = await fetch(`${PUBLIC_API_URL}/api/discount-codes/${discountCodeId}`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        Cookie: `humans_session=${sessionToken ?? ""}`,
+      },
+      body: JSON.stringify({ humanId: null }),
+    });
+
+    if (!res.ok) {
+      const resBody: unknown = await res.json();
+      return failFromApi(resBody, res.status, "Failed to unlink discount code");
     }
 
     return { success: true };
