@@ -10,6 +10,7 @@ describe("ConfettiOverlay", () => {
 
   it("renders a canvas when trigger is true", () => {
     // Mock canvas context since happy-dom doesn't support it
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
     HTMLCanvasElement.prototype.getContext = vi.fn(() => null) as unknown as typeof HTMLCanvasElement.prototype.getContext;
     const { container } = render(ConfettiOverlay, { props: { trigger: true } });
     const canvas = container.querySelector("canvas");
