@@ -6,7 +6,7 @@ import { render, screen, fireEvent } from "@testing-library/svelte";
 import { createRawSnippet } from "svelte";
 import RelatedListTable from "./RelatedListTable.svelte";
 
-type TestItem = { id: string; name: string; date: string };
+interface TestItem { id: string; name: string; date: string }
 
 const items: TestItem[] = [
   { id: "1", name: "Alpha", date: "2025-01-01" },
@@ -15,28 +15,28 @@ const items: TestItem[] = [
 ];
 
 const columns = [
-  { key: "name", label: "Name", sortable: true, sortValue: (i: TestItem) => i.name },
-  { key: "date", label: "Date", sortable: true, sortValue: (i: TestItem) => i.date },
+  { key: "name", label: "Name", sortable: true, sortValue: (i: TestItem): string => i.name },
+  { key: "date", label: "Date", sortable: true, sortValue: (i: TestItem): string => i.date },
 ];
 
 const searchFilter = (item: TestItem, q: string) =>
   item.name.toLowerCase().includes(q);
 
-function makeRow() {
+function makeRow(): ReturnType<typeof createRawSnippet> {
   return createRawSnippet(() => ({
     render: () => `<td>row</td>`,
-    setup: () => {},
+    setup: () => { /* noop */ },
   }));
 }
 
-function makeAddForm() {
+function makeAddForm(): ReturnType<typeof createRawSnippet> {
   return createRawSnippet(() => ({
     render: () => `<div>add form</div>`,
-    setup: () => {},
+    setup: () => { /* noop */ },
   }));
 }
 
-function renderTable(overrides: Record<string, unknown> = {}) {
+function renderTable(overrides: Record<string, unknown> = {}): ReturnType<typeof render> {
   return render(RelatedListTable, {
     props: {
       title: "Test List",

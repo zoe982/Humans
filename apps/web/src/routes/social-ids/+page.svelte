@@ -76,7 +76,7 @@
     </td>
   {/snippet}
   {#snippet mobileCard(sid)}
-    <a href="/social-ids/{sid.id}" class="glass-card p-4 block hover:ring-1 hover:ring-accent/40 transition">
+    <a href={resolve(`/social-ids/${sid.id}`)} class="glass-card p-4 block hover:ring-1 hover:ring-accent/40 transition">
       <span class="font-mono text-xs text-text-muted">{sid.displayId}</span>
       <div class="font-medium text-accent">{sid.handle}</div>
       <div class="text-sm text-text-secondary">
