@@ -1318,8 +1318,8 @@ describe("humans/[id] load — additional branches", () => {
       "/api/opportunities": { body: { data: [] } },
       "/api/discount-codes": { body: { data: [] } },
       "/api/humans/h-1/relationships": { body: { data: [] } },
-      "/api/humans": { body: { data: [] } },
       "/api/humans/h-1": { body: { data: humanWithUnmatchedSignup } },
+      "/api/humans": { body: { data: [] } },
       "/api/activities": { body: { data: [] } },
     });
     vi.stubGlobal("fetch", mockFetch);
@@ -1359,8 +1359,8 @@ describe("humans/[id] load — additional branches", () => {
       "/api/opportunities": { body: { data: [] } },
       "/api/discount-codes": { body: { data: [] } },
       "/api/humans/h-1/relationships": { body: { data: [] } },
-      "/api/humans": { body: { data: [] } },
       "/api/humans/h-1": { body: { data: humanWithLinkedBooking } },
+      "/api/humans": { body: { data: [] } },
       "/api/activities": { body: { data: [] } },
     });
     vi.stubGlobal("fetch", mockFetch);
@@ -1401,8 +1401,8 @@ describe("humans/[id] load — additional branches", () => {
       "/api/opportunities": { body: { data: [] } },
       "/api/discount-codes": { body: { data: [] } },
       "/api/humans/h-1/relationships": { body: { data: [] } },
-      "/api/humans": { body: { data: [] } },
       "/api/humans/h-1": { body: { data: humanWithUnmatchedBooking } },
+      "/api/humans": { body: { data: [] } },
       "/api/activities": { body: { data: [] } },
     });
     vi.stubGlobal("fetch", mockFetch);
@@ -1442,8 +1442,8 @@ describe("humans/[id] load — additional branches", () => {
       "/api/opportunities": { body: { data: [] } },
       "/api/discount-codes": { body: { data: [] } },
       "/api/humans/h-1/relationships": { body: { data: [] } },
-      "/api/humans": { body: { data: [] } },
       "/api/humans/h-1": { body: { data: humanWithNoLinks } },
+      "/api/humans": { body: { data: [] } },
       "/api/activities": { body: { data: [] } },
     });
     vi.stubGlobal("fetch", mockFetch);
@@ -1483,8 +1483,8 @@ describe("humans/[id] load — additional branches", () => {
       "/api/opportunities": { status: 500, body: { error: "Server error" } },
       "/api/discount-codes": { status: 500, body: { error: "Server error" } },
       "/api/humans/h-1/relationships": { status: 500, body: { error: "Server error" } },
-      "/api/humans": { status: 500, body: { error: "Server error" } },
       "/api/humans/h-1": { body: { data: humanWithNoLinks } },
+      "/api/humans": { status: 500, body: { error: "Server error" } },
       "/api/activities": { status: 500, body: { error: "Server error" } },
     });
     vi.stubGlobal("fetch", mockFetch);
@@ -1528,8 +1528,8 @@ describe("humans/[id] load — additional branches", () => {
       "/api/opportunities": { body: { data: [] } },
       "/api/discount-codes": { body: { data: [] } },
       "/api/humans/h-1/relationships": { body: { data: [] } },
-      "/api/humans": { body: { data: [] } },
       "/api/humans/h-1": { body: { data: humanWithNoLinks } },
+      "/api/humans": { body: { data: [] } },
       "/api/activities": { body: { data: [] } },
     });
     vi.stubGlobal("fetch", mockFetch);
@@ -1567,8 +1567,8 @@ describe("humans/[id] load — additional branches", () => {
       "/api/opportunities": { body: { items: [] } },
       "/api/discount-codes": { body: { items: [] } },
       "/api/humans/h-1/relationships": { body: { items: [] } },
-      "/api/humans": { body: { items: [] } },
       "/api/humans/h-1": { body: { data: humanWithNoLinks } },
+      "/api/humans": { body: { items: [] } },
       "/api/activities": { body: { items: [] } },
     });
     vi.stubGlobal("fetch", mockFetch);
@@ -1607,8 +1607,8 @@ describe("humans/[id] load — additional branches", () => {
       "/api/opportunities": { body: { data: [] } },
       "/api/discount-codes": { body: { data: [] } },
       "/api/humans/h-1/relationships": { body: { data: [] } },
-      "/api/humans": { body: { data: [] } },
       "/api/humans/h-1": { body: { data: humanWithNoLinks } },
+      "/api/humans": { body: { data: [] } },
       "/api/activities": { body: { data: [] } },
     });
     vi.stubGlobal("fetch", mockFetch);
@@ -1644,8 +1644,8 @@ describe("humans/[id] load — additional branches", () => {
       "/api/opportunities": { body: { data: [] } },
       "/api/discount-codes": { body: { data: [] } },
       "/api/humans/h-1/relationships": { body: { data: [] } },
-      "/api/humans": { body: { data: [] } },
       "/api/humans/h-1": { body: { data: humanWithLinkedSignup } },
+      "/api/humans": { body: { data: [] } },
       "/api/activities": { body: { data: [] } },
     });
     vi.stubGlobal("fetch", mockFetch);
@@ -1682,8 +1682,8 @@ describe("humans/[id] load — additional branches", () => {
       "/api/opportunities": { body: { data: [] } },
       "/api/discount-codes": { body: { data: [] } },
       "/api/humans/h-1/relationships": { body: { data: [] } },
-      "/api/humans": { body: { data: [] } },
       "/api/humans/h-1": { body: { data: humanWithLinkedBooking } },
+      "/api/humans": { body: { data: [] } },
       "/api/activities": { body: { data: [] } },
     });
     vi.stubGlobal("fetch", mockFetch);
