@@ -18,7 +18,6 @@ import {
   humanPhoneLabelsConfig,
   socialIds,
   socialIdPlatformsConfig,
-  referralCodes,
 } from "@humans/db/schema";
 import { createId } from "@humans/db";
 import { ERROR_CODES } from "@humans/shared";
@@ -26,6 +25,7 @@ import { computeDiff, logAuditEntry } from "../lib/audit";
 import { notFound, conflict } from "../lib/errors";
 import { nextDisplayId } from "../lib/display-id";
 import { rematchActivitiesByEmail, rematchActivitiesByPhone } from "./activity-rematch";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import type { DB } from "./types";
 
 export async function listHumans(db: DB, page: number, limit: number, search?: string) {
@@ -68,7 +68,7 @@ export async function listHumans(db: DB, page: number, limit: number, search?: s
   return { data, meta: { page, limit, total } };
 }
 
-export async function getHumanDetail(db: DB, humanId: string) {
+export async function getHumanDetail(supabase: SupabaseClient, db: DB, humanId: string) {
   const human = await db.query.humans.findFirst({
     where: eq(humans.id, humanId),
   });
@@ -76,7 +76,7 @@ export async function getHumanDetail(db: DB, humanId: string) {
     throw notFound(ERROR_CODES.HUMAN_NOT_FOUND, "Human not found");
   }
 
-  const [humanEmails, types, linkedSignups, linkedBookingRequests, humanPhones, humanPets, geoExpressions, routeExpressions, linkedAccountRows, emailLabelConfigs, phoneLabelConfigs, humanSocialIds, allPlatforms, humanReferralCodes] = await Promise.all([
+  const [humanEmails, types, linkedSignups, linkedBookingRequests, humanPhones, humanPets, geoExpressions, routeExpressions, linkedAccountRows, emailLabelConfigs, phoneLabelConfigs, humanSocialIds, allPlatforms] = await Promise.all([
     db.select().from(emails).where(eq(emails.ownerId, human.id)),
     db.select().from(humanTypes).where(eq(humanTypes.humanId, human.id)),
     db.select().from(humanRouteSignups).where(eq(humanRouteSignups.humanId, human.id)),
@@ -90,8 +90,21 @@ export async function getHumanDetail(db: DB, humanId: string) {
     db.select().from(humanPhoneLabelsConfig),
     db.select().from(socialIds).where(eq(socialIds.humanId, human.id)),
     db.select().from(socialIdPlatformsConfig),
-    db.select().from(referralCodes).where(eq(referralCodes.humanId, human.id)),
   ]);
+
+  // Fetch referral codes from Supabase
+  const { data: supaReferralCodes } = await supabase
+    .from("referral_codes")
+    .select("id, display_id, code, description, is_active")
+    .eq("human_id", human.id);
+
+  const humanReferralCodes = (supaReferralCodes ?? []).map((rc: { id: string; display_id: string; code: string; description: string | null; is_active: boolean }) => ({
+    id: rc.id,
+    displayId: rc.display_id,
+    code: rc.code,
+    description: rc.description,
+    isActive: rc.is_active,
+  }));
 
   const allGeoInterests = geoExpressions.length > 0
     ? await db.select().from(geoInterests)
@@ -375,7 +388,7 @@ export async function updateHumanStatus(db: DB, id: string, status: string, coll
   return { id, status, auditEntryId };
 }
 
-export async function deleteHuman(db: DB, id: string) {
+export async function deleteHuman(supabase: SupabaseClient, db: DB, id: string) {
   const existing = await db.query.humans.findFirst({
     where: eq(humans.id, id),
   });
@@ -393,7 +406,7 @@ export async function deleteHuman(db: DB, id: string) {
   await db.delete(routeInterestExpressions).where(eq(routeInterestExpressions.humanId, id));
   await db.delete(accountHumans).where(eq(accountHumans.humanId, id));
   await db.update(socialIds).set({ humanId: null }).where(eq(socialIds.humanId, id));
-  await db.update(referralCodes).set({ humanId: null }).where(eq(referralCodes.humanId, id));
+  await supabase.from("referral_codes").update({ human_id: null }).eq("human_id", id);
   await db.delete(humans).where(eq(humans.id, id));
 }
 

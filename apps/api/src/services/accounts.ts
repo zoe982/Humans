@@ -13,13 +13,13 @@ import {
   humans,
   socialIds,
   socialIdPlatformsConfig,
-  referralCodes,
 } from "@humans/db/schema";
 import { createId } from "@humans/db";
 import { ERROR_CODES } from "@humans/shared";
 import { computeDiff, logAuditEntry } from "../lib/audit";
 import { notFound } from "../lib/errors";
 import { nextDisplayId } from "../lib/display-id";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import type { DB } from "./types";
 
 export async function listAccounts(db: DB) {
@@ -40,7 +40,7 @@ export async function listAccounts(db: DB) {
   return { data };
 }
 
-export async function getAccountDetail(db: DB, id: string) {
+export async function getAccountDetail(supabase: SupabaseClient, db: DB, id: string) {
   const account = await db.query.accounts.findFirst({
     where: eq(accounts.id, id),
   });
@@ -60,7 +60,6 @@ export async function getAccountDetail(db: DB, id: string) {
     directActivities,
     accountSocialIds,
     allPlatforms,
-    accountReferralCodes,
   ] = await Promise.all([
     db.select().from(accountTypes).where(eq(accountTypes.accountId, id)),
     db.select().from(accountTypesConfig),
@@ -73,8 +72,21 @@ export async function getAccountDetail(db: DB, id: string) {
     db.select().from(activities).where(eq(activities.accountId, id)),
     db.select().from(socialIds).where(eq(socialIds.accountId, id)),
     db.select().from(socialIdPlatformsConfig),
-    db.select().from(referralCodes).where(eq(referralCodes.accountId, id)),
   ]);
+
+  // Fetch referral codes from Supabase
+  const { data: supaReferralCodes } = await supabase
+    .from("referral_codes")
+    .select("id, display_id, code, description, is_active")
+    .eq("account_id", id);
+
+  const accountReferralCodes = (supaReferralCodes ?? []).map((rc: { id: string; display_id: string; code: string; description: string | null; is_active: boolean }) => ({
+    id: rc.id,
+    displayId: rc.display_id,
+    code: rc.code,
+    description: rc.description,
+    isActive: rc.is_active,
+  }));
 
   // Resolve linked humans with their details
   const humanIds = linkedHumans.map((lh) => lh.humanId);
@@ -292,7 +304,7 @@ export async function updateAccountStatus(
   return { id, status, auditEntryId };
 }
 
-export async function deleteAccount(db: DB, id: string) {
+export async function deleteAccount(supabase: SupabaseClient, db: DB, id: string) {
   const existing = await db.query.accounts.findFirst({
     where: eq(accounts.id, id),
   });
@@ -305,7 +317,7 @@ export async function deleteAccount(db: DB, id: string) {
   await db.delete(emails).where(eq(emails.ownerId, id));
   await db.delete(phones).where(eq(phones.ownerId, id));
   await db.update(socialIds).set({ accountId: null }).where(eq(socialIds.accountId, id));
-  await db.update(referralCodes).set({ accountId: null }).where(eq(referralCodes.accountId, id));
+  await supabase.from("referral_codes").update({ account_id: null }).eq("account_id", id);
   await db.delete(accounts).where(eq(accounts.id, id));
 }
 

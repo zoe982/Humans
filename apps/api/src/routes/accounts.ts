@@ -10,6 +10,7 @@ import {
 } from "@humans/shared";
 import { authMiddleware } from "../middleware/auth";
 import { requirePermission } from "../middleware/rbac";
+import { supabaseMiddleware } from "../middleware/supabase";
 import {
   listAccounts,
   getAccountDetail,
@@ -30,6 +31,7 @@ import type { AppContext } from "../types";
 const accountRoutes = new Hono<AppContext>();
 
 accountRoutes.use("/*", authMiddleware);
+accountRoutes.use("/*", supabaseMiddleware);
 
 // List all accounts with types
 accountRoutes.get("/api/accounts", requirePermission("viewRecords"), async (c) => {
@@ -39,7 +41,7 @@ accountRoutes.get("/api/accounts", requirePermission("viewRecords"), async (c) =
 
 // Get single account with full detail
 accountRoutes.get("/api/accounts/:id", requirePermission("viewRecords"), async (c) => {
-  const data = await getAccountDetail(c.get("db"), c.req.param("id"));
+  const data = await getAccountDetail(c.get("supabase"), c.get("db"), c.req.param("id"));
   return c.json({ data });
 });
 
@@ -71,7 +73,7 @@ accountRoutes.patch("/api/accounts/:id/status", requirePermission("manageAccount
 
 // Delete account + cascade
 accountRoutes.delete("/api/accounts/:id", requirePermission("deleteAccounts"), async (c) => {
-  await deleteAccount(c.get("db"), c.req.param("id"));
+  await deleteAccount(c.get("supabase"), c.get("db"), c.req.param("id"));
   return c.json({ success: true });
 });
 

@@ -25,6 +25,7 @@ import type { AppContext } from "../types";
 const humanRoutes = new Hono<AppContext>();
 
 humanRoutes.use("/*", authMiddleware);
+humanRoutes.use("/*", supabaseMiddleware);
 
 humanRoutes.get("/api/humans", requirePermission("viewRecords"), async (c) => {
   const db = c.get("db");
@@ -36,7 +37,7 @@ humanRoutes.get("/api/humans", requirePermission("viewRecords"), async (c) => {
 });
 
 humanRoutes.get("/api/humans/:id", requirePermission("viewRecords"), async (c) => {
-  const data = await getHumanDetail(c.get("db"), c.req.param("id"));
+  const data = await getHumanDetail(c.get("supabase"), c.get("db"), c.req.param("id"));
   return c.json({ data });
 });
 
@@ -64,7 +65,7 @@ humanRoutes.patch("/api/humans/:id/status", requirePermission("manageHumans"), a
 });
 
 humanRoutes.delete("/api/humans/:id", requirePermission("deleteHumans"), async (c) => {
-  await deleteHuman(c.get("db"), c.req.param("id"));
+  await deleteHuman(c.get("supabase"), c.get("db"), c.req.param("id"));
   return c.json({ success: true });
 });
 
@@ -96,7 +97,6 @@ humanRoutes.delete("/api/humans/:id/website-booking-requests/:linkId", requirePe
 humanRoutes.post(
   "/api/humans/:id/convert-from-signup",
   requirePermission("manageHumans"),
-  supabaseMiddleware,
   async (c) => {
     const body: unknown = await c.req.json();
     const data = linkRouteSignupSchema.parse(body);

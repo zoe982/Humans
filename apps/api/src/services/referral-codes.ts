@@ -1,21 +1,60 @@
 import { eq } from "drizzle-orm";
-import { referralCodes, humans, accounts } from "@humans/db/schema";
-import { createId } from "@humans/db";
+import { humans, accounts } from "@humans/db/schema";
 import { ERROR_CODES } from "@humans/shared";
 import { notFound } from "../lib/errors";
 import { nextDisplayId } from "../lib/display-id";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import type { DB } from "./types";
 
-export async function listReferralCodes(db: DB) {
-  const allCodes = await db.select().from(referralCodes);
+interface SupabaseReferralCode {
+  id: string;
+  display_id: string;
+  code: string;
+  description: string | null;
+  is_active: boolean;
+  max_uses: number | null;
+  expires_at: string | null;
+  whatsapp_clicks: number;
+  human_id: string | null;
+  account_id: string | null;
+  created_at: string;
+  updated_at: string | null;
+}
+
+function toApiShape(row: SupabaseReferralCode) {
+  return {
+    id: row.id,
+    displayId: row.display_id,
+    code: row.code,
+    description: row.description,
+    isActive: row.is_active,
+    maxUses: row.max_uses,
+    expiresAt: row.expires_at,
+    whatsappClicks: row.whatsapp_clicks,
+    humanId: row.human_id,
+    accountId: row.account_id,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
+export async function listReferralCodes(supabase: SupabaseClient, db: DB) {
+  const { data: codes, error } = await supabase
+    .from("referral_codes")
+    .select("*")
+    .order("created_at", { ascending: false });
+
+  if (error) throw new Error(`Supabase error: ${error.message}`);
+
   const allHumans = await db.select().from(humans);
   const allAccounts = await db.select().from(accounts);
 
-  const data = allCodes.map((rc) => {
-    const human = rc.humanId ? allHumans.find((h) => h.id === rc.humanId) : null;
-    const account = rc.accountId ? allAccounts.find((a) => a.id === rc.accountId) : null;
+  const data = (codes as SupabaseReferralCode[]).map((rc) => {
+    const mapped = toApiShape(rc);
+    const human = mapped.humanId ? allHumans.find((h) => h.id === mapped.humanId) : null;
+    const account = mapped.accountId ? allAccounts.find((a) => a.id === mapped.accountId) : null;
     return {
-      ...rc,
+      ...mapped,
       humanName: human ? `${human.firstName} ${human.lastName}` : null,
       humanDisplayId: human?.displayId ?? null,
       accountName: account?.name ?? null,
@@ -26,21 +65,27 @@ export async function listReferralCodes(db: DB) {
   return data;
 }
 
-export async function getReferralCode(db: DB, id: string) {
-  const result = await db.select().from(referralCodes).where(eq(referralCodes.id, id));
-  const referralCode = result[0];
-  if (referralCode == null) {
+export async function getReferralCode(supabase: SupabaseClient, db: DB, id: string) {
+  const { data: codes, error } = await supabase
+    .from("referral_codes")
+    .select("*")
+    .eq("id", id);
+
+  if (error) throw new Error(`Supabase error: ${error.message}`);
+  if (!codes || codes.length === 0) {
     throw notFound(ERROR_CODES.REFERRAL_CODE_NOT_FOUND, "Referral code not found");
   }
+
+  const rc = toApiShape(codes[0] as SupabaseReferralCode);
 
   const allHumans = await db.select().from(humans);
   const allAccounts = await db.select().from(accounts);
 
-  const human = referralCode.humanId ? allHumans.find((h) => h.id === referralCode.humanId) : null;
-  const account = referralCode.accountId ? allAccounts.find((a) => a.id === referralCode.accountId) : null;
+  const human = rc.humanId ? allHumans.find((h) => h.id === rc.humanId) : null;
+  const account = rc.accountId ? allAccounts.find((a) => a.id === rc.accountId) : null;
 
   return {
-    ...referralCode,
+    ...rc,
     humanName: human ? `${human.firstName} ${human.lastName}` : null,
     humanDisplayId: human?.displayId ?? null,
     accountName: account?.name ?? null,
@@ -49,6 +94,7 @@ export async function getReferralCode(db: DB, id: string) {
 }
 
 export async function createReferralCode(
+  supabase: SupabaseClient,
   db: DB,
   data: {
     code: string;
@@ -58,55 +104,83 @@ export async function createReferralCode(
     accountId?: string | null;
   },
 ) {
-  const now = new Date().toISOString();
   const displayId = await nextDisplayId(db, "REF");
 
-  const record = {
-    id: createId(),
-    displayId,
-    code: data.code,
-    description: data.description ?? null,
-    isActive: data.isActive ?? true,
-    humanId: data.humanId ?? null,
-    accountId: data.accountId ?? null,
-    createdAt: now,
-    updatedAt: now,
-  };
+  const { data: inserted, error } = await supabase
+    .from("referral_codes")
+    .insert({
+      display_id: displayId,
+      code: data.code,
+      description: data.description ?? null,
+      is_active: data.isActive ?? true,
+      human_id: data.humanId ?? null,
+      account_id: data.accountId ?? null,
+    })
+    .select("*")
+    .single();
 
-  await db.insert(referralCodes).values(record);
-  return record;
+  if (error) throw new Error(`Supabase error: ${error.message}`);
+
+  return toApiShape(inserted as SupabaseReferralCode);
 }
 
 export async function updateReferralCode(
-  db: DB,
+  supabase: SupabaseClient,
   id: string,
-  data: Record<string, unknown>,
+  data: {
+    code?: string;
+    description?: string | null;
+    isActive?: boolean;
+    humanId?: string | null;
+    accountId?: string | null;
+  },
 ) {
-  const existing = await db.query.referralCodes.findFirst({
-    where: eq(referralCodes.id, id),
-  });
-  if (existing == null) {
+  // Check existence
+  const { data: existing, error: fetchError } = await supabase
+    .from("referral_codes")
+    .select("id")
+    .eq("id", id);
+
+  if (fetchError) throw new Error(`Supabase error: ${fetchError.message}`);
+  if (!existing || existing.length === 0) {
     throw notFound(ERROR_CODES.REFERRAL_CODE_NOT_FOUND, "Referral code not found");
   }
 
-  await db
-    .update(referralCodes)
-    .set({ ...data, updatedAt: new Date().toISOString() })
-    .where(eq(referralCodes.id, id));
+  const updates: Record<string, unknown> = { updated_at: new Date().toISOString() };
+  if (data.code !== undefined) updates["code"] = data.code;
+  if (data.description !== undefined) updates["description"] = data.description;
+  if (data.isActive !== undefined) updates["is_active"] = data.isActive;
+  if (data.humanId !== undefined) updates["human_id"] = data.humanId;
+  if (data.accountId !== undefined) updates["account_id"] = data.accountId;
 
-  const updated = await db.query.referralCodes.findFirst({
-    where: eq(referralCodes.id, id),
-  });
-  return updated;
+  const { data: updated, error } = await supabase
+    .from("referral_codes")
+    .update(updates)
+    .eq("id", id)
+    .select("*")
+    .single();
+
+  if (error) throw new Error(`Supabase error: ${error.message}`);
+
+  return toApiShape(updated as SupabaseReferralCode);
 }
 
-export async function deleteReferralCode(db: DB, id: string) {
-  const existing = await db.query.referralCodes.findFirst({
-    where: eq(referralCodes.id, id),
-  });
-  if (existing == null) {
+export async function deleteReferralCode(supabase: SupabaseClient, id: string) {
+  // Check existence
+  const { data: existing, error: fetchError } = await supabase
+    .from("referral_codes")
+    .select("id")
+    .eq("id", id);
+
+  if (fetchError) throw new Error(`Supabase error: ${fetchError.message}`);
+  if (!existing || existing.length === 0) {
     throw notFound(ERROR_CODES.REFERRAL_CODE_NOT_FOUND, "Referral code not found");
   }
 
-  await db.delete(referralCodes).where(eq(referralCodes.id, id));
+  const { error } = await supabase
+    .from("referral_codes")
+    .delete()
+    .eq("id", id);
+
+  if (error) throw new Error(`Supabase error: ${error.message}`);
 }

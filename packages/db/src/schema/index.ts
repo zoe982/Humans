@@ -69,5 +69,4 @@ export {
 } from "./general-leads";
 export { opportunityHumans } from "./opportunity-humans";
 export { opportunityPets } from "./opportunity-pets";
-export { referralCodes } from "./referral-codes";
 export { opportunityStageCadenceConfig } from "./opportunity-stage-cadence-config";
