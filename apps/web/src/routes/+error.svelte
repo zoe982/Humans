@@ -1,5 +1,6 @@
 <script lang="ts">
   import { page } from "$app/stores";
+  import { resolve } from "$app/paths";
 
   const truncatedRef = $derived(
     $page.error?.requestId ? $page.error.requestId.slice(0, 8) : null,
@@ -22,10 +23,10 @@
       </p>
     {/if}
     <div class="mt-6 flex justify-center gap-4">
-      <a href="/dashboard" class="btn-primary">
+      <a href={resolve('/dashboard')} class="btn-primary">
         Go to Dashboard
       </a>
-      <a href="/" class="btn-ghost">
+      <a href={resolve('/')} class="btn-ghost">
         Home
       </a>
     </div>

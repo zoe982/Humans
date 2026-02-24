@@ -128,7 +128,7 @@
     <td>
       {#each linkedEntities(activity) as entity, i (entity.href)}
         {#if i > 0}<span class="text-text-muted">, </span>{/if}
-        <a href={entity.href} class="text-accent hover:text-[var(--link-hover)]">{entity.label}</a>
+        <a href={resolve(entity.href)} class="text-accent hover:text-[var(--link-hover)]">{entity.label}</a>
       {:else}
         <span class="text-text-muted">\u2014</span>
       {/each}

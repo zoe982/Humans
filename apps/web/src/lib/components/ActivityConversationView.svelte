@@ -25,7 +25,9 @@
     frontConversationId: string | null;
     senderName?: string | null;
     ownerName?: string | null;
+    ownerDisplayId?: string | null;
     humanName?: string | null;
+    humanDisplayId?: string | null;
     geoInterestExpressions?: GeoExpr[];
     routeInterestExpressions?: RouteExpr[];
     linkedOpportunities?: LinkedOpp[];

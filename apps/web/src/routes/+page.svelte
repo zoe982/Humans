@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { PageData } from "./$types";
   import { Users } from "lucide-svelte";
+  import { resolve } from "$app/paths";
 
   let { data }: { data: PageData } = $props();
 </script>
@@ -15,7 +16,7 @@
       <h1 class="mb-4 text-4xl font-bold text-text-primary inline-flex items-center gap-3"><Users size={36} /> Humans</h1>
       <p class="mb-8 text-lg text-text-secondary">Pet Air Valet Customer Management</p>
       <a
-        href="/login"
+        href={resolve('/login')}
         class="btn-primary inline-block px-6 py-3"
       >
         Sign In

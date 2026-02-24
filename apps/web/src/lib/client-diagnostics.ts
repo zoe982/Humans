@@ -1,6 +1,6 @@
 import { browser } from "$app/environment";
 
-type DiagnosticError = { time: string; message: string; stack?: string; source?: string };
+interface DiagnosticError { time: string; message: string; stack?: string; source?: string }
 
 const errors: DiagnosticError[] = [];
 let onErrorCallback: ((errors: DiagnosticError[]) => void) | null = null;
@@ -28,14 +28,14 @@ export function installGlobalErrorHandlers(): void {
 
   window.addEventListener("error", (event) => {
     recordError(
-      event.message ?? "Unknown error",
+      event.message,
       event.error instanceof Error ? event.error.stack : undefined,
-      `window.onerror at ${event.filename ?? "unknown"}:${String(event.lineno)}`,
+      `window.onerror at ${event.filename}:${String(event.lineno)}`,
     );
   });
 
   window.addEventListener("unhandledrejection", (event) => {
-    const reason = event.reason;
+    const reason: unknown = event.reason;
     const message = reason instanceof Error ? reason.message : String(reason);
     const stack = reason instanceof Error ? reason.stack : undefined;
     recordError(message, stack, "unhandledrejection");
@@ -56,7 +56,7 @@ export function buildDiagnosticReport(reason: string): string {
     lines.push("", "--- Captured Errors ---");
     for (const err of recent) {
       lines.push(`[${err.time}] (${err.source ?? "unknown"}) ${err.message}`);
-      if (err.stack) {
+      if (err.stack !== undefined) {
         const stackLines = err.stack.split("\n").slice(0, 3).join("\n  ");
         lines.push(`  ${stackLines}`);
       }

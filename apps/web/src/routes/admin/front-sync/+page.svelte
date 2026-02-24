@@ -215,7 +215,6 @@
     sheetOpen = true;
 
     try {
-      // eslint-disable-next-line svelte/prefer-svelte-reactivity
       const params = new URLSearchParams({ handle: contact.handle });
       const res = (await api(
         `/api/admin/front/conversations/${contact.conversationId}/debug?${params.toString()}`,

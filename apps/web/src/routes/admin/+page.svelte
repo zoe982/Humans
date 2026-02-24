@@ -73,7 +73,7 @@
       </div>
     </a>
 
-    <a href="/admin/front-sync" class="glass-card p-6 hover:bg-glass-hover transition-colors group">
+    <a href={resolve('/admin/front-sync')} class="glass-card p-6 hover:bg-glass-hover transition-colors group">
       <div class="flex items-start gap-4">
         <div class="rounded-lg bg-accent-dim p-3 text-accent">
           <RefreshCw size={24} />

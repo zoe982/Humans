@@ -10,7 +10,7 @@
 
 <div class="glass-card p-4 space-y-3">
   <Skeleton class="h-4 w-40" />
-  {#each Array(lines - 1) as _}
+  {#each Array(lines - 1) as _, i (i)}
     <Skeleton class="h-3 w-28" />
   {/each}
 </div>

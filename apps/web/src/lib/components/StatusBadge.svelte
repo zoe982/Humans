@@ -8,6 +8,7 @@
 
   let { status, colorMap }: Props = $props();
 
+  // eslint-disable-next-line security/detect-object-injection
   let classes = $derived(colorMap[status] ?? "bg-glass text-text-secondary");
 </script>
 

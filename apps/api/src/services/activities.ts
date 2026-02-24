@@ -81,9 +81,9 @@ export async function listActivities(db: DB, filters: ActivityFilters): Promise<
   const colleagueMap = new Map(batchColleagues.map((c) => [c.id, c]));
 
   // Optionally batch-fetch linked entities
-  let geoExprMap = new Map<string, unknown[]>();
-  let routeExprMap = new Map<string, unknown[]>();
-  let oppMap = new Map<string, unknown[]>();
+  const geoExprMap = new Map<string, unknown[]>();
+  const routeExprMap = new Map<string, unknown[]>();
+  const oppMap = new Map<string, unknown[]>();
 
   if (filters.includeLinkedEntities === true && results.length > 0) {
     const activityIds = results.map((a) => a.id);
@@ -148,6 +148,7 @@ export async function listActivities(db: DB, filters: ActivityFilters): Promise<
     const base = {
       ...a,
       humanName: human != null ? `${human.firstName} ${human.lastName}` : null,
+      humanDisplayId: human?.displayId ?? null,
       accountId: a.accountId,
       accountName: account?.name ?? null,
       ownerId: a.colleagueId,
@@ -168,7 +169,7 @@ export async function listActivities(db: DB, filters: ActivityFilters): Promise<
   return { data, meta: { page, limit, total } };
 }
 
-export async function getActivityDetail(db: DB, id: string): Promise<typeof activities.$inferSelect & { humanName: string | null; accountName: string | null; ownerId: string | null; ownerName: string | null; ownerDisplayId: string | null; geoInterestExpressions: unknown[]; routeInterestExpressions: unknown[]; linkedOpportunities: unknown[] }> {
+export async function getActivityDetail(db: DB, id: string): Promise<typeof activities.$inferSelect & { humanName: string | null; humanDisplayId: string | null; accountName: string | null; ownerId: string | null; ownerName: string | null; ownerDisplayId: string | null; geoInterestExpressions: unknown[]; routeInterestExpressions: unknown[]; linkedOpportunities: unknown[] }> {
   const activity = await db.query.activities.findFirst({
     where: eq(activities.id, id),
   });
@@ -241,6 +242,7 @@ export async function getActivityDetail(db: DB, id: string): Promise<typeof acti
   return {
     ...activity,
     humanName: human != null ? `${human.firstName} ${human.lastName}` : null,
+    humanDisplayId: human?.displayId ?? null,
     accountName: account?.name ?? null,
     ownerId: activity.colleagueId,
     ownerName: owner?.name ?? null,

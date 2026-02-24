@@ -74,7 +74,8 @@ describe("SearchableSelect", () => {
     const { container } = render(SearchableSelect, {
       props: { options, name: "country", value: "Brazil" },
     });
-    const hidden = container.querySelector('input[type="hidden"]') as HTMLInputElement;
+    const hidden = container.querySelector('input[type="hidden"]');
+    if (!(hidden instanceof HTMLInputElement)) throw new Error("expected hidden input");
     expect(hidden.value).toBe("Brazil");
   });
 
@@ -91,10 +92,12 @@ describe("SearchableSelect", () => {
     const { container } = render(SearchableSelect, {
       props: { options: kvOptions, name: "type", value: "whatsapp_message" },
     });
-    const hidden = container.querySelector('input[type="hidden"]') as HTMLInputElement;
+    const hidden = container.querySelector('input[type="hidden"]');
+    if (!(hidden instanceof HTMLInputElement)) throw new Error("expected hidden input");
     expect(hidden.value).toBe("whatsapp_message");
 
-    const input = screen.getByRole("combobox") as HTMLInputElement;
+    const input = screen.getByRole("combobox");
+    if (!(input instanceof HTMLInputElement)) throw new Error("expected input element");
     expect(input.value).toBe("WhatsApp");
   });
 
@@ -131,7 +134,8 @@ describe("SearchableSelect", () => {
     const input = screen.getByRole("combobox");
     await fireEvent.focus(input);
 
-    const meetingItem = screen.getByText("Meeting").closest("[role='option']")!;
+    const meetingItem = screen.getByText("Meeting").closest("[role='option']");
+    if (meetingItem == null) throw new Error("expected option element");
     await fireEvent.pointerUp(meetingItem);
 
     expect(onSelect).toHaveBeenCalledWith("online_meeting");
@@ -147,7 +151,7 @@ describe("SearchableSelect", () => {
     await fireEvent.focus(input);
 
     const items = screen.getAllByRole("option");
-    expect(items[0]?.textContent?.trim()).toBe("All");
+    expect(items[0]?.textContent?.trim()).toBe("All"); // items[0] may be undefined
   });
 
   it("empty option always visible when filtering", async () => {

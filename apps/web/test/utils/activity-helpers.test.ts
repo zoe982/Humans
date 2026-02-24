@@ -146,4 +146,41 @@ describe("parseActivityContent", () => {
     });
     expect(result.senderName).toBe("Michael Notes");
   });
+
+  // --- Display ID + Name format for colleagues and humans ---
+
+  it("formats outbound sender as 'COL-displayId Name' when ownerDisplayId is present", () => {
+    const result = parseActivityContent({
+      body: "Hello",
+      notes: "Outbound from Unknown\nHello",
+      direction: "outbound",
+      ownerName: "Joseph Marsico",
+      ownerDisplayId: "COL-AAA-005",
+    });
+    expect(result.senderName).toBe("COL-AAA-005 Joseph Marsico");
+  });
+
+  it("formats inbound sender as 'HUM-displayId Name' when humanDisplayId is present", () => {
+    const result = parseActivityContent({
+      body: "Hello",
+      notes: "Inbound from Unknown\nHello",
+      direction: "inbound",
+      humanName: "Michael Jones",
+      humanDisplayId: "HUM-AAA-042",
+    });
+    expect(result.senderName).toBe("HUM-AAA-042 Michael Jones");
+  });
+
+  it("uses senderName column over display ID formatted name", () => {
+    const result = parseActivityContent({
+      body: "Hello",
+      notes: "Outbound from Unknown\nHello",
+      direction: "outbound",
+      senderName: "Barbara Smith",
+      ownerName: "Barbara Smith",
+      ownerDisplayId: "COL-AAA-001",
+    });
+    // senderName column still takes priority
+    expect(result.senderName).toBe("Barbara Smith");
+  });
 });

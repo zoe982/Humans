@@ -16,7 +16,7 @@
       <p class="mt-2 text-text-secondary">Sign in to manage Pet Air Valet</p>
     </div>
     <a
-      href="{apiUrl}/auth/google/login"
+      href={`${apiUrl}/auth/google/login`}
       class="flex w-full items-center justify-center gap-3 glass-card px-4 py-3 text-text-primary hover:bg-glass-hover transition-colors"
     >
       <svg class="h-5 w-5" viewBox="0 0 24 24">

@@ -163,7 +163,7 @@
                     {colleague.role || "Role"}
                   </Select.Trigger>
                   <Select.Content>
-                    {#each ["viewer", "agent", "manager", "admin"] as r}
+                    {#each ["viewer", "agent", "manager", "admin"] as r (r)}
                       <Select.Item value={r}>{r}</Select.Item>
                     {/each}
                   </Select.Content>

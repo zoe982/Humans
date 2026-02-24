@@ -13,7 +13,7 @@ import {
   routeInterestExpressions,
 } from "@humans/db/schema";
 import { createId } from "@humans/db";
-import { eq, sql, and, isNull, isNotNull } from "drizzle-orm";
+import { eq, sql, and, or, isNull, isNotNull } from "drizzle-orm";
 import { nextDisplayId } from "../lib/display-id";
 import { normalizePhone, phonesMatch } from "../lib/phone-utils";
 import type { DB } from "./types";
@@ -71,7 +71,7 @@ export function classifyChannel(
 export function resolveAuthorName(
   message: {
     is_inbound: boolean;
-    author?: { handle: string; name?: string };
+    author?: { handle?: string; name?: string; email?: string; first_name?: string; last_name?: string };
     recipients: { handle: string; role: string; name?: string }[];
   },
   conversation: { recipient?: { handle: string; name?: string } },
@@ -80,6 +80,18 @@ export function resolveAuthorName(
   // 1. message.author.name
   if (message.author?.name != null && message.author.name !== "") {
     return message.author.name;
+  }
+
+  // 1b. Teammate author: email → colleague name, or first_name + last_name
+  if (message.author?.email != null && message.author.email !== "") {
+    const colleague = colleagues.find(
+      (c) => c.email.toLowerCase() === message.author!.email!.toLowerCase(),
+    );
+    if (colleague != null) return colleague.name;
+    // Fall back to first_name + last_name from teammate object
+    if (message.author.first_name != null && message.author.last_name != null) {
+      return `${message.author.first_name} ${message.author.last_name}`;
+    }
   }
 
   // 2. message.author.handle → colleague name or raw handle
@@ -404,7 +416,7 @@ interface FrontMessage {
   blurb: string;
   body: string;
   text: string;
-  author?: { handle: string; name?: string };
+  author?: { handle?: string; name?: string; email?: string; first_name?: string; last_name?: string };
   recipients: { handle: string; role: string; name?: string }[];
 }
 
@@ -668,8 +680,11 @@ async function processConversation(
     // Auto-link colleague based on message author
     let colleagueId: string | null = null;
     if (!message.is_inbound) {
-      // Try author handle first, then from-recipient handle
-      if (message.author?.handle != null) {
+      // Try author email (teammate object), then handle, then from-recipient
+      if (message.author?.email != null) {
+        colleagueId = findColleagueByEmail(cache, message.author.email);
+      }
+      if (colleagueId == null && message.author?.handle != null) {
         colleagueId = findColleagueByEmail(cache, message.author.handle);
       }
       if (colleagueId == null) {
@@ -1420,7 +1435,7 @@ export async function backfillAuthorNames(
     .select({ id: colleagues.id, email: colleagues.email, name: colleagues.name })
     .from(colleagues);
 
-  // Get activities that need backfilling: no sender_name but have a front_id
+  // Get activities that need backfilling: missing sender_name OR missing colleagueId (with front_id)
   const rows = await db
     .select({
       id: activities.id,
@@ -1428,12 +1443,16 @@ export async function backfillAuthorNames(
       frontConversationId: activities.frontConversationId,
       direction: activities.direction,
       senderName: activities.senderName,
+      colleagueId: activities.colleagueId,
     })
     .from(activities)
     .where(
       and(
-        isNull(activities.senderName),
         isNotNull(activities.frontId),
+        or(
+          isNull(activities.senderName),
+          isNull(activities.colleagueId),
+        ),
       ),
     )
     .orderBy(activities.frontConversationId);
@@ -1520,7 +1539,10 @@ export async function backfillAuthorNames(
         // Also try to fix colleague linking for outbound messages
         let colleagueId: string | null = null;
         if (!message.is_inbound) {
-          if (message.author?.handle != null) {
+          if (message.author?.email != null) {
+            colleagueId = findColleagueIdByEmail(colleagueRows, message.author.email);
+          }
+          if (colleagueId == null && message.author?.handle != null) {
             colleagueId = findColleagueIdByEmail(colleagueRows, message.author.handle);
           }
           if (colleagueId == null) {

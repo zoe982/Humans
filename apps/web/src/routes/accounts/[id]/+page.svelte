@@ -566,6 +566,7 @@
           <a href={resolve(`/websites/${w.id}`)} class="text-accent hover:text-[var(--link-hover)]">{w.displayId}</a>
         </td>
         <td>
+          <!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
           <a href={w.url} target="_blank" rel="noopener noreferrer" class="text-sm font-medium text-accent hover:text-[var(--link-hover)]">{w.url}</a>
         </td>
         <td>

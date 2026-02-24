@@ -9,7 +9,7 @@
 </script>
 
 <tr>
-  {#each Array(columns) as _, i}
+  {#each Array(columns) as _, i (i)}
     <td>
       <Skeleton class="h-4 {i === 0 ? 'w-32' : 'w-20'}" />
     </td>

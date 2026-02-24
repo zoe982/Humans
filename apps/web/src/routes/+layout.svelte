@@ -86,7 +86,7 @@
             <div class="hidden sm:flex sm:gap-1">
               {#each navLinks as link (link.href)}
                 <a
-                  href={link.href}
+                  href={resolve(link.href)}
                   class="rounded-lg px-3 py-2 text-sm font-medium transition-colors
                     {isActive(link.href)
                       ? 'bg-glass text-text-primary'

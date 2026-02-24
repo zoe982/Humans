@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/svelte";
 import ActivityChart from "./ActivityChart.svelte";
 
-function makeData(days: number, count: number = 3) {
+function makeData(days: number, count = 3): { date: string; count: number }[] {
   return Array.from({ length: days }, (_, i) => ({
     date: `2024-02-${String(i + 1).padStart(2, "0")}`,
     count,
@@ -92,7 +92,9 @@ describe("ActivityChart", () => {
     const { container } = render(ActivityChart, { props: { data } });
     // Hover over the third point — should show cumulative of 10
     const overlays = container.querySelectorAll('rect[role="button"]');
-    await fireEvent.mouseEnter(overlays[2] as SVGElement);
+    const thirdOverlay = overlays[2];
+    if (thirdOverlay == null) throw new Error("expected overlay[2]");
+    await fireEvent.mouseEnter(thirdOverlay);
     const tooltip = container.querySelector('[role="tooltip"]');
     expect(tooltip?.textContent).toContain("10 total");
   });
@@ -118,7 +120,7 @@ describe("ActivityChart", () => {
     const data = makeData(30);
     const { container } = render(ActivityChart, { props: { data } });
     const allText = Array.from(container.querySelectorAll("text"));
-    const xLabels = allText.filter((t) => t.textContent?.includes("Feb") && Number(t.getAttribute("font-size")) === 9);
+    const xLabels = allText.filter((t) => t.textContent.includes("Feb") && Number(t.getAttribute("font-size")) === 9);
     // 30 items / 5 = 6 labels
     expect(xLabels.length).toBe(6);
   });
@@ -127,8 +129,8 @@ describe("ActivityChart", () => {
     const data = [{ date: "2024-02-01", count: 1 }];
     const { container } = render(ActivityChart, { props: { data } });
     const allText = Array.from(container.querySelectorAll("text"));
-    const xLabel = allText.find((t) => t.textContent?.trim() === "Feb 1" && Number(t.getAttribute("font-size")) === 9);
-    expect(xLabel).not.toBeUndefined();
+    const xLabel = allText.find((t) => t.textContent.trim() === "Feb 1" && Number(t.getAttribute("font-size")) === 9);
+    expect(xLabel).toBeDefined();
   });
 
   // --- Y-axis gridlines and labels ---
@@ -154,8 +156,8 @@ describe("ActivityChart", () => {
     const yLabels = Array.from(container.querySelectorAll("text")).filter(
       (t) => t.getAttribute("text-anchor") === "end"
     );
-    const zeroLabel = yLabels.find((t) => t.textContent?.trim() === "0");
-    expect(zeroLabel).not.toBeUndefined();
+    const zeroLabel = yLabels.find((t) => t.textContent.trim() === "0");
+    expect(zeroLabel).toBeDefined();
   });
 
   // --- Baseline ---
@@ -218,7 +220,8 @@ describe("ActivityChart", () => {
   it("shows a tooltip on mouseenter", async () => {
     const data = makeData(5, 7);
     const { container } = render(ActivityChart, { props: { data } });
-    const overlay = container.querySelector('rect[role="button"]') as SVGElement;
+    const overlay = container.querySelector('rect[role="button"]');
+    if (overlay == null) throw new Error("expected overlay");
     await fireEvent.mouseEnter(overlay);
     const tooltip = container.querySelector('[role="tooltip"]');
     expect(tooltip).not.toBeNull();
@@ -231,7 +234,9 @@ describe("ActivityChart", () => {
     ];
     const { container } = render(ActivityChart, { props: { data } });
     const overlays = container.querySelectorAll('rect[role="button"]');
-    await fireEvent.mouseEnter(overlays[1] as SVGElement);
+    const secondOverlay = overlays[1];
+    if (secondOverlay == null) throw new Error("expected overlay[1]");
+    await fireEvent.mouseEnter(secondOverlay);
     const tooltip = container.querySelector('[role="tooltip"]');
     expect(tooltip?.textContent).toContain("42 total");
   });
@@ -239,7 +244,8 @@ describe("ActivityChart", () => {
   it("tooltip contains the daily count", async () => {
     const data = [{ date: "2024-02-01", count: 5 }];
     const { container } = render(ActivityChart, { props: { data } });
-    const overlay = container.querySelector('rect[role="button"]') as SVGElement;
+    const overlay = container.querySelector('rect[role="button"]');
+    if (overlay == null) throw new Error("expected overlay");
     await fireEvent.mouseEnter(overlay);
     const tooltip = container.querySelector('[role="tooltip"]');
     expect(tooltip?.textContent).toContain("+5 today");
@@ -248,7 +254,8 @@ describe("ActivityChart", () => {
   it("tooltip contains the formatted date", async () => {
     const data = [{ date: "2024-02-01", count: 1 }];
     const { container } = render(ActivityChart, { props: { data } });
-    const overlay = container.querySelector('rect[role="button"]') as SVGElement;
+    const overlay = container.querySelector('rect[role="button"]');
+    if (overlay == null) throw new Error("expected overlay");
     await fireEvent.mouseEnter(overlay);
     const tooltip = container.querySelector('[role="tooltip"]');
     expect(tooltip?.textContent).toContain("Feb 1");
@@ -257,7 +264,8 @@ describe("ActivityChart", () => {
   it("hides the tooltip on mouseleave", async () => {
     const data = makeData(5, 7);
     const { container } = render(ActivityChart, { props: { data } });
-    const overlay = container.querySelector('rect[role="button"]') as SVGElement;
+    const overlay = container.querySelector('rect[role="button"]');
+    if (overlay == null) throw new Error("expected overlay");
     await fireEvent.mouseEnter(overlay);
     expect(container.querySelector('[role="tooltip"]')).not.toBeNull();
     await fireEvent.mouseLeave(overlay);
@@ -267,7 +275,8 @@ describe("ActivityChart", () => {
   it("shows tooltip on focus (keyboard navigation)", async () => {
     const data = makeData(5, 3);
     const { container } = render(ActivityChart, { props: { data } });
-    const overlay = container.querySelector('rect[role="button"]') as SVGElement;
+    const overlay = container.querySelector('rect[role="button"]');
+    if (overlay == null) throw new Error("expected overlay");
     await fireEvent.focus(overlay);
     expect(container.querySelector('[role="tooltip"]')).not.toBeNull();
   });
@@ -275,7 +284,8 @@ describe("ActivityChart", () => {
   it("hides tooltip on blur (keyboard navigation)", async () => {
     const data = makeData(5, 3);
     const { container } = render(ActivityChart, { props: { data } });
-    const overlay = container.querySelector('rect[role="button"]') as SVGElement;
+    const overlay = container.querySelector('rect[role="button"]');
+    if (overlay == null) throw new Error("expected overlay");
     await fireEvent.focus(overlay);
     await fireEvent.blur(overlay);
     expect(container.querySelector('[role="tooltip"]')).toBeNull();
@@ -288,9 +298,11 @@ describe("ActivityChart", () => {
     const { container } = render(ActivityChart, { props: { data } });
     const dots = container.querySelectorAll('circle[role="presentation"]');
     const overlays = container.querySelectorAll('rect[role="button"]');
-    await fireEvent.mouseEnter(overlays[0] as SVGElement);
-    expect(dots[0].getAttribute("r")).toBe("5");
-    expect(dots[1].getAttribute("r")).toBe("3");
+    const firstOverlay = overlays[0];
+    if (firstOverlay == null) throw new Error("expected overlay[0]");
+    await fireEvent.mouseEnter(firstOverlay);
+    expect(dots[0]?.getAttribute("r")).toBe("5");
+    expect(dots[1]?.getAttribute("r")).toBe("3");
   });
 
   it("restores dot size after mouseleave", async () => {
@@ -298,9 +310,11 @@ describe("ActivityChart", () => {
     const { container } = render(ActivityChart, { props: { data } });
     const dots = container.querySelectorAll('circle[role="presentation"]');
     const overlays = container.querySelectorAll('rect[role="button"]');
-    await fireEvent.mouseEnter(overlays[0] as SVGElement);
-    await fireEvent.mouseLeave(overlays[0] as SVGElement);
-    expect(dots[0].getAttribute("r")).toBe("3");
+    const firstOverlay = overlays[0];
+    if (firstOverlay == null) throw new Error("expected overlay[0]");
+    await fireEvent.mouseEnter(firstOverlay);
+    await fireEvent.mouseLeave(firstOverlay);
+    expect(dots[0]?.getAttribute("r")).toBe("3");
   });
 
   // --- Cumulative line always increases ---
@@ -316,6 +330,7 @@ describe("ActivityChart", () => {
     const yValues = Array.from(dots).map((d) => Number(d.getAttribute("cy")));
     // In SVG, lower y = higher value, so values should be non-increasing
     for (let i = 1; i < yValues.length; i++) {
+      // eslint-disable-next-line security/detect-object-injection
       expect(yValues[i]).toBeLessThanOrEqual(yValues[i - 1]);
     }
   });

@@ -1,6 +1,7 @@
 <script lang="ts">
   import { page } from "$app/stores";
   import { Menu, Shield } from "lucide-svelte";
+  import { resolve } from "$app/paths";
   import * as Sheet from "$lib/components/ui/sheet/index.js";
   import ThemeToggle from "$lib/components/ThemeToggle.svelte";
 
@@ -57,7 +58,7 @@
           </div>
           {#if isAdmin}
             <a
-              href="/admin"
+              href={resolve('/admin')}
               onclick={close}
               class="rounded-lg p-2 text-text-muted hover:bg-glass-hover hover:text-text-primary transition-colors"
               aria-label="Admin"

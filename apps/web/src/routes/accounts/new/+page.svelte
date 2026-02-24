@@ -3,6 +3,7 @@
   import PageHeader from "$lib/components/PageHeader.svelte";
   import AlertBanner from "$lib/components/AlertBanner.svelte";
   import { Button } from "$lib/components/ui/button";
+  import { resolve } from "$app/paths";
 
   let { data, form }: { data: PageData; form: ActionData } = $props();
 
@@ -50,7 +51,7 @@
 
     <div class="flex gap-3">
       <Button type="submit">Create Account</Button>
-      <a href="/accounts" class="btn-ghost">Cancel</a>
+      <a href={resolve('/accounts')} class="btn-ghost">Cancel</a>
     </div>
   </form>
 </div>

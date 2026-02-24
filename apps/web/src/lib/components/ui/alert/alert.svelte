@@ -19,11 +19,14 @@
 		default: "glass-card p-4 text-text-primary",
 		destructive: "bg-danger border border-danger-border rounded-[1rem] p-4 text-destructive-foreground",
 	};
+
+	// eslint-disable-next-line security/detect-object-injection
+	const variantClass = $derived(variantClasses[variant]);
 </script>
 
 <div
 	role="alert"
-	class={cn(variantClasses[variant], className)}
+	class={cn(variantClass, className)}
 	{...restProps}
 >
 	{@render children?.()}

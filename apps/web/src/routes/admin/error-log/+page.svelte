@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { PageData } from "./$types";
   import PageHeader from "$lib/components/PageHeader.svelte";
+  import { resolve } from "$app/paths";
   import { ChevronLeft, ChevronRight, Copy, Check } from "lucide-svelte";
   import { formatErrorForClipboard } from "$lib/utils/error-format";
   import { Button } from "$lib/components/ui/button";
@@ -116,7 +117,7 @@
           {#each errors as entry (entry.id)}
             <tr class="glass-row-hover">
               <td class="font-mono text-xs">
-                <a href="/admin/error-log/{entry.id}" class="text-accent hover:text-[var(--link-hover)]">{entry.displayId}</a>
+                <a href={resolve(`/admin/error-log/${entry.id}`)} class="text-accent hover:text-[var(--link-hover)]">{entry.displayId}</a>
               </td>
               <td class="text-text-muted font-mono text-xs whitespace-nowrap">
                 {new Date(entry.createdAt).toLocaleString()}
@@ -168,14 +169,14 @@
 
   <div class="mt-4 flex justify-between">
     {#if data.offset > 0}
-      <a href="?offset={data.offset - data.limit}{paginationParams()}" class="btn-ghost text-sm py-1.5 px-3 inline-flex items-center gap-1">
+      <a href={`?offset=${data.offset - data.limit}${paginationParams()}`} class="btn-ghost text-sm py-1.5 px-3 inline-flex items-center gap-1">
         <ChevronLeft size={14} /> Previous
       </a>
     {:else}
       <span></span>
     {/if}
     {#if errors.length === data.limit}
-      <a href="?offset={data.offset + data.limit}{paginationParams()}" class="btn-ghost text-sm py-1.5 px-3 inline-flex items-center gap-1">
+      <a href={`?offset=${data.offset + data.limit}${paginationParams()}`} class="btn-ghost text-sm py-1.5 px-3 inline-flex items-center gap-1">
         Next <ChevronRight size={14} />
       </a>
     {/if}

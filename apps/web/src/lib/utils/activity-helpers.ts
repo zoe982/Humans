@@ -8,7 +8,9 @@ export function parseActivityContent(activity: {
   direction: string | null;
   senderName?: string | null;
   ownerName?: string | null;
+  ownerDisplayId?: string | null;
   humanName?: string | null;
+  humanDisplayId?: string | null;
 }): { text: string | null; direction: string | null; senderName: string | null } {
   // If body exists, use it directly
   if (activity.body != null && activity.body !== "") {
@@ -19,7 +21,9 @@ export function parseActivityContent(activity: {
       notesParsedName,
       activity.direction,
       activity.ownerName,
+      activity.ownerDisplayId,
       activity.humanName,
+      activity.humanDisplayId,
     );
     return {
       text: activity.body,
@@ -37,7 +41,9 @@ export function parseActivityContent(activity: {
         match[2],
         activity.direction ?? match[1].toLowerCase(),
         activity.ownerName,
+        activity.ownerDisplayId,
         activity.humanName,
+        activity.humanDisplayId,
       );
       return {
         text: match[3],
@@ -53,14 +59,17 @@ export function parseActivityContent(activity: {
 
 /**
  * Resolve the best sender name from available sources.
- * Priority: 1) senderName column, 2) notes-parsed name, 3) ownerName (outbound), 4) humanName (inbound)
+ * Priority: 1) senderName column, 2) notes-parsed name,
+ *           3) ownerDisplayId+ownerName (outbound), 4) humanDisplayId+humanName (inbound)
  */
 function resolveSenderName(
   senderNameColumn: string | null | undefined,
   notesParsedName: string | null,
   direction: string | null,
   ownerName: string | null | undefined,
+  ownerDisplayId: string | null | undefined,
   humanName: string | null | undefined,
+  humanDisplayId: string | null | undefined,
 ): string | null {
   // 1. senderName column (from DB, populated by sync)
   if (senderNameColumn != null && senderNameColumn !== "") {
@@ -72,13 +81,19 @@ function resolveSenderName(
     return notesParsedName;
   }
 
-  // 3. Outbound fallback: ownerName (colleague name from API join)
+  // 3. Outbound fallback: colleague display ID + name
   if (direction === "outbound" && ownerName != null && ownerName !== "") {
+    if (ownerDisplayId != null && ownerDisplayId !== "") {
+      return `${ownerDisplayId} ${ownerName}`;
+    }
     return ownerName;
   }
 
-  // 4. Inbound fallback: humanName (linked human name from API join)
+  // 4. Inbound fallback: human display ID + name
   if (direction === "inbound" && humanName != null && humanName !== "") {
+    if (humanDisplayId != null && humanDisplayId !== "") {
+      return `${humanDisplayId} ${humanName}`;
+    }
     return humanName;
   }
 

@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { PageData } from "./$types";
   import EntityListPage from "$lib/components/EntityListPage.svelte";
+  import { resolve } from "$app/paths";
 
   let { data }: { data: PageData } = $props();
 
@@ -45,7 +46,7 @@
   searchPlaceholder="Search codes, descriptions, humans, accounts..."
 >
   {#snippet desktopRow(dc)}
-    <td class="font-mono text-sm whitespace-nowrap"><a href="/discount-codes/{dc.id}" class="text-accent hover:text-[var(--link-hover)]">{dc.crmDisplayId ?? "—"}</a></td>
+    <td class="font-mono text-sm whitespace-nowrap"><a href={resolve(`/discount-codes/${dc.id}`)} class="text-accent hover:text-[var(--link-hover)]">{dc.crmDisplayId ?? "—"}</a></td>
     <td class="font-medium font-mono">{dc.code}</td>
     <td class="text-sm">{dc.percentOff}%</td>
     <td>
@@ -58,7 +59,7 @@
     <td class="text-sm text-text-secondary max-w-xs truncate">{dc.description ?? "—"}</td>
     <td>
       {#if dc.humanId}
-        <a href="/humans/{dc.humanId}" class="text-accent hover:text-[var(--link-hover)]">{dc.humanName ?? "—"}</a>
+        <a href={resolve(`/humans/${dc.humanId}`)} class="text-accent hover:text-[var(--link-hover)]">{dc.humanName ?? "—"}</a>
         {#if dc.humanDisplayId}
           <span class="ml-1 text-xs text-text-muted">{dc.humanDisplayId}</span>
         {/if}
@@ -68,7 +69,7 @@
     </td>
     <td>
       {#if dc.accountId}
-        <a href="/accounts/{dc.accountId}" class="text-accent hover:text-[var(--link-hover)]">{dc.accountName ?? "—"}</a>
+        <a href={resolve(`/accounts/${dc.accountId}`)} class="text-accent hover:text-[var(--link-hover)]">{dc.accountName ?? "—"}</a>
         {#if dc.accountDisplayId}
           <span class="ml-1 text-xs text-text-muted">{dc.accountDisplayId}</span>
         {/if}
@@ -78,7 +79,7 @@
     </td>
   {/snippet}
   {#snippet mobileCard(dc)}
-    <a href="/discount-codes/{dc.id}" class="glass-card p-4 block hover:ring-1 hover:ring-accent/40 transition">
+    <a href={resolve(`/discount-codes/${dc.id}`)} class="glass-card p-4 block hover:ring-1 hover:ring-accent/40 transition">
       <span class="font-mono text-xs text-text-muted">{dc.crmDisplayId ?? "—"}</span>
       <div class="font-medium font-mono text-accent">{dc.code}</div>
       <div class="text-sm text-text-secondary">

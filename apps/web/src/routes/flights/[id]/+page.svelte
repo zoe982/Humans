@@ -2,6 +2,7 @@
   import type { PageData } from "./$types";
   import RecordManagementBar from "$lib/components/RecordManagementBar.svelte";
   import RelatedListTable from "$lib/components/RelatedListTable.svelte";
+  import { resolve } from "$app/paths";
 
   let { data }: { data: PageData } = $props();
 
@@ -197,14 +198,14 @@
     >
       {#snippet row(opp, _searchQuery)}
         <td class="font-mono text-sm">
-          <a href="/opportunities/{opp.id}" class="text-accent hover:text-[var(--link-hover)]">{opp.displayId}</a>
+          <a href={resolve(`/opportunities/${opp.id}`)} class="text-accent hover:text-[var(--link-hover)]">{opp.displayId}</a>
         </td>
         <td>
           <span class="glass-badge text-xs bg-glass text-text-secondary">{opp.stage}</span>
         </td>
         <td class="text-sm text-text-secondary">
           {#if opp.primaryHuman}
-            <a href="/humans" class="text-accent hover:text-[var(--link-hover)]">{opp.primaryHuman.firstName} {opp.primaryHuman.lastName}</a>
+            <a href={resolve('/humans')} class="text-accent hover:text-[var(--link-hover)]">{opp.primaryHuman.firstName} {opp.primaryHuman.lastName}</a>
           {:else}
             <span class="text-text-muted">&mdash;</span>
           {/if}
@@ -232,7 +233,7 @@
     >
       {#snippet row(dc, _searchQuery)}
         <td class="font-mono text-sm">
-          <a href="/discount-codes/{dc.id}" class="text-accent hover:text-[var(--link-hover)]">{dc.crmDisplayId ?? "—"}</a>
+          <a href={resolve(`/discount-codes/${dc.id}`)} class="text-accent hover:text-[var(--link-hover)]">{dc.crmDisplayId ?? "—"}</a>
         </td>
         <td class="font-mono text-sm">{dc.code}</td>
         <td class="text-sm">{dc.percentOff}%</td>

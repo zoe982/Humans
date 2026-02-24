@@ -8,6 +8,7 @@
   import { ACTIVITY_TYPE_OPTIONS } from "$lib/constants/labels";
   import { X } from "lucide-svelte";
   import { Button } from "$lib/components/ui/button";
+  import { resolve } from "$app/paths";
 
   let { data, form }: { data: PageData; form: ActionData } = $props();
 
@@ -157,7 +158,7 @@
       {#if geoInterests.length > 0}
         <input type="hidden" name="geoInterestsJson" value={JSON.stringify(geoInterests)} />
         <div class="flex flex-wrap gap-2 mb-2">
-          {#each geoInterests as geo, i}
+          {#each geoInterests as geo, i (i)}
             <span class="inline-flex items-center gap-1 rounded-full bg-[rgba(6,182,212,0.15)] text-accent px-2.5 py-1 text-sm">
               {geo.city ?? "New"}{geo.country ? `, ${geo.country}` : ""}
               <button type="button" class="ml-0.5 hover:text-[var(--link-hover)]" onclick={() => { geoInterests = geoInterests.filter((_, idx) => idx !== i); }}>
@@ -215,7 +216,7 @@
       {#if routeInterests.length > 0}
         <input type="hidden" name="routeInterestsJson" value={JSON.stringify(routeInterests)} />
         <div class="flex flex-wrap gap-2 mb-2">
-          {#each routeInterests as route, i}
+          {#each routeInterests as route, i (i)}
             <span class="inline-flex items-center gap-1 rounded-full badge-purple px-2.5 py-1 text-sm">
               {route.originCity ?? "?"} &rarr; {route.destinationCity ?? "?"}
               <button type="button" class="ml-0.5 hover:opacity-80" onclick={() => { routeInterests = routeInterests.filter((_, idx) => idx !== i); }}>
@@ -292,7 +293,7 @@
 
     <div class="flex gap-3">
       <Button type="submit">Create Activity</Button>
-      <a href="/activities" class="btn-ghost">Cancel</a>
+      <a href={resolve('/activities')} class="btn-ghost">Cancel</a>
     </div>
   </form>
 </div>

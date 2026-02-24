@@ -4,7 +4,7 @@ import { resolveAuthorName } from "../../../src/services/front-sync";
 // Minimal types matching Front API shape
 function makeMessage(overrides: {
   is_inbound?: boolean;
-  author?: { handle: string; name?: string } | null;
+  author?: { handle?: string; name?: string; email?: string; first_name?: string; last_name?: string } | null;
   recipients?: { handle: string; role: string; name?: string }[];
 } = {}) {
   return {
@@ -43,6 +43,54 @@ describe("resolveAuthorName", () => {
     const conv = makeConversation();
     const result = resolveAuthorName(msg, conv, []);
     expect(result).toBe("Barbara");
+  });
+
+  // --- Priority 1b: teammate author with email → colleague name ---
+
+  it("resolves teammate author email to colleague name", () => {
+    const msg = makeMessage({
+      author: { email: "joseph@petairvalet.com", first_name: "Joseph", last_name: "Marsico" },
+    });
+    const conv = makeConversation();
+    const colleagues = makeColleagueCache([
+      { id: "col_2", email: "joseph@petairvalet.com", name: "Joseph Marsico" },
+    ]);
+    const result = resolveAuthorName(msg, conv, colleagues);
+    expect(result).toBe("Joseph Marsico");
+  });
+
+  it("uses teammate first_name + last_name when email has no colleague match", () => {
+    const msg = makeMessage({
+      author: { email: "external@other.com", first_name: "Jane", last_name: "Doe" },
+    });
+    const conv = makeConversation();
+    const result = resolveAuthorName(msg, conv, []);
+    expect(result).toBe("Jane Doe");
+  });
+
+  it("matches teammate author email case-insensitively to colleague", () => {
+    const msg = makeMessage({
+      author: { email: "Joseph@PetAirValet.com", first_name: "Joseph", last_name: "Marsico" },
+    });
+    const conv = makeConversation();
+    const colleagues = makeColleagueCache([
+      { id: "col_2", email: "joseph@petairvalet.com", name: "Joseph Marsico" },
+    ]);
+    const result = resolveAuthorName(msg, conv, colleagues);
+    expect(result).toBe("Joseph Marsico");
+  });
+
+  it("prefers author.name over teammate email/first_name/last_name", () => {
+    const msg = makeMessage({
+      author: { name: "Joe", email: "joseph@petairvalet.com", first_name: "Joseph", last_name: "Marsico" },
+    });
+    const conv = makeConversation();
+    const colleagues = makeColleagueCache([
+      { id: "col_2", email: "joseph@petairvalet.com", name: "Joseph Marsico" },
+    ]);
+    // author.name takes priority — existing behavior preserved
+    const result = resolveAuthorName(msg, conv, colleagues);
+    expect(result).toBe("Joe");
   });
 
   // --- Priority 2: message.author.handle → colleague name for outbound ---

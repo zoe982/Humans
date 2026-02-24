@@ -1,5 +1,6 @@
 <script lang="ts">
   import { Sun, Moon, Shield, LogOut } from "lucide-svelte";
+  import { resolve } from "$app/paths";
   import * as Popover from "$lib/components/ui/popover";
   import { toggleTheme, currentTheme } from "$lib/stores/theme.svelte";
 
@@ -44,7 +45,7 @@
     <div class="p-1.5">
       {#if isAdmin}
         <a
-          href="/admin"
+          href={resolve('/admin')}
           onclick={() => { open = false; }}
           class="glass-dropdown-item flex items-center gap-2.5"
         >

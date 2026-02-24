@@ -23,6 +23,9 @@
 		left: "inset-y-0 left-0 h-full w-3/4 border-r sm:max-w-sm",
 		right: "inset-y-0 right-0 h-full w-3/4 border-r sm:max-w-sm",
 	};
+
+	// eslint-disable-next-line security/detect-object-injection
+	const sideClass = $derived(sideClasses[side]);
 </script>
 
 <SheetPrimitive.Portal>
@@ -30,7 +33,7 @@
 	<SheetPrimitive.Content
 		class={cn(
 			"fixed z-50 gap-4 glass-dialog p-6 shadow-lg transition ease-in-out border-glass-border",
-			sideClasses[side],
+			sideClass,
 			className,
 		)}
 		{...restProps}

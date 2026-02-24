@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { PageData } from "./$types";
   import EntityListPage from "$lib/components/EntityListPage.svelte";
+  import { resolve } from "$app/paths";
 
   let { data }: { data: PageData } = $props();
 
@@ -36,7 +37,7 @@
 >
   {#snippet desktopRow(flight)}
     <td class="font-mono text-sm whitespace-nowrap">
-      <a href="/flights/{flight.id}" class="text-accent hover:text-[var(--link-hover)]">{flight.crm_display_id ?? "\u2014"}</a>
+      <a href={resolve(`/flights/${flight.id}`)} class="text-accent hover:text-[var(--link-hover)]">{flight.crm_display_id ?? "\u2014"}</a>
     </td>
     <td class="text-sm text-text-secondary">
       {flight.origin_city ?? "?"} &rarr; {flight.destination_city ?? "?"}
@@ -59,7 +60,7 @@
     </td>
   {/snippet}
   {#snippet mobileCard(flight)}
-    <a href="/flights/{flight.id}" class="glass-card p-4 block hover:ring-1 hover:ring-accent/40 transition">
+    <a href={resolve(`/flights/${flight.id}`)} class="glass-card p-4 block hover:ring-1 hover:ring-accent/40 transition">
       <span class="font-mono text-xs text-text-muted">{flight.crm_display_id ?? "\u2014"}</span>
       <div class="font-medium text-accent mt-1">
         {flight.origin_city ?? "?"} &rarr; {flight.destination_city ?? "?"}

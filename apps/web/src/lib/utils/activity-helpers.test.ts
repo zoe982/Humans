@@ -8,7 +8,7 @@ describe("parseActivityContent", () => {
       notes: "Inbound from Michael\nHello, do you fly to Saudi?",
       direction: "inbound",
     });
-    expect(result).toEqual({
+    expect(result).toStrictEqual({
       text: "Hello, do you fly to Saudi?",
       direction: "inbound",
       senderName: "Michael",
@@ -21,7 +21,7 @@ describe("parseActivityContent", () => {
       notes: "Outbound from Barbara\nYes we do fly there.",
       direction: "outbound",
     });
-    expect(result).toEqual({
+    expect(result).toStrictEqual({
       text: "Yes we do fly there.",
       direction: "outbound",
       senderName: "Barbara",
@@ -34,7 +34,7 @@ describe("parseActivityContent", () => {
       notes: "Just a plain note",
       direction: "inbound",
     });
-    expect(result).toEqual({
+    expect(result).toStrictEqual({
       text: "Some message",
       direction: "inbound",
       senderName: null,
@@ -47,7 +47,7 @@ describe("parseActivityContent", () => {
       notes: "Inbound from Michael\nHi there, do you fly to Saudi?",
       direction: "inbound",
     });
-    expect(result).toEqual({
+    expect(result).toStrictEqual({
       text: "Hi there, do you fly to Saudi?",
       direction: "inbound",
       senderName: "Michael",
@@ -60,7 +60,7 @@ describe("parseActivityContent", () => {
       notes: "Outbound from Barbara\nYes we list in-cabin journeys.",
       direction: null,
     });
-    expect(result).toEqual({
+    expect(result).toStrictEqual({
       text: "Yes we list in-cabin journeys.",
       direction: "outbound",
       senderName: "Barbara",
@@ -73,7 +73,7 @@ describe("parseActivityContent", () => {
       notes: "Inbound from Michael\nSome text",
       direction: "outbound",
     });
-    expect(result).toEqual({
+    expect(result).toStrictEqual({
       text: "Some text",
       direction: "outbound",
       senderName: "Michael",
@@ -86,7 +86,7 @@ describe("parseActivityContent", () => {
       notes: "Inbound from Unknown\nSome message",
       direction: "inbound",
     });
-    expect(result).toEqual({
+    expect(result).toStrictEqual({
       text: "Some message",
       direction: "inbound",
       senderName: null,
@@ -99,7 +99,7 @@ describe("parseActivityContent", () => {
       notes: "Called to discuss flight options for a pug.",
       direction: null,
     });
-    expect(result).toEqual({
+    expect(result).toStrictEqual({
       text: "Called to discuss flight options for a pug.",
       direction: null,
       senderName: null,
@@ -112,7 +112,7 @@ describe("parseActivityContent", () => {
       notes: null,
       direction: null,
     });
-    expect(result).toEqual({
+    expect(result).toStrictEqual({
       text: null,
       direction: null,
       senderName: null,
@@ -125,7 +125,7 @@ describe("parseActivityContent", () => {
       notes: null,
       direction: "outbound",
     });
-    expect(result).toEqual({
+    expect(result).toStrictEqual({
       text: null,
       direction: "outbound",
       senderName: null,
@@ -138,7 +138,7 @@ describe("parseActivityContent", () => {
       notes: "Inbound from Michael\nLine one\nLine two\nLine three",
       direction: "inbound",
     });
-    expect(result).toEqual({
+    expect(result).toStrictEqual({
       text: "Line one\nLine two\nLine three",
       direction: "inbound",
       senderName: "Michael",
@@ -151,7 +151,7 @@ describe("parseActivityContent", () => {
       notes: null,
       direction: "outbound",
     });
-    expect(result).toEqual({
+    expect(result).toStrictEqual({
       text: "Standalone body text",
       direction: "outbound",
       senderName: null,

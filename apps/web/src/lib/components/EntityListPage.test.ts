@@ -3,7 +3,7 @@
 // elements. happy-dom strips table elements when parsed inside <template>
 // nodes (a known limitation), which breaks Svelte 5's $.from_html() template
 // cache. jsdom parses table elements in template context correctly.
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/svelte";
 import { createRawSnippet } from "svelte";
 import EntityListPage from "./EntityListPage.svelte";
@@ -17,7 +17,7 @@ import EntityListPage from "./EntityListPage.svelte";
 // Test data
 // ---------------------------------------------------------------------------
 
-type TestItem = { id: string; name: string; createdAt: string };
+interface TestItem { id: string; name: string; createdAt: string }
 
 const items: TestItem[] = [
   { id: "item-1", name: "Alpha", createdAt: "2024-01-01" },
@@ -36,17 +36,17 @@ const breadcrumbs = [{ label: "Home", href: "/" }, { label: "Items", href: "/ite
 // Snippet factories
 // ---------------------------------------------------------------------------
 
-function makeDesktopRow() {
+function makeDesktopRow(): ReturnType<typeof createRawSnippet> {
   return createRawSnippet((getItem: () => TestItem) => ({
     render: () => `<td data-testid="desktop-cell">${getItem().name}</td>`,
-    setup: () => {},
+    setup: () => { /* noop */ },
   }));
 }
 
-function makeMobileCard() {
+function makeMobileCard(): ReturnType<typeof createRawSnippet> {
   return createRawSnippet((getItem: () => TestItem) => ({
     render: () => `<div data-testid="mobile-card">${getItem().name}</div>`,
-    setup: () => {},
+    setup: () => { /* noop */ },
   }));
 }
 
@@ -54,7 +54,7 @@ function makeMobileCard() {
 // Base props shared across tests
 // ---------------------------------------------------------------------------
 
-function baseProps(overrides: Record<string, unknown> = {}) {
+function baseProps(overrides: Record<string, unknown> = {}): Record<string, unknown> {
   return {
     title: "Items",
     breadcrumbs,
@@ -118,11 +118,12 @@ describe("EntityListPage", () => {
         searchFilter: (item: TestItem, q: string) => item.name.toLowerCase().includes(q),
       }),
     });
-    const input = container.querySelector("input[type='text']") as HTMLInputElement;
+    const input = container.querySelector("input[type='text']");
+    if (!(input instanceof HTMLInputElement)) throw new Error("expected text input");
     await fireEvent.input(input, { target: { value: "alpha" } });
     const cells = container.querySelectorAll("[data-testid='desktop-cell']");
     expect(cells.length).toBe(1);
-    expect(cells[0].textContent).toBe("Alpha");
+    expect(cells[0]?.textContent).toBe("Alpha");
   });
 
   it("filters mobile cards when search query matches one item", async () => {
@@ -131,11 +132,12 @@ describe("EntityListPage", () => {
         searchFilter: (item: TestItem, q: string) => item.name.toLowerCase().includes(q),
       }),
     });
-    const input = container.querySelector("input[type='text']") as HTMLInputElement;
+    const input = container.querySelector("input[type='text']");
+    if (!(input instanceof HTMLInputElement)) throw new Error("expected text input");
     await fireEvent.input(input, { target: { value: "beta" } });
     const cards = container.querySelectorAll("[data-testid='mobile-card']");
     expect(cards.length).toBe(1);
-    expect(cards[0].textContent).toBe("Beta");
+    expect(cards[0]?.textContent).toBe("Beta");
   });
 
   it("shows all items when search query is cleared", async () => {
@@ -144,7 +146,8 @@ describe("EntityListPage", () => {
         searchFilter: (item: TestItem, q: string) => item.name.toLowerCase().includes(q),
       }),
     });
-    const input = container.querySelector("input[type='text']") as HTMLInputElement;
+    const input = container.querySelector("input[type='text']");
+    if (!(input instanceof HTMLInputElement)) throw new Error("expected text input");
     await fireEvent.input(input, { target: { value: "alpha" } });
     await fireEvent.input(input, { target: { value: "" } });
     const cells = container.querySelectorAll("[data-testid='desktop-cell']");
@@ -163,7 +166,8 @@ describe("EntityListPage", () => {
         searchPlaceholder: "Find an item...",
       }),
     });
-    const input = container.querySelector("input[type='text']") as HTMLInputElement;
+    const input = container.querySelector("input[type='text']");
+    if (!(input instanceof HTMLInputElement)) throw new Error("expected text input");
     expect(input.getAttribute("placeholder")).toBe("Find an item...");
   });
 
@@ -172,7 +176,7 @@ describe("EntityListPage", () => {
   it("sets aria-sort to 'none' on a sortable column that is not the active sort key", () => {
     const { container } = render(EntityListPage, { props: baseProps() });
     const nameHeader = Array.from(container.querySelectorAll("th")).find(
-      (th) => th.textContent?.includes("Name"),
+      (th) => th.textContent.includes("Name"),
     );
     expect(nameHeader?.getAttribute("aria-sort")).toBe("none");
   });
@@ -184,7 +188,7 @@ describe("EntityListPage", () => {
     const sortButton = screen.getByRole("button", { name: /Name/ });
     await fireEvent.click(sortButton);
     const nameHeader = Array.from(container.querySelectorAll("th")).find(
-      (th) => th.textContent?.includes("Name"),
+      (th) => th.textContent.includes("Name"),
     );
     expect(nameHeader?.getAttribute("aria-sort")).toBe("ascending");
   });
@@ -197,7 +201,7 @@ describe("EntityListPage", () => {
     await fireEvent.click(sortButton);
     await fireEvent.click(sortButton);
     const nameHeader = Array.from(container.querySelectorAll("th")).find(
-      (th) => th.textContent?.includes("Name"),
+      (th) => th.textContent.includes("Name"),
     );
     expect(nameHeader?.getAttribute("aria-sort")).toBe("descending");
   });
@@ -214,7 +218,7 @@ describe("EntityListPage", () => {
     const createdAtButton = screen.getByRole("button", { name: /Created At/ });
     await fireEvent.click(createdAtButton);
     const createdAtHeader = Array.from(container.querySelectorAll("th")).find(
-      (th) => th.textContent?.includes("Created At"),
+      (th) => th.textContent.includes("Created At"),
     );
     expect(createdAtHeader?.getAttribute("aria-sort")).toBe("ascending");
   });
@@ -222,7 +226,7 @@ describe("EntityListPage", () => {
   it("does not set aria-sort attribute on non-sortable columns", () => {
     const { container } = render(EntityListPage, { props: baseProps() });
     const createdAtHeader = Array.from(container.querySelectorAll("th")).find(
-      (th) => th.textContent?.includes("Created At"),
+      (th) => th.textContent.includes("Created At"),
     );
     expect(createdAtHeader?.hasAttribute("aria-sort")).toBe(false);
   });
@@ -233,7 +237,7 @@ describe("EntityListPage", () => {
     });
     // The ascending arrow ▲ should be present in the Name header
     const nameHeader = Array.from(container.querySelectorAll("th")).find(
-      (th) => th.textContent?.includes("Name"),
+      (th) => th.textContent.includes("Name"),
     );
     expect(nameHeader?.textContent).toContain("▲");
   });
@@ -346,7 +350,8 @@ describe("EntityListPage", () => {
         emptyMessage: "No match.",
       }),
     });
-    const input = container.querySelector("input[type='text']") as HTMLInputElement;
+    const input = container.querySelector("input[type='text']");
+    if (!(input instanceof HTMLInputElement)) throw new Error("expected text input");
     await fireEvent.input(input, { target: { value: "zzz" } });
     expect(screen.getAllByText("No match.").length).toBeGreaterThan(0);
   });
@@ -433,7 +438,7 @@ describe("EntityListPage", () => {
     const { container } = render(EntityListPage, { props: baseProps() });
     // No link to a "new" route should appear
     const links = Array.from(container.querySelectorAll("a")).filter(
-      (a) => a.getAttribute("href")?.includes("/new"),
+      (a) => a.getAttribute("href")?.includes("/new") === true,
     );
     expect(links.length).toBe(0);
   });
