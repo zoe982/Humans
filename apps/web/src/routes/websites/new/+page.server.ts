@@ -3,6 +3,10 @@ import type { RequestEvent, ActionFailure } from "@sveltejs/kit";
 import { PUBLIC_API_URL } from "$env/static/public";
 import { extractApiErrorInfo } from "$lib/api";
 
+function isListData(value: unknown): value is { data: unknown[] } {
+  return typeof value === "object" && value !== null && "data" in value && Array.isArray((value as { data: unknown }).data);
+}
+
 function isDataWithId(value: unknown): value is { data: { id: string } } {
   return typeof value === "object" && value !== null && "data" in value;
 }
@@ -15,21 +19,29 @@ function failFromApi(resBody: unknown, status: number, fallback: string): Action
 export const load = async ({ locals, cookies }: RequestEvent) => {
   if (locals.user == null) redirect(302, "/login");
 
-  // Fetch colleagues for the owner dropdown
-  const sessionToken = cookies.get("humans_session");
-  const colleaguesRes = await fetch(`${PUBLIC_API_URL}/api/colleagues`, {
-    headers: { Cookie: `humans_session=${sessionToken ?? ""}` },
-  });
+  const sessionToken = cookies.get("humans_session") ?? "";
 
-  let colleagues: { id: string; name: string; displayId: string }[] = [];
-  if (colleaguesRes.ok) {
-    const raw: unknown = await colleaguesRes.json();
-    if (typeof raw === "object" && raw !== null && "data" in raw && Array.isArray((raw as { data: unknown }).data)) {
-      colleagues = (raw as { data: { id: string; name: string; displayId: string }[] }).data;
-    }
-  }
+  const [humansRes, accountsRes] = await Promise.all([
+    fetch(`${PUBLIC_API_URL}/api/humans`, {
+      headers: { Cookie: `humans_session=${sessionToken}` },
+    }),
+    fetch(`${PUBLIC_API_URL}/api/accounts`, {
+      headers: { Cookie: `humans_session=${sessionToken}` },
+    }),
+  ]);
 
-  return { colleagues };
+  const parseList = async (res: Response) => {
+    if (!res.ok) return [];
+    const raw: unknown = await res.json();
+    return isListData(raw) ? raw.data : [];
+  };
+
+  const [allHumans, allAccounts] = await Promise.all([
+    parseList(humansRes),
+    parseList(accountsRes),
+  ]);
+
+  return { allHumans, allAccounts };
 };
 
 export const actions = {
@@ -38,14 +50,12 @@ export const actions = {
     const sessionToken = cookies.get("humans_session");
 
     const payload = {
-      source: form.get("source"),
-      notes: form.get("notes") || undefined,
-      ownerId: form.get("ownerId") || undefined,
-      email: form.get("email") || undefined,
-      phone: form.get("phone") || undefined,
+      url: form.get("url"),
+      humanId: form.get("humanId") || undefined,
+      accountId: form.get("accountId") || undefined,
     };
 
-    const res = await fetch(`${PUBLIC_API_URL}/api/general-leads`, {
+    const res = await fetch(`${PUBLIC_API_URL}/api/websites`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -56,7 +66,7 @@ export const actions = {
 
     if (!res.ok) {
       const resBody: unknown = await res.json();
-      return failFromApi(resBody, res.status, "Failed to create general lead");
+      return failFromApi(resBody, res.status, "Failed to create website");
     }
 
     const created: unknown = await res.json();
@@ -64,6 +74,6 @@ export const actions = {
       return fail(500, { error: "Unexpected response" });
     }
 
-    redirect(302, `/leads/general-leads/${created.data.id}`);
+    redirect(302, `/websites/${created.data.id}`);
   },
 };

@@ -8,28 +8,28 @@
   let { data, form }: { data: PageData; form: ActionData } = $props();
 
   type HumanListItem = { id: string; firstName: string; lastName: string; displayId: string };
-  type PlatformConfig = { id: string; name: string };
+  type AccountListItem = { id: string; name: string; displayId: string };
 
   const allHumans = $derived(data.allHumans as HumanListItem[]);
-  const platformConfigs = $derived(data.platformConfigs as PlatformConfig[]);
+  const allAccounts = $derived(data.allAccounts as AccountListItem[]);
 
   const humanOptions = $derived(
     allHumans.map((h) => ({ value: h.id, label: `${h.displayId} ${h.firstName} ${h.lastName}` }))
   );
 
-  const platformOptions = $derived(
-    platformConfigs.map((p) => ({ value: p.id, label: p.name }))
+  const accountOptions = $derived(
+    allAccounts.map((a) => ({ value: a.id, label: `${a.displayId} ${a.name}` }))
   );
 </script>
 
 <svelte:head>
-  <title>New Social ID - Humans</title>
+  <title>New Website - Humans</title>
 </svelte:head>
 
 <div class="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
   <PageHeader
-    title="New Social ID"
-    breadcrumbs={[{ label: "Reports", href: "/reports" }, { label: "Social Media IDs", href: "/social-ids" }, { label: "New" }]}
+    title="New Website"
+    breadcrumbs={[{ label: "Reports", href: "/reports" }, { label: "Websites", href: "/websites" }, { label: "New" }]}
   />
 
   {#if form?.error}
@@ -38,39 +38,39 @@
 
   <form method="POST" action="?/create" class="space-y-6 glass-card p-6">
     <div>
-      <label for="handle" class="block text-sm font-medium text-text-secondary mb-1">Handle <span class="text-red-400">*</span></label>
+      <label for="url" class="block text-sm font-medium text-text-secondary mb-1">URL <span class="text-red-400">*</span></label>
       <input
-        id="handle" name="handle" type="text" required
+        id="url" name="url" type="url" required
         class="glass-input block w-full px-3 py-2 text-sm"
-        placeholder="@username"
+        placeholder="https://example.com"
       />
     </div>
 
     <div>
-      <label for="platform" class="block text-sm font-medium text-text-secondary mb-1">Platform</label>
-      <SearchableSelect
-        options={platformOptions}
-        name="platformId"
-        id="platform"
-        emptyOption="None"
-        placeholder="Select platform..."
-      />
-    </div>
-
-    <div>
-      <label for="owner" class="block text-sm font-medium text-text-secondary mb-1">Owner (Human)</label>
+      <label for="human" class="block text-sm font-medium text-text-secondary mb-1">Human</label>
       <SearchableSelect
         options={humanOptions}
         name="humanId"
-        id="owner"
+        id="human"
         emptyOption="None"
-        placeholder="Search owners..."
+        placeholder="Search humans..."
+      />
+    </div>
+
+    <div>
+      <label for="account" class="block text-sm font-medium text-text-secondary mb-1">Account</label>
+      <SearchableSelect
+        options={accountOptions}
+        name="accountId"
+        id="account"
+        emptyOption="None"
+        placeholder="Search accounts..."
       />
     </div>
 
     <div class="flex gap-3">
-      <Button type="submit">Create Social ID</Button>
-      <a href="/social-ids" class="btn-ghost">Cancel</a>
+      <Button type="submit">Create Website</Button>
+      <a href="/websites" class="btn-ghost">Cancel</a>
     </div>
   </form>
 </div>

@@ -12,36 +12,31 @@
 
   let { data }: { data: PageData } = $props();
 
-  type ConfigItem = { id: string; name: string };
   type HumanListItem = { id: string; firstName: string; lastName: string; displayId: string };
   type AccountListItem = { id: string; name: string; displayId: string };
-  type SocialId = {
+  type Website = {
     id: string;
     displayId: string;
-    handle: string;
-    platformId: string | null;
-    platformName: string | null;
+    url: string;
     humanId: string | null;
     humanName: string | null;
     accountId: string | null;
     accountName: string | null;
   };
 
-  const socialId = $derived(data.socialId as SocialId);
-  const platformConfigs = $derived(data.platformConfigs as ConfigItem[]);
+  const website = $derived(data.website as Website);
   const allHumans = $derived(data.allHumans as HumanListItem[]);
   const allAccounts = $derived(data.allAccounts as AccountListItem[]);
 
   // Auto-save state
-  let handle = $state("");
-  let platformId = $state("");
+  let url = $state("");
   let humanId = $state("");
   let accountId = $state("");
   let saveStatus = $state<SaveStatus>("idle");
   let initialized = $state(false);
 
   // Change history
-  const history = createChangeHistoryLoader("social_id", socialId.id);
+  const history = createChangeHistoryLoader("website", website.id);
 
   $effect(() => {
     if (!history.historyLoaded) {
@@ -51,16 +46,11 @@
 
   // Initialize state from data
   $effect(() => {
-    handle = socialId.handle;
-    platformId = socialId.platformId ?? "";
-    humanId = socialId.humanId ?? "";
-    accountId = socialId.accountId ?? "";
+    url = website.url;
+    humanId = website.humanId ?? "";
+    accountId = website.accountId ?? "";
     if (!initialized) initialized = true;
   });
-
-  const platformOptions = $derived(
-    platformConfigs.map((p) => ({ value: p.id, label: p.name }))
-  );
 
   const humanOptions = $derived(
     allHumans.map((h) => ({ value: h.id, label: `${h.displayId} ${h.firstName} ${h.lastName}` }))
@@ -71,7 +61,7 @@
   );
 
   const autoSaver = createAutoSaver({
-    endpoint: `/api/social-ids/${socialId.id}`,
+    endpoint: `/api/websites/${website.id}`,
     onStatusChange: (s) => { saveStatus = s; },
     onSaved: () => {
       toast("Changes saved");
@@ -87,8 +77,7 @@
   function triggerSave() {
     if (!initialized) return;
     autoSaver.save({
-      handle,
-      platformId: platformId || null,
+      url,
       humanId: humanId || null,
       accountId: accountId || null,
     });
@@ -97,16 +86,10 @@
   function triggerSaveImmediate() {
     if (!initialized) return;
     autoSaver.saveImmediate({
-      handle,
-      platformId: platformId || null,
+      url,
       humanId: humanId || null,
       accountId: accountId || null,
     });
-  }
-
-  function handlePlatformChange(value: string) {
-    platformId = value;
-    triggerSaveImmediate();
   }
 
   function handleHumanChange(value: string) {
@@ -121,14 +104,14 @@
 </script>
 
 <svelte:head>
-  <title>{socialId.displayId} — {socialId.handle} - Humans</title>
+  <title>{website.displayId} — {website.url} - Humans</title>
 </svelte:head>
 
 <div class="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
   <RecordManagementBar
-    backHref="/social-ids"
-    backLabel="Social Media IDs"
-    title="{socialId.displayId} — {socialId.handle}"
+    backHref="/websites"
+    backLabel="Websites"
+    title="{website.displayId} — {website.url}"
   />
 
   <div class="glass-card p-6 space-y-6">
@@ -137,28 +120,14 @@
       <SaveIndicator status={saveStatus} />
     </div>
 
-    <div class="grid gap-4 sm:grid-cols-2">
-      <div>
-        <label for="handle" class="block text-sm font-medium text-text-secondary">Handle</label>
-        <input
-          id="handle" type="text"
-          bind:value={handle}
-          oninput={triggerSave}
-          class="glass-input mt-1 block w-full"
-        />
-      </div>
-      <div>
-        <label for="platform" class="block text-sm font-medium text-text-secondary">Platform</label>
-        <SearchableSelect
-          options={platformOptions}
-          name="platformId"
-          id="platform"
-          value={platformId}
-          emptyOption="None"
-          placeholder="Select platform..."
-          onSelect={handlePlatformChange}
-        />
-      </div>
+    <div>
+      <label for="url" class="block text-sm font-medium text-text-secondary">URL</label>
+      <input
+        id="url" type="url"
+        bind:value={url}
+        oninput={triggerSave}
+        class="glass-input mt-1 block w-full"
+      />
     </div>
 
     <div>

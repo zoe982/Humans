@@ -31,6 +31,7 @@ import { generalLeadRoutes } from "./routes/general-leads";
 import { flightRoutes } from "./routes/flights";
 import { referralCodeRoutes } from "./routes/referral-codes";
 import { discountCodeRoutes } from "./routes/discount-codes";
+import { websiteRoutes } from "./routes/websites";
 import { opportunityCadenceRoutes } from "./routes/opportunity-cadence";
 import { runScheduledFrontSync } from "./scheduled/front-sync";
 import { realtimeMiddleware } from "./middleware/realtime";
@@ -82,6 +83,7 @@ app.route("/", flightRoutes);
 app.route("/", referralCodeRoutes);
 app.route("/", discountCodeRoutes);
 app.route("/", opportunityCadenceRoutes);
+app.route("/", websiteRoutes);
 
 export { RealtimeHub } from "./realtime/hub";
 

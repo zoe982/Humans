@@ -57,7 +57,7 @@
   const humanOptions = $derived(
     allHumans.map((h) => ({
       value: h.id,
-      label: `${h.displayId ? h.displayId + " — " : ""}${h.firstName} ${h.lastName}`,
+      label: `${h.displayId ?? ""} ${h.firstName} ${h.lastName}`.trim(),
     }))
   );
 

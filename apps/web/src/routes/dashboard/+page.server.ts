@@ -18,36 +18,41 @@ export const load = async ({ locals, cookies }: RequestEvent) => {
   const sessionToken = cookies.get("humans_session");
   const headers = { Cookie: `humans_session=${sessionToken ?? ""}` };
 
-  const [humansRes, activitiesRes, geoInterestsRes, petsCountRes] = await Promise.all([
-    fetch(`${PUBLIC_API_URL}/api/humans?page=1&limit=1`, { headers }),
-    fetch(`${PUBLIC_API_URL}/api/activities?page=1&limit=1`, { headers }),
-    fetch(`${PUBLIC_API_URL}/api/geo-interests`, { headers }),
-    fetch(`${PUBLIC_API_URL}/api/pets/count`, { headers }),
+  // Helper: always consume the response body to release the connection
+  // (Cloudflare Workers limit concurrent outbound connections to 6)
+  async function fetchJson(url: string): Promise<{ ok: boolean; status: number; data: unknown }> {
+    const res = await fetch(url, { headers });
+    const data: unknown = await res.json().catch(() => null);
+    return { ok: res.ok, status: res.status, data };
+  }
+
+  const [humans, activities, geoInterests, petsCount, recent, dailyCounts_] = await Promise.all([
+    fetchJson(`${PUBLIC_API_URL}/api/humans?page=1&limit=1`),
+    fetchJson(`${PUBLIC_API_URL}/api/activities?page=1&limit=1`),
+    fetchJson(`${PUBLIC_API_URL}/api/geo-interests`),
+    fetchJson(`${PUBLIC_API_URL}/api/pets/count`),
+    fetchJson(`${PUBLIC_API_URL}/api/activities?page=1&limit=10`),
+    fetchJson(`${PUBLIC_API_URL}/api/activities/daily-counts?days=30`),
   ]);
 
-  if (!humansRes.ok) console.error("[dashboard] Failed to load humans:", humansRes.status);
-  if (!activitiesRes.ok) console.error("[dashboard] Failed to load activities:", activitiesRes.status);
-  if (!geoInterestsRes.ok) console.error("[dashboard] Failed to load geo-interests:", geoInterestsRes.status);
+  if (!humans.ok) console.error("[dashboard] Failed to load humans:", humans.status);
+  if (!activities.ok) console.error("[dashboard] Failed to load activities:", activities.status);
+  if (!geoInterests.ok) console.error("[dashboard] Failed to load geo-interests:", geoInterests.status);
 
-  const humansRaw: unknown = humansRes.ok ? await humansRes.json() : null;
-  const activitiesRaw: unknown = activitiesRes.ok ? await activitiesRes.json() : null;
-  const geoInterestsRaw: unknown = geoInterestsRes.ok ? await geoInterestsRes.json() : null;
-  const petsCountRaw: unknown = petsCountRes.ok ? await petsCountRes.json() : null;
+  const humansRaw = humans.ok ? humans.data : null;
+  const activitiesRaw = activities.ok ? activities.data : null;
+  const geoInterestsRaw = geoInterests.ok ? geoInterests.data : null;
+  const petsCountRaw = petsCount.ok ? petsCount.data : null;
 
   const humansTotal = hasMeta(humansRaw) ? humansRaw.meta.total : 0;
   const activitiesTotal = hasMeta(activitiesRaw) ? activitiesRaw.meta.total : 0;
   const geoInterestsList = isListData(geoInterestsRaw) ? geoInterestsRaw.data : [];
   const petsTotal = (petsCountRaw as { data?: { total?: number } } | null)?.data?.total ?? 0;
 
-  // Fetch recent activities and daily counts in parallel
-  const [recentRes, dailyCountsRes] = await Promise.all([
-    fetch(`${PUBLIC_API_URL}/api/activities?page=1&limit=10`, { headers }),
-    fetch(`${PUBLIC_API_URL}/api/activities/daily-counts?days=30`, { headers }),
-  ]);
-  const recentRaw: unknown = recentRes.ok ? await recentRes.json() : null;
+  const recentRaw = recent.ok ? recent.data : null;
   const recentActivities = isListData(recentRaw) ? recentRaw.data : [];
 
-  const dailyCountsRaw: unknown = dailyCountsRes.ok ? await dailyCountsRes.json() : null;
+  const dailyCountsRaw = dailyCounts_.ok ? dailyCounts_.data : null;
   const dailyCounts = isListData(dailyCountsRaw) ? dailyCountsRaw.data : [];
 
   return {

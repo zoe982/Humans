@@ -57,11 +57,11 @@
   });
 
   const humanOptions = $derived(
-    allHumans.map((h) => ({ value: h.id, label: `${h.firstName} ${h.lastName} (${h.displayId})` }))
+    allHumans.map((h) => ({ value: h.id, label: `${h.displayId} ${h.firstName} ${h.lastName}` }))
   );
 
   const accountOptions = $derived(
-    allAccounts.map((a) => ({ value: a.id, label: `${a.name} (${a.displayId})` }))
+    allAccounts.map((a) => ({ value: a.id, label: `${a.displayId} ${a.name}` }))
   );
 
   const autoSaver = createAutoSaver({

@@ -46,8 +46,8 @@
     destinationCountry: string | null;
     createdAt: string;
   };
-  type Human = { id: string; firstName: string; middleName: string | null; lastName: string };
-  type Account = { id: string; name: string };
+  type Human = { id: string; displayId: string; firstName: string; middleName: string | null; lastName: string };
+  type Account = { id: string; displayId: string; name: string };
   type Colleague = { id: string; name: string; displayId: string };
   type Activity = {
     id: string;
@@ -83,17 +83,17 @@
   const colleaguesList = $derived((data.colleagues ?? []) as Colleague[]);
   const apiUrl = $derived(data.apiUrl as string);
 
-  const humanOptions = $derived(humans.map((h) => ({ value: h.id, label: displayName(h) })));
-  const accountOptions = $derived(accountsList.map((a) => ({ value: a.id, label: a.name })));
+  const humanOptions = $derived(humans.map((h) => ({ value: h.id, label: `${h.displayId} ${displayName(h)}` })));
+  const accountOptions = $derived(accountsList.map((a) => ({ value: a.id, label: `${a.displayId} ${a.name}` })));
   const routeSignupOptions = $derived(routeSignups.map((s) => ({
     value: s.id,
-    label: `${s.display_id ?? s.id.slice(0, 8)} — ${s.first_name ?? ""} ${s.last_name ?? ""} (${s.origin ?? "?"} → ${s.destination ?? "?"})`.trim(),
+    label: `${s.display_id ?? s.id.slice(0, 8)} ${s.first_name ?? ""} ${s.last_name ?? ""} (${s.origin ?? "?"} → ${s.destination ?? "?"})`.trim(),
   })));
   const bookingRequestOptions = $derived(websiteBookingRequests.map((b) => ({
     value: b.id,
-    label: `${b.crm_display_id ?? b.id.slice(0, 8)} — ${b.passenger_name ?? "Unknown"} (${b.origin ?? "?"} → ${b.destination ?? "?"})`.trim(),
+    label: `${b.crm_display_id ?? b.id.slice(0, 8)} ${b.passenger_name ?? "Unknown"} (${b.origin ?? "?"} → ${b.destination ?? "?"})`.trim(),
   })));
-  const colleagueOptions = $derived(colleaguesList.map((c) => ({ value: c.id, label: c.name })));
+  const colleagueOptions = $derived(colleaguesList.map((c) => ({ value: c.id, label: `${c.displayId} ${c.name}` })));
 
   // Auto-save state
   let type = $state("");

@@ -42,5 +42,9 @@
       <h2 class="text-lg font-semibold text-text-primary">Discount Codes</h2>
       <p class="mt-2 text-sm text-text-secondary">View discount codes and manage links to humans and accounts.</p>
     </a>
+    <a href="/websites" class="glass-card p-6 hover:bg-glass-hover transition-colors">
+      <h2 class="text-lg font-semibold text-text-primary">Websites</h2>
+      <p class="mt-2 text-sm text-text-secondary">View and manage all websites across humans and accounts.</p>
+    </a>
   </div>
 </div>

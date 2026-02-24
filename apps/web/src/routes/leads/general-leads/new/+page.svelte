@@ -9,7 +9,7 @@
   let { data, form }: { data: PageData; form: ActionData } = $props();
 
   const colleagueOptions = $derived(
-    (data.colleagues as { id: string; name: string }[]).map((c) => ({ value: c.id, label: c.name })),
+    (data.colleagues as { id: string; name: string; displayId: string }[]).map((c) => ({ value: c.id, label: `${c.displayId} ${c.name}` })),
   );
 </script>
 

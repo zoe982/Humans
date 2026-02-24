@@ -18,6 +18,7 @@ import {
   humanPhoneLabelsConfig,
   socialIds,
   socialIdPlatformsConfig,
+  websites,
 } from "@humans/db/schema";
 import { createId } from "@humans/db";
 import { ERROR_CODES } from "@humans/shared";
@@ -76,7 +77,7 @@ export async function getHumanDetail(supabase: SupabaseClient, db: DB, humanId: 
     throw notFound(ERROR_CODES.HUMAN_NOT_FOUND, "Human not found");
   }
 
-  const [humanEmails, types, linkedSignups, linkedBookingRequests, humanPhones, humanPets, geoExpressions, routeExpressions, linkedAccountRows, emailLabelConfigs, phoneLabelConfigs, humanSocialIds, allPlatforms] = await Promise.all([
+  const [humanEmails, types, linkedSignups, linkedBookingRequests, humanPhones, humanPets, geoExpressions, routeExpressions, linkedAccountRows, emailLabelConfigs, phoneLabelConfigs, humanSocialIds, allPlatforms, humanWebsites] = await Promise.all([
     db.select().from(emails).where(eq(emails.ownerId, human.id)),
     db.select().from(humanTypes).where(eq(humanTypes.humanId, human.id)),
     db.select().from(humanRouteSignups).where(eq(humanRouteSignups.humanId, human.id)),
@@ -90,6 +91,7 @@ export async function getHumanDetail(supabase: SupabaseClient, db: DB, humanId: 
     db.select().from(humanPhoneLabelsConfig),
     db.select().from(socialIds).where(eq(socialIds.humanId, human.id)),
     db.select().from(socialIdPlatformsConfig),
+    db.select().from(websites).where(eq(websites.humanId, human.id)),
   ]);
 
   // Fetch referral codes from Supabase
@@ -200,6 +202,7 @@ export async function getHumanDetail(supabase: SupabaseClient, db: DB, humanId: 
     socialIds: socialIdsWithPlatforms,
     referralCodes: humanReferralCodes,
     discountCodes: humanDiscountCodes,
+    websites: humanWebsites,
   };
 }
 
@@ -422,6 +425,7 @@ export async function deleteHuman(supabase: SupabaseClient, db: DB, id: string) 
   await db.delete(routeInterestExpressions).where(eq(routeInterestExpressions.humanId, id));
   await db.delete(accountHumans).where(eq(accountHumans.humanId, id));
   await db.update(socialIds).set({ humanId: null }).where(eq(socialIds.humanId, id));
+  await db.update(websites).set({ humanId: null }).where(eq(websites.humanId, id));
   await supabase.from("referral_codes").update({ human_id: null }).eq("human_id", id);
   await supabase.from("discount_codes").update({ human_id: null }).eq("human_id", id);
   await db.delete(humans).where(eq(humans.id, id));

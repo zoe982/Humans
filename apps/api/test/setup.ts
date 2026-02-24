@@ -315,6 +315,16 @@ const MIGRATION_STATEMENTS = [
     \`created_at\` text NOT NULL
   )`,
 
+  // ── Websites ──────────────────────────────────────────────────
+  `CREATE TABLE IF NOT EXISTS \`websites\` (
+    \`id\` text PRIMARY KEY NOT NULL,
+    \`display_id\` text NOT NULL UNIQUE,
+    \`url\` text NOT NULL,
+    \`human_id\` text,
+    \`account_id\` text,
+    \`created_at\` text NOT NULL
+  )`,
+
   // ── Referral Codes ─────────────────────────────────────────────
   `CREATE TABLE IF NOT EXISTS \`referral_codes\` (
     \`id\` text PRIMARY KEY NOT NULL,
@@ -419,6 +429,8 @@ const MIGRATION_STATEMENTS = [
   `CREATE INDEX IF NOT EXISTS \`opportunity_pets_pet_id_idx\` ON \`opportunity_pets\` (\`pet_id\`)`,
   `CREATE INDEX IF NOT EXISTS \`referral_codes_human_id_idx\` ON \`referral_codes\` (\`human_id\`)`,
   `CREATE INDEX IF NOT EXISTS \`referral_codes_account_id_idx\` ON \`referral_codes\` (\`account_id\`)`,
+  `CREATE INDEX IF NOT EXISTS \`websites_human_id_idx\` ON \`websites\` (\`human_id\`)`,
+  `CREATE INDEX IF NOT EXISTS \`websites_account_id_idx\` ON \`websites\` (\`account_id\`)`,
 ];
 
 beforeAll(async () => {
@@ -429,6 +441,7 @@ beforeAll(async () => {
 
 // Clean up between tests — children before parents (FK-safe deletion order)
 afterEach(async () => {
+  await env.DB.exec("DELETE FROM websites");
   await env.DB.exec("DELETE FROM referral_codes");
   await env.DB.exec("DELETE FROM route_interest_expressions");
   await env.DB.exec("DELETE FROM geo_interest_expressions");

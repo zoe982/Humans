@@ -12,7 +12,7 @@
   const allHumans = $derived(data.allHumans as HumanListItem[]);
 
   const humanOptions = $derived(
-    allHumans.map((h) => ({ value: h.id, label: `${h.firstName} ${h.lastName} (${h.displayId})` }))
+    allHumans.map((h) => ({ value: h.id, label: `${h.displayId} ${h.firstName} ${h.lastName}` }))
   );
 
   let petType = $state("dog");

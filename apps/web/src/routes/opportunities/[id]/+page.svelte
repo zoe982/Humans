@@ -24,7 +24,7 @@
   let { data, form }: { data: PageData; form: ActionData } = $props();
 
   type ConfigItem = { id: string; name: string; createdAt: string };
-  type Colleague = { id: string; name: string };
+  type Colleague = { id: string; name: string; displayId?: string };
   type HumanOption = { id: string; displayId?: string; firstName: string; middleName?: string | null; lastName: string };
   type LinkedHuman = { id: string; humanId: string; humanName: string; humanDisplayId: string; roleName: string | null; roleId: string | null };
   type LinkedPet = { id: string; petId: string; petName: string; petDisplayId: string; petType: string; ownerName: string | null };
@@ -99,14 +99,14 @@
   const flightOptions = $derived(
     flightSummary.map((f) => ({
       value: f.id,
-      label: `${f.crm_display_id ?? "?"} — ${f.origin_city ?? "?"} \u2192 ${f.destination_city ?? "?"} (${f.flight_date ?? "?"})`,
+      label: `${f.crm_display_id ?? "?"} ${f.origin_city ?? "?"} \u2192 ${f.destination_city ?? "?"} (${f.flight_date ?? "?"})`,
     }))
   );
 
-  const colleagueOptions = $derived(colleagues.map((c) => ({ value: c.id, label: c.name })));
+  const colleagueOptions = $derived(colleagues.map((c) => ({ value: c.id, label: `${c.displayId ?? ""} ${c.name}`.trim() })));
   const humanOptions = $derived(allHumans.map((h) => ({
     value: h.id,
-    label: `${h.displayId ? h.displayId + " — " : ""}${h.firstName} ${h.lastName}`,
+    label: `${h.displayId ?? ""} ${h.firstName} ${h.lastName}`.trim(),
   })));
   const roleOptions = $derived(roleConfigs.map((r) => ({ value: r.id, label: r.name })));
 
@@ -132,7 +132,7 @@
       .filter((p) => p.humanId && linkedHumanIds.has(p.humanId) && !linkedPetIds.has(p.id))
       .map((p) => ({
         value: p.id,
-        label: `${p.displayId ? p.displayId + " — " : ""}${p.name ?? p.displayId ?? "Unnamed"} (${p.type === "cat" ? "Cat" : "Dog"})`,
+        label: `${p.displayId ?? ""} ${p.name ?? "Unnamed"} (${p.type === "cat" ? "Cat" : "Dog"})`.trim(),
       }))
   );
 

@@ -31,8 +31,8 @@ export const handle: Handle = async ({ event, resolve }) => {
           Cookie: `humans_session=${sessionCookie}`,
         },
       });
+      const data: unknown = await res.json().catch(() => null);
       if (res.ok) {
-        const data: unknown = await res.json();
         event.locals.user = isUserResponse(data) ? data.user : null;
       } else {
         event.locals.user = null;

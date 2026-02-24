@@ -13,11 +13,12 @@
 
   type Human = {
     id: string;
+    displayId: string;
     firstName: string;
     middleName: string | null;
     lastName: string;
   };
-  type Account = { id: string; name: string };
+  type Account = { id: string; displayId: string; name: string };
   type RouteSignup = { id: string; display_id: string | null; first_name: string | null; last_name: string | null; origin: string | null; destination: string | null };
   type WebsiteBookingRequest = { id: string; crm_display_id: string | null; passenger_name: string | null; origin: string | null; destination: string | null };
   type GeoInterestItem = { id?: string; city?: string; country?: string; notes?: string };
@@ -38,15 +39,15 @@
     return [h.firstName, h.middleName, h.lastName].filter(Boolean).join(" ");
   }
 
-  const humanOptions = $derived(humans.map((h) => ({ value: h.id, label: displayName(h) })));
-  const accountOptions = $derived(accountsList.map((a) => ({ value: a.id, label: a.name })));
+  const humanOptions = $derived(humans.map((h) => ({ value: h.id, label: `${h.displayId} ${displayName(h)}` })));
+  const accountOptions = $derived(accountsList.map((a) => ({ value: a.id, label: `${a.displayId} ${a.name}` })));
   const routeSignupOptions = $derived(routeSignups.map((s) => ({
     value: s.id,
-    label: `${s.display_id ?? s.id.slice(0, 8)} — ${s.first_name ?? ""} ${s.last_name ?? ""} (${s.origin ?? "?"} → ${s.destination ?? "?"})`.trim(),
+    label: `${s.display_id ?? s.id.slice(0, 8)} ${s.first_name ?? ""} ${s.last_name ?? ""} (${s.origin ?? "?"} → ${s.destination ?? "?"})`.trim(),
   })));
   const bookingRequestOptions = $derived(websiteBookingRequests.map((b) => ({
     value: b.id,
-    label: `${b.crm_display_id ?? b.id.slice(0, 8)} — ${b.passenger_name ?? "Unknown"} (${b.origin ?? "?"} → ${b.destination ?? "?"})`.trim(),
+    label: `${b.crm_display_id ?? b.id.slice(0, 8)} ${b.passenger_name ?? "Unknown"} (${b.origin ?? "?"} → ${b.destination ?? "?"})`.trim(),
   })));
 </script>
 

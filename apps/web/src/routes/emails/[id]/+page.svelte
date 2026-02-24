@@ -70,8 +70,8 @@
 
   // Owner options: humans and accounts
   const ownerOptions = $derived([
-    ...allHumans.map((h) => ({ value: `human:${h.id}`, label: `${h.firstName} ${h.lastName} (${h.displayId})` })),
-    ...allAccounts.map((a) => ({ value: `account:${a.id}`, label: `${a.name} (${a.displayId})` })),
+    ...allHumans.map((h) => ({ value: `human:${h.id}`, label: `${h.displayId} ${h.firstName} ${h.lastName}` })),
+    ...allAccounts.map((a) => ({ value: `account:${a.id}`, label: `${a.displayId} ${a.name}` })),
   ]);
 
   const selectedOwnerValue = $derived(`${ownerType}:${ownerId}`);

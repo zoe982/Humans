@@ -30,6 +30,7 @@
   type AccountEmail = { id: string; email: string; labelId: string | null; labelName: string | null; isPrimary: boolean };
   type AccountPhone = { id: string; phoneNumber: string; labelId: string | null; labelName: string | null; hasWhatsapp: boolean; isPrimary: boolean };
   type SocialIdItem = { id: string; displayId: string; handle: string; platformId: string | null; platformName: string | null };
+  type WebsiteItem = { id: string; displayId: string; url: string };
   type ReferralCodeItem = { id: string; displayId: string; code: string; description: string | null; isActive: boolean };
   type DiscountCodeItem = { id: string; crmDisplayId: string | null; code: string; description: string | null; percentOff: number; isActive: boolean };
   type HumanEmail = { id: string; email: string; label: string; isPrimary: boolean };
@@ -71,6 +72,7 @@
     activities: Activity[];
     humanActivities: HumanActivity[];
     socialIds: SocialIdItem[];
+    websites: WebsiteItem[];
     referralCodes: ReferralCodeItem[];
     discountCodes: DiscountCodeItem[];
     createdAt: string;
@@ -528,6 +530,54 @@
             </div>
           </div>
           <Button type="submit" size="sm">Add Social ID</Button>
+        </form>
+      {/snippet}
+    </RelatedListTable>
+  </div>
+
+  <!-- Websites Section -->
+  <div class="mt-6">
+    <RelatedListTable
+      title="Websites"
+      items={account.websites}
+      columns={[
+        { key: "displayId", label: "ID" },
+        { key: "url", label: "URL", sortable: true, sortValue: (w) => w.url },
+        { key: "delete", label: "", headerClass: "w-10" },
+      ]}
+      defaultSortKey="url"
+      defaultSortDirection="asc"
+      searchFilter={(w, q) => w.url.toLowerCase().includes(q) || w.displayId.toLowerCase().includes(q)}
+      emptyMessage="No websites yet."
+      addLabel="Website"
+    >
+      {#snippet row(w, _searchQuery)}
+        <td class="font-mono text-sm whitespace-nowrap">
+          <a href="/websites/{w.id}" class="text-accent hover:text-[var(--link-hover)]">{w.displayId}</a>
+        </td>
+        <td>
+          <a href={w.url} target="_blank" rel="noopener noreferrer" class="text-sm font-medium text-accent hover:text-[var(--link-hover)]">{w.url}</a>
+        </td>
+        <td>
+          <form method="POST" action="?/deleteWebsite">
+            <input type="hidden" name="id" value={w.id} />
+            <button type="submit" class="flex items-center justify-center w-7 h-7 rounded-lg text-text-muted hover:text-destructive-foreground hover:bg-destructive transition-colors duration-150" aria-label="Delete website">
+              <Trash2 size={14} />
+            </button>
+          </form>
+        </td>
+      {/snippet}
+      {#snippet addForm()}
+        <form method="POST" action="?/addWebsite" class="space-y-3">
+          <div>
+            <label for="websiteUrl" class="block text-sm font-medium text-text-secondary">URL</label>
+            <input
+              id="websiteUrl" name="url" type="url" required
+              class="glass-input mt-1 block w-full"
+              placeholder="https://example.com"
+            />
+          </div>
+          <Button type="submit" size="sm">Add Website</Button>
         </form>
       {/snippet}
     </RelatedListTable>

@@ -14,7 +14,7 @@
   const emailLabelConfigs = $derived(data.emailLabelConfigs as LabelConfig[]);
 
   const humanOptions = $derived(
-    allHumans.map((h) => ({ value: h.id, label: `${h.firstName} ${h.lastName} (${h.displayId})` }))
+    allHumans.map((h) => ({ value: h.id, label: `${h.displayId} ${h.firstName} ${h.lastName}` }))
   );
 
   const labelOptions = $derived(

@@ -21,7 +21,7 @@
   const humanOptions = $derived(
     allHumans.map((h) => ({
       value: h.id,
-      label: `${h.displayId ? h.displayId + " — " : ""}${h.firstName} ${h.lastName}`,
+      label: `${h.displayId ?? ""} ${h.firstName} ${h.lastName}`.trim(),
     }))
   );
 
@@ -32,7 +32,7 @@
           .filter((p) => p.humanId === selectedHumanId && !selectedPetIds.includes(p.id))
           .map((p) => ({
             value: p.id,
-            label: `${p.displayId ? p.displayId + " — " : ""}${p.name ?? p.displayId ?? "Unnamed"} (${p.type === "cat" ? "Cat" : "Dog"})`,
+            label: `${p.displayId ?? ""} ${p.name ?? "Unnamed"} (${p.type === "cat" ? "Cat" : "Dog"})`.trim(),
           }))
       : []
   );

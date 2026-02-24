@@ -13,6 +13,7 @@ import {
   humans,
   socialIds,
   socialIdPlatformsConfig,
+  websites,
 } from "@humans/db/schema";
 import { createId } from "@humans/db";
 import { ERROR_CODES } from "@humans/shared";
@@ -60,6 +61,7 @@ export async function getAccountDetail(supabase: SupabaseClient, db: DB, id: str
     directActivities,
     accountSocialIds,
     allPlatforms,
+    accountWebsites,
   ] = await Promise.all([
     db.select().from(accountTypes).where(eq(accountTypes.accountId, id)),
     db.select().from(accountTypesConfig),
@@ -72,6 +74,7 @@ export async function getAccountDetail(supabase: SupabaseClient, db: DB, id: str
     db.select().from(activities).where(eq(activities.accountId, id)),
     db.select().from(socialIds).where(eq(socialIds.accountId, id)),
     db.select().from(socialIdPlatformsConfig),
+    db.select().from(websites).where(eq(websites.accountId, id)),
   ]);
 
   // Fetch referral codes from Supabase
@@ -182,6 +185,7 @@ export async function getAccountDetail(supabase: SupabaseClient, db: DB, id: str
     socialIds: socialIdsWithPlatforms,
     referralCodes: accountReferralCodes,
     discountCodes: accountDiscountCodes,
+    websites: accountWebsites,
   };
 }
 
@@ -333,6 +337,7 @@ export async function deleteAccount(supabase: SupabaseClient, db: DB, id: string
   await db.delete(emails).where(eq(emails.ownerId, id));
   await db.delete(phones).where(eq(phones.ownerId, id));
   await db.update(socialIds).set({ accountId: null }).where(eq(socialIds.accountId, id));
+  await db.update(websites).set({ accountId: null }).where(eq(websites.accountId, id));
   await supabase.from("referral_codes").update({ account_id: null }).eq("account_id", id);
   await supabase.from("discount_codes").update({ account_id: null }).eq("account_id", id);
   await db.delete(accounts).where(eq(accounts.id, id));
