@@ -867,7 +867,7 @@ export async function syncFrontConversations(
     const cache = await preloadReferenceData(db, supabase);
 
     const conversationsUrl =
-      cursor ?? `https://api2.frontapp.com/conversations?limit=${limit.toString()}`;
+      cursor ?? `https://api2.frontapp.com/conversations?limit=${limit.toString()}&q[updated_after]=1`;
     const convResponse = assertPaginated<FrontConversation>(await frontFetch(conversationsUrl, frontToken), "conversations");
 
     result.nextCursor = convResponse._pagination.next ?? null;

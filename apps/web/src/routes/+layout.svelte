@@ -12,6 +12,7 @@
   import { initRealtime, destroyRealtime } from "$lib/realtime";
   import UpdateBanner from "$lib/components/UpdateBanner.svelte";
   import InstallPrompt from "$lib/components/InstallPrompt.svelte";
+  import BlankPageDetector from "$lib/components/BlankPageDetector.svelte";
 
   let commandPaletteOpen = $state(false);
 
@@ -126,6 +127,8 @@
   <main id="main-content">
     {@render children()}
   </main>
+
+  <BlankPageDetector />
 
   <Toaster
     position="bottom-right"
