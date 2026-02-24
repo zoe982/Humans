@@ -41,93 +41,42 @@ export const load = async ({ locals, cookies, params }: RequestEvent) => {
   const human = isObjData(humanRaw) ? humanRaw.data : null;
   if (human == null) redirect(302, "/humans");
 
-  // Fetch activities, label configs, route signups, booking requests, accounts in parallel
+  // Helper: fetch + consume body immediately to release connection
+  // (Cloudflare Pages limits concurrent outbound connections to 6)
   const headers = { Cookie: `humans_session=${sessionToken ?? ""}` };
-  const [
-    activitiesRes,
-    emailLabelConfigs,
-    phoneLabelConfigs,
-    socialIdPlatformConfigs,
-    routeSignupsRes,
-    bookingRequestsRes,
-    accountsRes,
-    accountHumanLabelConfigs,
-    generalLeadsRes,
-    opportunitiesRes,
-    discountCodesRes,
-    relationshipsRes,
-    humanRelationshipLabelConfigs,
-    allHumansRes,
-  ] = await Promise.all([
-    fetch(`${PUBLIC_API_URL}/api/activities?humanId=${id}`, { headers }),
+  async function fetchList(url: string): Promise<unknown[]> {
+    const res = await fetch(url, { headers });
+    if (!res.ok) return [];
+    const raw: unknown = await res.json();
+    return isListData(raw) ? raw.data : [];
+  }
+
+  // Fetch in batches of 5 to stay within Cloudflare's 6-connection limit
+  // Batch 1: activities, config lookups, route signups
+  const [activities, emailLabelConfigs, phoneLabelConfigs, socialIdPlatformConfigs, allRouteSignups] = await Promise.all([
+    fetchList(`${PUBLIC_API_URL}/api/activities?humanId=${id}`),
     fetchConfig(sessionToken ?? "", "human-email-labels"),
     fetchConfig(sessionToken ?? "", "human-phone-labels"),
     fetchConfig(sessionToken ?? "", "social-id-platforms"),
-    fetch(`${PUBLIC_API_URL}/api/route-signups?limit=100`, { headers }),
-    fetch(`${PUBLIC_API_URL}/api/website-booking-requests?limit=100`, { headers }),
-    fetch(`${PUBLIC_API_URL}/api/accounts`, { headers }),
-    fetchConfig(sessionToken ?? "", "account-human-labels"),
-    fetch(`${PUBLIC_API_URL}/api/general-leads?convertedHumanId=${id}&limit=50`, { headers }),
-    fetch(`${PUBLIC_API_URL}/api/opportunities?humanId=${id}&limit=50`, { headers }),
-    fetch(`${PUBLIC_API_URL}/api/discount-codes`, { headers }),
-    fetch(`${PUBLIC_API_URL}/api/humans/${id}/relationships`, { headers }),
-    fetchConfig(sessionToken ?? "", "human-relationship-labels"),
-    fetch(`${PUBLIC_API_URL}/api/humans?limit=500`, { headers }),
+    fetchList(`${PUBLIC_API_URL}/api/route-signups?limit=100`),
   ]);
 
-  let activities: unknown[] = [];
-  if (activitiesRes.ok) {
-    const activitiesRaw: unknown = await activitiesRes.json();
-    activities = isListData(activitiesRaw) ? activitiesRaw.data : [];
-  }
+  // Batch 2: booking requests, accounts, more configs, leads
+  const [allBookingRequests, allAccounts, accountHumanLabelConfigs, generalLeads, humanOpportunities] = await Promise.all([
+    fetchList(`${PUBLIC_API_URL}/api/website-booking-requests?limit=100`),
+    fetchList(`${PUBLIC_API_URL}/api/accounts`),
+    fetchConfig(sessionToken ?? "", "account-human-labels"),
+    fetchList(`${PUBLIC_API_URL}/api/general-leads?convertedHumanId=${id}&limit=50`),
+    fetchList(`${PUBLIC_API_URL}/api/opportunities?humanId=${id}&limit=50`),
+  ]);
 
-  let allRouteSignups: unknown[] = [];
-  if (routeSignupsRes.ok) {
-    const raw: unknown = await routeSignupsRes.json();
-    allRouteSignups = isListData(raw) ? raw.data : [];
-  }
-
-  let allAccounts: unknown[] = [];
-  if (accountsRes.ok) {
-    const raw: unknown = await accountsRes.json();
-    allAccounts = isListData(raw) ? raw.data : [];
-  }
-
-  let allBookingRequests: unknown[] = [];
-  if (bookingRequestsRes.ok) {
-    const raw: unknown = await bookingRequestsRes.json();
-    allBookingRequests = isListData(raw) ? raw.data : [];
-  }
-
-  let generalLeads: unknown[] = [];
-  if (generalLeadsRes.ok) {
-    const raw: unknown = await generalLeadsRes.json();
-    generalLeads = isListData(raw) ? raw.data : [];
-  }
-
-  let humanOpportunities: unknown[] = [];
-  if (opportunitiesRes.ok) {
-    const raw: unknown = await opportunitiesRes.json();
-    humanOpportunities = isListData(raw) ? (raw as { data: unknown[] }).data : [];
-  }
-
-  let allDiscountCodes: unknown[] = [];
-  if (discountCodesRes.ok) {
-    const raw: unknown = await discountCodesRes.json();
-    allDiscountCodes = isListData(raw) ? raw.data : [];
-  }
-
-  let humanRelationships: unknown[] = [];
-  if (relationshipsRes.ok) {
-    const raw: unknown = await relationshipsRes.json();
-    humanRelationships = isListData(raw) ? raw.data : [];
-  }
-
-  let allHumans: unknown[] = [];
-  if (allHumansRes.ok) {
-    const raw: unknown = await allHumansRes.json();
-    allHumans = isListData(raw) ? raw.data : [];
-  }
+  // Batch 3: discount codes, relationships, all humans
+  const [allDiscountCodes, humanRelationships, humanRelationshipLabelConfigs, allHumans] = await Promise.all([
+    fetchList(`${PUBLIC_API_URL}/api/discount-codes`),
+    fetchList(`${PUBLIC_API_URL}/api/humans/${id}/relationships`),
+    fetchConfig(sessionToken ?? "", "human-relationship-labels"),
+    fetchList(`${PUBLIC_API_URL}/api/humans?limit=500`),
+  ]);
 
   // Derive convertedFromLead from the first general lead (backwards compat)
   const convertedFromLead = generalLeads.length > 0

@@ -29,6 +29,9 @@ import {
   routeInterestFrequencyValues,
 } from "./route-interest-expressions";
 import { socialIds } from "./social-ids";
+import { opportunityHumans } from "./opportunity-humans";
+import { opportunityPets } from "./opportunity-pets";
+import { websites } from "./websites";
 
 describe("schema tables", () => {
   it("colleagues table has correct name", () => {
@@ -204,6 +207,21 @@ describe("table indexes", () => {
   it("socialIds table has indexes", () => {
     const config = getTableConfig(socialIds);
     expect(config.indexes.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it("opportunityHumans table has 2 indexes", () => {
+    const config = getTableConfig(opportunityHumans);
+    expect(config.indexes.length).toBe(2);
+  });
+
+  it("opportunityPets table has 2 indexes", () => {
+    const config = getTableConfig(opportunityPets);
+    expect(config.indexes.length).toBe(2);
+  });
+
+  it("websites table has 2 indexes", () => {
+    const config = getTableConfig(websites);
+    expect(config.indexes.length).toBe(2);
   });
 });
 

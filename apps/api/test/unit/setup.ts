@@ -50,6 +50,49 @@ const MIGRATION_STATEMENTS = [
     \`created_at\` text NOT NULL,
     \`updated_at\` text NOT NULL
   )`,
+  `CREATE TABLE IF NOT EXISTS \`opportunities\` (
+    \`id\` text PRIMARY KEY NOT NULL,
+    \`display_id\` text NOT NULL UNIQUE,
+    \`stage\` text DEFAULT 'open' NOT NULL,
+    \`seats_requested\` integer NOT NULL DEFAULT 1,
+    \`passenger_seats\` integer NOT NULL DEFAULT 1,
+    \`pet_seats\` integer NOT NULL DEFAULT 0,
+    \`notes\` text,
+    \`loss_reason\` text,
+    \`owner_id\` text REFERENCES \`colleagues\`(\`id\`),
+    \`next_action_owner_id\` text REFERENCES \`colleagues\`(\`id\`),
+    \`next_action_description\` text,
+    \`next_action_type\` text,
+    \`next_action_start_date\` text,
+    \`next_action_due_date\` text,
+    \`next_action_completed_at\` text,
+    \`next_action_cadence_note\` text,
+    \`flight_id\` text,
+    \`created_at\` text NOT NULL,
+    \`updated_at\` text NOT NULL
+  )`,
+  `CREATE TABLE IF NOT EXISTS \`general_leads\` (
+    \`id\` text PRIMARY KEY NOT NULL,
+    \`display_id\` text NOT NULL UNIQUE,
+    \`status\` text DEFAULT 'open' NOT NULL,
+    \`source\` text NOT NULL,
+    \`notes\` text,
+    \`reject_reason\` text,
+    \`converted_human_id\` text REFERENCES \`humans\`(\`id\`),
+    \`email\` text,
+    \`phone\` text,
+    \`owner_id\` text REFERENCES \`colleagues\`(\`id\`),
+    \`created_at\` text NOT NULL,
+    \`updated_at\` text NOT NULL
+  )`,
+  `CREATE TABLE IF NOT EXISTS \`websites\` (
+    \`id\` text PRIMARY KEY NOT NULL,
+    \`display_id\` text NOT NULL UNIQUE,
+    \`url\` text NOT NULL,
+    \`human_id\` text,
+    \`account_id\` text,
+    \`created_at\` text NOT NULL
+  )`,
   `CREATE TABLE IF NOT EXISTS \`error_log\` (
     \`id\` text PRIMARY KEY NOT NULL,
     \`display_id\` text NOT NULL,
@@ -96,6 +139,35 @@ const MIGRATION_STATEMENTS = [
     \`prefix\` text PRIMARY KEY NOT NULL,
     \`counter\` integer NOT NULL DEFAULT 0
   )`,
+  `CREATE TABLE IF NOT EXISTS \`opportunity_human_roles_config\` (
+    \`id\` text PRIMARY KEY NOT NULL,
+    \`name\` text NOT NULL UNIQUE,
+    \`created_at\` text NOT NULL
+  )`,
+  `CREATE TABLE IF NOT EXISTS \`opportunity_stage_cadence_config\` (
+    \`id\` text PRIMARY KEY NOT NULL,
+    \`stage\` text NOT NULL UNIQUE,
+    \`cadence_hours\` integer NOT NULL,
+    \`display_text\` text NOT NULL,
+    \`created_at\` text NOT NULL,
+    \`updated_at\` text NOT NULL
+  )`,
+  `CREATE TABLE IF NOT EXISTS \`human_relationship_labels_config\` (
+    \`id\` text PRIMARY KEY NOT NULL,
+    \`name\` text NOT NULL UNIQUE,
+    \`created_at\` text NOT NULL
+  )`,
+  `CREATE TABLE IF NOT EXISTS \`referral_codes\` (
+    \`id\` text PRIMARY KEY NOT NULL,
+    \`display_id\` text NOT NULL UNIQUE,
+    \`code\` text NOT NULL UNIQUE,
+    \`description\` text,
+    \`is_active\` integer NOT NULL DEFAULT true,
+    \`human_id\` text,
+    \`account_id\` text,
+    \`created_at\` text NOT NULL,
+    \`updated_at\` text NOT NULL
+  )`,
 
   // ── Depend on humans + label configs ──────────────────────────────
   `CREATE TABLE IF NOT EXISTS \`emails\` (
@@ -126,6 +198,7 @@ const MIGRATION_STATEMENTS = [
     \`id\` text PRIMARY KEY NOT NULL,
     \`human_id\` text NOT NULL,
     \`website_booking_request_id\` text NOT NULL,
+    \`opportunity_id\` text REFERENCES \`opportunities\`(\`id\`),
     \`linked_at\` text NOT NULL,
     FOREIGN KEY (\`human_id\`) REFERENCES \`humans\`(\`id\`) ON UPDATE no action ON DELETE no action
   )`,
@@ -160,9 +233,10 @@ const MIGRATION_STATEMENTS = [
     \`display_id\` text NOT NULL UNIQUE,
     \`human_id\` text,
     \`type\` text NOT NULL DEFAULT 'dog',
-    \`name\` text NOT NULL,
+    \`name\` text,
     \`breed\` text,
     \`weight\` real,
+    \`notes\` text,
     \`is_active\` integer DEFAULT true NOT NULL,
     \`created_at\` text NOT NULL,
     \`updated_at\` text NOT NULL,
@@ -218,7 +292,7 @@ const MIGRATION_STATEMENTS = [
     \`created_at\` text NOT NULL
   )`,
 
-  // ── Depend on humans + colleagues + accounts + front_sync_runs ──
+  // ── Depend on humans + colleagues + accounts + front_sync_runs + opportunities + general_leads ──
   `CREATE TABLE IF NOT EXISTS \`activities\` (
     \`id\` text PRIMARY KEY NOT NULL,
     \`display_id\` text NOT NULL UNIQUE,
@@ -231,12 +305,14 @@ const MIGRATION_STATEMENTS = [
     \`account_id\` text REFERENCES \`accounts\`(\`id\`),
     \`route_signup_id\` text,
     \`website_booking_request_id\` text,
+    \`opportunity_id\` text REFERENCES \`opportunities\`(\`id\`),
+    \`general_lead_id\` text REFERENCES \`general_leads\`(\`id\`),
     \`gmail_id\` text,
     \`front_id\` text,
     \`front_conversation_id\` text,
+    \`front_contact_handle\` text,
     \`sync_run_id\` text REFERENCES \`front_sync_runs\`(\`id\`),
     \`colleague_id\` text REFERENCES \`colleagues\`(\`id\`),
-    \`created_by_user_id\` text REFERENCES \`colleagues\`(\`id\`),
     \`created_at\` text NOT NULL,
     \`updated_at\` text NOT NULL,
     FOREIGN KEY (\`human_id\`) REFERENCES \`humans\`(\`id\`) ON UPDATE no action ON DELETE no action
@@ -250,6 +326,29 @@ const MIGRATION_STATEMENTS = [
     \`geo_interest_id\` text NOT NULL REFERENCES \`geo_interests\`(\`id\`),
     \`activity_id\` text REFERENCES \`activities\`(\`id\`),
     \`notes\` text,
+    \`created_at\` text NOT NULL
+  )`,
+
+  // ── Depend on opportunities + humans + pets ───────────────────────
+  `CREATE TABLE IF NOT EXISTS \`opportunity_humans\` (
+    \`id\` text PRIMARY KEY NOT NULL,
+    \`opportunity_id\` text NOT NULL REFERENCES \`opportunities\`(\`id\`),
+    \`human_id\` text NOT NULL REFERENCES \`humans\`(\`id\`),
+    \`role_id\` text REFERENCES \`opportunity_human_roles_config\`(\`id\`),
+    \`created_at\` text NOT NULL
+  )`,
+  `CREATE TABLE IF NOT EXISTS \`opportunity_pets\` (
+    \`id\` text PRIMARY KEY NOT NULL,
+    \`opportunity_id\` text NOT NULL REFERENCES \`opportunities\`(\`id\`),
+    \`pet_id\` text NOT NULL REFERENCES \`pets\`(\`id\`),
+    \`created_at\` text NOT NULL
+  )`,
+  `CREATE TABLE IF NOT EXISTS \`human_relationships\` (
+    \`id\` text PRIMARY KEY NOT NULL,
+    \`display_id\` text NOT NULL UNIQUE,
+    \`human_id_1\` text NOT NULL REFERENCES \`humans\`(\`id\`),
+    \`human_id_2\` text NOT NULL REFERENCES \`humans\`(\`id\`),
+    \`label_id\` text REFERENCES \`human_relationship_labels_config\`(\`id\`),
     \`created_at\` text NOT NULL
   )`,
 
@@ -338,10 +437,21 @@ const MIGRATION_STATEMENTS = [
   `CREATE INDEX IF NOT EXISTS \`social_ids_account_id_idx\` ON \`social_ids\` (\`account_id\`)`,
   `CREATE UNIQUE INDEX IF NOT EXISTS \`error_log_display_id_idx\` ON \`error_log\` (\`display_id\`)`,
   `CREATE INDEX IF NOT EXISTS \`error_log_resolution_status_idx\` ON \`error_log\` (\`resolution_status\`)`,
+  `CREATE INDEX IF NOT EXISTS \`opportunity_humans_opportunity_id_idx\` ON \`opportunity_humans\` (\`opportunity_id\`)`,
+  `CREATE INDEX IF NOT EXISTS \`opportunity_humans_human_id_idx\` ON \`opportunity_humans\` (\`human_id\`)`,
+  `CREATE INDEX IF NOT EXISTS \`opportunity_pets_opportunity_id_idx\` ON \`opportunity_pets\` (\`opportunity_id\`)`,
+  `CREATE INDEX IF NOT EXISTS \`opportunity_pets_pet_id_idx\` ON \`opportunity_pets\` (\`pet_id\`)`,
+  `CREATE INDEX IF NOT EXISTS \`websites_human_id_idx\` ON \`websites\` (\`human_id\`)`,
+  `CREATE INDEX IF NOT EXISTS \`websites_account_id_idx\` ON \`websites\` (\`account_id\`)`,
+  `CREATE INDEX IF NOT EXISTS \`referral_codes_human_id_idx\` ON \`referral_codes\` (\`human_id\`)`,
+  `CREATE INDEX IF NOT EXISTS \`referral_codes_account_id_idx\` ON \`referral_codes\` (\`account_id\`)`,
 ];
 
 // Clean tables in FK-safe order (children first)
 const CLEANUP_TABLES = [
+  "opportunity_humans",
+  "opportunity_pets",
+  "human_relationships",
   "route_interest_expressions",
   "geo_interest_expressions",
   "social_ids",
@@ -358,6 +468,10 @@ const CLEANUP_TABLES = [
   "emails",
   "audit_log",
   "error_log",
+  "opportunities",
+  "general_leads",
+  "websites",
+  "referral_codes",
   "route_interests",
   "geo_interests",
   "social_id_platforms_config",
@@ -370,6 +484,9 @@ const CLEANUP_TABLES = [
   "email_labels_config",
   "phone_labels_config",
   "display_id_counters",
+  "opportunity_human_roles_config",
+  "opportunity_stage_cadence_config",
+  "human_relationship_labels_config",
   "accounts",
   "lead_sources",
   "humans",

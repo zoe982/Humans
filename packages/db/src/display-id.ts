@@ -89,6 +89,7 @@ export function parseDisplayId(displayId: string): {
   }
 
   const [prefix, letters, numberStr] = parts;
+  /* v8 ignore next 3 -- destructured slots are always defined after the length===3 guard above */
   if (prefix === undefined || letters === undefined || numberStr === undefined) {
     throw new Error(`Invalid display ID format: ${displayId}`);
   }

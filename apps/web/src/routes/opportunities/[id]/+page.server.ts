@@ -40,55 +40,40 @@ export const load = async ({ locals, cookies, params }: RequestEvent) => {
   const opportunity = isObjData(oppRaw) ? oppRaw.data : null;
   if (opportunity == null) redirect(302, "/opportunities");
 
+  // Helper: fetch + consume body immediately to release connection
+  // (Cloudflare Pages limits concurrent outbound connections to 6)
   const headers = { Cookie: `humans_session=${sessionToken ?? ""}` };
-  const [colleaguesRes, humansRes, roleConfigs, petsRes, flightSummaryRes, bookingRequestsRes, cadenceRes] = await Promise.all([
-    fetch(`${PUBLIC_API_URL}/api/colleagues`, { headers }),
-    fetch(`${PUBLIC_API_URL}/api/humans?limit=200`, { headers }),
+  async function fetchList(url: string): Promise<unknown[]> {
+    const res = await fetch(url, { headers });
+    if (!res.ok) return [];
+    const raw: unknown = await res.json();
+    return isListData(raw) ? raw.data : [];
+  }
+
+  async function fetchObj(url: string): Promise<Record<string, unknown> | null> {
+    const res = await fetch(url, { headers });
+    if (!res.ok) return null;
+    const raw: unknown = await res.json();
+    return isObjData(raw) ? raw.data : null;
+  }
+
+  // Split into two batches to stay within Cloudflare's 6-connection limit
+  const [colleagues, allHumans, roleConfigs, allPets, flightSummary] = await Promise.all([
+    fetchList(`${PUBLIC_API_URL}/api/colleagues`),
+    fetchList(`${PUBLIC_API_URL}/api/humans?limit=200`),
     fetchConfig(sessionToken ?? "", "opportunity-human-roles"),
-    fetch(`${PUBLIC_API_URL}/api/pets`, { headers }),
-    fetch(`${PUBLIC_API_URL}/api/flights/summary`, { headers }),
-    fetch(`${PUBLIC_API_URL}/api/opportunities/${id}/booking-requests`, { headers }),
-    fetch(`${PUBLIC_API_URL}/api/opportunity-cadence`, { headers }),
+    fetchList(`${PUBLIC_API_URL}/api/pets`),
+    fetchList(`${PUBLIC_API_URL}/api/flights/summary`),
   ]);
 
-  let colleagues: unknown[] = [];
-  if (colleaguesRes.ok) {
-    const raw: unknown = await colleaguesRes.json();
-    colleagues = isListData(raw) ? raw.data : [];
-  }
+  const [bookingRequestsRaw, cadenceConfigs] = await Promise.all([
+    fetchObj(`${PUBLIC_API_URL}/api/opportunities/${id}/booking-requests`),
+    fetchList(`${PUBLIC_API_URL}/api/opportunity-cadence`),
+  ]);
 
-  let allHumans: unknown[] = [];
-  if (humansRes.ok) {
-    const raw: unknown = await humansRes.json();
-    allHumans = isListData(raw) ? raw.data : [];
-  }
-
-  let allPets: unknown[] = [];
-  if (petsRes.ok) {
-    const raw: unknown = await petsRes.json();
-    allPets = isListData(raw) ? raw.data : [];
-  }
-
-  let flightSummary: unknown[] = [];
-  if (flightSummaryRes.ok) {
-    const raw: unknown = await flightSummaryRes.json();
-    flightSummary = isListData(raw) ? raw.data : [];
-  }
-
-  let bookingRequests: { linked: unknown[]; available: unknown[] } = { linked: [], available: [] };
-  if (bookingRequestsRes.ok) {
-    const raw: unknown = await bookingRequestsRes.json();
-    if (isObjData(raw) && raw.data) {
-      const d = raw.data as { linked?: unknown[]; available?: unknown[] };
-      bookingRequests = { linked: d.linked ?? [], available: d.available ?? [] };
-    }
-  }
-
-  let cadenceConfigs: unknown[] = [];
-  if (cadenceRes.ok) {
-    const raw: unknown = await cadenceRes.json();
-    cadenceConfigs = isListData(raw) ? raw.data : [];
-  }
+  const bookingRequests = bookingRequestsRaw
+    ? { linked: (bookingRequestsRaw as { linked?: unknown[]; available?: unknown[] }).linked ?? [], available: (bookingRequestsRaw as { linked?: unknown[]; available?: unknown[] }).available ?? [] }
+    : { linked: [] as unknown[], available: [] as unknown[] };
 
   return {
     opportunity,

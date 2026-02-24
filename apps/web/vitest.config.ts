@@ -92,6 +92,8 @@ export default defineConfig({
         "src/lib/utils/cn.ts",
         // Uses Svelte 5 $state runes — compiled by svelte plugin in .svelte.ts
         "src/lib/changeHistory.svelte.ts",
+        // Uses Svelte 5 $state() — istanbul wraps it, breaking the compiler
+        "src/lib/stores/theme.svelte.ts",
         // Pure data files — no executable logic
         "src/lib/constants/**",
       ],

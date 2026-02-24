@@ -18,6 +18,18 @@ import {
 import * as schema from "@humans/db/schema";
 import { eq } from "drizzle-orm";
 
+function mockSupabase() {
+  const chain: Record<string, unknown> = {};
+  chain["from"] = () => chain;
+  chain["select"] = () => chain;
+  chain["eq"] = () => Promise.resolve({ data: [], error: null });
+  chain["in"] = () => Promise.resolve({ data: [], error: null });
+  chain["delete"] = () => chain;
+  chain["update"] = () => chain;
+  chain["single"] = () => Promise.resolve({ data: null, error: null });
+  return chain as any;
+}
+
 function now() {
   return new Date().toISOString();
 }
@@ -108,7 +120,7 @@ describe("listAccounts", () => {
 describe("getAccountDetail", () => {
   it("throws notFound for missing account", async () => {
     const db = getTestDb();
-    await expect(getAccountDetail(db, "nonexistent")).rejects.toThrowError("Account not found");
+    await expect(getAccountDetail(mockSupabase(), db, "nonexistent")).rejects.toThrowError("Account not found");
   });
 
   it("returns account with full detail", async () => {
@@ -171,7 +183,7 @@ describe("getAccountDetail", () => {
       humanId: "h-1", colleagueId: "col-1", createdAt: ts, updatedAt: ts,
     });
 
-    const result = await getAccountDetail(db, "acc-1");
+    const result = await getAccountDetail(mockSupabase(), db, "acc-1");
 
     expect(result.name).toBe("Acme Corp");
     expect(result.types).toHaveLength(1);
@@ -219,7 +231,7 @@ describe("getAccountDetail", () => {
       createdAt: ts,
     });
 
-    const result = await getAccountDetail(db, "acc-2");
+    const result = await getAccountDetail(mockSupabase(), db, "acc-2");
     expect(result.socialIds).toHaveLength(2);
 
     const withPlatform = result.socialIds.find((s: { id: string }) => s.id === "soc-1");
@@ -369,7 +381,7 @@ describe("updateAccountStatus", () => {
 describe("deleteAccount", () => {
   it("throws notFound for missing account", async () => {
     const db = getTestDb();
-    await expect(deleteAccount(db, "nonexistent")).rejects.toThrowError("Account not found");
+    await expect(deleteAccount(mockSupabase(), db, "nonexistent")).rejects.toThrowError("Account not found");
   });
 
   it("deletes account and all related records", async () => {
@@ -395,7 +407,7 @@ describe("deleteAccount", () => {
       id: "ap-1", displayId: nextDisplayId("FON"), ownerType: "account", ownerId: "acc-1", phoneNumber: "+1234567890", hasWhatsapp: false, isPrimary: true, createdAt: ts,
     });
 
-    await deleteAccount(db, "acc-1");
+    await deleteAccount(mockSupabase(), db, "acc-1");
 
     expect(await db.select().from(schema.accounts)).toHaveLength(0);
     expect(await db.select().from(schema.accountTypes)).toHaveLength(0);

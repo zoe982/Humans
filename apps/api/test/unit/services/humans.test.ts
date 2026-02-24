@@ -14,6 +14,18 @@ import { AppError } from "../../../src/lib/errors";
 import * as schema from "@humans/db/schema";
 import { eq } from "drizzle-orm";
 
+function mockSupabase() {
+  const chain: Record<string, unknown> = {};
+  chain["from"] = () => chain;
+  chain["select"] = () => chain;
+  chain["eq"] = () => Promise.resolve({ data: [], error: null });
+  chain["in"] = () => Promise.resolve({ data: [], error: null });
+  chain["delete"] = () => chain;
+  chain["update"] = () => chain;
+  chain["single"] = () => Promise.resolve({ data: null, error: null });
+  return chain as any;
+}
+
 function now() {
   return new Date().toISOString();
 }
@@ -104,7 +116,7 @@ describe("listHumans", () => {
 describe("getHumanDetail", () => {
   it("throws notFound for missing human", async () => {
     const db = getTestDb();
-    await expect(getHumanDetail(db, "nonexistent")).rejects.toThrowError("Human not found");
+    await expect(getHumanDetail(mockSupabase(), db, "nonexistent")).rejects.toThrowError("Human not found");
   });
 
   it("returns human with all related data", async () => {
@@ -122,7 +134,7 @@ describe("getHumanDetail", () => {
       id: "p-1", displayId: nextDisplayId("FON"), ownerType: "human", ownerId: "h-1", phoneNumber: "+1234567890", hasWhatsapp: false, isPrimary: true, createdAt: ts,
     });
 
-    const result = await getHumanDetail(db, "h-1");
+    const result = await getHumanDetail(mockSupabase(), db, "h-1");
     expect(result.firstName).toBe("Jane");
     expect(result.emails).toHaveLength(1);
     expect(result.types).toContain("flight_broker");
@@ -150,7 +162,7 @@ describe("getHumanDetail", () => {
       id: "expr-1", displayId: nextDisplayId("GEX"), humanId: "h-1", geoInterestId: "gi-1", activityId: "act-1", createdAt: ts,
     });
 
-    const result = await getHumanDetail(db, "h-1");
+    const result = await getHumanDetail(mockSupabase(), db, "h-1");
     expect(result.geoInterestExpressions).toHaveLength(1);
     expect(result.geoInterestExpressions[0]!.city).toBe("Paris");
     expect(result.geoInterestExpressions[0]!.country).toBe("France");
@@ -174,7 +186,7 @@ describe("getHumanDetail", () => {
       frequency: "one_time", createdAt: ts,
     });
 
-    const result = await getHumanDetail(db, "h-1");
+    const result = await getHumanDetail(mockSupabase(), db, "h-1");
     expect(result.routeInterestExpressions).toHaveLength(1);
     expect(result.routeInterestExpressions[0]!.originCity).toBe("NYC");
     expect(result.routeInterestExpressions[0]!.destinationCity).toBe("London");
@@ -194,7 +206,7 @@ describe("getHumanDetail", () => {
       createdAt: ts,
     });
 
-    const result = await getHumanDetail(db, "h-1");
+    const result = await getHumanDetail(mockSupabase(), db, "h-1");
     expect(result.socialIds).toHaveLength(1);
     expect(result.socialIds[0]!.handle).toBe("@humantest");
     expect(result.socialIds[0]!.platformName).toBe("Instagram");
@@ -215,7 +227,7 @@ describe("getHumanDetail", () => {
       id: "ah-1", accountId: "acc-1", humanId: "h-1", labelId: "lbl-1", createdAt: ts,
     });
 
-    const result = await getHumanDetail(db, "h-1");
+    const result = await getHumanDetail(mockSupabase(), db, "h-1");
     expect(result.linkedAccounts).toHaveLength(1);
     expect(result.linkedAccounts[0]!.accountName).toBe("Acme Corp");
     expect(result.linkedAccounts[0]!.labelName).toBe("Primary Contact");
@@ -463,7 +475,7 @@ describe("updateHumanStatus", () => {
 describe("deleteHuman", () => {
   it("throws notFound for missing human", async () => {
     const db = getTestDb();
-    await expect(deleteHuman(db, "nonexistent")).rejects.toThrowError("Human not found");
+    await expect(deleteHuman(mockSupabase(), db, "nonexistent")).rejects.toThrowError("Human not found");
   });
 
   it("deletes human and all related records", async () => {
@@ -481,7 +493,7 @@ describe("deleteHuman", () => {
       id: "p-1", displayId: nextDisplayId("FON"), ownerType: "human", ownerId: "h-1", phoneNumber: "+1234567890", hasWhatsapp: false, isPrimary: true, createdAt: ts,
     });
 
-    await deleteHuman(db, "h-1");
+    await deleteHuman(mockSupabase(), db, "h-1");
 
     expect(await db.select().from(schema.humans)).toHaveLength(0);
     expect(await db.select().from(schema.emails)).toHaveLength(0);

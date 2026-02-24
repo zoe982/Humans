@@ -32,45 +32,29 @@ export const load = async ({ locals, cookies, params }: RequestEvent) => {
   const account = isObjData(accountRaw) ? accountRaw.data : null;
   if (account == null) redirect(302, "/accounts");
 
-  // Fetch config lists for dropdowns + humans list for linking
-  const [typesRes, humanLabelsRes, emailLabelsRes, phoneLabelsRes, humansRes, socialIdPlatformsRes, discountCodesRes] = await Promise.all([
-    fetch(`${PUBLIC_API_URL}/api/admin/account-config/account-types`, {
-      headers: { Cookie: `humans_session=${sessionToken}` },
-    }),
-    fetch(`${PUBLIC_API_URL}/api/admin/account-config/account-human-labels`, {
-      headers: { Cookie: `humans_session=${sessionToken}` },
-    }),
-    fetch(`${PUBLIC_API_URL}/api/admin/account-config/account-email-labels`, {
-      headers: { Cookie: `humans_session=${sessionToken}` },
-    }),
-    fetch(`${PUBLIC_API_URL}/api/admin/account-config/account-phone-labels`, {
-      headers: { Cookie: `humans_session=${sessionToken}` },
-    }),
-    fetch(`${PUBLIC_API_URL}/api/humans`, {
-      headers: { Cookie: `humans_session=${sessionToken}` },
-    }),
-    fetch(`${PUBLIC_API_URL}/api/admin/account-config/social-id-platforms`, {
-      headers: { Cookie: `humans_session=${sessionToken}` },
-    }),
-    fetch(`${PUBLIC_API_URL}/api/discount-codes`, {
-      headers: { Cookie: `humans_session=${sessionToken}` },
-    }),
-  ]);
-
-  const parseList = async (res: Response) => {
+  // Helper: fetch + consume body immediately to release connection
+  // (Cloudflare Pages limits concurrent outbound connections to 6)
+  const headers = { Cookie: `humans_session=${sessionToken}` };
+  async function fetchList(url: string): Promise<unknown[]> {
+    const res = await fetch(url, { headers });
     if (!res.ok) return [];
     const raw: unknown = await res.json();
     return isListData(raw) ? raw.data : [];
-  };
+  }
 
-  const [typeConfigs, humanLabelConfigs, emailLabelConfigs, phoneLabelConfigs, allHumans, socialIdPlatformConfigs, allDiscountCodes] = await Promise.all([
-    parseList(typesRes),
-    parseList(humanLabelsRes),
-    parseList(emailLabelsRes),
-    parseList(phoneLabelsRes),
-    parseList(humansRes),
-    parseList(socialIdPlatformsRes),
-    parseList(discountCodesRes),
+  // Fetch config lists for dropdowns + humans list for linking
+  // Split into two batches to stay within Cloudflare's 6-connection limit
+  const [typeConfigs, humanLabelConfigs, emailLabelConfigs, phoneLabelConfigs, allHumans] = await Promise.all([
+    fetchList(`${PUBLIC_API_URL}/api/admin/account-config/account-types`),
+    fetchList(`${PUBLIC_API_URL}/api/admin/account-config/account-human-labels`),
+    fetchList(`${PUBLIC_API_URL}/api/admin/account-config/account-email-labels`),
+    fetchList(`${PUBLIC_API_URL}/api/admin/account-config/account-phone-labels`),
+    fetchList(`${PUBLIC_API_URL}/api/humans`),
+  ]);
+
+  const [socialIdPlatformConfigs, allDiscountCodes] = await Promise.all([
+    fetchList(`${PUBLIC_API_URL}/api/admin/account-config/social-id-platforms`),
+    fetchList(`${PUBLIC_API_URL}/api/discount-codes`),
   ]);
 
   return {
