@@ -140,9 +140,11 @@ Every feature branch and every deploy MUST pass the full quality gate. Run `pnpm
 - **Semgrep**: 8 registry rulesets covering OWASP Top 10, XSS, SQL injection, secrets detection, insecure transport, and general security audit
 - Both tools block on findings (`--error --strict` for Semgrep, all security rules as `"error"` for ESLint)
 
-## Testing Commands
+## Testing Commands — MAIN BASH CONTEXT ONLY
 
 **ALWAYS run tests via Bash in the main context. NEVER delegate test runs to subagents.** Subagents lack the shell environment and their output wastes context transferring results back. All commands use absolute paths and pipe through `tail` to prevent context flooding.
+
+Subagents (Task tool) must NEVER execute test commands. The `block-subagent-tests.sh` hook enforces this automatically. Agents without Bash access (test-engineer, test-runner) cannot run tests at all. Agents with Bash access (frontend-engineer, backend-engineer, cook, database-engineer, ive) have explicit "NEVER RUN TESTS" directives.
 
 ### Package Paths
 | Package | Path |

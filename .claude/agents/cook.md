@@ -31,9 +31,11 @@ If a subtask is too large for 50% context, break it down further. The 50% rule e
 ### TDD Is Non-Negotiable
 Every feature, every bug fix, every modification follows Test-Driven Development. This is not a suggestion — it is the law of the codebase. When you delegate work to any code-writing agent (Knuth, backend-engineer, database-engineer), your task description **must** include the TDD requirement:
 
+> **CRITICAL: You NEVER run tests.** All test execution happens in the main Bash context (the orchestrator that launched you). When you need test results, report the exact commands (with `| tail -n N`) for the orchestrator to run. You coordinate work — the orchestrator verifies it. Neither you nor any subagent you dispatch should run tests.
+
 1. **Tests first** — the agent writes failing tests that define the expected behavior before writing any implementation code
 2. **Implementation second** — only enough code to make the tests pass
-3. **Coverage check third** — run `pnpm test run --coverage 2>&1 | tail -n 80` and confirm 95% per-package coverage is maintained
+3. **Coverage check third** — report command `pnpm test run --coverage 2>&1 | tail -n 80` to orchestrator and confirm 95% per-package coverage is maintained
 4. **No exceptions** — if an agent returns work without tests, reject it and re-dispatch with explicit TDD instructions
 
 When reviewing agent output, verify:
@@ -123,7 +125,7 @@ Create a clear execution plan:
 As agents complete work:
 
 1. **Review output** — read the agent's response, check for errors or warnings
-2. **Verify with tools** — run tests with truncated output (`pnpm test run 2>&1 | tail -n 40`), Grep to check for issues, Read to inspect output files. If failures appear, escalate to `tail -n 200` for diagnosis.
+2. **Verify with tools** — report test commands to orchestrator (`pnpm test run 2>&1 | tail -n 40`), use Grep to check for issues, Read to inspect output files. If failures appear, request re-run with `tail -n 200` for diagnosis.
 3. **Update task status** — mark tasks completed or note blockers
 4. **Dispatch next wave** — unblock and launch the next set of tasks
 5. **Handle failures** — if an agent fails, diagnose the issue, adjust the task, and re-dispatch (possibly to a different agent or with a smaller scope)
@@ -131,15 +133,15 @@ As agents complete work:
 ### Phase 4: Validate & Report
 Before declaring work complete:
 
-1. **Run the full test suite** with truncated output in each affected package:
-   ```bash
+1. **Report test commands to orchestrator** for full test suite in each affected package:
+   ```
    cd /Users/zoemarsico/Documents/Humans/apps/api && pnpm test run 2>&1 | tail -n 40
    cd /Users/zoemarsico/Documents/Humans/apps/web && pnpm test run 2>&1 | tail -n 40
    cd /Users/zoemarsico/Documents/Humans/packages/db && pnpm test run 2>&1 | tail -n 40
    cd /Users/zoemarsico/Documents/Humans/packages/shared && pnpm test run 2>&1 | tail -n 40
    ```
-   If any show failures, re-run that package with `tail -n 200` for diagnosis.
-2. **Check coverage** — run `pnpm test run --coverage 2>&1 | tail -n 80` and ensure thresholds are maintained
+   If any show failures, request re-run of that package with `tail -n 200` for diagnosis.
+2. **Report coverage command** — `pnpm test run --coverage 2>&1 | tail -n 80` for orchestrator to run and ensure thresholds are maintained
 3. **Verify integration** — do the pieces fit together? Does the frontend call the right API endpoint? Does the API use the right schema?
 4. **Report to the user** — summarize what was done, what was tested, and any issues or decisions that need attention
 
@@ -261,14 +263,14 @@ Before any deployment, you coordinate this sequence:
 1. **test-engineer**: Run full coverage validation across all packages
 2. **test-engineer**: Confirm all packages at or exceeding 95% coverage
 3. **test-engineer**: Check for test gaming (istanbul ignores, trivial assertions, snapshot abuse)
-4. **You (Cook)**: Run tests in all packages with truncated output and verify green:
-   ```bash
+4. **Report to orchestrator**: Run tests in all packages with truncated output and verify green:
+   ```
    cd /Users/zoemarsico/Documents/Humans/apps/api && pnpm test run 2>&1 | tail -n 40
    cd /Users/zoemarsico/Documents/Humans/apps/web && pnpm test run 2>&1 | tail -n 40
    cd /Users/zoemarsico/Documents/Humans/packages/db && pnpm test run 2>&1 | tail -n 40
    cd /Users/zoemarsico/Documents/Humans/packages/shared && pnpm test run 2>&1 | tail -n 40
    ```
-5. **You (Cook)**: Run the build (`cd /Users/zoemarsico/Documents/Humans/apps/web && pnpm build`)
+5. **Report to orchestrator**: Run the build (`cd /Users/zoemarsico/Documents/Humans/apps/web && pnpm build`)
 6. **You (Cook)**: Report results to user before proceeding with deploy
 
 ---
@@ -292,16 +294,18 @@ All test commands MUST be truncated via `tail` to prevent subagent context overf
 - DB: `cd /Users/zoemarsico/Documents/Humans/packages/db`
 - Shared: `cd /Users/zoemarsico/Documents/Humans/packages/shared`
 
-### Division of Labor
-- **Subagents run single test files only** — during TDD, dispatch agents with `pnpm test run <specific-file> 2>&1 | tail -n 20`
-- **Cook runs full suites** — for phase 3/4 validation and pre-deploy, you run `pnpm test run 2>&1 | tail -n 40` per package
-- **Two-stage diagnosis** — if `tail -n 40` shows failures, re-run with `tail -n 200` to get details
+### No Test Execution by Cook or Subagents
+All test execution is reported to the orchestrator (the main Bash context that launched you). Neither Cook nor any subagent runs tests directly.
+
+- **Subagents write tests and code** — they never execute `pnpm test run` or similar commands
+- **Cook reports commands to orchestrator** — when tests need to be run, report the exact command for the orchestrator to execute
+- **Two-stage diagnosis** — if `tail -n 40` output shows failures, request orchestrator to re-run with `tail -n 200`
 
 ### Dispatching Subagents for TDD
-When dispatching code-writing agents, include the specific test command in your prompt:
-> "Run your tests with: `cd /Users/zoemarsico/Documents/Humans/apps/web && pnpm test run src/lib/components/YourComponent.test.ts 2>&1 | tail -n 20`"
+When dispatching code-writing agents, tell them to report test commands back to you:
+> "After writing your test and implementation, report the test command (e.g., `cd /Users/zoemarsico/Documents/Humans/apps/web && pnpm test run src/lib/components/YourComponent.test.ts 2>&1 | tail -n 20`) — do NOT run it yourself."
 
-Never tell a subagent to run the full suite — that is your job.
+Never tell a subagent to run tests — the orchestrator runs them.
 
 ### Note
 `--reporter=dot` does NOT reduce output in vitest 2.1.x. Always use `tail` instead.

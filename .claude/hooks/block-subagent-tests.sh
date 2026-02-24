@@ -34,13 +34,16 @@ PROMPT=$(echo "$INPUT" | jq -r '.tool_input.prompt // ""')
 # Pattern 1: "run tests", "run the test suite", "execute specs"
 RUN_PATTERN='(run|execute).*(test|spec|suite)'
 # Pattern 2: literal test commands
-CMD_PATTERN='pnpm test|npm test|npx vitest|vitest run'
+CMD_PATTERN='pnpm test|pnpm turbo test|npm test|npx vitest|vitest run|yarn test'
 # Pattern 3: "verify tests pass", "ensure tests are green", "make sure tests work"
 VERIFY_PATTERN='(verify|ensure|check|confirm|make sure).*(test|spec).*(pass|green|work|succeed)'
+# Pattern 4: coverage commands — "run coverage", "execute coverage", "check coverage"
+COVERAGE_PATTERN='(run|execute|check).*(coverage)'
 
 if echo "$PROMPT" | grep -iqE "$RUN_PATTERN" || \
    echo "$PROMPT" | grep -iqE "$CMD_PATTERN" || \
-   echo "$PROMPT" | grep -iqE "$VERIFY_PATTERN"; then
+   echo "$PROMPT" | grep -iqE "$VERIFY_PATTERN" || \
+   echo "$PROMPT" | grep -iqE "$COVERAGE_PATTERN"; then
   jq -n '{
     hookSpecificOutput: {
       hookEventName: "PreToolUse",
