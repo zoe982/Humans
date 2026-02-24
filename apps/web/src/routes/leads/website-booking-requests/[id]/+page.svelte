@@ -124,7 +124,7 @@
     backLabel="Booking Requests"
     title="{booking.crm_display_id ? booking.crm_display_id + ' — ' : ''}{displayName(booking)}"
     status={booking.status ?? undefined}
-    statusOptions={["confirmed", "closed_cancelled"]}
+    statusOptions={["confirmed", "closed_cancelled", "closed_no_response", "closed_converted"]}
     statusLabels={bookingRequestStatusLabels}
     statusColorMap={bookingRequestStatusColors}
     statusFormAction="?/updateStatus"

@@ -246,21 +246,21 @@ describe("website-booking-requests/[id] actions.convertToHuman", () => {
 
   it("returns success on valid convert", async () => {
     const mockFetch = createMockFetch({
-      "/api/humans/h1/convert-from-signup": { body: { data: {} } },
+      "/api/humans/h1/convert-from-booking-request": { body: { data: {} } },
     });
     vi.stubGlobal("fetch", mockFetch);
     const event = makeEvent({ formData: { humanId: "h1" } });
     const result = await actions.convertToHuman(event as any);
     expect(result).toEqual({ success: true });
     expect(mockFetch).toHaveBeenCalledWith(
-      expect.stringContaining("/api/humans/h1/convert-from-signup"),
+      expect.stringContaining("/api/humans/h1/convert-from-booking-request"),
       expect.objectContaining({ method: "POST" }),
     );
   });
 
   it("returns action failure when API returns error", async () => {
     const mockFetch = createMockFetch({
-      "/api/humans/h1/convert-from-signup": { status: 404, body: { error: "Human not found" } },
+      "/api/humans/h1/convert-from-booking-request": { status: 404, body: { error: "Human not found" } },
     });
     vi.stubGlobal("fetch", mockFetch);
     const event = makeEvent({ formData: { humanId: "h1" } });
@@ -271,9 +271,9 @@ describe("website-booking-requests/[id] actions.convertToHuman", () => {
     }
   });
 
-  it("passes booking id as routeSignupId in body", async () => {
+  it("passes booking id as websiteBookingRequestId in body", async () => {
     const mockFetch = createMockFetch({
-      "/api/humans/h1/convert-from-signup": { body: { data: {} } },
+      "/api/humans/h1/convert-from-booking-request": { body: { data: {} } },
     });
     vi.stubGlobal("fetch", mockFetch);
     const event = makeEvent({ formData: { humanId: "h1" } });
@@ -284,6 +284,6 @@ describe("website-booking-requests/[id] actions.convertToHuman", () => {
     const body = JSON.parse((postCall as unknown[])[1]
       ? ((postCall as unknown[])[1] as RequestInit).body as string
       : "{}");
-    expect(body.routeSignupId).toBe("b1");
+    expect(body.websiteBookingRequestId).toBe("b1");
   });
 });

@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { eq } from "drizzle-orm";
 import { activities } from "@humans/db/schema";
-import { createHumanSchema, updateHumanSchema, updateHumanStatusSchema, linkRouteSignupSchema, linkWebsiteBookingRequestSchema, createHumanRelationshipSchema } from "@humans/shared";
+import { createHumanSchema, updateHumanSchema, updateHumanStatusSchema, linkRouteSignupSchema, linkWebsiteBookingRequestSchema, createHumanRelationshipSchema, updateHumanRelationshipSchema } from "@humans/shared";
 import { ERROR_CODES } from "@humans/shared";
 import { authMiddleware } from "../middleware/auth";
 import { requirePermission } from "../middleware/rbac";
@@ -20,6 +20,7 @@ import {
   unlinkWebsiteBookingRequest,
   getHumanRelationships,
   createHumanRelationship,
+  updateHumanRelationship,
   deleteHumanRelationship,
 } from "../services/humans";
 import type { AppContext } from "../types";
@@ -113,6 +114,13 @@ humanRoutes.post("/api/humans/:id/relationships", requirePermission("manageHuman
   return c.json({ data: result }, 201);
 });
 
+humanRoutes.patch("/api/humans/:id/relationships/:relationshipId", requirePermission("manageHumans"), async (c) => {
+  const body: unknown = await c.req.json();
+  const data = updateHumanRelationshipSchema.parse(body);
+  const result = await updateHumanRelationship(c.get("db"), c.req.param("relationshipId"), data);
+  return c.json({ data: result });
+});
+
 humanRoutes.delete("/api/humans/:id/relationships/:relationshipId", requirePermission("manageHumans"), async (c) => {
   await deleteHumanRelationship(c.get("db"), c.req.param("relationshipId"));
   return c.json({ success: true });
@@ -144,6 +152,37 @@ humanRoutes.post(
       .update(activities)
       .set({ humanId, updatedAt: new Date().toISOString() })
       .where(eq(activities.routeSignupId, data.routeSignupId));
+
+    return c.json({ data: { link, status: "closed_converted" } });
+  },
+);
+
+// Convert from booking request: link booking, update Supabase status, re-parent activities
+humanRoutes.post(
+  "/api/humans/:id/convert-from-booking-request",
+  requirePermission("manageHumans"),
+  async (c) => {
+    const body: unknown = await c.req.json();
+    const data = linkWebsiteBookingRequestSchema.parse(body);
+    const db = c.get("db");
+    const supabase = c.get("supabase");
+    const humanId = c.req.param("id");
+
+    const link = await linkWebsiteBookingRequest(db, humanId, data.websiteBookingRequestId);
+
+    const { error: supaError } = await supabase
+      .from("bookings")
+      .update({ status: "closed_converted" })
+      .eq("id", data.websiteBookingRequestId);
+
+    if (supaError !== null) {
+      throw internal(ERROR_CODES.SUPABASE_ERROR, `Supabase update failed: ${supaError.message}`);
+    }
+
+    await db
+      .update(activities)
+      .set({ humanId, updatedAt: new Date().toISOString() })
+      .where(eq(activities.websiteBookingRequestId, data.websiteBookingRequestId));
 
     return c.json({ data: { link, status: "closed_converted" } });
   },

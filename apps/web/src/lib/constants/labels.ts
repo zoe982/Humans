@@ -44,6 +44,8 @@ export const signupStatusLabels: Record<string, string> = {
 export const bookingRequestStatusLabels: Record<string, string> = {
   confirmed: "Confirmed",
   closed_cancelled: "Cancelled",
+  closed_no_response: "No Response",
+  closed_converted: "Converted",
 };
 
 /** Deposit status display labels */

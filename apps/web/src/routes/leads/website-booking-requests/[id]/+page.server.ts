@@ -129,13 +129,13 @@ export const actions = {
     const sessionToken = cookies.get("humans_session");
     const humanId = form.get("humanId") as string;
 
-    const res = await fetch(`${PUBLIC_API_URL}/api/humans/${humanId}/convert-from-signup`, {
+    const res = await fetch(`${PUBLIC_API_URL}/api/humans/${humanId}/convert-from-booking-request`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Cookie: `humans_session=${sessionToken ?? ""}`,
       },
-      body: JSON.stringify({ routeSignupId: params.id }),
+      body: JSON.stringify({ websiteBookingRequestId: params.id }),
     });
 
     if (!res.ok) {

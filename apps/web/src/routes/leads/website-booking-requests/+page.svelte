@@ -66,6 +66,8 @@
           <StatusBadge status={bookingRequestStatusLabels[booking.status ?? ""] ?? booking.status ?? "—"} colorMap={{
             "Confirmed": "badge-green",
             "Cancelled": "badge-red",
+            "No Response": "badge-yellow",
+            "Converted": "badge-green",
           }} />
         </div>
         {#if booking.client_email}
@@ -145,6 +147,8 @@
               <StatusBadge status={bookingRequestStatusLabels[booking.status ?? ""] ?? booking.status ?? "—"} colorMap={{
                 "Confirmed": "badge-green",
                 "Cancelled": "badge-red",
+                "No Response": "badge-yellow",
+                "Converted": "badge-green",
               }} />
             </td>
             <td class="text-text-muted">{formatDatetime(booking.inserted_at)}</td>
