@@ -4,6 +4,7 @@ import security from "eslint-plugin-security";
 import vitest from "@vitest/eslint-plugin";
 import svelte from "eslint-plugin-svelte";
 import globals from "globals";
+import svelteConfig from "./apps/web/svelte.config.js";
 
 export default tseslint.config(
   eslint.configs.recommended,
@@ -114,9 +115,11 @@ export default tseslint.config(
     languageOptions: {
       globals: { ...globals.browser },
       parserOptions: {
+        parser: tseslint.parser,
         projectService: true,
         tsconfigRootDir: import.meta.dirname,
         extraFileExtensions: [".svelte"],
+        svelteConfig,
       },
     },
   },
