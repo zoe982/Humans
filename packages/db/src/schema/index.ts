@@ -73,3 +73,4 @@ export { opportunityStageCadenceConfig } from "./opportunity-stage-cadence-confi
 export { websites } from "./websites";
 export { humanRelationshipLabelsConfig } from "./human-relationship-labels-config";
 export { humanRelationships } from "./human-relationships";
+export { activityOpportunities } from "./activity-opportunities";

@@ -60,5 +60,10 @@ export const updateActivitySchema = z.object({
   ownerId: z.string().nullish(),
 });
 
+export const linkActivityOpportunitySchema = z.object({
+  opportunityId: z.string().min(1),
+});
+
 export type CreateActivityInput = z.infer<typeof createActivitySchema>;
 export type UpdateActivityInput = z.infer<typeof updateActivitySchema>;
+export type LinkActivityOpportunityInput = z.infer<typeof linkActivityOpportunitySchema>;

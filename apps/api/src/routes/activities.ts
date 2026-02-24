@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { sql, gte } from "drizzle-orm";
 import { activities } from "@humans/db/schema";
-import { createActivitySchema, updateActivitySchema } from "@humans/shared";
+import { createActivitySchema, updateActivitySchema, linkActivityOpportunitySchema } from "@humans/shared";
 import { authMiddleware } from "../middleware/auth";
 import { requirePermission } from "../middleware/rbac";
 import {
@@ -10,6 +10,8 @@ import {
   createActivity,
   updateActivity,
   deleteActivity,
+  linkActivityOpportunity,
+  unlinkActivityOpportunity,
 } from "../services/activities";
 import type { AppContext } from "../types";
 
@@ -105,6 +107,20 @@ activityRoutes.patch("/api/activities/:id", requirePermission("createEditRecords
 // Delete activity
 activityRoutes.delete("/api/activities/:id", requirePermission("createEditRecords"), async (c) => {
   await deleteActivity(c.get("db"), c.req.param("id"));
+  return c.json({ success: true });
+});
+
+// Link opportunity to activity
+activityRoutes.post("/api/activities/:id/opportunities", requirePermission("createEditRecords"), async (c) => {
+  const body: unknown = await c.req.json();
+  const data = linkActivityOpportunitySchema.parse(body);
+  const link = await linkActivityOpportunity(c.get("db"), c.req.param("id"), data.opportunityId);
+  return c.json({ data: link }, 201);
+});
+
+// Unlink opportunity from activity
+activityRoutes.delete("/api/activities/:id/opportunities/:linkId", requirePermission("createEditRecords"), async (c) => {
+  await unlinkActivityOpportunity(c.get("db"), c.req.param("linkId"));
   return c.json({ success: true });
 });
 

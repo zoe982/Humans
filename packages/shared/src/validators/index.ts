@@ -54,9 +54,11 @@ export {
 export {
   createActivitySchema,
   updateActivitySchema,
+  linkActivityOpportunitySchema,
   activityTypes,
   type CreateActivityInput,
   type UpdateActivityInput,
+  type LinkActivityOpportunityInput,
 } from "./activities";
 
 export {

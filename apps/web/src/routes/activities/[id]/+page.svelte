@@ -6,11 +6,12 @@
   import AlertBanner from "$lib/components/AlertBanner.svelte";
   import GeoInterestPicker from "$lib/components/GeoInterestPicker.svelte";
   import SaveIndicator from "$lib/components/SaveIndicator.svelte";
-  import { Trash2 } from "lucide-svelte";
+  import { Trash2, Unlink } from "lucide-svelte";
   import { toast } from "svelte-sonner";
   import { createAutoSaver, type SaveStatus } from "$lib/autosave";
   import { onDestroy } from "svelte";
-  import { activityTypeLabels, ACTIVITY_TYPE_OPTIONS } from "$lib/constants/labels";
+  import { activityTypeLabels, ACTIVITY_TYPE_OPTIONS, opportunityStageLabels } from "$lib/constants/labels";
+  import { opportunityStageColors } from "$lib/constants/colors";
   import { displayName, formatRelativeTime, formatDateTime, summarizeChanges } from "$lib/utils/format";
   import SearchableSelect from "$lib/components/SearchableSelect.svelte";
   import { createChangeHistoryLoader } from "$lib/changeHistory";
@@ -46,9 +47,18 @@
     destinationCountry: string | null;
     createdAt: string;
   };
+  type LinkedOpportunity = {
+    id: string;
+    opportunityId: string;
+    displayId: string;
+    stage: string;
+    createdAt: string;
+  };
   type Human = { id: string; displayId: string; firstName: string; middleName: string | null; lastName: string };
   type Account = { id: string; displayId: string; name: string };
   type Colleague = { id: string; name: string; displayId: string };
+  type GeneralLead = { id: string; displayId: string; source: string; status: string; email: string | null; phone: string | null };
+  type Opportunity = { id: string; displayId: string; stage: string };
   type Activity = {
     id: string;
     displayId: string;
@@ -63,8 +73,11 @@
     accountName: string | null;
     routeSignupId: string | null;
     websiteBookingRequestId: string | null;
+    generalLeadId: string | null;
+    frontId: string | null;
     geoInterestExpressions: GeoInterestExpression[];
     routeInterestExpressions: RouteInterestExpression[];
+    linkedOpportunities: LinkedOpportunity[];
     ownerId: string | null;
     ownerName: string | null;
     ownerDisplayId: string | null;
@@ -81,7 +94,11 @@
   const routeSignups = $derived((data.routeSignups ?? []) as RouteSignup[]);
   const websiteBookingRequests = $derived((data.websiteBookingRequests ?? []) as WebsiteBookingRequest[]);
   const colleaguesList = $derived((data.colleagues ?? []) as Colleague[]);
+  const generalLeadsList = $derived((data.generalLeads ?? []) as GeneralLead[]);
+  const opportunitiesList = $derived((data.opportunitiesList ?? []) as Opportunity[]);
   const apiUrl = $derived(data.apiUrl as string);
+
+  const isFrontSynced = $derived(!!activity.frontId);
 
   const humanOptions = $derived(humans.map((h) => ({ value: h.id, label: `${h.displayId} ${displayName(h)}` })));
   const accountOptions = $derived(accountsList.map((a) => ({ value: a.id, label: `${a.displayId} ${a.name}` })));
@@ -94,6 +111,8 @@
     label: `${b.crm_display_id ?? b.id.slice(0, 8)} ${b.passenger_name ?? "Unknown"} (${b.origin ?? "?"} → ${b.destination ?? "?"})`.trim(),
   })));
   const colleagueOptions = $derived(colleaguesList.map((c) => ({ value: c.id, label: `${c.displayId} ${c.name}` })));
+  const generalLeadOptions = $derived(generalLeadsList.map((g) => ({ value: g.id, label: `${g.displayId} ${g.source} — ${g.email ?? g.phone ?? "No contact"}` })));
+  const opportunityOptions = $derived(opportunitiesList.map((o) => ({ value: o.id, label: `${o.displayId} (${opportunityStageLabels[o.stage] ?? o.stage})` })));
 
   // Auto-save state
   let type = $state("");
@@ -104,6 +123,7 @@
   let accountId = $state("");
   let routeSignupId = $state("");
   let websiteBookingRequestId = $state("");
+  let generalLeadId = $state("");
   let ownerId = $state("");
   let saveStatus = $state<SaveStatus>("idle");
   let initialized = $state(false);
@@ -130,6 +150,7 @@
     accountId = activity.accountId ?? "";
     routeSignupId = activity.routeSignupId ?? "";
     websiteBookingRequestId = activity.websiteBookingRequestId ?? "";
+    generalLeadId = activity.generalLeadId ?? "";
     ownerId = activity.ownerId ?? "";
     if (!initialized) initialized = true;
   });
@@ -158,6 +179,7 @@
       accountId: accountId || null,
       routeSignupId: routeSignupId || null,
       websiteBookingRequestId: websiteBookingRequestId || null,
+      generalLeadId: generalLeadId || null,
       ownerId: ownerId || null,
     };
   }
@@ -201,7 +223,7 @@
     <AlertBanner type="error" message={form.error} />
   {/if}
 
-  <!-- Details (auto-save) -->
+  <!-- Card 1: Details (Type, Owner, Activity Date) -->
   <div class="glass-card p-6 space-y-6">
     <div class="flex items-center gap-3">
       <h2 class="text-lg font-semibold text-text-primary">Details</h2>
@@ -243,30 +265,11 @@
         />
       </div>
     </div>
+  </div>
 
-    <div>
-      <label for="subject" class="block text-sm font-medium text-text-secondary">Subject</label>
-      <input
-        id="subject"
-        type="text"
-        bind:value={subject}
-        oninput={triggerSave}
-        class="glass-input mt-1 block w-full"
-        placeholder="Activity subject"
-      />
-    </div>
-
-    <div>
-      <label for="notes" class="block text-sm font-medium text-text-secondary">Notes</label>
-      <textarea
-        id="notes"
-        bind:value={notes}
-        oninput={triggerSave}
-        rows={4}
-        class="glass-input mt-1 block w-full"
-        placeholder="Optional notes..."
-      ></textarea>
-    </div>
+  <!-- Card 2: Relationships -->
+  <div class="mt-6 glass-card p-6 space-y-6">
+    <h2 class="text-lg font-semibold text-text-primary">Relationships</h2>
 
     <div class="grid gap-4 sm:grid-cols-2">
       <div>
@@ -327,6 +330,123 @@
         {/if}
       </div>
     </div>
+
+    <div class="grid gap-4 sm:grid-cols-2">
+      <div>
+        <label for="generalLeadId" class="block text-sm font-medium text-text-secondary">Linked General Lead</label>
+        <SearchableSelect
+          options={generalLeadOptions}
+          name="generalLeadId"
+          id="generalLeadId"
+          value={generalLeadId}
+          emptyOption="— None —"
+          placeholder="Search general leads..."
+          onSelect={(v) => { generalLeadId = v; triggerSaveImmediate(); }}
+        />
+        {#if generalLeadId}
+          <a href="/leads/general/{generalLeadId}" class="mt-1 inline-block text-sm text-accent hover:text-[var(--link-hover)]">View General Lead</a>
+        {/if}
+      </div>
+    </div>
+  </div>
+
+  <!-- Card 3: Subject & Notes -->
+  <div class="mt-6 glass-card p-6 space-y-6">
+    <div class="flex items-center gap-3">
+      <h2 class="text-lg font-semibold text-text-primary">Subject & Notes</h2>
+      {#if isFrontSynced}
+        <span class="glass-badge badge-blue">
+          Synced from Front
+        </span>
+      {/if}
+    </div>
+
+    <div>
+      <label for="subject" class="block text-sm font-medium text-text-secondary">Subject</label>
+      <input
+        id="subject"
+        type="text"
+        bind:value={subject}
+        oninput={() => { if (!isFrontSynced) triggerSave(); }}
+        disabled={isFrontSynced}
+        class="glass-input mt-1 block w-full {isFrontSynced ? 'opacity-50 cursor-not-allowed' : ''}"
+        placeholder="Activity subject"
+      />
+    </div>
+
+    <div>
+      <label for="notes" class="block text-sm font-medium text-text-secondary">Notes</label>
+      <textarea
+        id="notes"
+        bind:value={notes}
+        oninput={() => { if (!isFrontSynced) triggerSave(); }}
+        disabled={isFrontSynced}
+        rows={8}
+        class="glass-input mt-1 block w-full max-h-[32rem] overflow-y-auto {isFrontSynced ? 'opacity-50 cursor-not-allowed resize-none' : 'resize-y'}"
+        placeholder="Optional notes..."
+      ></textarea>
+    </div>
+  </div>
+
+  <!-- Card 4: Opportunities -->
+  <div class="mt-6">
+    <RelatedListTable
+      title="Opportunities"
+      items={activity.linkedOpportunities ?? []}
+      columns={[
+        { key: "displayId", label: "Display ID", sortable: true, sortValue: (e) => (e as unknown as LinkedOpportunity).displayId },
+        { key: "stage", label: "Stage", sortable: true, sortValue: (e) => (e as unknown as LinkedOpportunity).stage },
+        { key: "linked", label: "Linked", sortable: true, sortValue: (e) => (e as unknown as LinkedOpportunity).createdAt },
+        { key: "unlink", label: "", headerClass: "w-10" },
+      ]}
+      defaultSortKey="linked"
+      defaultSortDirection="desc"
+      searchFilter={(e, q) => {
+        const opp = e as unknown as LinkedOpportunity;
+        return opp.displayId.toLowerCase().includes(q) ||
+          (opportunityStageLabels[opp.stage] ?? opp.stage).toLowerCase().includes(q);
+      }}
+      emptyMessage="No linked opportunities yet."
+      searchEmptyMessage="No opportunities match your search."
+      addLabel="Opportunity"
+    >
+      {#snippet row(item, _searchQuery)}
+        {@const opp = item as unknown as LinkedOpportunity}
+        <td>
+          <a href="/opportunities/{opp.opportunityId}" class="text-sm font-medium text-accent hover:text-[var(--link-hover)]">
+            {opp.displayId}
+          </a>
+        </td>
+        <td>
+          <span class="glass-badge {opportunityStageColors[opp.stage] ?? 'bg-glass text-text-secondary'}">
+            {opportunityStageLabels[opp.stage] ?? opp.stage}
+          </span>
+        </td>
+        <td class="text-sm text-text-muted whitespace-nowrap">{formatRelativeTime(opp.createdAt)}</td>
+        <td>
+          <form method="POST" action="?/unlinkOpportunity">
+            <input type="hidden" name="linkId" value={opp.id} />
+            <button type="submit" class="flex items-center justify-center w-7 h-7 rounded-lg text-text-muted hover:text-destructive-foreground hover:bg-destructive transition-colors duration-150" aria-label="Unlink opportunity">
+              <Unlink size={14} />
+            </button>
+          </form>
+        </td>
+      {/snippet}
+      {#snippet addForm()}
+        <form method="POST" action="?/linkOpportunity" class="space-y-3">
+          <SearchableSelect
+            options={opportunityOptions}
+            name="opportunityId"
+            id="linkOpportunityId"
+            value=""
+            placeholder="Search opportunities..."
+          />
+          <Button type="submit" size="sm">
+            Link Opportunity
+          </Button>
+        </form>
+      {/snippet}
+    </RelatedListTable>
   </div>
 
   <!-- Geo-Interest Expressions -->
@@ -484,7 +604,7 @@
       {#snippet row(entry, _searchQuery)}
         <td class="text-sm font-medium text-text-primary">{entry.colleagueName ?? "System"}</td>
         <td>
-          <span class="glass-badge inline-flex rounded-full px-2 py-0.5 text-xs font-medium bg-glass text-text-secondary">
+          <span class="glass-badge bg-glass text-text-secondary">
             {entry.action}
           </span>
         </td>
