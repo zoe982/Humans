@@ -7,7 +7,14 @@ const clientErrorRoutes = new Hono<AppContext>();
 
 // POST /api/client-errors — accept client-side error reports (no auth required)
 clientErrorRoutes.post("/api/client-errors", async (c) => {
-  const body: unknown = await c.req.json().catch(() => null);
+  // Accept both application/json and text/plain (sendBeacon uses text/plain for CORS)
+  let body: unknown;
+  try {
+    const text = await c.req.text();
+    body = JSON.parse(text);
+  } catch {
+    body = null;
+  }
   if (body == null || typeof body !== "object") {
     return c.json({ error: "Invalid payload" }, 400);
   }

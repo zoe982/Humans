@@ -107,7 +107,7 @@
           try {
             navigator.sendBeacon(
               'https://api.humans.pavinfo.app/api/client-errors',
-              new Blob([JSON.stringify(payload)], { type: 'application/json' })
+              new Blob([JSON.stringify(payload)], { type: 'text/plain' })
             );
           } catch (_) {}
         }

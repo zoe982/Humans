@@ -176,7 +176,7 @@
             />
             {#if originCityResults.length > 0 && originCityValue.trim()}
               <div class="glass-popover absolute z-50 mt-1 w-full max-h-48 overflow-y-auto">
-                {#each originCityResults as city}
+                {#each originCityResults as city (city.city + city.country)}
                   <button
                     type="button"
                     class="block w-full px-3 py-2 text-left text-sm text-text-secondary hover:bg-glass-hover hover:text-text-primary transition-colors"
@@ -233,7 +233,7 @@
             />
             {#if destCityResults.length > 0 && destCityValue.trim()}
               <div class="glass-popover absolute z-50 mt-1 w-full max-h-48 overflow-y-auto">
-                {#each destCityResults as city}
+                {#each destCityResults as city (city.city + city.country)}
                   <button
                     type="button"
                     class="block w-full px-3 py-2 text-left text-sm text-text-secondary hover:bg-glass-hover hover:text-text-primary transition-colors"

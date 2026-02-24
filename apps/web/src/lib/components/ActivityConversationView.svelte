@@ -130,7 +130,6 @@
     senderName: string | null,
   ): boolean {
     if (index === 0) return true;
-    // eslint-disable-next-line security/detect-object-injection
     const prev = visibleActivities[index - 1];
     const prevParsed = parseActivityContent(prev);
     const prevDay = calendarDate(prev.activityDate);
@@ -154,7 +153,6 @@
   // Determine whether to show a day separator before a message.
   function shouldShowDaySeparator(index: number): boolean {
     if (index === 0) return true;
-    // eslint-disable-next-line security/detect-object-injection
     const prev = visibleActivities[index - 1];
     // eslint-disable-next-line security/detect-object-injection
     return calendarDate(prev.activityDate) !== calendarDate(visibleActivities[index].activityDate);
@@ -166,7 +164,6 @@
   function shouldShowConversationDivider(index: number): boolean {
     if (index === 0) return false;
     if (shouldShowDaySeparator(index)) return false;
-    // eslint-disable-next-line security/detect-object-injection
     const prev = visibleActivities[index - 1];
     // eslint-disable-next-line security/detect-object-injection
     const curr = visibleActivities[index];

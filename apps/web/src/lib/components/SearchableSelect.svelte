@@ -45,6 +45,7 @@
     return found ? found.label : v;
   }
 
+  // eslint-disable-next-line svelte/prefer-writable-derived
   let selectedValue = $state("");
   let searchValue = $state("");
   let open = $state(false);

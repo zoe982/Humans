@@ -132,6 +132,7 @@
       {#if headerAction}
         {@render headerAction()}
       {:else if newHref}
+        <!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
         <a href={newHref} class="btn-primary">{newLabel ?? `Add ${title}`}</a>
       {/if}
     {/snippet}
@@ -170,7 +171,7 @@
     <table class="min-w-full">
       <thead class="glass-thead">
         <tr>
-          {#each columns as col}
+          {#each columns as col (col.key)}
             <th scope="col" aria-sort={col.sortable ? ariaSort(col.key) : undefined}>
               {#if col.sortable}
                 <button type="button" class="cursor-pointer select-none" onclick={() => toggleSort(col.key)}>

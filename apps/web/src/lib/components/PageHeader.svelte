@@ -15,7 +15,7 @@
   {#if breadcrumbs.length > 0}
     <Breadcrumb.Root aria-label="Breadcrumb" class="mb-2">
       <Breadcrumb.List class="flex items-center gap-2 text-sm text-text-muted">
-        {#each breadcrumbs as crumb, i}
+        {#each breadcrumbs as crumb, i (i)}
           {#if i > 0}
             <Breadcrumb.Separator />
           {/if}

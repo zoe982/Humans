@@ -66,6 +66,7 @@
     } else if (e.key === "Enter") {
       e.preventDefault();
       if (highlightIndex >= 0 && highlightIndex < filteredCodes.length) {
+        // eslint-disable-next-line security/detect-object-injection
         selectCode(filteredCodes[highlightIndex]);
       }
     } else if (e.key === "Escape") {

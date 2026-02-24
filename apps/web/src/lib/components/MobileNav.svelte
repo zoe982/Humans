@@ -71,7 +71,8 @@
 
         <!-- Nav links -->
         <div class="flex-1 p-3 space-y-1">
-          {#each links as link}
+          {#each links as link (link.href)}
+            <!-- eslint-disable svelte/no-navigation-without-resolve -->
             <a
               href={link.href}
               onclick={close}
@@ -83,6 +84,7 @@
             >
               {link.label}
             </a>
+            <!-- eslint-enable svelte/no-navigation-without-resolve -->
           {/each}
         </div>
 

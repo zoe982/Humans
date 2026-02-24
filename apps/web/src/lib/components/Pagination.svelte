@@ -32,6 +32,7 @@
     </p>
     <div class="flex items-center gap-2">
       {#if hasPrev}
+        <!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
         <a href={pageUrl(page - 1)} class="{buttonVariants({ variant: 'ghost', size: 'sm' })} inline-flex items-center gap-1">
           <ChevronLeft size={14} /> Prev
         </a>
@@ -41,6 +42,7 @@
         </span>
       {/if}
       {#if hasNext}
+        <!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
         <a href={pageUrl(page + 1)} class="{buttonVariants({ variant: 'ghost', size: 'sm' })} inline-flex items-center gap-1">
           Next <ChevronRight size={14} />
         </a>

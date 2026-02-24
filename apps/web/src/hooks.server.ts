@@ -45,15 +45,35 @@ export const handle: Handle = async ({ event, resolve }) => {
     event.locals.user = null;
   }
 
-  return resolve(event);
+  const response = await resolve(event);
+  // Prevent browser from caching SSR pages (critical for CRM data freshness)
+  response.headers.set("Cache-Control", "no-store");
+  return response;
 };
 
-export const handleError: HandleServerError = ({ error }) => {
+export const handleError: HandleServerError = ({ error, event }) => {
   const err = error instanceof Error ? error : new Error(String(error));
   console.error("[server]", JSON.stringify({
     message: err.message,
     stack: err.stack,
   }));
+
+  // Report SSR errors to error log
+  try {
+    const payload = {
+      message: `SSR handleError: ${err.message}`,
+      url: event.url.pathname,
+      errors: [{ type: "ssr-crash", message: err.message, stack: err.stack ?? "" }],
+    };
+    // Use waitUntil-like pattern: don't await but don't lose the reference
+    fetch(`${API_BASE}/api/client-errors`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    }).catch(() => { /* noop */ });
+  } catch {
+    // Ignore diagnostic failures
+  }
 
   return {
     message: err.message !== "" ? err.message : "An unexpected error occurred",

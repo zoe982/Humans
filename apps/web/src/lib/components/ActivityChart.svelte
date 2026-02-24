@@ -31,7 +31,6 @@
   });
 
   const maxCumulative = $derived(
-    // eslint-disable-next-line security/detect-object-injection
     cumulativeData.length > 0 ? Math.max(cumulativeData[cumulativeData.length - 1]!.cumulative, 1) : 1,
   );
 

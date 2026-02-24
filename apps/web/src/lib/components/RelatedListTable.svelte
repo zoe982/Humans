@@ -132,7 +132,7 @@
       <table class="min-w-full">
         <thead class="glass-thead">
           <tr>
-            {#each columns as col}
+            {#each columns as col (col.key)}
               <th scope="col" class={col.headerClass ?? ""} aria-sort={col.sortable ? ariaSort(col.key) : undefined}>
                 {#if col.sortable}
                   <button type="button" class="cursor-pointer select-none" onclick={() => toggleSort(col.key)}>{col.label}<span aria-hidden="true">{sortArrow(col.key)}</span></button>

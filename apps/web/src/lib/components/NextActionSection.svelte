@@ -174,6 +174,7 @@
       </div>
       <div>
         <span class="block text-xs font-medium text-text-muted uppercase tracking-wide">Type</span>
+        <!-- eslint-disable-next-line security/detect-object-injection -->
         <p class="mt-1 text-sm text-text-primary">{activityTypeLabels[naType] ?? naType}</p>
       </div>
       <div>
@@ -226,10 +227,11 @@
         <input type="hidden" name="naType" value={naType} />
         <Select.Root type="single" value={naType} onValueChange={(v) => { if (v) { naType = v; triggerNaSave(); } }}>
           <Select.Trigger>
+            <!-- eslint-disable-next-line security/detect-object-injection -->
             {activityTypeLabels[naType] ?? "Select type..."}
           </Select.Trigger>
           <Select.Content>
-            {#each ACTIVITY_TYPE_OPTIONS as opt}
+            {#each ACTIVITY_TYPE_OPTIONS as opt (opt.value)}
               <Select.Item value={opt.value}>{opt.label}</Select.Item>
             {/each}
           </Select.Content>

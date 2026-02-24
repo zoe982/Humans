@@ -15,6 +15,7 @@
     const q = query.trim();
     if (!q || !text) return [{ text, highlight: false }];
     try {
+      // eslint-disable-next-line security/detect-non-literal-regexp
       const regex = new RegExp(`(${escapeRegex(q)})`, "gi");
       const segments = text.split(regex);
       const lowerQ = q.toLowerCase();
@@ -30,4 +31,4 @@
   });
 </script>
 
-{#if className}<span class={className}>{#each parts as part}{#if part.highlight}<mark class="search-highlight">{part.text}</mark>{:else}{part.text}{/if}{/each}</span>{:else}{#each parts as part}{#if part.highlight}<mark class="search-highlight">{part.text}</mark>{:else}{part.text}{/if}{/each}{/if}
+{#if className}<span class={className}>{#each parts as part, i (i)}{#if part.highlight}<mark class="search-highlight">{part.text}</mark>{:else}{part.text}{/if}{/each}</span>{:else}{#each parts as part, i (i)}{#if part.highlight}<mark class="search-highlight">{part.text}</mark>{:else}{part.text}{/if}{/each}{/if}

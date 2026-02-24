@@ -84,8 +84,9 @@ export function resolveAuthorName(
 
   // 1b. Teammate author: email → colleague name, or first_name + last_name
   if (message.author?.email != null && message.author.email !== "") {
+    const authorEmail = message.author.email;
     const colleague = colleagues.find(
-      (c) => c.email.toLowerCase() === message.author!.email!.toLowerCase(),
+      (c) => c.email.toLowerCase() === authorEmail.toLowerCase(),
     );
     if (colleague != null) return colleague.name;
     // Fall back to first_name + last_name from teammate object

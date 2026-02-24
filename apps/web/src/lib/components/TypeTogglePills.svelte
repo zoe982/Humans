@@ -20,10 +20,10 @@
     { value: "flight_broker", label: "Flight Broker", activeClass: "badge-orange border-[var(--badge-orange-text)]/30" },
   ];
 
+  // eslint-disable-next-line svelte/prefer-writable-derived
   let current = $state<string[]>([...selected]);
   let showError = $state(false);
 
-  // eslint-disable-next-line svelte/prefer-writable-derived
   $effect(() => {
     current = [...selected];
   });

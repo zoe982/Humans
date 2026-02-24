@@ -31,6 +31,7 @@
 
   function navigate(href: string) {
     close();
+    // eslint-disable-next-line svelte/no-navigation-without-resolve
     goto(href);
   }
 

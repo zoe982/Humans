@@ -36,8 +36,8 @@ export const load = async ({ locals, cookies, params }: RequestEvent): Promise<{
       void fetch(`${PUBLIC_API_URL}/api/client-errors`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: `SSR account-load: API ${accountRes.status}`, url: `/accounts/${id}`, errors: [{ type: "ssr", message: `status=${accountRes.status} elapsed=${t1 - t0}ms` }] }),
-      }).catch(() => {});
+        body: JSON.stringify({ message: `SSR account-load: API ${String(accountRes.status)}`, url: `/accounts/${id}`, errors: [{ type: "ssr", message: `status=${String(accountRes.status)} elapsed=${String(t1 - t0)}ms` }] }),
+      }).catch(() => { /* noop */ });
       redirect(302, "/accounts");
     }
     const accountRaw: unknown = await accountRes.json();
@@ -65,8 +65,8 @@ export const load = async ({ locals, cookies, params }: RequestEvent): Promise<{
     void fetch(`${PUBLIC_API_URL}/api/client-errors`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ message: `SSR account-load OK`, url: `/accounts/${id}`, errors: [{ type: "ssr-timing", message: `account=${t1 - t0}ms parallel=${t2 - t1}ms total=${t2 - t0}ms` }] }),
-    }).catch(() => {});
+      body: JSON.stringify({ message: `SSR account-load OK`, url: `/accounts/${id}`, errors: [{ type: "ssr-timing", message: `account=${String(t1 - t0)}ms parallel=${String(t2 - t1)}ms total=${String(t2 - t0)}ms` }] }),
+    }).catch(() => { /* noop */ });
 
     return {
       account,
@@ -86,8 +86,8 @@ export const load = async ({ locals, cookies, params }: RequestEvent): Promise<{
     void fetch(`${PUBLIC_API_URL}/api/client-errors`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ message: `SSR account-load CRASH at ${phase}`, url: `/accounts/${id}`, errors: [{ type: "ssr-error", message: `${err instanceof Error ? err.message : String(err)} elapsed=${elapsed}ms`, stack: err instanceof Error ? err.stack ?? "" : "" }] }),
-    }).catch(() => {});
+      body: JSON.stringify({ message: `SSR account-load CRASH at ${phase}`, url: `/accounts/${id}`, errors: [{ type: "ssr-error", message: `${err instanceof Error ? err.message : String(err)} elapsed=${String(elapsed)}ms`, stack: err instanceof Error ? err.stack ?? "" : "" }] }),
+    }).catch(() => { /* noop */ });
     throw err;
   }
 };
