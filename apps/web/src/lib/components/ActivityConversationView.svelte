@@ -283,7 +283,8 @@
           <!-- Body Text -->
           <div
             class="text-sm text-text-primary mb-2 break-words"
-            class:line-clamp-3={maxMessages !== undefined}
+            class:max-h-[45rem]={maxMessages !== undefined}
+            class:overflow-y-auto={maxMessages !== undefined}
           >
             {#if parsed.text}
               <HighlightText text={parsed.text} query={searchQuery} />

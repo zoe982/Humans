@@ -507,10 +507,10 @@
     ></textarea>
   </div>
 
-  <!-- Linked Humans -->
+  <!-- Humans -->
   <div class="mt-6">
     <RelatedListTable
-      title="Linked Humans"
+      title="Humans"
       items={opportunity.linkedHumans}
       columns={[
         { key: "displayId", label: "ID" },
