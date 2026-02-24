@@ -168,6 +168,7 @@
     if (shouldShowDaySeparator(index)) return false;
     // eslint-disable-next-line security/detect-object-injection
     const prev = visibleActivities[index - 1];
+    // eslint-disable-next-line security/detect-object-injection
     const curr = visibleActivities[index];
     return (
       curr.frontConversationId !== null &&
@@ -313,17 +314,17 @@
           <!-- Linked Entity Tags -->
           {#if hasLinkedEntities(activity)}
             <div class="flex flex-wrap gap-1.5 mb-2">
-              {#each activity.geoInterestExpressions ?? [] as geo}
+              {#each activity.geoInterestExpressions ?? [] as geo (geo.city ?? geo.country)}
                 <span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs" style="background: rgba(6,182,212,0.15); color: var(--color-accent);">
                   {geo.city ?? "?"}{geo.country ? `, ${geo.country}` : ""}
                 </span>
               {/each}
-              {#each activity.routeInterestExpressions ?? [] as route}
+              {#each activity.routeInterestExpressions ?? [] as route (`${route.originCity}-${route.destinationCity}`)}
                 <span class="inline-flex items-center rounded-full badge-purple px-2 py-0.5 text-xs">
                   {route.originCity ?? "?"} &rarr; {route.destinationCity ?? "?"}
                 </span>
               {/each}
-              {#each activity.linkedOpportunities ?? [] as opp}
+              {#each activity.linkedOpportunities ?? [] as opp (opp.opportunityId ?? opp.displayId)}
                 <span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs" style="background: rgba(245,158,11,0.15); color: rgb(245,158,11);">
                   {opp.displayId ?? "OPP"}{opp.stage ? ` · ${opp.stage}` : ""}
                 </span>

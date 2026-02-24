@@ -83,6 +83,7 @@
 
   const tooltip = $derived.by(() => {
     if (hoveredIndex === null || hoveredIndex >= cumulativeData.length) return null;
+    // eslint-disable-next-line security/detect-object-injection
     const point = cumulativeData[hoveredIndex];
     if (!point) return null;
     const px = xToSvg(hoveredIndex);
