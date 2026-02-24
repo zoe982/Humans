@@ -1,4 +1,5 @@
 import type { ErrorCode } from "@humans/shared";
+import type { StatusCode } from "hono/utils/http-status";
 
 /**
  * Structured application error.
@@ -7,7 +8,7 @@ import type { ErrorCode } from "@humans/shared";
 export class AppError extends Error {
   constructor(
     public readonly code: ErrorCode,
-    public readonly status: number,
+    public readonly status: StatusCode,
     message: string,
     public readonly details?: unknown,
   ) {
@@ -21,7 +22,7 @@ export interface ApiErrorResponse {
   error: string;
   code: ErrorCode;
   requestId: string;
-  details: unknown | null;
+  details: unknown;
 }
 
 // Factory functions

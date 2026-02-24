@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { isRedirect, isActionFailure, Redirect } from "@sveltejs/kit";
-import { mockEvent, createMockFetch } from "../../../helpers";
+import { mockEvent, createMockFetch, mockBatchConfigResponse } from "../../../helpers";
 import { load, actions } from "../../../../src/routes/social-ids/new/+page.server";
 
 describe("social-ids/new load", () => {
@@ -8,10 +8,10 @@ describe("social-ids/new load", () => {
 
   beforeEach(() => {
     mockFetch = createMockFetch({
+      "account-config/batch": mockBatchConfigResponse({
+        "social-id-platforms": [{ id: "plat-1", name: "Instagram" }],
+      }),
       "/api/humans": { body: { data: [{ id: "h-1", firstName: "Jane" }] } },
-      "/api/admin/account-config/social-id-platforms": {
-        body: { data: [{ id: "plat-1", name: "Instagram" }] },
-      },
     });
     vi.stubGlobal("fetch", mockFetch);
   });
@@ -41,10 +41,10 @@ describe("social-ids/new load", () => {
 
   it("returns empty allHumans when humans API fails", async () => {
     mockFetch = createMockFetch({
+      "account-config/batch": mockBatchConfigResponse({
+        "social-id-platforms": [{ id: "plat-1", name: "Instagram" }],
+      }),
       "/api/humans": { status: 500, body: {} },
-      "/api/admin/account-config/social-id-platforms": {
-        body: { data: [{ id: "plat-1", name: "Instagram" }] },
-      },
     });
     vi.stubGlobal("fetch", mockFetch);
 
@@ -56,8 +56,8 @@ describe("social-ids/new load", () => {
 
   it("returns empty platformConfigs when platforms API fails", async () => {
     mockFetch = createMockFetch({
+      "account-config/batch": { status: 500, body: {} },
       "/api/humans": { body: { data: [{ id: "h-1", firstName: "Jane" }] } },
-      "/api/admin/account-config/social-id-platforms": { status: 500, body: {} },
     });
     vi.stubGlobal("fetch", mockFetch);
 
@@ -69,8 +69,8 @@ describe("social-ids/new load", () => {
 
   it("returns empty arrays when both APIs fail", async () => {
     mockFetch = createMockFetch({
+      "account-config/batch": { status: 500, body: {} },
       "/api/humans": { status: 500, body: {} },
-      "/api/admin/account-config/social-id-platforms": { status: 500, body: {} },
     });
     vi.stubGlobal("fetch", mockFetch);
 
@@ -82,8 +82,8 @@ describe("social-ids/new load", () => {
 
   it("returns empty arrays when APIs return non-list responses", async () => {
     mockFetch = createMockFetch({
+      "account-config/batch": { body: { message: "unexpected" } },
       "/api/humans": { body: { message: "unexpected" } },
-      "/api/admin/account-config/social-id-platforms": { body: { message: "unexpected" } },
     });
     vi.stubGlobal("fetch", mockFetch);
 

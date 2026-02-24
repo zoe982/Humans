@@ -57,7 +57,8 @@ accountRoutes.post("/api/accounts", requirePermission("manageAccounts"), async (
 accountRoutes.patch("/api/accounts/:id", requirePermission("manageAccounts"), async (c) => {
   const body: unknown = await c.req.json();
   const data = updateAccountSchema.parse(body);
-  const session = c.get("session")!;
+  const session = c.get("session");
+  if (session === null) return c.json({ error: "Unauthorized" }, 401);
   const result = await updateAccount(c.get("db"), c.req.param("id"), data, session.colleagueId);
   return c.json(result);
 });
@@ -66,7 +67,8 @@ accountRoutes.patch("/api/accounts/:id", requirePermission("manageAccounts"), as
 accountRoutes.patch("/api/accounts/:id/status", requirePermission("manageAccounts"), async (c) => {
   const body: unknown = await c.req.json();
   const data = updateAccountStatusSchema.parse(body);
-  const session = c.get("session")!;
+  const session = c.get("session");
+  if (session === null) return c.json({ error: "Unauthorized" }, 401);
   const result = await updateAccountStatus(c.get("db"), c.req.param("id"), data.status, session.colleagueId);
   return c.json({ data: { id: result.id, status: result.status }, auditEntryId: result.auditEntryId });
 });

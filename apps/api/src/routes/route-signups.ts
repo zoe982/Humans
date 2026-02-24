@@ -16,8 +16,10 @@ routeSignupRoutes.use("/*", supabaseMiddleware);
 // List all route signups (paginated, filterable)
 routeSignupRoutes.get("/api/route-signups", requirePermission("viewRouteSignups"), async (c) => {
   const supabase = c.get("supabase");
-  const page = Math.max(1, Number(c.req.query("page")) || 1);
-  const limit = Math.min(100, Math.max(1, Number(c.req.query("limit")) || 25));
+  const rawPage = Number(c.req.query("page"));
+  const rawLimit = Number(c.req.query("limit"));
+  const page = Math.max(1, rawPage !== 0 ? rawPage : 1);
+  const limit = Math.min(100, Math.max(1, rawLimit !== 0 ? rawLimit : 25));
   const from = (page - 1) * limit;
   const to = from + limit - 1;
 
@@ -32,12 +34,12 @@ routeSignupRoutes.get("/api/route-signups", requirePermission("viewRouteSignups"
     .from("announcement_signups")
     .select("*", { count: "exact" });
 
-  if (status) query = query.eq("status", status);
-  if (origin) query = query.ilike("origin", `%${origin}%`);
-  if (destination) query = query.ilike("destination", `%${destination}%`);
-  if (dateFrom) query = query.gte("inserted_at", dateFrom);
-  if (dateTo) query = query.lte("inserted_at", `${dateTo}T23:59:59.999Z`);
-  if (q) {
+  if (status !== "") query = query.eq("status", status);
+  if (origin !== "") query = query.ilike("origin", `%${origin}%`);
+  if (destination !== "") query = query.ilike("destination", `%${destination}%`);
+  if (dateFrom !== "") query = query.gte("inserted_at", dateFrom);
+  if (dateTo !== "") query = query.lte("inserted_at", `${dateTo}T23:59:59.999Z`);
+  if (q !== "") {
     query = query.or(
       `first_name.ilike.%${q}%,last_name.ilike.%${q}%,email.ilike.%${q}%,origin.ilike.%${q}%,destination.ilike.%${q}%`
     );
@@ -47,13 +49,18 @@ routeSignupRoutes.get("/api/route-signups", requirePermission("viewRouteSignups"
     .order("inserted_at", { ascending: false })
     .range(from, to);
 
-  if (error) {
+  if (error !== null) {
     throw internal(ERROR_CODES.SUPABASE_ERROR, error.message);
   }
 
   // Fetch last activity dates from D1
-  const signupIds = (data ?? []).map((s: { id: string }) => s.id);
-  let enriched = data ?? [];
+  type SignupRow = Record<string, unknown> & { id: string; lastActivityDate: string | null };
+  function toSignupRow(row: unknown): SignupRow {
+    const r = row as Record<string, unknown>;
+    return { ...r, id: String(r["id"] ?? ""), lastActivityDate: null };
+  }
+  let enriched: SignupRow[] = Array.isArray(data) ? data.map(toSignupRow) : [];
+  const signupIds = enriched.map((s) => s.id);
   if (signupIds.length > 0) {
     const db = c.get("db");
     const lastDates = await db
@@ -66,7 +73,7 @@ routeSignupRoutes.get("/api/route-signups", requirePermission("viewRouteSignups"
       .groupBy(activities.routeSignupId);
 
     const dateMap = new Map(lastDates.map((r) => [r.routeSignupId, r.lastActivityDate]));
-    enriched = (data ?? []).map((s: { id: string }) => ({
+    enriched = enriched.map((s) => ({
       ...s,
       lastActivityDate: dateMap.get(s.id) ?? null,
     }));
@@ -78,17 +85,17 @@ routeSignupRoutes.get("/api/route-signups", requirePermission("viewRouteSignups"
 // Get single route signup
 routeSignupRoutes.get("/api/route-signups/:id", requirePermission("viewRouteSignups"), async (c) => {
   const supabase = c.get("supabase");
-  const { data, error } = await supabase
+  const result = await supabase
     .from("announcement_signups")
     .select("*")
     .eq("id", c.req.param("id"))
-    .single();
+    .single<Record<string, unknown>>();
 
-  if (error) {
-    throw notFound(ERROR_CODES.ROUTE_SIGNUP_NOT_FOUND, error.message);
+  if (result.error !== null) {
+    throw notFound(ERROR_CODES.ROUTE_SIGNUP_NOT_FOUND, result.error.message);
   }
 
-  return c.json({ data });
+  return c.json({ data: result.data });
 });
 
 // Update route signup (status and/or note)
@@ -108,18 +115,18 @@ routeSignupRoutes.patch("/api/route-signups/:id", requirePermission("manageRoute
   }
 
   const supabase = c.get("supabase");
-  const { data, error } = await supabase
+  const result = await supabase
     .from("announcement_signups")
     .update(updateFields)
     .eq("id", c.req.param("id"))
     .select()
-    .single();
+    .single<Record<string, unknown>>();
 
-  if (error) {
-    throw internal(ERROR_CODES.SUPABASE_ERROR, error.message);
+  if (result.error !== null) {
+    throw internal(ERROR_CODES.SUPABASE_ERROR, result.error.message);
   }
 
-  return c.json({ data });
+  return c.json({ data: result.data });
 });
 
 // Delete route signup (admin only)
@@ -130,7 +137,7 @@ routeSignupRoutes.delete("/api/route-signups/:id", requirePermission("deleteRout
     .delete()
     .eq("id", c.req.param("id"));
 
-  if (error) {
+  if (error !== null) {
     throw internal(ERROR_CODES.SUPABASE_ERROR, error.message);
   }
 

@@ -41,14 +41,21 @@ opportunityRoutes.use("/*", authMiddleware);
 // GET /api/opportunities
 opportunityRoutes.get("/api/opportunities", requirePermission("viewRecords"), async (c) => {
   const db = c.get("db");
-  const page = Math.max(1, Number(c.req.query("page")) || 1);
-  const limit = Math.min(100, Math.max(1, Number(c.req.query("limit")) || 25));
-  const q = c.req.query("q") || undefined;
-  const stage = c.req.query("stage") || undefined;
-  const ownerId = c.req.query("ownerId") || undefined;
-  const dealOwnerId = c.req.query("dealOwnerId") || undefined;
+  const rawPage = Number(c.req.query("page"));
+  const rawLimit = Number(c.req.query("limit"));
+  const page = Math.max(1, rawPage !== 0 ? rawPage : 1);
+  const limit = Math.min(100, Math.max(1, rawLimit !== 0 ? rawLimit : 25));
+  const rawQ = c.req.query("q");
+  const q = rawQ !== undefined && rawQ !== "" ? rawQ : undefined;
+  const rawStage = c.req.query("stage");
+  const stage = rawStage !== undefined && rawStage !== "" ? rawStage : undefined;
+  const rawOwnerId = c.req.query("ownerId");
+  const ownerId = rawOwnerId !== undefined && rawOwnerId !== "" ? rawOwnerId : undefined;
+  const rawDealOwnerId = c.req.query("dealOwnerId");
+  const dealOwnerId = rawDealOwnerId !== undefined && rawDealOwnerId !== "" ? rawDealOwnerId : undefined;
   const overdueOnly = c.req.query("overdue") === "true";
-  const humanId = c.req.query("humanId") || undefined;
+  const rawHumanId = c.req.query("humanId");
+  const humanId = rawHumanId !== undefined && rawHumanId !== "" ? rawHumanId : undefined;
   const result = await listOpportunities(db, page, limit, { q, stage, ownerId, dealOwnerId, overdueOnly, humanId });
   return c.json(result);
 });
@@ -63,7 +70,8 @@ opportunityRoutes.get("/api/opportunities/:id", requirePermission("viewRecords")
 opportunityRoutes.post("/api/opportunities", requirePermission("manageOpportunities"), async (c) => {
   const body: unknown = await c.req.json();
   const data = createOpportunitySchema.parse(body);
-  const session = c.get("session")!;
+  const session = c.get("session");
+  if (session === null) return c.json({ error: "Unauthorized" }, 401);
   const result = await createOpportunity(c.get("db"), data, session.colleagueId);
   return c.json({ data: result }, 201);
 });
@@ -72,7 +80,8 @@ opportunityRoutes.post("/api/opportunities", requirePermission("manageOpportunit
 opportunityRoutes.patch("/api/opportunities/:id", requirePermission("manageOpportunities"), async (c) => {
   const body: unknown = await c.req.json();
   const data = updateOpportunitySchema.parse(body);
-  const session = c.get("session")!;
+  const session = c.get("session");
+  if (session === null) return c.json({ error: "Unauthorized" }, 401);
   const result = await updateOpportunity(c.get("db"), c.req.param("id"), data, session.colleagueId);
   return c.json(result);
 });
@@ -87,7 +96,8 @@ opportunityRoutes.delete("/api/opportunities/:id", requirePermission("deleteOppo
 opportunityRoutes.patch("/api/opportunities/:id/stage", requirePermission("manageOpportunities"), async (c) => {
   const body: unknown = await c.req.json();
   const data = updateOpportunityStageSchema.parse(body);
-  const session = c.get("session")!;
+  const session = c.get("session");
+  if (session === null) return c.json({ error: "Unauthorized" }, 401);
   const result = await updateOpportunityStage(c.get("db"), c.req.param("id"), data, session.colleagueId);
   return c.json(result);
 });
@@ -96,14 +106,16 @@ opportunityRoutes.patch("/api/opportunities/:id/stage", requirePermission("manag
 opportunityRoutes.patch("/api/opportunities/:id/next-action", requirePermission("manageOpportunities"), async (c) => {
   const body: unknown = await c.req.json();
   const data = updateNextActionSchema.parse(body);
-  const session = c.get("session")!;
+  const session = c.get("session");
+  if (session === null) return c.json({ error: "Unauthorized" }, 401);
   const result = await updateNextAction(c.get("db"), c.req.param("id"), data, session.colleagueId);
   return c.json(result);
 });
 
 // POST /api/opportunities/:id/next-action/done
 opportunityRoutes.post("/api/opportunities/:id/next-action/done", requirePermission("manageOpportunities"), async (c) => {
-  const session = c.get("session")!;
+  const session = c.get("session");
+  if (session === null) return c.json({ error: "Unauthorized" }, 401);
   const result = await completeNextAction(c.get("db"), c.req.param("id"), session.colleagueId);
   return c.json(result);
 });
@@ -168,14 +180,16 @@ opportunityRoutes.delete("/api/opportunities/:id/booking-requests/:linkId", requ
 opportunityRoutes.patch("/api/opportunities/:id/flight", requirePermission("manageOpportunities"), async (c) => {
   const body: unknown = await c.req.json();
   const data = z.object({ flightId: z.string().uuid() }).parse(body);
-  const session = c.get("session")!;
+  const session = c.get("session");
+  if (session === null) return c.json({ error: "Unauthorized" }, 401);
   const result = await linkOpportunityFlight(c.get("db"), c.req.param("id"), data.flightId, session.colleagueId);
   return c.json(result);
 });
 
 // DELETE /api/opportunities/:id/flight
 opportunityRoutes.delete("/api/opportunities/:id/flight", requirePermission("manageOpportunities"), async (c) => {
-  const session = c.get("session")!;
+  const session = c.get("session");
+  if (session === null) return c.json({ error: "Unauthorized" }, 401);
   const result = await unlinkOpportunityFlight(c.get("db"), c.req.param("id"), session.colleagueId);
   return c.json(result);
 });

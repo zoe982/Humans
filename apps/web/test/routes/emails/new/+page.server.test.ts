@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { isRedirect, isActionFailure, Redirect } from "@sveltejs/kit";
-import { mockEvent, createMockFetch, mockConfigItem } from "../../../helpers";
+import { mockEvent, createMockFetch, mockConfigItem, mockBatchConfigResponse } from "../../../helpers";
 import { load, actions } from "../../../../src/routes/emails/new/+page.server";
 
 describe("emails/new load", () => {
@@ -8,10 +8,10 @@ describe("emails/new load", () => {
 
   beforeEach(() => {
     mockFetch = createMockFetch({
+      "account-config/batch": mockBatchConfigResponse({
+        "human-email-labels": [mockConfigItem({ id: "lbl-1", name: "Work" })],
+      }),
       "/api/humans": { body: { data: [{ id: "h-1", firstName: "Jane" }] } },
-      "/api/admin/account-config/human-email-labels": {
-        body: { data: [mockConfigItem({ id: "lbl-1", name: "Work" })] },
-      },
     });
     vi.stubGlobal("fetch", mockFetch);
   });
@@ -41,10 +41,10 @@ describe("emails/new load", () => {
 
   it("returns empty allHumans when humans API fails", async () => {
     mockFetch = createMockFetch({
+      "account-config/batch": mockBatchConfigResponse({
+        "human-email-labels": [mockConfigItem({ id: "lbl-1", name: "Work" })],
+      }),
       "/api/humans": { status: 500, body: {} },
-      "/api/admin/account-config/human-email-labels": {
-        body: { data: [mockConfigItem({ id: "lbl-1", name: "Work" })] },
-      },
     });
     vi.stubGlobal("fetch", mockFetch);
 
@@ -56,8 +56,8 @@ describe("emails/new load", () => {
 
   it("returns empty emailLabelConfigs when labels API fails", async () => {
     mockFetch = createMockFetch({
+      "account-config/batch": { status: 500, body: {} },
       "/api/humans": { body: { data: [{ id: "h-1", firstName: "Jane" }] } },
-      "/api/admin/account-config/human-email-labels": { status: 500, body: {} },
     });
     vi.stubGlobal("fetch", mockFetch);
 
@@ -69,8 +69,8 @@ describe("emails/new load", () => {
 
   it("returns empty arrays when both APIs fail", async () => {
     mockFetch = createMockFetch({
+      "account-config/batch": { status: 500, body: {} },
       "/api/humans": { status: 500, body: {} },
-      "/api/admin/account-config/human-email-labels": { status: 500, body: {} },
     });
     vi.stubGlobal("fetch", mockFetch);
 
@@ -82,8 +82,8 @@ describe("emails/new load", () => {
 
   it("returns empty allHumans when API returns non-list response", async () => {
     mockFetch = createMockFetch({
+      "account-config/batch": mockBatchConfigResponse({ "human-email-labels": [] }),
       "/api/humans": { body: { message: "unexpected" } },
-      "/api/admin/account-config/human-email-labels": { body: { data: [] } },
     });
     vi.stubGlobal("fetch", mockFetch);
 

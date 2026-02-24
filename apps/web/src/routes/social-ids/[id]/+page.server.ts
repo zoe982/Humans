@@ -1,14 +1,7 @@
 import { redirect } from "@sveltejs/kit";
 import type { RequestEvent } from "@sveltejs/kit";
 import { PUBLIC_API_URL } from "$env/static/public";
-
-function isObjData(value: unknown): value is { data: Record<string, unknown> } {
-  return typeof value === "object" && value !== null && "data" in value;
-}
-
-function isListData(value: unknown): value is { data: unknown[] } {
-  return typeof value === "object" && value !== null && "data" in value && Array.isArray((value as { data: unknown }).data);
-}
+import { isObjData, isListData, fetchConfigs, authHeaders } from "$lib/server/api";
 
 export const load = async ({ locals, cookies, params }: RequestEvent) => {
   if (locals.user == null) redirect(302, "/login");
@@ -17,7 +10,7 @@ export const load = async ({ locals, cookies, params }: RequestEvent) => {
   const id = params.id;
 
   const socialIdRes = await fetch(`${PUBLIC_API_URL}/api/social-ids/${id}`, {
-    headers: { Cookie: `humans_session=${sessionToken}` },
+    headers: authHeaders(sessionToken),
   });
 
   if (!socialIdRes.ok) redirect(302, "/social-ids");
@@ -25,16 +18,11 @@ export const load = async ({ locals, cookies, params }: RequestEvent) => {
   const socialId = isObjData(socialIdRaw) ? socialIdRaw.data : null;
   if (socialId == null) redirect(302, "/social-ids");
 
-  const [platformsRes, humansRes, accountsRes] = await Promise.all([
-    fetch(`${PUBLIC_API_URL}/api/admin/account-config/social-id-platforms`, {
-      headers: { Cookie: `humans_session=${sessionToken}` },
-    }),
-    fetch(`${PUBLIC_API_URL}/api/humans`, {
-      headers: { Cookie: `humans_session=${sessionToken}` },
-    }),
-    fetch(`${PUBLIC_API_URL}/api/accounts`, {
-      headers: { Cookie: `humans_session=${sessionToken}` },
-    }),
+  const headers = authHeaders(sessionToken);
+  const [configs, humansRes, accountsRes] = await Promise.all([
+    fetchConfigs(sessionToken, ["social-id-platforms"]),
+    fetch(`${PUBLIC_API_URL}/api/humans`, { headers }),
+    fetch(`${PUBLIC_API_URL}/api/accounts`, { headers }),
   ]);
 
   const parseList = async (res: Response) => {
@@ -43,15 +31,14 @@ export const load = async ({ locals, cookies, params }: RequestEvent) => {
     return isListData(raw) ? raw.data : [];
   };
 
-  const [platformConfigs, allHumans, allAccounts] = await Promise.all([
-    parseList(platformsRes),
+  const [allHumans, allAccounts] = await Promise.all([
     parseList(humansRes),
     parseList(accountsRes),
   ]);
 
   return {
     socialId,
-    platformConfigs,
+    platformConfigs: configs["social-id-platforms"] ?? [],
     allHumans,
     allAccounts,
   };

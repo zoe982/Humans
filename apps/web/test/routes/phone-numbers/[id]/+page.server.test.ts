@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { isRedirect, Redirect } from "@sveltejs/kit";
-import { mockEvent, createMockFetch, mockConfigItem } from "../../../helpers";
+import { mockEvent, createMockFetch, mockConfigItem, mockBatchConfigResponse } from "../../../helpers";
 import { load } from "../../../../src/routes/phone-numbers/[id]/+page.server";
 
 const samplePhone = { id: "ph1", phoneNumber: "+1234567890", labelId: "plbl1" };
@@ -16,9 +16,11 @@ describe("phone-numbers/[id] +page.server load", () => {
 
   beforeEach(() => {
     mockFetch = createMockFetch({
+      "account-config/batch": mockBatchConfigResponse({
+        "human-phone-labels": [mockConfigItem({ id: "plbl1", name: "Mobile" })],
+        "account-phone-labels": [mockConfigItem({ id: "aplbl1", name: "Office" })],
+      }),
       "/api/phone-numbers/ph1": { body: { data: samplePhone } },
-      "/api/admin/account-config/human-phone-labels": { body: { data: [mockConfigItem({ id: "plbl1", name: "Mobile" })] } },
-      "/api/admin/account-config/account-phone-labels": { body: { data: [mockConfigItem({ id: "aplbl1", name: "Office" })] } },
       "/api/humans": { body: { data: [{ id: "h1", firstName: "Jane" }] } },
       "/api/accounts": { body: { data: [{ id: "acc1", name: "Acme" }] } },
     });
@@ -83,9 +85,8 @@ describe("phone-numbers/[id] +page.server load", () => {
 
   it("returns empty arrays when secondary APIs fail", async () => {
     mockFetch = createMockFetch({
+      "account-config/batch": { status: 500, body: { error: "fail" } },
       "/api/phone-numbers/ph1": { body: { data: samplePhone } },
-      "/api/admin/account-config/human-phone-labels": { status: 500, body: { error: "fail" } },
-      "/api/admin/account-config/account-phone-labels": { status: 500, body: { error: "fail" } },
       "/api/humans": { status: 500, body: { error: "fail" } },
       "/api/accounts": { status: 500, body: { error: "fail" } },
     });

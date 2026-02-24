@@ -87,31 +87,31 @@ app.route("/", websiteRoutes);
 
 export { RealtimeHub } from "./realtime/hub";
 
-function routePartyRequest(req: Request, env: Env): Response | null {
+function routePartyRequest(req: Request, env: Env): Promise<Response> | null {
   const url = new URL(req.url);
   const parts = url.pathname.split("/").filter(Boolean);
   // Match /parties/<namespace>/<room>
   if (parts[0] !== "parties" || parts.length < 3) return null;
-  if (!env.RealtimeHub) return null;
 
   const namespace = parts[1];
   if (namespace !== "realtime-hub") {
-    return new Response("Unknown party namespace", { status: 404 });
+    return Promise.resolve(new Response("Unknown party namespace", { status: 404 }));
   }
 
   const roomName = parts[2];
   const id = env.RealtimeHub.idFromName(roomName);
   const stub = env.RealtimeHub.get(id);
-  return stub.fetch(req) as unknown as Response;
+  const result = stub.fetch(req);
+  return result instanceof Promise ? result : Promise.resolve(result);
 }
 
 export default {
   async fetch(req: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const partyResponse = routePartyRequest(req, env);
-    if (partyResponse) return partyResponse;
+    if (partyResponse !== null) return partyResponse;
     return app.fetch(req, env, ctx);
   },
-  async scheduled(event: ScheduledEvent, env: Env, ctx: ExecutionContext) {
+  scheduled(_event: ScheduledEvent, env: Env, ctx: ExecutionContext): void {
     ctx.waitUntil(runScheduledFrontSync(env));
   },
 };

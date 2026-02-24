@@ -7,8 +7,7 @@ export function notifyRealtime(
   event: Omit<ChangeEvent, "actorId" | "timestamp">,
 ): void {
   const session = c.get("session");
-  if (!session) return;
-  if (!c.env.RealtimeHub) return;
+  if (session === null) return;
 
   const payload: ChangeEvent = {
     ...event,

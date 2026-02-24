@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { isRedirect, isActionFailure } from "@sveltejs/kit";
-import { mockEvent, createMockFetch, mockConfigItem } from "../../../helpers";
+import { mockEvent, createMockFetch, mockConfigItem, mockBatchConfigResponse } from "../../../helpers";
 import { load, actions } from "../../../../src/routes/humans/[id]/+page.server";
 
 const sampleHuman = {
@@ -25,11 +25,15 @@ describe("humans/[id] load", () => {
 
   beforeEach(() => {
     mockFetch = createMockFetch({
+      "account-config/batch": mockBatchConfigResponse({
+        "human-email-labels": [mockConfigItem({ id: "lbl-1", name: "Work" })],
+        "human-phone-labels": [mockConfigItem({ id: "plbl-1", name: "Mobile" })],
+        "social-id-platforms": [],
+        "account-human-labels": [],
+        "human-relationship-labels": [],
+      }),
       "/api/route-signups": { body: { data: [] } },
       "/api/website-booking-requests": { body: { data: [] } },
-      "/api/admin/account-config/account-human-labels": { body: { data: [] } },
-      "/api/admin/account-config/human-email-labels": { body: { data: [mockConfigItem({ id: "lbl-1", name: "Work" })] } },
-      "/api/admin/account-config/human-phone-labels": { body: { data: [mockConfigItem({ id: "plbl-1", name: "Mobile" })] } },
       "/api/accounts": { body: { data: [] } },
       "/api/humans/h-1": { body: { data: sampleHuman } },
       "/api/activities?humanId=h-1": { body: { data: [{ id: "a-1", type: "email" }] } },
@@ -1186,11 +1190,13 @@ describe("humans/[id] load — additional branches", () => {
 
   it("redirects to /humans when human API returns ok but data is null", async () => {
     const mockFetch = createMockFetch({
-      "/api/admin/account-config/human-email-labels": { body: { data: [] } },
-      "/api/admin/account-config/human-phone-labels": { body: { data: [] } },
-      "/api/admin/account-config/social-id-platforms": { body: { data: [] } },
-      "/api/admin/account-config/account-human-labels": { body: { data: [] } },
-      "/api/admin/account-config/human-relationship-labels": { body: { data: [] } },
+      "account-config/batch": mockBatchConfigResponse({
+        "human-email-labels": [],
+        "human-phone-labels": [],
+        "social-id-platforms": [],
+        "account-human-labels": [],
+        "human-relationship-labels": [],
+      }),
       "/api/route-signups": { body: { data: [] } },
       "/api/website-booking-requests": { body: { data: [] } },
       "/api/accounts": { body: { data: [] } },
@@ -1227,11 +1233,13 @@ describe("humans/[id] load — additional branches", () => {
     };
 
     const mockFetch = createMockFetch({
-      "/api/admin/account-config/human-email-labels": { body: { data: [] } },
-      "/api/admin/account-config/human-phone-labels": { body: { data: [] } },
-      "/api/admin/account-config/social-id-platforms": { body: { data: [] } },
-      "/api/admin/account-config/account-human-labels": { body: { data: [] } },
-      "/api/admin/account-config/human-relationship-labels": { body: { data: [] } },
+      "account-config/batch": mockBatchConfigResponse({
+        "human-email-labels": [],
+        "human-phone-labels": [],
+        "social-id-platforms": [],
+        "account-human-labels": [],
+        "human-relationship-labels": [],
+      }),
       "/api/route-signups": { body: { data: [] } },
       "/api/website-booking-requests": { body: { data: [] } },
       "/api/accounts": { body: { data: [] } },
@@ -1264,11 +1272,13 @@ describe("humans/[id] load — additional branches", () => {
     };
 
     const mockFetch = createMockFetch({
-      "/api/admin/account-config/human-email-labels": { body: { data: [] } },
-      "/api/admin/account-config/human-phone-labels": { body: { data: [] } },
-      "/api/admin/account-config/social-id-platforms": { body: { data: [] } },
-      "/api/admin/account-config/account-human-labels": { body: { data: [] } },
-      "/api/admin/account-config/human-relationship-labels": { body: { data: [] } },
+      "account-config/batch": mockBatchConfigResponse({
+        "human-email-labels": [],
+        "human-phone-labels": [],
+        "social-id-platforms": [],
+        "account-human-labels": [],
+        "human-relationship-labels": [],
+      }),
       "/api/route-signups": { body: { data: [{ id: "rs-1", display_id: "ROI-AAA-001", first_name: "Bob", last_name: "Smith", origin: "JFK", destination: "LHR" }] } },
       "/api/website-booking-requests": { body: { data: [] } },
       "/api/accounts": { body: { data: [] } },
@@ -1306,11 +1316,13 @@ describe("humans/[id] load — additional branches", () => {
     };
 
     const mockFetch = createMockFetch({
-      "/api/admin/account-config/human-email-labels": { body: { data: [] } },
-      "/api/admin/account-config/human-phone-labels": { body: { data: [] } },
-      "/api/admin/account-config/social-id-platforms": { body: { data: [] } },
-      "/api/admin/account-config/account-human-labels": { body: { data: [] } },
-      "/api/admin/account-config/human-relationship-labels": { body: { data: [] } },
+      "account-config/batch": mockBatchConfigResponse({
+        "human-email-labels": [],
+        "human-phone-labels": [],
+        "social-id-platforms": [],
+        "account-human-labels": [],
+        "human-relationship-labels": [],
+      }),
       "/api/route-signups": { body: { data: [] } },
       "/api/website-booking-requests": { body: { data: [] } },
       "/api/accounts": { body: { data: [] } },
@@ -1347,11 +1359,13 @@ describe("humans/[id] load — additional branches", () => {
     };
 
     const mockFetch = createMockFetch({
-      "/api/admin/account-config/human-email-labels": { body: { data: [] } },
-      "/api/admin/account-config/human-phone-labels": { body: { data: [] } },
-      "/api/admin/account-config/social-id-platforms": { body: { data: [] } },
-      "/api/admin/account-config/account-human-labels": { body: { data: [] } },
-      "/api/admin/account-config/human-relationship-labels": { body: { data: [] } },
+      "account-config/batch": mockBatchConfigResponse({
+        "human-email-labels": [],
+        "human-phone-labels": [],
+        "social-id-platforms": [],
+        "account-human-labels": [],
+        "human-relationship-labels": [],
+      }),
       "/api/route-signups": { body: { data: [] } },
       "/api/website-booking-requests": { body: { data: [{ id: "wbr-1", crm_display_id: "BOR-AAA-001", first_name: "Alice", last_name: "Jones", origin_city: "NYC", destination_city: "Paris" }] } },
       "/api/accounts": { body: { data: [] } },
@@ -1389,11 +1403,13 @@ describe("humans/[id] load — additional branches", () => {
     };
 
     const mockFetch = createMockFetch({
-      "/api/admin/account-config/human-email-labels": { body: { data: [] } },
-      "/api/admin/account-config/human-phone-labels": { body: { data: [] } },
-      "/api/admin/account-config/social-id-platforms": { body: { data: [] } },
-      "/api/admin/account-config/account-human-labels": { body: { data: [] } },
-      "/api/admin/account-config/human-relationship-labels": { body: { data: [] } },
+      "account-config/batch": mockBatchConfigResponse({
+        "human-email-labels": [],
+        "human-phone-labels": [],
+        "social-id-platforms": [],
+        "account-human-labels": [],
+        "human-relationship-labels": [],
+      }),
       "/api/route-signups": { body: { data: [] } },
       "/api/website-booking-requests": { body: { data: [] } },
       "/api/accounts": { body: { data: [] } },
@@ -1430,11 +1446,7 @@ describe("humans/[id] load — additional branches", () => {
     };
 
     const mockFetch = createMockFetch({
-      "/api/admin/account-config/human-email-labels": { status: 500, body: { error: "Server error" } },
-      "/api/admin/account-config/human-phone-labels": { status: 500, body: { error: "Server error" } },
-      "/api/admin/account-config/social-id-platforms": { status: 500, body: { error: "Server error" } },
-      "/api/admin/account-config/account-human-labels": { status: 500, body: { error: "Server error" } },
-      "/api/admin/account-config/human-relationship-labels": { status: 500, body: { error: "Server error" } },
+      "account-config/batch": { status: 500, body: { error: "Server error" } },
       "/api/route-signups": { body: { data: [] } },
       "/api/website-booking-requests": { body: { data: [] } },
       "/api/accounts": { body: { data: [] } },
@@ -1471,11 +1483,13 @@ describe("humans/[id] load — additional branches", () => {
     };
 
     const mockFetch = createMockFetch({
-      "/api/admin/account-config/human-email-labels": { body: { data: [] } },
-      "/api/admin/account-config/human-phone-labels": { body: { data: [] } },
-      "/api/admin/account-config/social-id-platforms": { body: { data: [] } },
-      "/api/admin/account-config/account-human-labels": { body: { data: [] } },
-      "/api/admin/account-config/human-relationship-labels": { body: { data: [] } },
+      "account-config/batch": mockBatchConfigResponse({
+        "human-email-labels": [],
+        "human-phone-labels": [],
+        "social-id-platforms": [],
+        "account-human-labels": [],
+        "human-relationship-labels": [],
+      }),
       "/api/route-signups": { status: 500, body: { error: "Server error" } },
       "/api/website-booking-requests": { status: 500, body: { error: "Server error" } },
       "/api/accounts": { status: 500, body: { error: "Server error" } },
@@ -1516,11 +1530,7 @@ describe("humans/[id] load — additional branches", () => {
     };
 
     const mockFetch = createMockFetch({
-      "/api/admin/account-config/human-email-labels": { body: { items: [] } },
-      "/api/admin/account-config/human-phone-labels": { body: { items: [] } },
-      "/api/admin/account-config/social-id-platforms": { body: { items: [] } },
-      "/api/admin/account-config/account-human-labels": { body: { items: [] } },
-      "/api/admin/account-config/human-relationship-labels": { body: { items: [] } },
+      "account-config/batch": { body: { items: [] } },
       "/api/route-signups": { body: { data: [] } },
       "/api/website-booking-requests": { body: { data: [] } },
       "/api/accounts": { body: { data: [] } },
@@ -1555,11 +1565,13 @@ describe("humans/[id] load — additional branches", () => {
     };
 
     const mockFetch = createMockFetch({
-      "/api/admin/account-config/human-email-labels": { body: { data: [] } },
-      "/api/admin/account-config/human-phone-labels": { body: { data: [] } },
-      "/api/admin/account-config/social-id-platforms": { body: { data: [] } },
-      "/api/admin/account-config/account-human-labels": { body: { data: [] } },
-      "/api/admin/account-config/human-relationship-labels": { body: { data: [] } },
+      "account-config/batch": mockBatchConfigResponse({
+        "human-email-labels": [],
+        "human-phone-labels": [],
+        "social-id-platforms": [],
+        "account-human-labels": [],
+        "human-relationship-labels": [],
+      }),
       "/api/route-signups": { body: { items: [] } },
       "/api/website-booking-requests": { body: { items: [] } },
       "/api/accounts": { body: { items: [] } },
@@ -1595,11 +1607,13 @@ describe("humans/[id] load — additional branches", () => {
     };
 
     const mockFetch = createMockFetch({
-      "/api/admin/account-config/human-email-labels": { body: { data: [] } },
-      "/api/admin/account-config/human-phone-labels": { body: { data: [] } },
-      "/api/admin/account-config/social-id-platforms": { body: { data: [mockConfigItem({ id: "plat-1", name: "Instagram" })] } },
-      "/api/admin/account-config/account-human-labels": { body: { data: [] } },
-      "/api/admin/account-config/human-relationship-labels": { body: { data: [] } },
+      "account-config/batch": mockBatchConfigResponse({
+        "human-email-labels": [],
+        "human-phone-labels": [],
+        "social-id-platforms": [mockConfigItem({ id: "plat-1", name: "Instagram" })],
+        "account-human-labels": [],
+        "human-relationship-labels": [],
+      }),
       "/api/route-signups": { body: { data: [] } },
       "/api/website-booking-requests": { body: { data: [] } },
       "/api/accounts": { body: { data: [] } },
@@ -1632,11 +1646,13 @@ describe("humans/[id] load — additional branches", () => {
     };
 
     const mockFetch = createMockFetch({
-      "/api/admin/account-config/human-email-labels": { body: { data: [] } },
-      "/api/admin/account-config/human-phone-labels": { body: { data: [] } },
-      "/api/admin/account-config/social-id-platforms": { body: { data: [] } },
-      "/api/admin/account-config/account-human-labels": { body: { data: [] } },
-      "/api/admin/account-config/human-relationship-labels": { body: { data: [] } },
+      "account-config/batch": mockBatchConfigResponse({
+        "human-email-labels": [],
+        "human-phone-labels": [],
+        "social-id-platforms": [],
+        "account-human-labels": [],
+        "human-relationship-labels": [],
+      }),
       "/api/route-signups": { body: { data: [{ id: "rs-1", display_id: null, first_name: null, last_name: null, origin: null, destination: null }] } },
       "/api/website-booking-requests": { body: { data: [] } },
       "/api/accounts": { body: { data: [] } },
@@ -1670,11 +1686,13 @@ describe("humans/[id] load — additional branches", () => {
     };
 
     const mockFetch = createMockFetch({
-      "/api/admin/account-config/human-email-labels": { body: { data: [] } },
-      "/api/admin/account-config/human-phone-labels": { body: { data: [] } },
-      "/api/admin/account-config/social-id-platforms": { body: { data: [] } },
-      "/api/admin/account-config/account-human-labels": { body: { data: [] } },
-      "/api/admin/account-config/human-relationship-labels": { body: { data: [] } },
+      "account-config/batch": mockBatchConfigResponse({
+        "human-email-labels": [],
+        "human-phone-labels": [],
+        "social-id-platforms": [],
+        "account-human-labels": [],
+        "human-relationship-labels": [],
+      }),
       "/api/route-signups": { body: { data: [] } },
       "/api/website-booking-requests": { body: { data: [{ id: "wbr-1", crm_display_id: null, first_name: null, last_name: null, origin_city: null, destination_city: null }] } },
       "/api/accounts": { body: { data: [] } },

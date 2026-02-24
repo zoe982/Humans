@@ -6,12 +6,12 @@ import { notFound, conflict } from "../lib/errors";
 import { nextDisplayId } from "../lib/display-id";
 import type { DB } from "./types";
 
-export async function listColleagues(db: DB) {
+export async function listColleagues(db: DB): Promise<(typeof colleagues.$inferSelect)[]> {
   const allColleagues = await db.select().from(colleagues);
   return allColleagues;
 }
 
-export async function getColleague(db: DB, id: string) {
+export async function getColleague(db: DB, id: string): Promise<typeof colleagues.$inferSelect> {
   const colleague = await db.query.colleagues.findFirst({
     where: eq(colleagues.id, id),
   });
@@ -30,7 +30,7 @@ export async function createColleague(
     lastName: string;
     role: string;
   },
-) {
+): Promise<{ id: string; displayId: string; email: string; firstName: string; middleNames: string | null; lastName: string; name: string; avatarUrl: null; googleId: null; role: string; isActive: boolean; createdAt: string; updatedAt: string }> {
   const now = new Date().toISOString();
 
   // Check for duplicate email
@@ -74,7 +74,7 @@ export async function updateColleague(
     role?: string;
     isActive?: boolean;
   },
-) {
+): Promise<typeof colleagues.$inferSelect | undefined> {
   const existing = await db.query.colleagues.findFirst({
     where: eq(colleagues.id, id),
   });
@@ -107,7 +107,7 @@ export async function updateColleague(
   return updated;
 }
 
-export async function listAuditLog(db: DB, limit: number, offset: number) {
+export async function listAuditLog(db: DB, limit: number, offset: number): Promise<{ id: string; colleagueId: string | null; action: string; entityType: string; entityId: string; changes: unknown; ipAddress: string | null; createdAt: string; colleagueName: string | null }[]> {
   const logs = await db
     .select({
       id: auditLog.id,

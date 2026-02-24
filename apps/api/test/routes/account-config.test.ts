@@ -14,6 +14,87 @@ const CONFIG_TYPES = [
   "human-phone-labels",
 ] as const;
 
+const ALL_CONFIG_TYPES = [
+  "account-types",
+  "account-human-labels",
+  "account-email-labels",
+  "account-phone-labels",
+  "human-email-labels",
+  "human-phone-labels",
+  "social-id-platforms",
+  "opportunity-human-roles",
+  "human-relationship-labels",
+] as const;
+
+describe("GET /api/admin/account-config/batch", () => {
+  it("returns 401 when unauthenticated", async () => {
+    const res = await SELF.fetch("http://localhost/api/admin/account-config/batch");
+    expect(res.status).toBe(401);
+  });
+
+  it("returns all config types when no types param provided", async () => {
+    const { token } = await createUserAndSession("agent");
+    const res = await SELF.fetch("http://localhost/api/admin/account-config/batch", {
+      headers: { Cookie: sessionCookie(token) },
+    });
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { data: Record<string, unknown[]> };
+    expect(Object.keys(body.data).sort()).toEqual([...ALL_CONFIG_TYPES].sort());
+    for (const type of ALL_CONFIG_TYPES) {
+      expect(Array.isArray(body.data[type])).toBe(true);
+    }
+  });
+
+  it("returns only requested types when types param provided", async () => {
+    const { token } = await createUserAndSession("agent");
+    const res = await SELF.fetch(
+      "http://localhost/api/admin/account-config/batch?types=account-types,human-email-labels",
+      { headers: { Cookie: sessionCookie(token) } },
+    );
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { data: Record<string, unknown[]> };
+    expect(Object.keys(body.data).sort()).toEqual(["account-types", "human-email-labels"]);
+  });
+
+  it("returns 400 if any type is invalid", async () => {
+    const { token } = await createUserAndSession("agent");
+    const res = await SELF.fetch(
+      "http://localhost/api/admin/account-config/batch?types=account-types,not-real",
+      { headers: { Cookie: sessionCookie(token) } },
+    );
+    expect(res.status).toBe(400);
+  });
+
+  it("returns empty arrays for types with no data", async () => {
+    const { token } = await createUserAndSession("agent");
+    const res = await SELF.fetch(
+      "http://localhost/api/admin/account-config/batch?types=account-types",
+      { headers: { Cookie: sessionCookie(token) } },
+    );
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { data: Record<string, unknown[]> };
+    expect(body.data["account-types"]).toEqual([]);
+  });
+
+  it("returns seeded data for requested types", async () => {
+    const db = getDb();
+    const now = new Date().toISOString();
+    await db.insert(schema.accountTypesConfig).values({ id: createId(), name: "Batch Type A", createdAt: now });
+    await db.insert(schema.humanEmailLabelsConfig).values({ id: createId(), name: "Batch Email", createdAt: now });
+
+    const { token } = await createUserAndSession("agent");
+    const res = await SELF.fetch(
+      "http://localhost/api/admin/account-config/batch?types=account-types,human-email-labels",
+      { headers: { Cookie: sessionCookie(token) } },
+    );
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { data: Record<string, Array<{ name: string }>> };
+    expect(body.data["account-types"].length).toBeGreaterThanOrEqual(1);
+    expect(body.data["account-types"].some((item) => item.name === "Batch Type A")).toBe(true);
+    expect(body.data["human-email-labels"].some((item) => item.name === "Batch Email")).toBe(true);
+  });
+});
+
 describe("GET /api/admin/account-config/:configType", () => {
   it("returns 401 when unauthenticated", async () => {
     const res = await SELF.fetch("http://localhost/api/admin/account-config/account-types");

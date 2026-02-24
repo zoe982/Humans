@@ -20,7 +20,7 @@ interface ErrorLogEntry {
  * Persist an error to the D1 error_log table via waitUntil (non-blocking).
  * Falls back to console.error if D1 write fails.
  */
-export function persistError(c: Context<AppContext>, entry: ErrorLogEntry) {
+export function persistError(c: Context<AppContext>, entry: ErrorLogEntry): void {
   const id = crypto.randomUUID();
   const now = new Date().toISOString();
 

@@ -1,29 +1,7 @@
-import { redirect, fail } from "@sveltejs/kit";
+import { redirect } from "@sveltejs/kit";
 import type { RequestEvent, ActionFailure } from "@sveltejs/kit";
 import { PUBLIC_API_URL } from "$env/static/public";
-import { extractApiErrorInfo } from "$lib/api";
-
-function isObjData(value: unknown): value is { data: Record<string, unknown> } {
-  return typeof value === "object" && value !== null && "data" in value;
-}
-
-function isListData(value: unknown): value is { data: unknown[] } {
-  return typeof value === "object" && value !== null && "data" in value && Array.isArray((value as { data: unknown }).data);
-}
-
-async function fetchConfig(sessionToken: string, configType: string) {
-  const res = await fetch(`${PUBLIC_API_URL}/api/admin/account-config/${configType}`, {
-    headers: { Cookie: `humans_session=${sessionToken}` },
-  });
-  if (!res.ok) return [];
-  const raw: unknown = await res.json();
-  return isListData(raw) ? raw.data : [];
-}
-
-function failFromApi(resBody: unknown, status: number, fallback: string): ActionFailure<{ error: string; code?: string; requestId?: string }> {
-  const info = extractApiErrorInfo(resBody, fallback);
-  return fail(status, { error: info.message, code: info.code, requestId: info.requestId });
-}
+import { isObjData, isListData, failFromApi, fetchConfigs, authHeaders } from "$lib/server/api";
 
 export const load = async ({ locals, cookies, params }: RequestEvent) => {
   if (locals.user == null) redirect(302, "/login");
@@ -40,9 +18,8 @@ export const load = async ({ locals, cookies, params }: RequestEvent) => {
   const opportunity = isObjData(oppRaw) ? oppRaw.data : null;
   if (opportunity == null) redirect(302, "/opportunities");
 
-  // Helper: fetch + consume body immediately to release connection
-  // (Cloudflare Pages limits concurrent outbound connections to 6)
-  const headers = { Cookie: `humans_session=${sessionToken ?? ""}` };
+  const token = sessionToken ?? "";
+  const headers = authHeaders(token);
   async function fetchList(url: string): Promise<unknown[]> {
     const res = await fetch(url, { headers });
     if (!res.ok) return [];
@@ -57,14 +34,16 @@ export const load = async ({ locals, cookies, params }: RequestEvent) => {
     return isObjData(raw) ? raw.data : null;
   }
 
-  // Split into two batches to stay within Cloudflare's 6-connection limit
-  const [colleagues, allHumans, roleConfigs, allPets, flightSummary] = await Promise.all([
+  // Batch: configs + data in one round
+  const [configs, colleagues, allHumans, allPets, flightSummary] = await Promise.all([
+    fetchConfigs(token, ["opportunity-human-roles"]),
     fetchList(`${PUBLIC_API_URL}/api/colleagues`),
     fetchList(`${PUBLIC_API_URL}/api/humans?limit=200`),
-    fetchConfig(sessionToken ?? "", "opportunity-human-roles"),
     fetchList(`${PUBLIC_API_URL}/api/pets`),
     fetchList(`${PUBLIC_API_URL}/api/flights/summary`),
   ]);
+
+  const roleConfigs = configs["opportunity-human-roles"] ?? [];
 
   const [bookingRequestsRaw, cadenceConfigs] = await Promise.all([
     fetchObj(`${PUBLIC_API_URL}/api/opportunities/${id}/booking-requests`),

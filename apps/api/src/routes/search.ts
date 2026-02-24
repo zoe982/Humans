@@ -11,7 +11,7 @@ searchRoutes.use("/*", authMiddleware);
 
 searchRoutes.get("/api/search", requirePermission("viewRecords"), supabaseMiddleware, async (c) => {
   const q = c.req.query("q");
-  if (!q || q.trim().length === 0) {
+  if (q === null || q === undefined || q.trim().length === 0) {
     return c.json({ humans: [], routeSignups: [], activities: [], geoInterests: [], accounts: [] });
   }
 

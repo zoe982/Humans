@@ -1,13 +1,12 @@
 import { Hono } from "hono";
 import { eq } from "drizzle-orm";
-import { activities, humanRouteSignups } from "@humans/db/schema";
+import { activities } from "@humans/db/schema";
 import { createHumanSchema, updateHumanSchema, updateHumanStatusSchema, linkRouteSignupSchema, linkWebsiteBookingRequestSchema, createHumanRelationshipSchema } from "@humans/shared";
 import { ERROR_CODES } from "@humans/shared";
 import { authMiddleware } from "../middleware/auth";
 import { requirePermission } from "../middleware/rbac";
 import { supabaseMiddleware } from "../middleware/supabase";
-import { notFound, internal } from "../lib/errors";
-import { createId } from "@humans/db";
+import { internal } from "../lib/errors";
 import {
   listHumans,
   getHumanDetail,
@@ -32,9 +31,12 @@ humanRoutes.use("/*", supabaseMiddleware);
 
 humanRoutes.get("/api/humans", requirePermission("viewRecords"), async (c) => {
   const db = c.get("db");
-  const page = Math.max(1, Number(c.req.query("page")) || 1);
-  const limit = Math.min(100, Math.max(1, Number(c.req.query("limit")) || 25));
-  const q = c.req.query("q") || undefined;
+  const rawPage = Number(c.req.query("page"));
+  const rawLimit = Number(c.req.query("limit"));
+  const page = Math.max(1, rawPage !== 0 ? rawPage : 1);
+  const limit = Math.min(100, Math.max(1, rawLimit !== 0 ? rawLimit : 25));
+  const rawQ = c.req.query("q");
+  const q = rawQ !== undefined && rawQ !== "" ? rawQ : undefined;
   const result = await listHumans(db, page, limit, q);
   return c.json(result);
 });
@@ -54,7 +56,8 @@ humanRoutes.post("/api/humans", requirePermission("manageHumans"), async (c) => 
 humanRoutes.patch("/api/humans/:id", requirePermission("manageHumans"), async (c) => {
   const body: unknown = await c.req.json();
   const data = updateHumanSchema.parse(body);
-  const session = c.get("session")!;
+  const session = c.get("session");
+  if (session === null) return c.json({ error: "Unauthorized" }, 401);
   const result = await updateHuman(c.get("db"), c.req.param("id"), data, session.colleagueId);
   return c.json(result);
 });
@@ -62,7 +65,8 @@ humanRoutes.patch("/api/humans/:id", requirePermission("manageHumans"), async (c
 humanRoutes.patch("/api/humans/:id/status", requirePermission("manageHumans"), async (c) => {
   const body: unknown = await c.req.json();
   const data = updateHumanStatusSchema.parse(body);
-  const session = c.get("session")!;
+  const session = c.get("session");
+  if (session === null) return c.json({ error: "Unauthorized" }, 401);
   const result = await updateHumanStatus(c.get("db"), c.req.param("id"), data.status, session.colleagueId);
   return c.json({ data: { id: result.id, status: result.status }, auditEntryId: result.auditEntryId });
 });
@@ -132,7 +136,7 @@ humanRoutes.post(
       .update({ status: "closed_converted" })
       .eq("id", data.routeSignupId);
 
-    if (supaError) {
+    if (supaError !== null) {
       throw internal(ERROR_CODES.SUPABASE_ERROR, `Supabase update failed: ${supaError.message}`);
     }
 

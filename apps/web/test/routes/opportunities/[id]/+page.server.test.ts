@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { isRedirect, isActionFailure, Redirect } from "@sveltejs/kit";
-import { mockEvent, createMockFetch } from "../../../helpers";
+import { mockEvent, createMockFetch, mockBatchConfigResponse } from "../../../helpers";
 import { load, actions } from "../../../../src/routes/opportunities/[id]/+page.server";
 
 const mockOpportunity = {
@@ -26,8 +26,10 @@ describe("opportunities/[id] +page.server load", () => {
   beforeEach(() => {
     // Order matters: specific patterns before general ones (createMockFetch uses includes())
     mockFetch = createMockFetch({
+      "account-config/batch": mockBatchConfigResponse({
+        "opportunity-human-roles": [{ id: "r1", name: "primary", createdAt: "2025-01-01" }],
+      }),
       "/api/opportunities/opp1": { body: { data: mockOpportunity } },
-      "/api/admin/account-config/opportunity-human-roles": { body: { data: [{ id: "r1", name: "primary", createdAt: "2025-01-01" }] } },
       "/api/colleagues": { body: { data: [{ id: "col1", name: "Agent A" }] } },
       "/api/humans": { body: { data: [{ id: "h1", firstName: "Jane", lastName: "Doe" }] } },
     });
@@ -81,8 +83,8 @@ describe("opportunities/[id] +page.server load", () => {
 
   it("returns empty colleagues and allHumans when those APIs fail", async () => {
     mockFetch = createMockFetch({
+      "account-config/batch": { status: 500, body: { error: "Server error" } },
       "/api/opportunities/opp1": { body: { data: mockOpportunity } },
-      "/api/admin/account-config/opportunity-human-roles": { status: 500, body: { error: "Server error" } },
       "/api/colleagues": { status: 500, body: { error: "Server error" } },
       "/api/humans": { status: 500, body: { error: "Server error" } },
     });

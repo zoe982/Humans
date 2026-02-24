@@ -1,20 +1,7 @@
 import { redirect, fail } from "@sveltejs/kit";
 import type { RequestEvent, ActionFailure } from "@sveltejs/kit";
 import { PUBLIC_API_URL } from "$env/static/public";
-import { extractApiErrorInfo } from "$lib/api";
-
-function isObjData(value: unknown): value is { data: Record<string, unknown> } {
-  return typeof value === "object" && value !== null && "data" in value;
-}
-
-function isListData(value: unknown): value is { data: unknown[] } {
-  return typeof value === "object" && value !== null && "data" in value && Array.isArray((value as { data: unknown }).data);
-}
-
-function failFromApi(resBody: unknown, status: number, fallback: string): ActionFailure<{ error: string; code?: string; requestId?: string }> {
-  const info = extractApiErrorInfo(resBody, fallback);
-  return fail(status, { error: info.message, code: info.code, requestId: info.requestId });
-}
+import { isObjData, isListData, failFromApi, fetchConfigs, authHeaders } from "$lib/server/api";
 
 export const load = async ({ locals, cookies, params }: RequestEvent) => {
   if (locals.user == null) redirect(302, "/login");
@@ -32,9 +19,7 @@ export const load = async ({ locals, cookies, params }: RequestEvent) => {
   const account = isObjData(accountRaw) ? accountRaw.data : null;
   if (account == null) redirect(302, "/accounts");
 
-  // Helper: fetch + consume body immediately to release connection
-  // (Cloudflare Pages limits concurrent outbound connections to 6)
-  const headers = { Cookie: `humans_session=${sessionToken}` };
+  const headers = authHeaders(sessionToken);
   async function fetchList(url: string): Promise<unknown[]> {
     const res = await fetch(url, { headers });
     if (!res.ok) return [];
@@ -42,29 +27,21 @@ export const load = async ({ locals, cookies, params }: RequestEvent) => {
     return isListData(raw) ? raw.data : [];
   }
 
-  // Fetch config lists for dropdowns + humans list for linking
-  // Split into two batches to stay within Cloudflare's 6-connection limit
-  const [typeConfigs, humanLabelConfigs, emailLabelConfigs, phoneLabelConfigs, allHumans] = await Promise.all([
-    fetchList(`${PUBLIC_API_URL}/api/admin/account-config/account-types`),
-    fetchList(`${PUBLIC_API_URL}/api/admin/account-config/account-human-labels`),
-    fetchList(`${PUBLIC_API_URL}/api/admin/account-config/account-email-labels`),
-    fetchList(`${PUBLIC_API_URL}/api/admin/account-config/account-phone-labels`),
+  // Batch: all configs + humans + discount codes in one batch
+  const [configs, allHumans, allDiscountCodes] = await Promise.all([
+    fetchConfigs(sessionToken, ["account-types", "account-human-labels", "account-email-labels", "account-phone-labels", "social-id-platforms"]),
     fetchList(`${PUBLIC_API_URL}/api/humans`),
-  ]);
-
-  const [socialIdPlatformConfigs, allDiscountCodes] = await Promise.all([
-    fetchList(`${PUBLIC_API_URL}/api/admin/account-config/social-id-platforms`),
     fetchList(`${PUBLIC_API_URL}/api/discount-codes`),
   ]);
 
   return {
     account,
-    typeConfigs,
-    humanLabelConfigs,
-    emailLabelConfigs,
-    phoneLabelConfigs,
+    typeConfigs: configs["account-types"] ?? [],
+    humanLabelConfigs: configs["account-human-labels"] ?? [],
+    emailLabelConfigs: configs["account-email-labels"] ?? [],
+    phoneLabelConfigs: configs["account-phone-labels"] ?? [],
     allHumans,
-    socialIdPlatformConfigs,
+    socialIdPlatformConfigs: configs["social-id-platforms"] ?? [],
     allDiscountCodes,
   };
 };

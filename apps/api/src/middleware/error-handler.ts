@@ -6,24 +6,25 @@ import { AppError, type ApiErrorResponse } from "../lib/errors";
 import { logError } from "../lib/logger";
 import { persistError } from "../lib/error-logger";
 import type { AppContext } from "../types";
+import type { StatusCode } from "hono/utils/http-status";
 
 /** Map known HTTPException messages to error codes. */
-const httpMessageToCode: Record<string, ErrorCode> = {
-  "Authentication required": ERROR_CODES.AUTH_REQUIRED,
-  "Invalid or expired session": ERROR_CODES.AUTH_INVALID_SESSION,
-  "Insufficient permissions": ERROR_CODES.AUTH_INSUFFICIENT_PERMS,
-};
+const httpMessageToCode: ReadonlyMap<string, ErrorCode> = new Map([
+  ["Authentication required", ERROR_CODES.AUTH_REQUIRED],
+  ["Invalid or expired session", ERROR_CODES.AUTH_INVALID_SESSION],
+  ["Insufficient permissions", ERROR_CODES.AUTH_INSUFFICIENT_PERMS],
+]);
 
 export const errorHandler: ErrorHandler<AppContext> = (err, c) => {
-  const requestId = c.get("requestId") ?? "unknown";
+  const requestId = c.get("requestId");
   const method = c.req.method;
   const path = c.req.path;
   const userId = c.get("session")?.colleagueId;
 
   let code: ErrorCode;
-  let status: number;
+  let status: StatusCode;
   let message: string;
-  let details: unknown | null = null;
+  let details: unknown = null;
   let stack: string | undefined;
 
   if (err instanceof AppError) {
@@ -35,18 +36,14 @@ export const errorHandler: ErrorHandler<AppContext> = (err, c) => {
   } else if (err instanceof HTTPException) {
     status = err.status;
     message = err.message;
-    code = httpMessageToCode[message] ?? ERROR_CODES.INTERNAL_ERROR;
+    code = httpMessageToCode.get(message) ?? ERROR_CODES.INTERNAL_ERROR;
     stack = err.stack;
-  } else if (
-    err instanceof ZodError ||
-    (err != null && typeof err === "object" && "issues" in err && Array.isArray((err as ZodError).issues))
-  ) {
-    const zodErr = err as ZodError;
+  } else if (err instanceof ZodError) {
     code = ERROR_CODES.VALIDATION_FAILED;
     status = 400;
     message = "Validation failed";
-    details = zodErr.flatten().fieldErrors;
-    stack = zodErr.stack;
+    details = err.flatten().fieldErrors;
+    stack = err.stack;
   } else {
     code = ERROR_CODES.INTERNAL_ERROR;
     status = 500;
@@ -61,5 +58,5 @@ export const errorHandler: ErrorHandler<AppContext> = (err, c) => {
   persistError(c, { requestId, code, message, status, method, path, userId, details, stack });
 
   const body: ApiErrorResponse = { error: message, code, requestId, details };
-  return c.json(body, status as Parameters<typeof c.json>[1]);
+  return c.json(body, status);
 };

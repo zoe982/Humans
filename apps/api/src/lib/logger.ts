@@ -17,7 +17,7 @@ interface LogEntry {
   durationMs?: number | undefined;
 }
 
-function emit(entry: LogEntry) {
+function emit(entry: LogEntry): void {
   const fn =
     entry.level === "error"
       ? console.error
@@ -27,14 +27,14 @@ function emit(entry: LogEntry) {
   fn(JSON.stringify(entry));
 }
 
-export function logInfo(message: string, extra?: Partial<LogEntry>) {
+export function logInfo(message: string, extra?: Partial<LogEntry>): void {
   emit({ level: "info", timestamp: new Date().toISOString(), message, ...extra });
 }
 
-export function logWarn(message: string, extra?: Partial<LogEntry>) {
+export function logWarn(message: string, extra?: Partial<LogEntry>): void {
   emit({ level: "warn", timestamp: new Date().toISOString(), message, ...extra });
 }
 
-export function logError(message: string, extra?: Partial<LogEntry>) {
+export function logError(message: string, extra?: Partial<LogEntry>): void {
   emit({ level: "error", timestamp: new Date().toISOString(), message, ...extra });
 }

@@ -1,23 +1,7 @@
 import { redirect } from "@sveltejs/kit";
 import type { RequestEvent } from "@sveltejs/kit";
 import { PUBLIC_API_URL } from "$env/static/public";
-
-function isObjData(value: unknown): value is { data: Record<string, unknown> } {
-  return typeof value === "object" && value !== null && "data" in value;
-}
-
-function isListData(value: unknown): value is { data: unknown[] } {
-  return typeof value === "object" && value !== null && "data" in value && Array.isArray((value as { data: unknown }).data);
-}
-
-async function fetchConfig(sessionToken: string, configType: string) {
-  const res = await fetch(`${PUBLIC_API_URL}/api/admin/account-config/${configType}`, {
-    headers: { Cookie: `humans_session=${sessionToken}` },
-  });
-  if (!res.ok) return [];
-  const raw: unknown = await res.json();
-  return isListData(raw) ? raw.data : [];
-}
+import { isObjData, isListData, fetchConfigs, authHeaders } from "$lib/server/api";
 
 export const load = async ({ locals, cookies, params }: RequestEvent) => {
   if (locals.user == null) redirect(302, "/login");
@@ -26,7 +10,7 @@ export const load = async ({ locals, cookies, params }: RequestEvent) => {
   const id = params.id;
 
   const emailRes = await fetch(`${PUBLIC_API_URL}/api/emails/${id}`, {
-    headers: { Cookie: `humans_session=${sessionToken}` },
+    headers: authHeaders(sessionToken),
   });
 
   if (!emailRes.ok) redirect(302, "/emails");
@@ -34,15 +18,11 @@ export const load = async ({ locals, cookies, params }: RequestEvent) => {
   const email = isObjData(emailRaw) ? emailRaw.data : null;
   if (email == null) redirect(302, "/emails");
 
-  const [humanEmailLabelConfigs, accountEmailLabelConfigs, humansRes, accountsRes] = await Promise.all([
-    fetchConfig(sessionToken, "human-email-labels"),
-    fetchConfig(sessionToken, "account-email-labels"),
-    fetch(`${PUBLIC_API_URL}/api/humans`, {
-      headers: { Cookie: `humans_session=${sessionToken}` },
-    }),
-    fetch(`${PUBLIC_API_URL}/api/accounts`, {
-      headers: { Cookie: `humans_session=${sessionToken}` },
-    }),
+  const headers = authHeaders(sessionToken);
+  const [configs, humansRes, accountsRes] = await Promise.all([
+    fetchConfigs(sessionToken, ["human-email-labels", "account-email-labels"]),
+    fetch(`${PUBLIC_API_URL}/api/humans`, { headers }),
+    fetch(`${PUBLIC_API_URL}/api/accounts`, { headers }),
   ]);
 
   const parseList = async (res: Response) => {
@@ -58,8 +38,8 @@ export const load = async ({ locals, cookies, params }: RequestEvent) => {
 
   return {
     email,
-    humanEmailLabelConfigs,
-    accountEmailLabelConfigs,
+    humanEmailLabelConfigs: configs["human-email-labels"] ?? [],
+    accountEmailLabelConfigs: configs["account-email-labels"] ?? [],
     allHumans,
     allAccounts,
   };

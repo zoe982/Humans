@@ -1,17 +1,8 @@
 import { redirect, fail } from "@sveltejs/kit";
 import type { RequestEvent, ActionFailure } from "@sveltejs/kit";
 import { PUBLIC_API_URL } from "$env/static/public";
-import { extractApiErrorInfo } from "$lib/api";
+import { isListData, failFromApi } from "$lib/server/api";
 import { createColleagueSchema, updateColleagueSchema } from "@humans/shared";
-
-function isListData(value: unknown): value is { data: unknown[] } {
-  return typeof value === "object" && value !== null && "data" in value && Array.isArray((value as { data: unknown }).data);
-}
-
-function failFromApi(resBody: unknown, status: number, fallback: string): ActionFailure<{ error: string; code?: string; requestId?: string }> {
-  const info = extractApiErrorInfo(resBody, fallback);
-  return fail(status, { error: info.message, code: info.code, requestId: info.requestId });
-}
 
 export const load = async ({ locals, cookies }: RequestEvent): Promise<{ colleagues: unknown[] }> => {
   if (locals.user == null) redirect(302, "/login");

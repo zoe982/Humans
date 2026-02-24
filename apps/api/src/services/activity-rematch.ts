@@ -1,6 +1,6 @@
-import { eq, and, isNull } from "drizzle-orm";
+import { eq, isNull } from "drizzle-orm";
 import { activities } from "@humans/db/schema";
-import { normalizePhone } from "../lib/phone-utils";
+import { normalizePhone, phonesMatch } from "../lib/phone-utils";
 import type { DB } from "./types";
 
 /**
@@ -21,7 +21,7 @@ export async function rematchActivitiesByEmail(
     .where(isNull(activities.humanId));
 
   const toUpdate = candidates.filter(
-    (a) => a.frontContactHandle && a.frontContactHandle.toLowerCase() === lowerEmail,
+    (a) => a.frontContactHandle != null && a.frontContactHandle.toLowerCase() === lowerEmail,
   );
 
   if (toUpdate.length === 0) return 0;
@@ -63,7 +63,7 @@ export async function rematchActivitiesByPhone(
     .where(isNull(activities.humanId));
 
   const toUpdate = candidates.filter((a) => {
-    if (!a.frontContactHandle) return false;
+    if (a.frontContactHandle == null) return false;
     const handleNorm = normalizePhone(a.frontContactHandle);
     return handleNorm.length >= 9 && handleNorm.slice(-9) === suffix;
   });
@@ -98,7 +98,7 @@ export async function rematchActivitiesBySocialId(
   handle: string,
 ): Promise<number> {
   const normalized = handle.replace(/^@/, "").toLowerCase();
-  if (!normalized) return 0;
+  if (normalized === "") return 0;
 
   // Find unmatched activities whose contact handle matches this social handle
   const candidates = await db
@@ -107,7 +107,7 @@ export async function rematchActivitiesBySocialId(
     .where(isNull(activities.humanId));
 
   const toUpdate = candidates.filter((a) => {
-    if (!a.frontContactHandle) return false;
+    if (a.frontContactHandle == null) return false;
     const candidateNorm = a.frontContactHandle.replace(/^@/, "").toLowerCase();
     return candidateNorm === normalized;
   });

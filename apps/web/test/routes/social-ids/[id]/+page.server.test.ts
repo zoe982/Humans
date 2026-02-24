@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { isRedirect, Redirect } from "@sveltejs/kit";
-import { mockEvent, createMockFetch } from "../../../helpers";
+import { mockEvent, createMockFetch, mockBatchConfigResponse } from "../../../helpers";
 import { load } from "../../../../src/routes/social-ids/[id]/+page.server";
 
 const sampleSocialId = { id: "s1", handle: "@janedoe", platformId: "plat1" };
@@ -16,8 +16,10 @@ describe("social-ids/[id] +page.server load", () => {
 
   beforeEach(() => {
     mockFetch = createMockFetch({
+      "account-config/batch": mockBatchConfigResponse({
+        "social-id-platforms": [{ id: "plat1", name: "Instagram" }],
+      }),
       "/api/social-ids/s1": { body: { data: sampleSocialId } },
-      "/api/admin/account-config/social-id-platforms": { body: { data: [{ id: "plat1", name: "Instagram" }] } },
       "/api/humans": { body: { data: [{ id: "h1", firstName: "Jane" }] } },
       "/api/accounts": { body: { data: [{ id: "acc1", name: "Acme" }] } },
     });
@@ -81,8 +83,8 @@ describe("social-ids/[id] +page.server load", () => {
 
   it("returns empty arrays when secondary APIs fail", async () => {
     mockFetch = createMockFetch({
+      "account-config/batch": { status: 500, body: { error: "fail" } },
       "/api/social-ids/s1": { body: { data: sampleSocialId } },
-      "/api/admin/account-config/social-id-platforms": { status: 500, body: { error: "fail" } },
       "/api/humans": { status: 500, body: { error: "fail" } },
       "/api/accounts": { status: 500, body: { error: "fail" } },
     });

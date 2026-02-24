@@ -1,10 +1,7 @@
 import { redirect } from "@sveltejs/kit";
 import type { RequestEvent } from "@sveltejs/kit";
 import { PUBLIC_API_URL } from "$env/static/public";
-
-function isListData(value: unknown): value is { data: unknown[] } {
-  return typeof value === "object" && value !== null && "data" in value && Array.isArray((value as { data: unknown }).data);
-}
+import { isListData } from "$lib/server/api";
 
 function isPaginatedData(value: unknown): value is { meta: { page: number; limit: number; total: number } } {
   return typeof value === "object" && value !== null && "meta" in value && typeof (value as { meta: unknown }).meta === "object";

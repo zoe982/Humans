@@ -33,7 +33,7 @@ async function ensureFlightDisplayIds(
         .from("flights")
         .update({ crm_display_id: displayId })
         .eq("id", row["id"]);
-      if (!error) {
+      if (error === null) {
         row["crm_display_id"] = displayId;
       }
     }
@@ -47,8 +47,10 @@ flightRoutes.get(
   async (c) => {
     const supabase = c.get("supabase");
     const db = c.get("db");
-    const page = Math.max(1, Number(c.req.query("page")) || 1);
-    const limit = Math.min(100, Math.max(1, Number(c.req.query("limit")) || 25));
+    const rawPage = Number(c.req.query("page"));
+    const rawLimit = Number(c.req.query("limit"));
+    const page = Math.max(1, rawPage !== 0 ? rawPage : 1);
+    const limit = Math.min(100, Math.max(1, rawLimit !== 0 ? rawLimit : 25));
     const from = (page - 1) * limit;
     const to = from + limit - 1;
 
@@ -58,11 +60,11 @@ flightRoutes.get(
       .order("flight_date", { ascending: false })
       .range(from, to);
 
-    if (error) {
+    if (error !== null) {
       throw internal(ERROR_CODES.SUPABASE_ERROR, error.message);
     }
 
-    if (data) {
+    if (data !== null) {
       await ensureFlightDisplayIds(supabase, db, data as Record<string, unknown>[]);
     }
 
@@ -84,11 +86,11 @@ flightRoutes.get(
       .order("flight_date", { ascending: false })
       .limit(200);
 
-    if (error) {
+    if (error !== null) {
       throw internal(ERROR_CODES.SUPABASE_ERROR, error.message);
     }
 
-    if (data) {
+    if (data !== null) {
       await ensureFlightDisplayIds(supabase, db, data as Record<string, unknown>[]);
     }
 
@@ -105,19 +107,18 @@ flightRoutes.get(
     const db = c.get("db");
     const flightId = c.req.param("id");
 
-    const { data, error } = await supabase
+    const { data: flightData, error } = await supabase
       .from("flights")
       .select("*")
       .eq("id", flightId)
       .single();
 
-    if (error) {
+    if (error !== null) {
       throw notFound(ERROR_CODES.FLIGHT_NOT_FOUND, error.message);
     }
 
-    if (data) {
-      await ensureFlightDisplayIds(supabase, db, [data as Record<string, unknown>]);
-    }
+    const safeFlightData = flightData as Record<string, unknown>;
+    await ensureFlightDisplayIds(supabase, db, [safeFlightData]);
 
     // Fetch linked opportunities from D1
     const linkedOpps = await db
@@ -133,13 +134,13 @@ flightRoutes.get(
 
     // Fetch primary humans for each opportunity
     const oppIds = linkedOpps.map((o) => o.id);
-    let primaryHumans: Record<string, { firstName: string; lastName: string; displayId: string }> = {};
+    const primaryHumans: Map<string, { firstName: string; lastName: string; displayId: string }> = new Map();
 
     if (oppIds.length > 0) {
       const roleConfigs = await db.select().from(opportunityHumanRolesConfig);
       const primaryRoleId = roleConfigs.find((r) => r.name === "primary")?.id;
 
-      if (primaryRoleId) {
+      if (primaryRoleId !== undefined && primaryRoleId !== "") {
         const links = await db
           .select({
             opportunityId: opportunityHumans.opportunityId,
@@ -153,11 +154,11 @@ flightRoutes.get(
 
         for (const link of links) {
           if (oppIds.includes(link.opportunityId)) {
-            primaryHumans[link.opportunityId] = {
+            primaryHumans.set(link.opportunityId, {
               firstName: link.firstName,
               lastName: link.lastName,
               displayId: link.displayId,
-            };
+            });
           }
         }
       }
@@ -165,13 +166,13 @@ flightRoutes.get(
 
     const linkedOpportunities = linkedOpps.map((opp) => ({
       ...opp,
-      primaryHuman: primaryHumans[opp.id] ?? null,
+      primaryHuman: primaryHumans.get(opp.id) ?? null,
     }));
 
     // Fetch linked discount codes
     const linkedDiscountCodes = await getDiscountCodesForFlight(supabase, db, flightId);
 
-    return c.json({ data, linkedOpportunities, linkedDiscountCodes });
+    return c.json({ data: safeFlightData, linkedOpportunities, linkedDiscountCodes });
   },
 );
 

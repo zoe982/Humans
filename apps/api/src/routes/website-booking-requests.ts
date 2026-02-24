@@ -30,7 +30,7 @@ async function ensureDisplayIds(
         .from("bookings")
         .update({ crm_display_id: displayId })
         .eq("id", row["id"]);
-      if (!error) {
+      if (error === null) {
         row["crm_display_id"] = displayId;
       }
     }
@@ -44,8 +44,10 @@ websiteBookingRequestRoutes.get(
   async (c) => {
     const supabase = c.get("supabase");
     const db = c.get("db");
-    const page = Math.max(1, Number(c.req.query("page")) || 1);
-    const limit = Math.min(100, Math.max(1, Number(c.req.query("limit")) || 25));
+    const rawPage = Number(c.req.query("page"));
+    const rawLimit = Number(c.req.query("limit"));
+    const page = Math.max(1, rawPage !== 0 ? rawPage : 1);
+    const limit = Math.min(100, Math.max(1, rawLimit !== 0 ? rawLimit : 25));
     const from = (page - 1) * limit;
     const to = from + limit - 1;
 
@@ -55,12 +57,12 @@ websiteBookingRequestRoutes.get(
       .order("inserted_at", { ascending: false })
       .range(from, to);
 
-    if (error) {
+    if (error !== null) {
       throw internal(ERROR_CODES.SUPABASE_ERROR, error.message);
     }
 
     // Auto-assign display IDs to any rows missing them
-    if (data) {
+    if (data !== null) {
       await ensureDisplayIds(supabase, db, data as Record<string, unknown>[]);
     }
 
@@ -75,22 +77,20 @@ websiteBookingRequestRoutes.get(
   async (c) => {
     const supabase = c.get("supabase");
     const db = c.get("db");
-    const { data, error } = await supabase
+    const result = await supabase
       .from("bookings")
       .select("*")
       .eq("id", c.req.param("id"))
-      .single();
+      .single<Record<string, unknown>>();
 
-    if (error) {
-      throw notFound(ERROR_CODES.WEBSITE_BOOKING_REQUEST_NOT_FOUND, error.message);
+    if (result.error !== null) {
+      throw notFound(ERROR_CODES.WEBSITE_BOOKING_REQUEST_NOT_FOUND, result.error.message);
     }
 
     // Auto-assign display ID if missing
-    if (data) {
-      await ensureDisplayIds(supabase, db, [data as Record<string, unknown>]);
-    }
+    await ensureDisplayIds(supabase, db, [result.data]);
 
-    return c.json({ data });
+    return c.json({ data: result.data });
   },
 );
 
@@ -114,18 +114,18 @@ websiteBookingRequestRoutes.patch(
     }
 
     const supabase = c.get("supabase");
-    const { data, error } = await supabase
+    const result = await supabase
       .from("bookings")
       .update(updateFields)
       .eq("id", c.req.param("id"))
       .select()
-      .single();
+      .single<Record<string, unknown>>();
 
-    if (error) {
-      throw internal(ERROR_CODES.SUPABASE_ERROR, error.message);
+    if (result.error !== null) {
+      throw internal(ERROR_CODES.SUPABASE_ERROR, result.error.message);
     }
 
-    return c.json({ data });
+    return c.json({ data: result.data });
   },
 );
 
@@ -140,7 +140,7 @@ websiteBookingRequestRoutes.delete(
       .delete()
       .eq("id", c.req.param("id"));
 
-    if (error) {
+    if (error !== null) {
       throw internal(ERROR_CODES.SUPABASE_ERROR, error.message);
     }
 

@@ -1,27 +1,7 @@
-import { redirect, fail } from "@sveltejs/kit";
+import { redirect } from "@sveltejs/kit";
 import type { RequestEvent, ActionFailure } from "@sveltejs/kit";
 import { PUBLIC_API_URL } from "$env/static/public";
-import { extractApiErrorInfo } from "$lib/api";
-
-function isListData(value: unknown): value is { data: unknown[] } {
-  return typeof value === "object" && value !== null && "data" in value && Array.isArray((value as { data: unknown }).data);
-}
-
-function failFromApi(resBody: unknown, status: number, fallback: string): ActionFailure<{ error: string; code?: string; requestId?: string }> {
-  const info = extractApiErrorInfo(resBody, fallback);
-  return fail(status, { error: info.message, code: info.code, requestId: info.requestId });
-}
-
-const CONFIG_TYPES = ["account-types", "account-human-labels", "account-email-labels", "account-phone-labels", "human-email-labels", "human-phone-labels", "opportunity-human-roles", "human-relationship-labels"] as const;
-
-async function fetchConfig(sessionToken: string, configType: string) {
-  const res = await fetch(`${PUBLIC_API_URL}/api/admin/account-config/${configType}`, {
-    headers: { Cookie: `humans_session=${sessionToken}` },
-  });
-  if (!res.ok) return [];
-  const raw: unknown = await res.json();
-  return isListData(raw) ? raw.data : [];
-}
+import { fetchConfigs, failFromApi } from "$lib/server/api";
 
 export const load = async ({ locals, cookies }: RequestEvent) => {
   if (locals.user == null) redirect(302, "/login");
@@ -29,11 +9,18 @@ export const load = async ({ locals, cookies }: RequestEvent) => {
 
   const sessionToken = cookies.get("humans_session") ?? "";
 
-  const [accountTypes, humanLabels, emailLabels, phoneLabels, humanEmailLabels, humanPhoneLabels, opportunityHumanRoles, humanRelationshipLabels] = await Promise.all(
-    CONFIG_TYPES.map((type) => fetchConfig(sessionToken, type)),
-  );
+  const configs = await fetchConfigs(sessionToken);
 
-  return { accountTypes, humanLabels, emailLabels, phoneLabels, humanEmailLabels, humanPhoneLabels, opportunityHumanRoles, humanRelationshipLabels };
+  return {
+    accountTypes: configs["account-types"] ?? [],
+    humanLabels: configs["account-human-labels"] ?? [],
+    emailLabels: configs["account-email-labels"] ?? [],
+    phoneLabels: configs["account-phone-labels"] ?? [],
+    humanEmailLabels: configs["human-email-labels"] ?? [],
+    humanPhoneLabels: configs["human-phone-labels"] ?? [],
+    opportunityHumanRoles: configs["opportunity-human-roles"] ?? [],
+    humanRelationshipLabels: configs["human-relationship-labels"] ?? [],
+  };
 };
 
 export const actions = {

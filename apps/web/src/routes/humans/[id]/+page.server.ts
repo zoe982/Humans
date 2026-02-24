@@ -1,29 +1,7 @@
 import { redirect, fail } from "@sveltejs/kit";
 import type { RequestEvent, ActionFailure } from "@sveltejs/kit";
 import { PUBLIC_API_URL } from "$env/static/public";
-import { extractApiErrorInfo } from "$lib/api";
-
-function isObjData(value: unknown): value is { data: Record<string, unknown> } {
-  return typeof value === "object" && value !== null && "data" in value;
-}
-
-function isListData(value: unknown): value is { data: unknown[] } {
-  return typeof value === "object" && value !== null && "data" in value && Array.isArray((value as { data: unknown }).data);
-}
-
-async function fetchConfig(sessionToken: string, configType: string) {
-  const res = await fetch(`${PUBLIC_API_URL}/api/admin/account-config/${configType}`, {
-    headers: { Cookie: `humans_session=${sessionToken}` },
-  });
-  if (!res.ok) return [];
-  const raw: unknown = await res.json();
-  return isListData(raw) ? raw.data : [];
-}
-
-function failFromApi(resBody: unknown, status: number, fallback: string): ActionFailure<{ error: string; code?: string; requestId?: string }> {
-  const info = extractApiErrorInfo(resBody, fallback);
-  return fail(status, { error: info.message, code: info.code, requestId: info.requestId });
-}
+import { isObjData, isListData, failFromApi, fetchConfigs, authHeaders } from "$lib/server/api";
 
 export const load = async ({ locals, cookies, params }: RequestEvent) => {
   if (locals.user == null) redirect(302, "/login");
@@ -43,7 +21,8 @@ export const load = async ({ locals, cookies, params }: RequestEvent) => {
 
   // Helper: fetch + consume body immediately to release connection
   // (Cloudflare Pages limits concurrent outbound connections to 6)
-  const headers = { Cookie: `humans_session=${sessionToken ?? ""}` };
+  const token = sessionToken ?? "";
+  const headers = authHeaders(token);
   async function fetchList(url: string): Promise<unknown[]> {
     const res = await fetch(url, { headers });
     if (!res.ok) return [];
@@ -51,30 +30,27 @@ export const load = async ({ locals, cookies, params }: RequestEvent) => {
     return isListData(raw) ? raw.data : [];
   }
 
-  // Fetch in batches of 5 to stay within Cloudflare's 6-connection limit
-  // Batch 1: activities, config lookups, route signups
-  const [activities, emailLabelConfigs, phoneLabelConfigs, socialIdPlatformConfigs, allRouteSignups] = await Promise.all([
+  // Batch 1: all configs in one call + activities + route signups
+  const [configs, activities, allRouteSignups, allBookingRequests, allAccounts] = await Promise.all([
+    fetchConfigs(token, ["human-email-labels", "human-phone-labels", "social-id-platforms", "account-human-labels", "human-relationship-labels"]),
     fetchList(`${PUBLIC_API_URL}/api/activities?humanId=${id}`),
-    fetchConfig(sessionToken ?? "", "human-email-labels"),
-    fetchConfig(sessionToken ?? "", "human-phone-labels"),
-    fetchConfig(sessionToken ?? "", "social-id-platforms"),
     fetchList(`${PUBLIC_API_URL}/api/route-signups?limit=100`),
-  ]);
-
-  // Batch 2: booking requests, accounts, more configs, leads
-  const [allBookingRequests, allAccounts, accountHumanLabelConfigs, generalLeads, humanOpportunities] = await Promise.all([
     fetchList(`${PUBLIC_API_URL}/api/website-booking-requests?limit=100`),
     fetchList(`${PUBLIC_API_URL}/api/accounts`),
-    fetchConfig(sessionToken ?? "", "account-human-labels"),
-    fetchList(`${PUBLIC_API_URL}/api/general-leads?convertedHumanId=${id}&limit=50`),
-    fetchList(`${PUBLIC_API_URL}/api/opportunities?humanId=${id}&limit=50`),
   ]);
 
-  // Batch 3: discount codes, relationships, all humans
-  const [allDiscountCodes, humanRelationships, humanRelationshipLabelConfigs, allHumans] = await Promise.all([
+  const emailLabelConfigs = configs["human-email-labels"] ?? [];
+  const phoneLabelConfigs = configs["human-phone-labels"] ?? [];
+  const socialIdPlatformConfigs = configs["social-id-platforms"] ?? [];
+  const accountHumanLabelConfigs = configs["account-human-labels"] ?? [];
+  const humanRelationshipLabelConfigs = configs["human-relationship-labels"] ?? [];
+
+  // Batch 2: remaining data fetches
+  const [generalLeads, humanOpportunities, allDiscountCodes, humanRelationships, allHumans] = await Promise.all([
+    fetchList(`${PUBLIC_API_URL}/api/general-leads?convertedHumanId=${id}&limit=50`),
+    fetchList(`${PUBLIC_API_URL}/api/opportunities?humanId=${id}&limit=50`),
     fetchList(`${PUBLIC_API_URL}/api/discount-codes`),
     fetchList(`${PUBLIC_API_URL}/api/humans/${id}/relationships`),
-    fetchConfig(sessionToken ?? "", "human-relationship-labels"),
     fetchList(`${PUBLIC_API_URL}/api/humans?limit=500`),
   ]);
 

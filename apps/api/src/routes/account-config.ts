@@ -37,9 +37,52 @@ function isValidConfigType(value: string): value is ConfigType {
   return value in configTableMap;
 }
 
+function getConfigTable(configType: ConfigType): (typeof configTableMap)[ConfigType] {
+  switch (configType) {
+    case "account-types": return accountTypesConfig;
+    case "account-human-labels": return accountHumanLabelsConfig;
+    case "account-email-labels": return accountEmailLabelsConfig;
+    case "account-phone-labels": return accountPhoneLabelsConfig;
+    case "human-email-labels": return humanEmailLabelsConfig;
+    case "human-phone-labels": return humanPhoneLabelsConfig;
+    case "social-id-platforms": return socialIdPlatformsConfig;
+    case "opportunity-human-roles": return opportunityHumanRolesConfig;
+    case "human-relationship-labels": return humanRelationshipLabelsConfig;
+  }
+}
+
 const accountConfigRoutes = new Hono<AppContext>();
 
 accountConfigRoutes.use("/*", authMiddleware);
+
+// Batch fetch multiple config types in one request
+accountConfigRoutes.get("/api/admin/account-config/batch", requirePermission("viewRecords"), async (c) => {
+  const typesParam = c.req.query("types");
+  const rawTypes: string[] = typesParam !== undefined && typesParam !== ""
+    ? typesParam.split(",").map((t) => t.trim())
+    : Object.keys(configTableMap);
+
+  for (const t of rawTypes) {
+    if (!isValidConfigType(t)) {
+      throw badRequest(ERROR_CODES.INVALID_CONFIG_TYPE, `Invalid config type: ${t}`);
+    }
+  }
+
+  const requestedTypes = rawTypes.filter(isValidConfigType);
+
+  const db = c.get("db");
+  const entries = await Promise.all(
+    requestedTypes.map(async (t) => {
+      const table = getConfigTable(t);
+      const data = await db.select().from(table);
+      return [t, data] as const;
+    }),
+  );
+
+  const result = Object.fromEntries(entries);
+
+  return c.json({ data: result });
+});
 
 // List config items (readable by anyone who can view records — needed for dropdown labels on human/account detail pages)
 accountConfigRoutes.get("/api/admin/account-config/:configType", requirePermission("viewRecords"), async (c) => {
@@ -49,7 +92,7 @@ accountConfigRoutes.get("/api/admin/account-config/:configType", requirePermissi
   }
 
   const db = c.get("db");
-  const table = configTableMap[configType];
+  const table = getConfigTable(configType);
   const data = await db.select().from(table);
 
   return c.json({ data });
@@ -65,7 +108,7 @@ accountConfigRoutes.post("/api/admin/account-config/:configType", requirePermiss
   const body: unknown = await c.req.json();
   const data = createConfigItemSchema.parse(body);
   const db = c.get("db");
-  const table = configTableMap[configType];
+  const table = getConfigTable(configType);
   const now = new Date().toISOString();
 
   const item = {
@@ -88,7 +131,7 @@ accountConfigRoutes.patch("/api/admin/account-config/:configType/:id", requirePe
   const body: unknown = await c.req.json();
   const data = updateConfigItemSchema.parse(body);
   const db = c.get("db");
-  const table = configTableMap[configType];
+  const table = getConfigTable(configType);
   const id = c.req.param("id");
 
   await db.update(table).set({ name: data.name }).where(eq(table.id, id));
@@ -104,7 +147,7 @@ accountConfigRoutes.delete("/api/admin/account-config/:configType/:id", requireP
   }
 
   const db = c.get("db");
-  const table = configTableMap[configType];
+  const table = getConfigTable(configType);
   const id = c.req.param("id");
 
   await db.delete(table).where(eq(table.id, id));

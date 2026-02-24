@@ -15,7 +15,7 @@ auditLogRoutes.get("/api/audit-log", requirePermission("viewRecords"), async (c)
   const entityType = c.req.query("entityType");
   const entityId = c.req.query("entityId");
 
-  if (!entityType || !entityId) {
+  if (entityType === undefined || entityType === "" || entityId === undefined || entityId === "") {
     throw badRequest(ERROR_CODES.VALIDATION_FAILED, "entityType and entityId are required");
   }
 
@@ -25,7 +25,8 @@ auditLogRoutes.get("/api/audit-log", requirePermission("viewRecords"), async (c)
 
 // POST /api/audit-log/:id/undo
 auditLogRoutes.post("/api/audit-log/:id/undo", requirePermission("createEditRecords"), async (c) => {
-  const session = c.get("session")!;
+  const session = c.get("session");
+  if (session === null) return c.json({ error: "Unauthorized" }, 401);
   const result = await undoAuditEntry(c.get("db"), c.req.param("id"), session.colleagueId);
   return c.json({ data: result });
 });

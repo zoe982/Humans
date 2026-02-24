@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { isRedirect, Redirect } from "@sveltejs/kit";
-import { mockEvent, createMockFetch, mockConfigItem } from "../../../helpers";
+import { mockEvent, createMockFetch, mockConfigItem, mockBatchConfigResponse } from "../../../helpers";
 import { load } from "../../../../src/routes/emails/[id]/+page.server";
 
 const sampleEmail = { id: "e1", email: "jane@example.com", labelId: "lbl1" };
@@ -16,9 +16,11 @@ describe("emails/[id] +page.server load", () => {
 
   beforeEach(() => {
     mockFetch = createMockFetch({
+      "account-config/batch": mockBatchConfigResponse({
+        "human-email-labels": [mockConfigItem({ id: "lbl1", name: "Work" })],
+        "account-email-labels": [mockConfigItem({ id: "albl1", name: "Billing" })],
+      }),
       "/api/emails/e1": { body: { data: sampleEmail } },
-      "/api/admin/account-config/human-email-labels": { body: { data: [mockConfigItem({ id: "lbl1", name: "Work" })] } },
-      "/api/admin/account-config/account-email-labels": { body: { data: [mockConfigItem({ id: "albl1", name: "Billing" })] } },
       "/api/humans": { body: { data: [{ id: "h1", firstName: "Jane" }] } },
       "/api/accounts": { body: { data: [{ id: "acc1", name: "Acme" }] } },
     });
@@ -83,9 +85,8 @@ describe("emails/[id] +page.server load", () => {
 
   it("returns empty arrays when secondary APIs fail", async () => {
     mockFetch = createMockFetch({
+      "account-config/batch": { status: 500, body: { error: "fail" } },
       "/api/emails/e1": { body: { data: sampleEmail } },
-      "/api/admin/account-config/human-email-labels": { status: 500, body: { error: "fail" } },
-      "/api/admin/account-config/account-email-labels": { status: 500, body: { error: "fail" } },
       "/api/humans": { status: 500, body: { error: "fail" } },
       "/api/accounts": { status: 500, body: { error: "fail" } },
     });

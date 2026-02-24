@@ -21,8 +21,10 @@ activityRoutes.use("/*", authMiddleware);
 
 // List activities with optional filters (paginated)
 activityRoutes.get("/api/activities", requirePermission("viewRecords"), async (c) => {
-  const page = Math.max(1, Number(c.req.query("page")) || 1);
-  const limit = Math.min(100, Math.max(1, Number(c.req.query("limit")) || 25));
+  const rawPage = Number(c.req.query("page"));
+  const rawLimit = Number(c.req.query("limit"));
+  const page = Math.max(1, rawPage !== 0 ? rawPage : 1);
+  const limit = Math.min(100, Math.max(1, rawLimit !== 0 ? rawLimit : 25));
 
   const result = await listActivities(c.get("db"), {
     humanId: c.req.query("humanId"),
@@ -42,7 +44,8 @@ activityRoutes.get("/api/activities", requirePermission("viewRecords"), async (c
 
 // Daily activity counts for the past N days (default 30, max 90)
 activityRoutes.get("/api/activities/daily-counts", requirePermission("viewRecords"), async (c) => {
-  const rawDays = Number(c.req.query("days")) || 30;
+  const parsedDays = Number(c.req.query("days"));
+  const rawDays = parsedDays !== 0 ? parsedDays : 30;
   const days = Math.min(90, Math.max(1, rawDays));
 
   // Calculate the start date (inclusive) as an ISO date string
@@ -65,7 +68,7 @@ activityRoutes.get("/api/activities/daily-counts", requirePermission("viewRecord
 
   // Build a lookup from the query results
   const countByDate = new Map<string, number>(
-    rows.map((r) => [r.date, Number(r.count)]),
+    rows.map((r) => [r.date, r.count]),
   );
 
   // Fill every day in the window with 0 if no row returned for that date
@@ -90,7 +93,8 @@ activityRoutes.get("/api/activities/:id", requirePermission("viewRecords"), asyn
 activityRoutes.post("/api/activities", requirePermission("createEditRecords"), async (c) => {
   const body: unknown = await c.req.json();
   const data = createActivitySchema.parse(body);
-  const session = c.get("session")!;
+  const session = c.get("session");
+  if (session === null) return c.json({ error: "Unauthorized" }, 401);
   const result = await createActivity(c.get("db"), data, session.colleagueId);
   return c.json({ data: result }, 201);
 });

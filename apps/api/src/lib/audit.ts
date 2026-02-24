@@ -14,19 +14,21 @@ export function computeDiff(
   oldValues: Record<string, unknown>,
   newValues: Record<string, unknown>,
 ): Record<string, FieldDiff> | null {
-  const diff: Record<string, FieldDiff> = {};
+  const oldMap = new Map(Object.entries(oldValues));
+  const newMap = new Map(Object.entries(newValues));
+  const entries: [string, FieldDiff][] = [];
 
-  for (const key of Object.keys(newValues)) {
-    const oldVal = oldValues[key];
-    const newVal = newValues[key];
+  for (const [key, newVal] of newMap) {
+    const oldVal = oldMap.get(key);
     const oldStr = JSON.stringify(oldVal ?? null);
     const newStr = JSON.stringify(newVal ?? null);
     if (oldStr !== newStr) {
-      diff[key] = { old: oldVal ?? null, new: newVal ?? null };
+      entries.push([key, { old: oldVal ?? null, new: newVal ?? null }]);
     }
   }
 
-  return Object.keys(diff).length > 0 ? diff : null;
+  if (entries.length === 0) return null;
+  return Object.fromEntries<FieldDiff>(entries);
 }
 
 export async function logAuditEntry({

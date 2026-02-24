@@ -74,6 +74,14 @@ export function mockConfigItem(overrides: { id?: string; name?: string } = {}) {
 }
 
 /**
+ * Creates a mock batch config response matching the batch endpoint shape.
+ * Pass a map of config type → array of config items.
+ */
+export function mockBatchConfigResponse(configs: Record<string, unknown[]>): { status: number; body: { data: Record<string, unknown[]> } } {
+  return { status: 200, body: { data: configs } };
+}
+
+/**
  * Helper to create a mock fetch that returns different responses for different URL patterns.
  */
 export function createMockFetch(responses: Record<string, { status?: number; body?: unknown }>) {

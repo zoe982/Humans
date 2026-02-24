@@ -15,8 +15,8 @@ interface HubEnv {
  * but WebSocket connections stay alive at the edge.
  */
 export class RealtimeHub implements DurableObject {
-  private state: DurableObjectState;
-  private env: HubEnv;
+  private readonly state: DurableObjectState;
+  private readonly env: HubEnv;
 
   constructor(state: DurableObjectState, env: HubEnv) {
     this.state = state;
@@ -33,7 +33,7 @@ export class RealtimeHub implements DurableObject {
 
     // Internal POST from notifyRealtime() to broadcast events
     if (request.method === "POST") {
-      const event = (await request.json()) as ChangeEvent;
+      const event = await request.json<ChangeEvent>();
       const message = JSON.stringify(event);
       for (const ws of this.state.getWebSockets()) {
         try {
@@ -50,12 +50,12 @@ export class RealtimeHub implements DurableObject {
 
   private async handleWebSocket(url: URL): Promise<Response> {
     const token = url.searchParams.get("token");
-    if (!token) {
+    if (token === null || token === "") {
       return new Response("Missing token", { status: 401 });
     }
 
     const session = await this.env.SESSIONS.get(`session:${token}`);
-    if (!session) {
+    if (session === null) {
       return new Response("Invalid session", { status: 401 });
     }
 
@@ -65,11 +65,11 @@ export class RealtimeHub implements DurableObject {
     return new Response(null, { status: 101, webSocket: pair[0] });
   }
 
-  async webSocketMessage() {
+  webSocketMessage(): void {
     // Clients don't send messages — ignore
   }
 
-  async webSocketClose() {
+  webSocketClose(): void {
     // No cleanup needed
   }
 }

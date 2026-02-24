@@ -23,7 +23,7 @@ import { nextDisplayId } from "../lib/display-id";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { DB } from "./types";
 
-export async function listAccounts(db: DB) {
+export async function listAccounts(db: DB): Promise<{ data: { id: string; displayId: string; name: string; status: string; createdAt: string; updatedAt: string; types: { id: string; name: string }[] }[] }> {
   const allAccounts = await db.select().from(accounts);
   const allTypes = await db.select().from(accountTypes);
   const allTypeConfigs = await db.select().from(accountTypesConfig);
@@ -123,7 +123,7 @@ export async function getAccountDetail(supabase: SupabaseClient, db: DB, id: str
     // Get activities for linked humans
     const allActivities = await db.select().from(activities);
     humanActivities = allActivities.filter(
-      (a) => a.humanId && humanIds.includes(a.humanId) && a.id !== undefined,
+      (a) => a.humanId != null && humanIds.includes(a.humanId),
     );
   }
 
@@ -134,11 +134,11 @@ export async function getAccountDetail(supabase: SupabaseClient, db: DB, id: str
 
   const linkedHumansWithDetails = linkedHumans.map((lh) => {
     const human = allHumans.find((h) => h.id === lh.humanId);
-    const label = lh.labelId ? humanLabelConfigs.find((l) => l.id === lh.labelId) : null;
+    const label = lh.labelId != null ? humanLabelConfigs.find((l) => l.id === lh.labelId) : null;
     return {
       ...lh,
       humanDisplayId: human?.displayId ?? null,
-      humanName: human ? `${human.firstName} ${human.lastName}` : "Unknown",
+      humanName: human != null ? `${human.firstName} ${human.lastName}` : "Unknown",
       humanStatus: human?.status ?? null,
       labelName: label?.name ?? null,
       emails: allHumanEmails.filter((e) => e.ownerType === "human" && e.ownerId === lh.humanId),
@@ -149,14 +149,14 @@ export async function getAccountDetail(supabase: SupabaseClient, db: DB, id: str
   const emailsWithLabels = accountEmails
     .filter((e) => e.ownerType === "account")
     .map((e) => {
-      const label = e.labelId ? emailLabelConfs.find((l) => l.id === e.labelId) : null;
+      const label = e.labelId != null ? emailLabelConfs.find((l) => l.id === e.labelId) : null;
       return { ...e, labelName: label?.name ?? null };
     });
 
   const phonesWithLabels = accountPhones
     .filter((p) => p.ownerType === "account")
     .map((p) => {
-      const label = p.labelId ? phoneLabelConfs.find((l) => l.id === p.labelId) : null;
+      const label = p.labelId != null ? phoneLabelConfs.find((l) => l.id === p.labelId) : null;
       return { ...p, labelName: label?.name ?? null };
     });
 
@@ -165,12 +165,12 @@ export async function getAccountDetail(supabase: SupabaseClient, db: DB, id: str
     const human = allHumans.find((h) => h.id === a.humanId);
     return {
       ...a,
-      viaHumanName: human ? `${human.firstName} ${human.lastName}` : "Unknown",
+      viaHumanName: human != null ? `${human.firstName} ${human.lastName}` : "Unknown",
     };
   });
 
   const socialIdsWithPlatforms = accountSocialIds.map((s) => {
-    const platform = s.platformId ? allPlatforms.find((p) => p.id === s.platformId) : null;
+    const platform = s.platformId != null ? allPlatforms.find((p) => p.id === s.platformId) : null;
     return { ...s, platformName: platform?.name ?? null };
   });
 
@@ -194,7 +194,7 @@ export async function getAccountDetail(supabase: SupabaseClient, db: DB, id: str
 export async function createAccount(
   db: DB,
   data: { name: string; status?: string; typeIds?: string[] },
-) {
+): Promise<{ id: string; displayId: string }> {
   const now = new Date().toISOString();
   const accountId = createId();
   const displayId = await nextDisplayId(db, "ACC");
@@ -208,7 +208,7 @@ export async function createAccount(
     updatedAt: now,
   });
 
-  if (data.typeIds && data.typeIds.length > 0) {
+  if (data.typeIds != null && data.typeIds.length > 0) {
     for (const typeId of data.typeIds) {
       await db.insert(accountTypes).values({
         id: createId(),
@@ -227,7 +227,7 @@ export async function updateAccount(
   id: string,
   data: { name?: string; typeIds?: string[] },
   colleagueId: string,
-) {
+): Promise<{ data: typeof accounts.$inferSelect | undefined; auditEntryId: string | undefined }> {
   const now = new Date().toISOString();
 
   const existing = await db.query.accounts.findFirst({
@@ -243,7 +243,7 @@ export async function updateAccount(
     name: existing.name,
   };
   if (data.typeIds !== undefined) {
-    oldValues["typeIds"] = existingTypeRows.map((t) => t.typeId).sort();
+    oldValues["typeIds"] = existingTypeRows.map((t) => t.typeId).sort((a, b) => a.localeCompare(b));
   }
 
   const updateFields: Record<string, unknown> = { updatedAt: now };
@@ -252,7 +252,7 @@ export async function updateAccount(
   await db.update(accounts).set(updateFields).where(eq(accounts.id, id));
 
   // Replace types if provided
-  if (data.typeIds) {
+  if (data.typeIds != null) {
     await db.delete(accountTypes).where(eq(accountTypes.accountId, id));
     for (const typeId of data.typeIds) {
       await db.insert(accountTypes).values({
@@ -267,11 +267,11 @@ export async function updateAccount(
   // Audit log
   const newValues: Record<string, unknown> = {};
   if (data.name !== undefined) newValues["name"] = data.name;
-  if (data.typeIds !== undefined) newValues["typeIds"] = [...data.typeIds].sort();
+  if (data.typeIds !== undefined) newValues["typeIds"] = [...data.typeIds].sort((a, b) => a.localeCompare(b));
 
   const diff = computeDiff(oldValues, newValues);
   let auditEntryId: string | undefined;
-  if (diff) {
+  if (diff != null) {
     auditEntryId = await logAuditEntry({
       db,
       colleagueId,
@@ -293,7 +293,7 @@ export async function updateAccountStatus(
   id: string,
   status: string,
   colleagueId: string,
-) {
+): Promise<{ id: string; status: string; auditEntryId: string | undefined }> {
   const existing = await db.query.accounts.findFirst({
     where: eq(accounts.id, id),
   });
@@ -311,7 +311,7 @@ export async function updateAccountStatus(
   let auditEntryId: string | undefined;
   if (oldStatus !== status) {
     const diff = computeDiff({ status: oldStatus }, { status });
-    if (diff) {
+    if (diff != null) {
       auditEntryId = await logAuditEntry({
         db,
         colleagueId,
@@ -326,7 +326,7 @@ export async function updateAccountStatus(
   return { id, status, auditEntryId };
 }
 
-export async function deleteAccount(supabase: SupabaseClient, db: DB, id: string) {
+export async function deleteAccount(supabase: SupabaseClient, db: DB, id: string): Promise<void> {
   const existing = await db.query.accounts.findFirst({
     where: eq(accounts.id, id),
   });
@@ -349,7 +349,7 @@ export async function addAccountEmail(
   db: DB,
   accountId: string,
   data: { email: string; labelId?: string | null; isPrimary?: boolean },
-) {
+): Promise<{ id: string; displayId: string; ownerType: "account"; ownerId: string; email: string; labelId: string | null; isPrimary: boolean; createdAt: string }> {
   const now = new Date().toISOString();
   const displayId = await nextDisplayId(db, "EML");
 
@@ -368,7 +368,7 @@ export async function addAccountEmail(
   return emailRecord;
 }
 
-export async function deleteAccountEmail(db: DB, emailId: string) {
+export async function deleteAccountEmail(db: DB, emailId: string): Promise<void> {
   await db.delete(emails).where(eq(emails.id, emailId));
 }
 
@@ -376,7 +376,7 @@ export async function addAccountPhone(
   db: DB,
   accountId: string,
   data: { phoneNumber: string; labelId?: string | null; hasWhatsapp?: boolean; isPrimary?: boolean },
-) {
+): Promise<{ id: string; displayId: string; ownerType: "account"; ownerId: string; phoneNumber: string; labelId: string | null; hasWhatsapp: boolean; isPrimary: boolean; createdAt: string }> {
   const now = new Date().toISOString();
   const displayId = await nextDisplayId(db, "FON");
 
@@ -396,7 +396,7 @@ export async function addAccountPhone(
   return phoneRecord;
 }
 
-export async function deleteAccountPhone(db: DB, phoneId: string) {
+export async function deleteAccountPhone(db: DB, phoneId: string): Promise<void> {
   await db.delete(phones).where(eq(phones.id, phoneId));
 }
 
@@ -404,7 +404,7 @@ export async function linkAccountHuman(
   db: DB,
   accountId: string,
   data: { humanId: string; labelId?: string | null },
-) {
+): Promise<{ id: string; accountId: string; humanId: string; labelId: string | null; createdAt: string }> {
   const now = new Date().toISOString();
 
   const link = {
@@ -423,13 +423,13 @@ export async function updateAccountHumanLabel(
   db: DB,
   linkId: string,
   labelId: string | null,
-) {
+): Promise<void> {
   await db
     .update(accountHumans)
     .set({ labelId: labelId ?? null })
     .where(eq(accountHumans.id, linkId));
 }
 
-export async function unlinkAccountHuman(db: DB, linkId: string) {
+export async function unlinkAccountHuman(db: DB, linkId: string): Promise<void> {
   await db.delete(accountHumans).where(eq(accountHumans.id, linkId));
 }

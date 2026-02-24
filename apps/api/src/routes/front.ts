@@ -23,21 +23,25 @@ frontRoutes.post(
   "/api/admin/front/sync",
   requirePermission("manageColleagues"),
   async (c) => {
-    const session = c.get("session")!;
+    const session = c.get("session");
+    if (session === null) return c.json({ error: "Unauthorized" }, 401);
     const db = c.get("db");
     const supabase = c.get("supabase");
     const frontToken = c.env.FRONT_API_TOKEN;
 
-    if (!frontToken) {
+    if (frontToken === "") {
       throw internal(
         ERROR_CODES.FRONT_SYNC_FAILED,
         "FRONT_API_TOKEN not configured",
       );
     }
 
-    const limit = Math.min(50, Math.max(1, Number(c.req.query("limit")) || 20));
-    const cursor = c.req.query("cursor") || undefined;
-    const syncRunId = c.req.query("syncRunId") || undefined;
+    const rawLimit = Number(c.req.query("limit"));
+    const limit = Math.min(50, Math.max(1, rawLimit !== 0 ? rawLimit : 20));
+    const rawCursor = c.req.query("cursor");
+    const cursor = rawCursor !== undefined && rawCursor !== "" ? rawCursor : undefined;
+    const rawSyncRunId = c.req.query("syncRunId");
+    const syncRunId = rawSyncRunId !== undefined && rawSyncRunId !== "" ? rawSyncRunId : undefined;
 
     try {
       const result = await syncFrontConversations(
@@ -73,7 +77,7 @@ frontRoutes.get(
   requirePermission("manageColleagues"),
   async (c) => {
     const data = await getSyncRun(c.get("db"), c.req.param("id"));
-    if (!data) {
+    if (data === null) {
       return c.json({ error: "Sync run not found" }, 404);
     }
     return c.json({ data });
@@ -86,7 +90,7 @@ frontRoutes.post(
   requirePermission("manageColleagues"),
   async (c) => {
     const result = await revertSyncRun(c.get("db"), c.req.param("id"));
-    if (result.error) {
+    if (result.error !== undefined && result.error !== "") {
       return c.json({ error: result.error }, 400);
     }
     return c.json({ data: result });
@@ -102,7 +106,7 @@ frontRoutes.get(
     const supabase = c.get("supabase");
     const frontToken = c.env.FRONT_API_TOKEN;
 
-    if (!frontToken) {
+    if (frontToken === "") {
       throw internal(
         ERROR_CODES.FRONT_SYNC_FAILED,
         "FRONT_API_TOKEN not configured",
@@ -136,14 +140,15 @@ frontRoutes.post(
     const db = c.get("db");
     const frontToken = c.env.FRONT_API_TOKEN;
 
-    if (!frontToken) {
+    if (frontToken === "") {
       throw internal(
         ERROR_CODES.FRONT_SYNC_FAILED,
         "FRONT_API_TOKEN not configured",
       );
     }
 
-    const cursor = c.req.query("cursor") || undefined;
+    const rawCursor = c.req.query("cursor");
+    const cursor = rawCursor !== undefined && rawCursor !== "" ? rawCursor : undefined;
 
     try {
       const result = await reclassifyActivities(db, frontToken, cursor);

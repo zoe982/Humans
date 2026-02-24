@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { isRedirect, Redirect, isActionFailure } from "@sveltejs/kit";
-import { mockEvent, createMockFetch } from "../../../helpers";
+import { mockEvent, createMockFetch, mockBatchConfigResponse } from "../../../helpers";
 import { load, actions } from "../../../../src/routes/admin/account-config/+page.server";
 
 describe("admin/account-config +page.server", () => {
@@ -37,12 +37,16 @@ describe("admin/account-config +page.server", () => {
 
     it("returns all config data on successful load", async () => {
       mockFetch = createMockFetch({
-        "account-types": { body: { data: [{ id: "1", name: "Vendor" }] } },
-        "account-human-labels": { body: { data: [{ id: "2", name: "Primary Contact" }] } },
-        "account-email-labels": { body: { data: [{ id: "3", name: "Work" }] } },
-        "account-phone-labels": { body: { data: [{ id: "4", name: "Office" }] } },
-        "human-email-labels": { body: { data: [{ id: "5", name: "Personal" }] } },
-        "human-phone-labels": { body: { data: [{ id: "6", name: "Mobile" }] } },
+        "account-config/batch": mockBatchConfigResponse({
+          "account-types": [{ id: "1", name: "Vendor" }],
+          "account-human-labels": [{ id: "2", name: "Primary Contact" }],
+          "account-email-labels": [{ id: "3", name: "Work" }],
+          "account-phone-labels": [{ id: "4", name: "Office" }],
+          "human-email-labels": [{ id: "5", name: "Personal" }],
+          "human-phone-labels": [{ id: "6", name: "Mobile" }],
+          "opportunity-human-roles": [],
+          "human-relationship-labels": [],
+        }),
       });
       vi.stubGlobal("fetch", mockFetch);
 
@@ -59,7 +63,7 @@ describe("admin/account-config +page.server", () => {
 
     it("returns empty arrays when API returns errors", async () => {
       mockFetch = createMockFetch({
-        "account-config": { status: 500, body: { error: "Internal error" } },
+        "account-config/batch": { status: 500, body: { error: "Internal error" } },
       });
       vi.stubGlobal("fetch", mockFetch);
 
@@ -76,7 +80,7 @@ describe("admin/account-config +page.server", () => {
 
     it("returns empty arrays when API returns non-list data", async () => {
       mockFetch = createMockFetch({
-        "account-config": { body: { message: "unexpected shape" } },
+        "account-config/batch": { body: { message: "unexpected shape" } },
       });
       vi.stubGlobal("fetch", mockFetch);
 

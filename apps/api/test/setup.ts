@@ -417,6 +417,21 @@ const MIGRATION_STATEMENTS = [
     \`created_at\` text NOT NULL
   )`,
 
+  // ── Human Relationships ──────────────────────────────────────────
+  `CREATE TABLE IF NOT EXISTS \`human_relationship_labels_config\` (
+    \`id\` text PRIMARY KEY NOT NULL,
+    \`name\` text NOT NULL,
+    \`created_at\` text NOT NULL
+  )`,
+  `CREATE TABLE IF NOT EXISTS \`human_relationships\` (
+    \`id\` text PRIMARY KEY NOT NULL,
+    \`display_id\` text NOT NULL,
+    \`human_id_1\` text NOT NULL REFERENCES \`humans\`(\`id\`),
+    \`human_id_2\` text NOT NULL REFERENCES \`humans\`(\`id\`),
+    \`label_id\` text REFERENCES \`human_relationship_labels_config\`(\`id\`),
+    \`created_at\` text NOT NULL
+  )`,
+
   // ── Indexes ───────────────────────────────────────────────────────
   `CREATE UNIQUE INDEX IF NOT EXISTS \`colleagues_email_unique\` ON \`colleagues\` (\`email\`)`,
   `CREATE UNIQUE INDEX IF NOT EXISTS \`colleagues_google_id_unique\` ON \`colleagues\` (\`google_id\`)`,
@@ -446,6 +461,8 @@ const MIGRATION_STATEMENTS = [
   `CREATE UNIQUE INDEX IF NOT EXISTS \`activity_opportunities_activity_opportunity_idx\` ON \`activity_opportunities\` (\`activity_id\`,\`opportunity_id\`)`,
   `CREATE INDEX IF NOT EXISTS \`activity_opportunities_activity_id_idx\` ON \`activity_opportunities\` (\`activity_id\`)`,
   `CREATE INDEX IF NOT EXISTS \`activity_opportunities_opportunity_id_idx\` ON \`activity_opportunities\` (\`opportunity_id\`)`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS \`human_relationship_labels_config_name_unique\` ON \`human_relationship_labels_config\` (\`name\`)`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS \`human_relationships_display_id_unique\` ON \`human_relationships\` (\`display_id\`)`,
   `CREATE INDEX IF NOT EXISTS \`referral_codes_human_id_idx\` ON \`referral_codes\` (\`human_id\`)`,
   `CREATE INDEX IF NOT EXISTS \`referral_codes_account_id_idx\` ON \`referral_codes\` (\`account_id\`)`,
   `CREATE INDEX IF NOT EXISTS \`websites_human_id_idx\` ON \`websites\` (\`human_id\`)`,
@@ -460,6 +477,7 @@ beforeAll(async () => {
 
 // Clean up between tests — children before parents (FK-safe deletion order)
 afterEach(async () => {
+  await env.DB.exec("DELETE FROM human_relationships");
   await env.DB.exec("DELETE FROM websites");
   await env.DB.exec("DELETE FROM referral_codes");
   await env.DB.exec("DELETE FROM route_interest_expressions");
@@ -489,6 +507,7 @@ afterEach(async () => {
   await env.DB.exec("DELETE FROM account_phone_labels_config");
   await env.DB.exec("DELETE FROM human_email_labels_config");
   await env.DB.exec("DELETE FROM human_phone_labels_config");
+  await env.DB.exec("DELETE FROM human_relationship_labels_config");
   await env.DB.exec("DELETE FROM account_human_labels_config");
   await env.DB.exec("DELETE FROM account_types_config");
   await env.DB.exec("DELETE FROM email_labels_config");

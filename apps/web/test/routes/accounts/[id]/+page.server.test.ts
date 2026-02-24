@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { isRedirect, isActionFailure } from "@sveltejs/kit";
-import { mockEvent, createMockFetch, mockConfigItem } from "../../../helpers";
+import { mockEvent, createMockFetch, mockConfigItem, mockBatchConfigResponse } from "../../../helpers";
 import { load, actions } from "../../../../src/routes/accounts/[id]/+page.server";
 
 const sampleAccount = {
@@ -22,11 +22,14 @@ describe("accounts/[id] load", () => {
 
   beforeEach(() => {
     mockFetch = createMockFetch({
+      "account-config/batch": mockBatchConfigResponse({
+        "account-types": [mockConfigItem({ id: "t-1", name: "Vendor" })],
+        "account-human-labels": [mockConfigItem({ id: "hl-1", name: "Owner" })],
+        "account-email-labels": [mockConfigItem({ id: "el-1", name: "Billing" })],
+        "account-phone-labels": [mockConfigItem({ id: "pl-1", name: "Office" })],
+        "social-id-platforms": [],
+      }),
       "/api/accounts/acc-1": { body: { data: sampleAccount } },
-      "/api/admin/account-config/account-types": { body: { data: [mockConfigItem({ id: "t-1", name: "Vendor" })] } },
-      "/api/admin/account-config/account-human-labels": { body: { data: [mockConfigItem({ id: "hl-1", name: "Owner" })] } },
-      "/api/admin/account-config/account-email-labels": { body: { data: [mockConfigItem({ id: "el-1", name: "Billing" })] } },
-      "/api/admin/account-config/account-phone-labels": { body: { data: [mockConfigItem({ id: "pl-1", name: "Office" })] } },
       "/api/humans": { body: { data: [{ id: "h-1", firstName: "Jane" }] } },
     });
     vi.stubGlobal("fetch", mockFetch);

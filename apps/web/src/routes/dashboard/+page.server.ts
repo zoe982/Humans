@@ -1,15 +1,12 @@
 import { redirect } from "@sveltejs/kit";
 import type { RequestEvent } from "@sveltejs/kit";
 import { PUBLIC_API_URL } from "$env/static/public";
+import { isListData } from "$lib/server/api";
 
 type PaginatedMeta = { meta: { page: number; limit: number; total: number } };
 
 function hasMeta(value: unknown): value is PaginatedMeta {
   return typeof value === "object" && value !== null && "meta" in value && typeof (value as { meta: unknown }).meta === "object";
-}
-
-function isListData(value: unknown): value is { data: unknown[] } {
-  return typeof value === "object" && value !== null && "data" in value && Array.isArray((value as { data: unknown }).data);
 }
 
 export const load = async ({ locals, cookies }: RequestEvent) => {
