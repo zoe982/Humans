@@ -54,13 +54,8 @@ routeSignupRoutes.get("/api/route-signups", requirePermission("viewRouteSignups"
   }
 
   // Fetch last activity dates from D1
-  type SignupRow = Record<string, unknown> & { id: string; lastActivityDate: string | null };
-  function toSignupRow(row: unknown): SignupRow {
-    const r = row as Record<string, unknown>;
-    return { ...r, id: String(r["id"] ?? ""), lastActivityDate: null };
-  }
-  let enriched: SignupRow[] = data.map(toSignupRow);
-  const signupIds = enriched.map((s) => s.id);
+  const signupIds = data.map((s: { id: string }) => s.id);
+  let enriched = data;
   if (signupIds.length > 0) {
     const db = c.get("db");
     const lastDates = await db
@@ -73,7 +68,7 @@ routeSignupRoutes.get("/api/route-signups", requirePermission("viewRouteSignups"
       .groupBy(activities.routeSignupId);
 
     const dateMap = new Map(lastDates.map((r) => [r.routeSignupId, r.lastActivityDate]));
-    enriched = enriched.map((s) => ({
+    enriched = data.map((s: { id: string }) => ({
       ...s,
       lastActivityDate: dateMap.get(s.id) ?? null,
     }));
