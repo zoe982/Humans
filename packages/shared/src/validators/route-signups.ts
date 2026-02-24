@@ -5,6 +5,7 @@ export const routeSignupStatuses = [
   "qualified",
   "closed_converted",
   "closed_rejected",
+  "closed_no_response",
 ] as const;
 
 export type RouteSignupStatus = (typeof routeSignupStatuses)[number];

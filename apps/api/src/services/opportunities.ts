@@ -1,4 +1,4 @@
-import { eq, sql, like, or, and, desc, asc, inArray, isNull, isNotNull } from "drizzle-orm";
+import { eq, sql, like, or, and, desc, asc, inArray, isNull } from "drizzle-orm";
 import {
   opportunities,
   opportunityHumans,
@@ -26,27 +26,26 @@ export async function listOpportunities(
   page: number,
   limit: number,
   filters: { q?: string; stage?: string; ownerId?: string; dealOwnerId?: string; overdueOnly?: boolean; humanId?: string },
-) {
+): Promise<{ data: { primaryHuman: { id: string; displayId: string; firstName: string; lastName: string } | null; primaryHumanName: string | null; nextActionOwnerName: string | null; ownerName: string | null; ownerDisplayId: string | null; isOverdue: boolean; id: string; displayId: string; stage: string; seatsRequested: number; passengerSeats: number; petSeats: number; lossReason: string | null; ownerId: string | null; nextActionOwnerId: string | null; nextActionDescription: string | null; nextActionType: string | null; nextActionStartDate: string | null; nextActionDueDate: string | null; nextActionCompletedAt: string | null; nextActionCadenceNote: string | null; flightId: string | null; notes: string | null; createdAt: string; updatedAt: string }[]; meta: { page: number; limit: number; total: number } }> {
   const offset = (page - 1) * limit;
   const conditions: ReturnType<typeof eq>[] = [];
 
-  if (filters.stage) conditions.push(eq(opportunities.stage, filters.stage));
-  if (filters.ownerId) conditions.push(eq(opportunities.nextActionOwnerId, filters.ownerId));
-  if (filters.dealOwnerId) conditions.push(eq(opportunities.ownerId, filters.dealOwnerId));
-  if (filters.overdueOnly) {
+  if (filters.stage != null) conditions.push(eq(opportunities.stage, filters.stage));
+  if (filters.ownerId != null) conditions.push(eq(opportunities.nextActionOwnerId, filters.ownerId));
+  if (filters.dealOwnerId != null) conditions.push(eq(opportunities.ownerId, filters.dealOwnerId));
+  if (filters.overdueOnly != null && filters.overdueOnly) {
     const now = new Date().toISOString();
     conditions.push(sql`${opportunities.nextActionDueDate} < ${now}`);
     conditions.push(isNull(opportunities.nextActionCompletedAt));
   }
-  if (filters.q) {
-    conditions.push(
-      or(
-        like(opportunities.displayId, `%${filters.q}%`),
-        like(opportunities.nextActionDescription, `%${filters.q}%`),
-      )!,
+  if (filters.q != null) {
+    const orCondition = or(
+      like(opportunities.displayId, `%${filters.q}%`),
+      like(opportunities.nextActionDescription, `%${filters.q}%`),
     );
+    if (orCondition != null) conditions.push(orCondition);
   }
-  if (filters.humanId) {
+  if (filters.humanId != null) {
     conditions.push(
       sql`${opportunities.id} IN (SELECT ${opportunityHumans.opportunityId} FROM ${opportunityHumans} WHERE ${opportunityHumans.humanId} = ${filters.humanId})`,
     );
@@ -104,14 +103,14 @@ export async function listOpportunities(
   const data = rows.map((opp) => {
     const oppHumans = linkedHumans.filter((h) => h.opportunityId === opp.id);
     const primary = oppHumans.find((h) => h.roleId === primaryRoleId) ?? oppHumans[0] ?? null;
-    const naOwner = opp.nextActionOwnerId ? naOwners.find((o) => o.id === opp.nextActionOwnerId) : null;
-    const dealOwner = opp.ownerId ? dealOwners.find((o) => o.id === opp.ownerId) : null;
+    const naOwner = opp.nextActionOwnerId != null ? naOwners.find((o) => o.id === opp.nextActionOwnerId) : null;
+    const dealOwner = opp.ownerId != null ? dealOwners.find((o) => o.id === opp.ownerId) : null;
     const isOverdue = opp.nextActionDueDate != null && opp.nextActionCompletedAt == null && opp.nextActionDueDate < now;
 
     return {
       ...opp,
-      primaryHuman: primary ? { id: primary.humanId, displayId: primary.displayId, firstName: primary.firstName, lastName: primary.lastName } : null,
-      primaryHumanName: primary ? `${primary.firstName} ${primary.lastName}` : null,
+      primaryHuman: primary != null ? { id: primary.humanId, displayId: primary.displayId, firstName: primary.firstName, lastName: primary.lastName } : null,
+      primaryHumanName: primary != null ? `${primary.firstName} ${primary.lastName}` : null,
       nextActionOwnerName: naOwner?.name ?? null,
       ownerName: dealOwner?.name ?? null,
       ownerDisplayId: dealOwner?.displayId ?? null,
@@ -124,7 +123,7 @@ export async function listOpportunities(
 
 // ─── Detail ──────────────────────────────────────────────────────
 
-export async function getOpportunityDetail(db: DB, id: string) {
+export async function getOpportunityDetail(db: DB, id: string): Promise<{ linkedHumans: { humanName: string; humanDisplayId: string; roleName: string | null; id: string; humanId: string; roleId: string | null; createdAt: string; displayId: string; firstName: string; lastName: string }[]; linkedPets: { petName: string; petDisplayId: string; petType: string; ownerName: string | null; id: string; petId: string; createdAt: string; name: string | null; displayId: string; type: string; humanId: string | null }[]; linkedBookingRequests: (typeof humanWebsiteBookingRequests.$inferSelect)[]; activities: (typeof activities.$inferSelect)[]; nextActionOwnerName: string | null; ownerName: string | null; ownerDisplayId: string | null; isOverdue: boolean; id: string; displayId: string; stage: string; seatsRequested: number; passengerSeats: number; petSeats: number; lossReason: string | null; ownerId: string | null; nextActionOwnerId: string | null; nextActionDescription: string | null; nextActionType: string | null; nextActionStartDate: string | null; nextActionDueDate: string | null; nextActionCompletedAt: string | null; nextActionCadenceNote: string | null; flightId: string | null; notes: string | null; createdAt: string; updatedAt: string }> {
   const opp = await db.query.opportunities.findFirst({
     where: eq(opportunities.id, id),
   });
@@ -165,7 +164,7 @@ export async function getOpportunityDetail(db: DB, id: string) {
   ]);
 
   const linkedHumans = linkedHumanRows.map((h) => {
-    const role = h.roleId ? roleConfigs.find((r) => r.id === h.roleId) : null;
+    const role = h.roleId != null ? roleConfigs.find((r) => r.id === h.roleId) : null;
     return {
       ...h,
       humanName: `${h.firstName} ${h.lastName}`,
@@ -181,13 +180,13 @@ export async function getOpportunityDetail(db: DB, id: string) {
       petName: p.name ?? p.displayId,
       petDisplayId: p.displayId,
       petType: p.type,
-      ownerName: ownerHuman ? `${ownerHuman.firstName} ${ownerHuman.lastName}` : null,
+      ownerName: ownerHuman != null ? `${ownerHuman.firstName} ${ownerHuman.lastName}` : null,
     };
   });
 
   // NA Owner name
   let nextActionOwnerName: string | null = null;
-  if (opp.nextActionOwnerId) {
+  if (opp.nextActionOwnerId != null) {
     const owner = await db.query.colleagues.findFirst({
       where: eq(colleagues.id, opp.nextActionOwnerId),
     });
@@ -197,7 +196,7 @@ export async function getOpportunityDetail(db: DB, id: string) {
   // Deal owner name + displayId
   let ownerName: string | null = null;
   let ownerDisplayId: string | null = null;
-  if (opp.ownerId) {
+  if (opp.ownerId != null) {
     const dealOwner = await db.query.colleagues.findFirst({
       where: eq(colleagues.id, opp.ownerId),
     });
@@ -233,7 +232,7 @@ export async function createOpportunity(
   db: DB,
   data: { stage?: string; seatsRequested?: number; passengerSeats?: number; petSeats?: number; lossReason?: string },
   colleagueId: string,
-) {
+): Promise<{ id: string; displayId: string }> {
   const now = new Date().toISOString();
   const id = createId();
   const displayId = await nextDisplayId(db, "OPP");
@@ -271,7 +270,7 @@ export async function updateOpportunity(
   id: string,
   data: { seatsRequested?: number; passengerSeats?: number; petSeats?: number; notes?: string | null; lossReason?: string | null; flightId?: string | null; ownerId?: string | null },
   colleagueId: string,
-) {
+): Promise<{ data: typeof opportunities.$inferSelect | undefined; auditEntryId: string | undefined }> {
   const existing = await db.query.opportunities.findFirst({
     where: eq(opportunities.id, id),
   });
@@ -324,7 +323,7 @@ export async function updateOpportunity(
 
   const diff = computeDiff(oldValues, newValues);
   let auditEntryId: string | undefined;
-  if (diff) {
+  if (diff != null) {
     auditEntryId = await logAuditEntry({
       db,
       colleagueId,
@@ -343,7 +342,7 @@ export async function updateOpportunity(
 
 // ─── Delete ──────────────────────────────────────────────────────
 
-export async function deleteOpportunity(db: DB, id: string) {
+export async function deleteOpportunity(db: DB, id: string): Promise<void> {
   const existing = await db.query.opportunities.findFirst({
     where: eq(opportunities.id, id),
   });
@@ -364,7 +363,7 @@ export async function updateOpportunityStage(
   id: string,
   data: { stage: string; lossReason?: string },
   colleagueId: string,
-) {
+): Promise<{ data: typeof opportunities.$inferSelect | undefined; auditEntryId: string | undefined }> {
   const existing = await db.query.opportunities.findFirst({
     where: eq(opportunities.id, id),
   });
@@ -377,7 +376,7 @@ export async function updateOpportunityStage(
 
   // Guardrails
   if (data.stage === "closed_lost") {
-    if (!data.lossReason || data.lossReason.trim() === "") {
+    if (data.lossReason == null || data.lossReason.trim() === "") {
       throw badRequest(ERROR_CODES.OPPORTUNITY_LOSS_REASON_REQUIRED, "Loss reason is required for closed_lost");
     }
     updateFields["lossReason"] = data.lossReason;
@@ -391,7 +390,7 @@ export async function updateOpportunityStage(
     updateFields["nextActionCadenceNote"] = null;
   } else if (data.stage === "closed_flown") {
     // Auto-complete next action if present
-    if (existing.nextActionDescription && !existing.nextActionCompletedAt) {
+    if (existing.nextActionDescription != null && existing.nextActionCompletedAt == null) {
       updateFields["nextActionCompletedAt"] = now;
 
       // Create activity from next action
@@ -399,7 +398,14 @@ export async function updateOpportunityStage(
       await db.insert(activities).values({
         id: createId(),
         displayId: actDisplayId,
-        type: (existing.nextActionType as "email") ?? "email",
+        type: (() => {
+          const validActivityTypes = ["email", "whatsapp_message", "online_meeting", "phone_call", "social_message"] as const;
+          type ValidActivityType = typeof validActivityTypes[number];
+          const t = existing.nextActionType;
+          const isValid = (v: string | null): v is ValidActivityType =>
+            v != null && (validActivityTypes as readonly string[]).includes(v);
+          return isValid(t) ? t : "email";
+        })(),
         subject: `[Auto] ${existing.nextActionDescription}`,
         activityDate: now,
         opportunityId: id,
@@ -422,7 +428,7 @@ export async function updateOpportunityStage(
 
   const diff = computeDiff({ stage: existing.stage }, { stage: data.stage });
   let auditEntryId: string | undefined;
-  if (diff) {
+  if (diff != null) {
     auditEntryId = await logAuditEntry({
       db,
       colleagueId,
@@ -445,7 +451,7 @@ export async function linkOpportunityHuman(
   db: DB,
   oppId: string,
   data: { humanId: string; roleId?: string },
-) {
+): Promise<{ id: string; opportunityId: string; humanId: string; roleId: string | null; createdAt: string }> {
   const opp = await db.query.opportunities.findFirst({
     where: eq(opportunities.id, oppId),
   });
@@ -471,7 +477,7 @@ export async function linkOpportunityHuman(
   // If setting as primary, demote existing primary
   if (roleId === primaryRoleId) {
     const currentPrimary = existingLinks.find((l) => l.roleId === primaryRoleId);
-    if (currentPrimary) {
+    if (currentPrimary != null) {
       await db.update(opportunityHumans).set({ roleId: passengerRoleId }).where(eq(opportunityHumans.id, currentPrimary.id));
     }
   }
@@ -491,7 +497,7 @@ export async function updateOpportunityHumanRole(
   db: DB,
   linkId: string,
   data: { roleId: string },
-) {
+): Promise<{ id: string; roleId: string }> {
   const link = await db.query.opportunityHumans.findFirst({
     where: eq(opportunityHumans.id, linkId),
   });
@@ -507,7 +513,7 @@ export async function updateOpportunityHumanRole(
   if (data.roleId === primaryRoleId) {
     const existingLinks = await db.select().from(opportunityHumans).where(eq(opportunityHumans.opportunityId, link.opportunityId));
     const currentPrimary = existingLinks.find((l) => l.roleId === primaryRoleId && l.id !== linkId);
-    if (currentPrimary) {
+    if (currentPrimary != null) {
       await db.update(opportunityHumans).set({ roleId: passengerRoleId }).where(eq(opportunityHumans.id, currentPrimary.id));
     }
   }
@@ -516,7 +522,7 @@ export async function updateOpportunityHumanRole(
   return { id: linkId, roleId: data.roleId };
 }
 
-export async function unlinkOpportunityHuman(db: DB, linkId: string) {
+export async function unlinkOpportunityHuman(db: DB, linkId: string): Promise<void> {
   const link = await db.query.opportunityHumans.findFirst({
     where: eq(opportunityHumans.id, linkId),
   });
@@ -532,7 +538,7 @@ export async function unlinkOpportunityHuman(db: DB, linkId: string) {
     const opp = await db.query.opportunities.findFirst({
       where: eq(opportunities.id, link.opportunityId),
     });
-    if (opp && !TERMINAL_STAGES.includes(opp.stage)) {
+    if (opp != null && !TERMINAL_STAGES.includes(opp.stage)) {
       // Check if there are other humans
       const otherLinks = await db.select().from(opportunityHumans).where(
         and(eq(opportunityHumans.opportunityId, link.opportunityId), sql`${opportunityHumans.id} != ${linkId}`),
@@ -552,7 +558,7 @@ export async function linkOpportunityPet(
   db: DB,
   oppId: string,
   data: { petId: string },
-) {
+): Promise<{ id: string; opportunityId: string; petId: string; createdAt: string }> {
   const opp = await db.query.opportunities.findFirst({
     where: eq(opportunities.id, oppId),
   });
@@ -568,7 +574,7 @@ export async function linkOpportunityPet(
     throw notFound(ERROR_CODES.PET_NOT_FOUND, "Pet not found");
   }
 
-  if (pet.humanId) {
+  if (pet.humanId != null) {
     const ownerLinked = await db.query.opportunityHumans.findFirst({
       where: and(eq(opportunityHumans.opportunityId, oppId), eq(opportunityHumans.humanId, pet.humanId)),
     });
@@ -587,7 +593,7 @@ export async function linkOpportunityPet(
   return link;
 }
 
-export async function unlinkOpportunityPet(db: DB, linkId: string) {
+export async function unlinkOpportunityPet(db: DB, linkId: string): Promise<void> {
   const link = await db.query.opportunityPets.findFirst({
     where: eq(opportunityPets.id, linkId),
   });
@@ -604,7 +610,7 @@ export async function updateNextAction(
   id: string,
   data: { ownerId: string; description: string; type: string; dueDate: string; cadenceNote?: string | null },
   colleagueId: string,
-) {
+): Promise<{ data: typeof opportunities.$inferSelect | undefined; auditEntryId: string | undefined }> {
   const existing = await db.query.opportunities.findFirst({
     where: eq(opportunities.id, id),
   });
@@ -628,7 +634,7 @@ export async function updateNextAction(
     { nextActionDescription: data.description, nextActionType: data.type, nextActionDueDate: data.dueDate, nextActionCadenceNote: data.cadenceNote ?? null },
   );
   let auditEntryId: string | undefined;
-  if (diff) {
+  if (diff != null) {
     auditEntryId = await logAuditEntry({
       db,
       colleagueId,
@@ -647,7 +653,7 @@ export async function updateNextAction(
 
 // ─── Link/Unlink Flight ─────────────────────────────────────────
 
-export async function linkOpportunityFlight(db: DB, id: string, flightId: string, colleagueId: string) {
+export async function linkOpportunityFlight(db: DB, id: string, flightId: string, colleagueId: string): Promise<{ data: typeof opportunities.$inferSelect | undefined }> {
   const existing = await db.query.opportunities.findFirst({
     where: eq(opportunities.id, id),
   });
@@ -659,7 +665,7 @@ export async function linkOpportunityFlight(db: DB, id: string, flightId: string
   await db.update(opportunities).set({ flightId, updatedAt: now }).where(eq(opportunities.id, id));
 
   const diff = computeDiff({ flightId: existing.flightId }, { flightId });
-  if (diff) {
+  if (diff != null) {
     await logAuditEntry({
       db,
       colleagueId,
@@ -676,7 +682,7 @@ export async function linkOpportunityFlight(db: DB, id: string, flightId: string
   return { data: updated };
 }
 
-export async function unlinkOpportunityFlight(db: DB, id: string, colleagueId: string) {
+export async function unlinkOpportunityFlight(db: DB, id: string, colleagueId: string): Promise<{ data: typeof opportunities.$inferSelect | undefined }> {
   const existing = await db.query.opportunities.findFirst({
     where: eq(opportunities.id, id),
   });
@@ -688,7 +694,7 @@ export async function unlinkOpportunityFlight(db: DB, id: string, colleagueId: s
   await db.update(opportunities).set({ flightId: null, updatedAt: now }).where(eq(opportunities.id, id));
 
   const diff = computeDiff({ flightId: existing.flightId }, { flightId: null });
-  if (diff) {
+  if (diff != null) {
     await logAuditEntry({
       db,
       colleagueId,
@@ -707,7 +713,7 @@ export async function unlinkOpportunityFlight(db: DB, id: string, colleagueId: s
 
 // ─── Link/Unlink Booking Requests ────────────────────────────────
 
-export async function getOpportunityBookingRequests(db: DB, oppId: string) {
+export async function getOpportunityBookingRequests(db: DB, oppId: string): Promise<{ linked: (typeof humanWebsiteBookingRequests.$inferSelect)[]; available: (typeof humanWebsiteBookingRequests.$inferSelect)[] }> {
   const opp = await db.query.opportunities.findFirst({
     where: eq(opportunities.id, oppId),
   });
@@ -744,7 +750,7 @@ export async function getOpportunityBookingRequests(db: DB, oppId: string) {
   return { linked, available };
 }
 
-export async function linkBookingRequest(db: DB, oppId: string, bookingRequestLinkId: string) {
+export async function linkBookingRequest(db: DB, oppId: string, bookingRequestLinkId: string): Promise<{ success: true }> {
   const opp = await db.query.opportunities.findFirst({
     where: eq(opportunities.id, oppId),
   });
@@ -767,7 +773,7 @@ export async function linkBookingRequest(db: DB, oppId: string, bookingRequestLi
   return { success: true };
 }
 
-export async function unlinkBookingRequest(db: DB, oppId: string, bookingRequestLinkId: string) {
+export async function unlinkBookingRequest(db: DB, oppId: string, bookingRequestLinkId: string): Promise<{ success: true }> {
   const br = await db.query.humanWebsiteBookingRequests.findFirst({
     where: and(
       eq(humanWebsiteBookingRequests.id, bookingRequestLinkId),
@@ -786,7 +792,7 @@ export async function unlinkBookingRequest(db: DB, oppId: string, bookingRequest
   return { success: true };
 }
 
-export async function completeNextAction(db: DB, id: string, colleagueId: string) {
+export async function completeNextAction(db: DB, id: string, colleagueId: string): Promise<{ data: typeof opportunities.$inferSelect | undefined }> {
   const existing = await db.query.opportunities.findFirst({
     where: eq(opportunities.id, id),
   });
@@ -794,7 +800,7 @@ export async function completeNextAction(db: DB, id: string, colleagueId: string
     throw notFound(ERROR_CODES.OPPORTUNITY_NOT_FOUND, "Opportunity not found");
   }
 
-  if (!existing.nextActionDescription) {
+  if (existing.nextActionDescription == null) {
     throw badRequest(ERROR_CODES.OPPORTUNITY_NEXT_ACTION_REQUIRED, "No next action to complete");
   }
 

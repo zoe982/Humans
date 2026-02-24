@@ -40,6 +40,22 @@ export async function getAuditEntries(db: DB, entityType: string, entityId: stri
   return entries;
 }
 
+function isFieldDiff(value: unknown): value is FieldDiff {
+  return (
+    value !== null &&
+    typeof value === "object" &&
+    "old" in value &&
+    "new" in value
+  );
+}
+
+function isFieldDiffRecord(value: unknown): value is Record<string, FieldDiff> {
+  if (value === null || typeof value !== "object" || Array.isArray(value)) {
+    return false;
+  }
+  return Object.values(value).every(isFieldDiff);
+}
+
 export async function undoAuditEntry(db: DB, entryId: string, colleagueId: string): Promise<{ undoEntryId: string }> {
   const entry = await db.query.auditLog.findFirst({
     where: eq(auditLog.id, entryId),
@@ -49,7 +65,10 @@ export async function undoAuditEntry(db: DB, entryId: string, colleagueId: strin
     throw notFound(ERROR_CODES.AUDIT_ENTRY_NOT_FOUND, "Audit entry not found");
   }
 
-  const changes = entry.changes as Record<string, FieldDiff> | null;
+  const rawChanges: unknown = entry.changes;
+  const changes: Record<string, FieldDiff> | null = isFieldDiffRecord(rawChanges)
+    ? rawChanges
+    : null;
   if (changes == null) {
     throw badRequest(ERROR_CODES.NO_CHANGES_TO_UNDO, "No changes to undo");
   }
@@ -81,8 +100,9 @@ export async function undoAuditEntry(db: DB, entryId: string, colleagueId: strin
       await db.delete(humanTypes).where(eq(humanTypes.humanId, entry.entityId));
       for (const type of typeArray) {
         const validHumanTypes: HumanType[] = ["client", "trainer", "travel_agent", "flight_broker"];
-        const humanType = validHumanTypes.includes(type as HumanType) ? (type as HumanType) : null;
-        if (humanType == null) continue;
+        const isHumanType = (v: string): v is HumanType => (validHumanTypes as string[]).includes(v);
+        if (!isHumanType(type)) continue;
+        const humanType = type;
         await db.insert(humanTypes).values({
           id: createId(),
           humanId: entry.entityId,

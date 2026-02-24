@@ -16,7 +16,7 @@ import type { DB } from "./types";
 // Route interests
 // ---------------------------------------------------------------------------
 
-export async function listRouteInterests(db: DB) {
+export async function listRouteInterests(db: DB): Promise<{ humanCount: number; expressionCount: number; id: string; displayId: string; originCity: string; originCountry: string; destinationCity: string; destinationCountry: string; createdAt: string; updatedAt: string }[]> {
   const allRouteInterests = await db.select().from(routeInterests);
   const allExpressions = await db.select().from(routeInterestExpressions);
 
@@ -31,7 +31,7 @@ export async function listRouteInterests(db: DB) {
   });
 }
 
-export async function getRouteInterestDetail(db: DB, id: string) {
+export async function getRouteInterestDetail(db: DB, id: string): Promise<{ expressions: { humanName: string | null; activitySubject: string | null; id: string; displayId: string; humanId: string; routeInterestId: string; activityId: string | null; frequency: string; travelYear: number | null; travelMonth: number | null; travelDay: number | null; notes: string | null; createdAt: string }[]; id: string; displayId: string; originCity: string; originCountry: string; destinationCity: string; destinationCountry: string; createdAt: string; updatedAt: string }> {
   const routeInterest = await db.query.routeInterests.findFirst({
     where: eq(routeInterests.id, id),
   });
@@ -49,10 +49,10 @@ export async function getRouteInterestDetail(db: DB, id: string) {
 
   const expressionsWithDetails = expressions.map((expr) => {
     const human = allHumans.find((h) => h.id === expr.humanId);
-    const activity = expr.activityId ? allActivities.find((a) => a.id === expr.activityId) : null;
+    const activity = expr.activityId != null ? allActivities.find((a) => a.id === expr.activityId) : null;
     return {
       ...expr,
-      humanName: human ? `${human.firstName} ${human.lastName}` : null,
+      humanName: human != null ? `${human.firstName} ${human.lastName}` : null,
       activitySubject: activity?.subject ?? null,
     };
   });
@@ -66,7 +66,7 @@ export async function getRouteInterestDetail(db: DB, id: string) {
 export async function createRouteInterest(
   db: DB,
   data: { originCity: string; originCountry: string; destinationCity: string; destinationCountry: string },
-) {
+): Promise<{ data: typeof routeInterests.$inferSelect; created: boolean }> {
   const existing = await db.query.routeInterests.findFirst({
     where: and(
       eq(routeInterests.originCity, data.originCity),
@@ -76,7 +76,7 @@ export async function createRouteInterest(
     ),
   });
 
-  if (existing) {
+  if (existing != null) {
     return { data: existing, created: false };
   }
 
@@ -98,7 +98,7 @@ export async function createRouteInterest(
   return { data: ri, created: true };
 }
 
-export async function deleteRouteInterest(db: DB, id: string) {
+export async function deleteRouteInterest(db: DB, id: string): Promise<void> {
   const existing = await db.query.routeInterests.findFirst({
     where: eq(routeInterests.id, id),
   });
@@ -117,11 +117,11 @@ export async function deleteRouteInterest(db: DB, id: string) {
 export async function listRouteInterestExpressions(
   db: DB,
   filters: { humanId?: string; routeInterestId?: string; activityId?: string },
-) {
+): Promise<{ humanName: string | null; originCity: string | null; originCountry: string | null; destinationCity: string | null; destinationCountry: string | null; activitySubject: string | null; id: string; displayId: string; humanId: string; routeInterestId: string; activityId: string | null; frequency: string; travelYear: number | null; travelMonth: number | null; travelDay: number | null; notes: string | null; createdAt: string }[]> {
   const conditions = [];
-  if (filters.humanId) conditions.push(eq(routeInterestExpressions.humanId, filters.humanId));
-  if (filters.routeInterestId) conditions.push(eq(routeInterestExpressions.routeInterestId, filters.routeInterestId));
-  if (filters.activityId) conditions.push(eq(routeInterestExpressions.activityId, filters.activityId));
+  if (filters.humanId != null) conditions.push(eq(routeInterestExpressions.humanId, filters.humanId));
+  if (filters.routeInterestId != null) conditions.push(eq(routeInterestExpressions.routeInterestId, filters.routeInterestId));
+  if (filters.activityId != null) conditions.push(eq(routeInterestExpressions.activityId, filters.activityId));
 
   let expressions;
   if (conditions.length > 0) {
@@ -140,10 +140,10 @@ export async function listRouteInterestExpressions(
   return expressions.map((expr) => {
     const human = allHumans.find((h) => h.id === expr.humanId);
     const ri = allRouteInterests.find((r) => r.id === expr.routeInterestId);
-    const activity = expr.activityId ? allActivities.find((a) => a.id === expr.activityId) : null;
+    const activity = expr.activityId != null ? allActivities.find((a) => a.id === expr.activityId) : null;
     return {
       ...expr,
-      humanName: human ? `${human.firstName} ${human.lastName}` : null,
+      humanName: human != null ? `${human.firstName} ${human.lastName}` : null,
       originCity: ri?.originCity ?? null,
       originCountry: ri?.originCountry ?? null,
       destinationCity: ri?.destinationCity ?? null,
@@ -169,7 +169,7 @@ export async function createRouteInterestExpression(
     travelDay?: number | null;
     notes?: string | null;
   },
-) {
+): Promise<{ id: string; displayId: string; humanId: string; routeInterestId: string; activityId: string | null; frequency: string; travelYear: number | null; travelMonth: number | null; travelDay: number | null; notes: string | null; createdAt: string }> {
   const now = new Date().toISOString();
 
   // Verify human exists
@@ -182,7 +182,7 @@ export async function createRouteInterestExpression(
 
   // Resolve route interest
   let routeInterestId = data.routeInterestId;
-  if (!routeInterestId && data.originCity && data.originCountry && data.destinationCity && data.destinationCountry) {
+  if (routeInterestId == null && data.originCity != null && data.originCountry != null && data.destinationCity != null && data.destinationCountry != null) {
     const existing = await db.query.routeInterests.findFirst({
       where: and(
         eq(routeInterests.originCity, data.originCity),
@@ -191,7 +191,7 @@ export async function createRouteInterestExpression(
         eq(routeInterests.destinationCountry, data.destinationCountry),
       ),
     });
-    if (existing) {
+    if (existing != null) {
       routeInterestId = existing.id;
     } else {
       const riDisplayId = await nextDisplayId(db, "ROI");
@@ -210,7 +210,7 @@ export async function createRouteInterestExpression(
   }
 
   // Verify activity if provided
-  if (data.activityId) {
+  if (data.activityId != null) {
     const activity = await db.query.activities.findFirst({
       where: eq(activities.id, data.activityId),
     });
@@ -221,11 +221,15 @@ export async function createRouteInterestExpression(
 
   const displayId = await nextDisplayId(db, "REX");
 
+  if (routeInterestId == null) {
+    throw notFound(ERROR_CODES.ROUTE_INTEREST_NOT_FOUND, "Route interest could not be resolved");
+  }
+
   const expression = {
     id: createId(),
     displayId,
     humanId: data.humanId,
-    routeInterestId: routeInterestId!,
+    routeInterestId,
     activityId: data.activityId ?? null,
     frequency: data.frequency ?? "one_time",
     travelYear: data.travelYear ?? null,
@@ -239,7 +243,7 @@ export async function createRouteInterestExpression(
   return expression;
 }
 
-export async function getRouteInterestExpressionDetail(db: DB, id: string) {
+export async function getRouteInterestExpressionDetail(db: DB, id: string): Promise<{ humanName: string | null; humanDisplayId: string | null; originCity: string | null; originCountry: string | null; destinationCity: string | null; destinationCountry: string | null; routeDisplayId: string | null; activitySubject: string | null; id: string; displayId: string; humanId: string; routeInterestId: string; activityId: string | null; frequency: string; travelYear: number | null; travelMonth: number | null; travelDay: number | null; notes: string | null; createdAt: string }> {
   const expr = await db.query.routeInterestExpressions.findFirst({
     where: eq(routeInterestExpressions.id, id),
   });
@@ -250,12 +254,12 @@ export async function getRouteInterestExpressionDetail(db: DB, id: string) {
   const [ri, human, activity] = await Promise.all([
     db.query.routeInterests.findFirst({ where: eq(routeInterests.id, expr.routeInterestId) }),
     db.query.humans.findFirst({ where: eq(humans.id, expr.humanId) }),
-    expr.activityId ? db.query.activities.findFirst({ where: eq(activities.id, expr.activityId) }) : null,
+    expr.activityId != null ? db.query.activities.findFirst({ where: eq(activities.id, expr.activityId) }) : null,
   ]);
 
   return {
     ...expr,
-    humanName: human ? `${human.firstName} ${human.lastName}` : null,
+    humanName: human != null ? `${human.firstName} ${human.lastName}` : null,
     humanDisplayId: human?.displayId ?? null,
     originCity: ri?.originCity ?? null,
     originCountry: ri?.originCountry ?? null,
@@ -277,7 +281,7 @@ export async function updateRouteInterestExpression(
     notes?: string | null;
     activityId?: string | null;
   },
-) {
+): Promise<typeof routeInterestExpressions.$inferSelect | undefined> {
   const existing = await db.query.routeInterestExpressions.findFirst({
     where: eq(routeInterestExpressions.id, id),
   });
@@ -304,7 +308,7 @@ export async function updateRouteInterestExpression(
   return updated;
 }
 
-export async function deleteRouteInterestExpression(db: DB, id: string) {
+export async function deleteRouteInterestExpression(db: DB, id: string): Promise<void> {
   const existing = await db.query.routeInterestExpressions.findFirst({
     where: eq(routeInterestExpressions.id, id),
   });
@@ -319,8 +323,8 @@ export async function deleteRouteInterestExpression(db: DB, id: string) {
 // City autocomplete
 // ---------------------------------------------------------------------------
 
-export async function listCities(db: DB, query: string) {
-  if (!query || query.trim().length === 0) {
+export async function listCities(db: DB, query: string): Promise<{ city: string; country: string }[]> {
+  if (query === "" || query.trim().length === 0) {
     return [];
   }
 

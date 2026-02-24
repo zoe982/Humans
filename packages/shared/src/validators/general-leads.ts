@@ -5,6 +5,7 @@ export const generalLeadStatuses = [
   "qualified",
   "closed_converted",
   "closed_rejected",
+  "closed_no_response",
 ] as const;
 
 export type GeneralLeadStatus = (typeof generalLeadStatuses)[number];

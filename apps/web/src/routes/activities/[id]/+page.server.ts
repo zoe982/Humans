@@ -41,6 +41,37 @@ export const load = async ({ locals, cookies, params }: RequestEvent) => {
     fetchList(`${PUBLIC_API_URL}/api/opportunities?limit=100`),
   ]);
 
+  // Ensure the currently linked route signup is in the options list (may be outside the top 100)
+  const activityRecord = activity as Record<string, unknown>;
+  const linkedRouteSignupId = activityRecord.routeSignupId;
+  if (typeof linkedRouteSignupId === "string" && linkedRouteSignupId !== "") {
+    const alreadyPresent = (routeSignups as { id: string }[]).some((s) => s.id === linkedRouteSignupId);
+    if (!alreadyPresent) {
+      const res = await fetch(`${PUBLIC_API_URL}/api/route-signups/${linkedRouteSignupId}`, { headers });
+      if (res.ok) {
+        const raw: unknown = await res.json();
+        if (isObjData(raw)) {
+          (routeSignups as unknown[]).unshift(raw.data);
+        }
+      }
+    }
+  }
+
+  // Ensure the currently linked booking request is in the options list
+  const linkedBookingId = activityRecord.websiteBookingRequestId;
+  if (typeof linkedBookingId === "string" && linkedBookingId !== "") {
+    const alreadyPresent = (websiteBookingRequests as { id: string }[]).some((b) => b.id === linkedBookingId);
+    if (!alreadyPresent) {
+      const res = await fetch(`${PUBLIC_API_URL}/api/website-booking-requests/${linkedBookingId}`, { headers });
+      if (res.ok) {
+        const raw: unknown = await res.json();
+        if (isObjData(raw)) {
+          (websiteBookingRequests as unknown[]).unshift(raw.data);
+        }
+      }
+    }
+  }
+
   return { activity, humans, accounts, routeSignups, websiteBookingRequests, colleagues, generalLeads, opportunitiesList, apiUrl: PUBLIC_API_URL };
 };
 

@@ -45,7 +45,12 @@ export const createHumanRelationshipSchema = z.object({
   labelId: z.string().optional(),
 });
 
+export const updateHumanRelationshipSchema = z.object({
+  labelId: z.string().nullish(),
+});
+
 export type CreateHumanInput = z.infer<typeof createHumanSchema>;
 export type UpdateHumanInput = z.infer<typeof updateHumanSchema>;
 export type UpdateHumanStatusInput = z.infer<typeof updateHumanStatusSchema>;
 export type CreateHumanRelationshipInput = z.infer<typeof createHumanRelationshipSchema>;
+export type UpdateHumanRelationshipInput = z.infer<typeof updateHumanRelationshipSchema>;

@@ -12,10 +12,22 @@
   import { toast } from "svelte-sonner";
   import { generalLeadStatusColors, generalLeadSourceColors, activityTypeColors } from "$lib/constants/colors";
   import { generalLeadStatusLabels, generalLeadSourceLabels, activityTypeLabels, ACTIVITY_TYPE_OPTIONS } from "$lib/constants/labels";
+  import NextActionSection from "$lib/components/NextActionSection.svelte";
   import { Button } from "$lib/components/ui/button";
   import { formatDateTime } from "$lib/utils/format";
+  import { generalLeadStatuses } from "@humans/shared";
 
   let { data, form }: { data: PageData; form: ActionData } = $props();
+
+  type NextAction = {
+    id: string;
+    ownerId: string | null;
+    description: string | null;
+    type: string | null;
+    dueDate: string | null;
+    cadenceNote: string | null;
+  };
+  type Colleague = { id: string; name: string; displayId?: string };
 
   type Lead = {
     id: string;
@@ -32,6 +44,7 @@
     convertedHumanDisplayId: string | null;
     convertedHumanName: string | null;
     activities: Activity[];
+    nextAction?: NextAction | null;
     createdAt: string;
     updatedAt: string;
   };
@@ -51,8 +64,11 @@
   const lead = $derived(data.lead as Lead);
   const activities = $derived(lead.activities ?? []);
   const allHumans = $derived(data.allHumans as HumanOption[]);
+  const colleaguesList = $derived((data.colleagues ?? []) as Colleague[]);
+  const colleagueOptions = $derived(colleaguesList.map((c) => ({ value: c.id, label: `${c.displayId ?? ""} ${c.name}`.trim() })));
   const isAdmin = $derived(data.user?.role === "admin");
-  const isClosed = $derived(lead.status === "closed_converted" || lead.status === "closed_rejected");
+  const isClosed = $derived(lead.status?.startsWith("closed_") ?? false);
+  const currentColleagueId = $derived(data.user?.id ?? "");
 
   const humanOptions = $derived(
     allHumans.map((h) => ({
@@ -146,8 +162,9 @@
     backLabel="General Leads"
     title={lead.displayId}
     status={lead.status}
-    statusOptions={["open", "qualified", "closed_converted", "closed_rejected"]}
+    statusOptions={[...generalLeadStatuses]}
     statusColorMap={generalLeadStatusColors}
+    statusLabels={generalLeadStatusLabels}
     onStatusChange={handleStatusChange}
   >
     {#snippet actions()}
@@ -348,6 +365,19 @@
       {/snippet}
     </RelatedListTable>
   </div>
+
+  <!-- Next Action -->
+  {#if !isClosed}
+    <div class="mb-6">
+      <NextActionSection
+        apiEndpoint={`/api/general-leads/${lead.id}/next-action`}
+        {colleagueOptions}
+        {currentColleagueId}
+        nextAction={lead.nextAction ?? null}
+        warnWhenEmpty={lead.status !== "open"}
+      />
+    </div>
+  {/if}
 
   <!-- Danger Zone (Admin only) -->
   {#if isAdmin}

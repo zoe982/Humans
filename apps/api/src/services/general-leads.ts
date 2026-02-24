@@ -5,9 +5,10 @@ import { ERROR_CODES } from "@humans/shared";
 import { computeDiff, logAuditEntry } from "../lib/audit";
 import { notFound, badRequest } from "../lib/errors";
 import { nextDisplayId } from "../lib/display-id";
+import { completeNextAction } from "./entity-next-actions";
 import type { DB } from "./types";
 
-const CLOSED_STATUSES = ["closed_converted", "closed_rejected"];
+const CLOSED_STATUSES = ["closed_converted", "closed_rejected", "closed_no_response"];
 
 // ─── List ────────────────────────────────────────────────────────
 
@@ -16,22 +17,21 @@ export async function listGeneralLeads(
   page: number,
   limit: number,
   filters: { q?: string; status?: string; source?: string; convertedHumanId?: string },
-) {
+): Promise<{ data: { convertedHumanDisplayId: string | null; convertedHumanName: string | null; id: string; displayId: string; status: string; source: string; notes: string | null; email: string | null; phone: string | null; rejectReason: string | null; convertedHumanId: string | null; ownerId: string | null; createdAt: string; updatedAt: string; ownerName: string | null }[]; meta: { page: number; limit: number; total: number } }> {
   const offset = (page - 1) * limit;
   const conditions: ReturnType<typeof eq>[] = [];
 
-  if (filters.status) conditions.push(eq(generalLeads.status, filters.status));
-  if (filters.source) conditions.push(eq(generalLeads.source, filters.source));
-  if (filters.convertedHumanId) conditions.push(eq(generalLeads.convertedHumanId, filters.convertedHumanId));
-  if (filters.q) {
-    conditions.push(
-      or(
-        like(generalLeads.displayId, `%${filters.q}%`),
-        like(generalLeads.notes, `%${filters.q}%`),
-        like(generalLeads.email, `%${filters.q}%`),
-        like(generalLeads.phone, `%${filters.q}%`),
-      )!,
+  if (filters.status != null) conditions.push(eq(generalLeads.status, filters.status));
+  if (filters.source != null) conditions.push(eq(generalLeads.source, filters.source));
+  if (filters.convertedHumanId != null) conditions.push(eq(generalLeads.convertedHumanId, filters.convertedHumanId));
+  if (filters.q != null) {
+    const orCondition = or(
+      like(generalLeads.displayId, `%${filters.q}%`),
+      like(generalLeads.notes, `%${filters.q}%`),
+      like(generalLeads.email, `%${filters.q}%`),
+      like(generalLeads.phone, `%${filters.q}%`),
     );
+    if (orCondition != null) conditions.push(orCondition);
   }
 
   const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
@@ -72,13 +72,13 @@ export async function listGeneralLeads(
     : [];
 
   const data = rows.map((row) => {
-    const convertedHuman = row.convertedHumanId ? convertedHumans.find((h) => h.id === row.convertedHumanId) : null;
+    const convertedHuman = row.convertedHumanId != null ? convertedHumans.find((h) => h.id === row.convertedHumanId) : null;
     return {
       ...row,
       email: row.email,
       phone: row.phone,
       convertedHumanDisplayId: convertedHuman?.displayId ?? null,
-      convertedHumanName: convertedHuman ? `${convertedHuman.firstName} ${convertedHuman.lastName}` : null,
+      convertedHumanName: convertedHuman != null ? `${convertedHuman.firstName} ${convertedHuman.lastName}` : null,
     };
   });
 
@@ -87,7 +87,7 @@ export async function listGeneralLeads(
 
 // ─── Detail ──────────────────────────────────────────────────────
 
-export async function getGeneralLead(db: DB, id: string) {
+export async function getGeneralLead(db: DB, id: string): Promise<{ convertedHumanDisplayId: string | null; convertedHumanName: string | null; activities: (typeof activities.$inferSelect)[]; id: string; displayId: string; status: string; source: string; notes: string | null; email: string | null; phone: string | null; rejectReason: string | null; convertedHumanId: string | null; ownerId: string | null; createdAt: string; updatedAt: string; ownerName: string | null }> {
   const rows = await db
     .select({
       id: generalLeads.id,
@@ -116,9 +116,9 @@ export async function getGeneralLead(db: DB, id: string) {
   // Converted human info
   let convertedHumanDisplayId: string | null = null;
   let convertedHumanName: string | null = null;
-  if (lead.convertedHumanId) {
+  if (lead.convertedHumanId != null) {
     const human = await db.query.humans.findFirst({ where: eq(humans.id, lead.convertedHumanId) });
-    if (human) {
+    if (human != null) {
       convertedHumanDisplayId = human.displayId;
       convertedHumanName = `${human.firstName} ${human.lastName}`;
     }
@@ -145,7 +145,7 @@ export async function createGeneralLead(
   db: DB,
   data: { source: string; notes?: string; email?: string | null; phone?: string | null; ownerId?: string },
   colleagueId: string,
-) {
+): Promise<{ id: string; displayId: string }> {
   const now = new Date().toISOString();
   const id = createId();
   const displayId = await nextDisplayId(db, "LEA");
@@ -182,7 +182,7 @@ export async function updateGeneralLead(
   id: string,
   data: { notes?: string; email?: string | null; phone?: string | null; ownerId?: string | null },
   colleagueId: string,
-) {
+): Promise<{ data: typeof generalLeads.$inferSelect | undefined }> {
   const existing = await db.query.generalLeads.findFirst({
     where: eq(generalLeads.id, id),
   });
@@ -222,7 +222,7 @@ export async function updateGeneralLead(
   await db.update(generalLeads).set(updateFields).where(eq(generalLeads.id, id));
 
   const diff = computeDiff(oldValues, newValues);
-  if (diff) {
+  if (diff != null) {
     await logAuditEntry({
       db,
       colleagueId,
@@ -246,7 +246,7 @@ export async function updateGeneralLeadStatus(
   id: string,
   data: { status: string; rejectReason?: string },
   colleagueId: string,
-) {
+): Promise<{ data: typeof generalLeads.$inferSelect | undefined }> {
   const existing = await db.query.generalLeads.findFirst({
     where: eq(generalLeads.id, id),
   });
@@ -261,7 +261,7 @@ export async function updateGeneralLeadStatus(
 
   // closed_rejected requires rejectReason
   if (data.status === "closed_rejected") {
-    if (!data.rejectReason || data.rejectReason.trim() === "") {
+    if (data.rejectReason == null || data.rejectReason.trim() === "") {
       throw badRequest(ERROR_CODES.GENERAL_LEAD_REJECT_REASON_REQUIRED, "Reject reason is required for closed_rejected");
     }
   }
@@ -273,14 +273,14 @@ export async function updateGeneralLeadStatus(
 
   const now = new Date().toISOString();
   const updateFields: Record<string, unknown> = { status: data.status, updatedAt: now };
-  if (data.rejectReason) {
+  if (data.rejectReason != null) {
     updateFields["rejectReason"] = data.rejectReason;
   }
 
   await db.update(generalLeads).set(updateFields).where(eq(generalLeads.id, id));
 
   const diff = computeDiff({ status: existing.status }, { status: data.status });
-  if (diff) {
+  if (diff != null) {
     await logAuditEntry({
       db,
       colleagueId,
@@ -289,6 +289,11 @@ export async function updateGeneralLeadStatus(
       entityId: id,
       changes: diff,
     });
+  }
+
+  // Clear next action when transitioning to a closed status
+  if (CLOSED_STATUSES.includes(data.status)) {
+    await completeNextAction(db, "general_lead", id, colleagueId);
   }
 
   const updated = await db.query.generalLeads.findFirst({
@@ -304,7 +309,7 @@ export async function convertGeneralLead(
   id: string,
   humanId: string,
   colleagueId: string,
-) {
+): Promise<{ data: typeof generalLeads.$inferSelect | undefined }> {
   const existing = await db.query.generalLeads.findFirst({
     where: eq(generalLeads.id, id),
   });
@@ -348,6 +353,9 @@ export async function convertGeneralLead(
     },
   });
 
+  // Clear next action on conversion (closed status)
+  await completeNextAction(db, "general_lead", id, colleagueId);
+
   const updated = await db.query.generalLeads.findFirst({
     where: eq(generalLeads.id, id),
   });
@@ -356,7 +364,7 @@ export async function convertGeneralLead(
 
 // ─── Delete ──────────────────────────────────────────────────────
 
-export async function deleteGeneralLead(db: DB, id: string) {
+export async function deleteGeneralLead(db: DB, id: string): Promise<void> {
   const existing = await db.query.generalLeads.findFirst({
     where: eq(generalLeads.id, id),
   });

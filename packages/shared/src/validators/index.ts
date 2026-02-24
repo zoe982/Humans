@@ -27,12 +27,14 @@ export {
   linkRouteSignupSchema,
   linkWebsiteBookingRequestSchema,
   createHumanRelationshipSchema,
+  updateHumanRelationshipSchema,
   humanTypeEnum,
   humanStatusEnum,
   type CreateHumanInput,
   type UpdateHumanInput,
   type UpdateHumanStatusInput,
   type CreateHumanRelationshipInput,
+  type UpdateHumanRelationshipInput,
 } from "./humans";
 
 export {
@@ -149,6 +151,11 @@ export {
   updateCadenceConfigSchema,
   type UpdateCadenceConfigInput,
 } from "./opportunity-cadence";
+
+export {
+  updateEntityNextActionSchema,
+  type UpdateEntityNextActionInput,
+} from "./next-actions";
 
 export {
   generalLeadStatuses,

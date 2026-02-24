@@ -7,7 +7,7 @@ import { nextDisplayId } from "../lib/display-id";
 import { rematchActivitiesByPhone } from "./activity-rematch";
 import type { DB } from "./types";
 
-export async function listPhoneNumbers(db: DB) {
+export async function listPhoneNumbers(db: DB): Promise<{ ownerName: string | null; ownerDisplayId: string | null; labelName: string | null; id: string; displayId: string; ownerType: string; ownerId: string; phoneNumber: string; labelId: string | null; hasWhatsapp: boolean; isPrimary: boolean; createdAt: string }[]> {
   const allPhones = await db.select().from(phones);
   const allHumans = await db.select().from(humans);
   const allAccounts = await db.select().from(accounts);
@@ -19,7 +19,7 @@ export async function listPhoneNumbers(db: DB) {
     let ownerDisplayId: string | null = null;
     if (p.ownerType === "human") {
       const human = allHumans.find((h) => h.id === p.ownerId);
-      ownerName = human ? `${human.firstName} ${human.lastName}` : null;
+      ownerName = human != null ? `${human.firstName} ${human.lastName}` : null;
       ownerDisplayId = human?.displayId ?? null;
     } else {
       const account = allAccounts.find((a) => a.id === p.ownerId);
@@ -27,7 +27,7 @@ export async function listPhoneNumbers(db: DB) {
       ownerDisplayId = account?.displayId ?? null;
     }
     const labels = p.ownerType === "human" ? humanLabels : accountLabels;
-    const label = p.labelId ? labels.find((l) => l.id === p.labelId) : null;
+    const label = p.labelId != null ? labels.find((l) => l.id === p.labelId) : null;
     return {
       ...p,
       ownerName,
@@ -39,7 +39,7 @@ export async function listPhoneNumbers(db: DB) {
   return data;
 }
 
-export async function listPhoneNumbersForHuman(db: DB, humanId: string) {
+export async function listPhoneNumbersForHuman(db: DB, humanId: string): Promise<(typeof phones.$inferSelect)[]> {
   const results = await db
     .select()
     .from(phones)
@@ -47,7 +47,7 @@ export async function listPhoneNumbersForHuman(db: DB, humanId: string) {
   return results;
 }
 
-export async function getPhoneNumber(db: DB, id: string) {
+export async function getPhoneNumber(db: DB, id: string): Promise<{ ownerName: string | null; ownerDisplayId: string | null; labelName: string | null; id: string; displayId: string; ownerType: string; ownerId: string; phoneNumber: string; labelId: string | null; hasWhatsapp: boolean; isPrimary: boolean; createdAt: string }> {
   const allPhones = await db.select().from(phones).where(eq(phones.id, id));
   const phone = allPhones[0];
   if (phone == null) {
@@ -63,7 +63,7 @@ export async function getPhoneNumber(db: DB, id: string) {
   let ownerDisplayId: string | null = null;
   if (phone.ownerType === "human") {
     const human = allHumans.find((h) => h.id === phone.ownerId);
-    ownerName = human ? `${human.firstName} ${human.lastName}` : null;
+    ownerName = human != null ? `${human.firstName} ${human.lastName}` : null;
     ownerDisplayId = human?.displayId ?? null;
   } else {
     const account = allAccounts.find((a) => a.id === phone.ownerId);
@@ -71,7 +71,7 @@ export async function getPhoneNumber(db: DB, id: string) {
     ownerDisplayId = account?.displayId ?? null;
   }
   const labels = phone.ownerType === "human" ? humanLabels : accountLabels;
-  const label = phone.labelId ? labels.find((l) => l.id === phone.labelId) : null;
+  const label = phone.labelId != null ? labels.find((l) => l.id === phone.labelId) : null;
 
   return {
     ...phone,
@@ -90,7 +90,7 @@ export async function createPhoneNumber(
     hasWhatsapp?: boolean;
     isPrimary?: boolean;
   },
-) {
+): Promise<{ id: string; displayId: string; ownerType: "human"; ownerId: string; phoneNumber: string; labelId: string | null; hasWhatsapp: boolean; isPrimary: boolean; createdAt: string }> {
   const now = new Date().toISOString();
   const displayId = await nextDisplayId(db, "FON");
 
@@ -118,7 +118,7 @@ export async function updatePhoneNumber(
   db: DB,
   id: string,
   data: Record<string, unknown>,
-) {
+): Promise<typeof phones.$inferSelect | undefined> {
   const existing = await db.query.phones.findFirst({
     where: eq(phones.id, id),
   });
@@ -137,7 +137,7 @@ export async function updatePhoneNumber(
   return updated;
 }
 
-export async function deletePhoneNumber(db: DB, id: string) {
+export async function deletePhoneNumber(db: DB, id: string): Promise<void> {
   const existing = await db.query.phones.findFirst({
     where: eq(phones.id, id),
   });

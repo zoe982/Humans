@@ -3,6 +3,7 @@
   import type { PageData, ActionData } from "./$types";
   import RecordManagementBar from "$lib/components/RecordManagementBar.svelte";
   import RelatedListTable from "$lib/components/RelatedListTable.svelte";
+  import ActivityConversationView from "$lib/components/ActivityConversationView.svelte";
   import AlertBanner from "$lib/components/AlertBanner.svelte";
   import PhoneInput from "$lib/components/PhoneInput.svelte";
   import SaveIndicator from "$lib/components/SaveIndicator.svelte";
@@ -55,6 +56,8 @@
     notes: string | null;
     body: string | null;
     activityDate: string;
+    frontConversationId: string | null;
+    direction: string | null;
     ownerId: string | null;
     ownerName: string | null;
     ownerDisplayId: string | null;
@@ -867,65 +870,14 @@
 
   <!-- Activities -->
   <div class="mt-6">
-    <RelatedListTable
-      title="Activities"
-      items={account.activities}
-      columns={[
-        { key: "displayId", label: "ID", sortable: true, sortValue: (a) => a.displayId },
-        { key: "type", label: "Type", sortable: true, sortValue: (a) => activityTypeLabels[a.type] ?? a.type },
-        { key: "owner", label: "Owner", sortable: true, sortValue: (a) => a.ownerName ?? "" },
-        { key: "subject", label: "Subject", sortable: true, sortValue: (a) => a.subject },
-        { key: "via", label: "Via", sortable: true, sortValue: (a) => a.viaHumanName ?? "" },
-        { key: "notes", label: "Notes", sortable: true, sortValue: (a) => a.notes ?? "" },
-        { key: "date", label: "Date", sortable: true, sortValue: (a) => a.activityDate },
-        { key: "delete", label: "", headerClass: "w-10" },
-      ]}
-      defaultSortKey="date"
-      defaultSortDirection="desc"
-      searchFilter={(a, q) => {
-        const typeLabel = (activityTypeLabels[a.type] ?? a.type).toLowerCase();
-        return a.subject.toLowerCase().includes(q) ||
-          (a.notes ?? "").toLowerCase().includes(q) ||
-          typeLabel.includes(q) ||
-          (a.viaHumanName ?? "").toLowerCase().includes(q);
-      }}
-      emptyMessage="No activities yet."
-      searchEmptyMessage="No activities match your search."
-      addLabel="Activity"
+    <ActivityConversationView
+      activities={account.activities}
+      entityType="account"
+      entityId={account.id}
+      maxMessages={8}
+      showViewAll={true}
+      onDelete={deleteActivity}
     >
-      {#snippet row(activity, searchQuery)}
-        <td class="font-mono text-sm whitespace-nowrap">
-          <a href="/activities/{activity.id}" class="text-accent hover:text-[var(--link-hover)]">{activity.displayId}</a>
-        </td>
-        <td>
-          <span class="glass-badge inline-flex rounded-full px-2 py-0.5 text-xs font-medium {activityTypeColors[activity.type] ?? 'bg-glass text-text-secondary'}">
-            <HighlightText text={activityTypeLabels[activity.type] ?? activity.type} query={searchQuery} />
-          </span>
-        </td>
-        <td class="text-sm text-text-secondary">{activity.ownerName ?? "\u2014"}</td>
-        <td class="font-medium max-w-sm truncate">
-          <a href="/activities/{activity.id}" class="hover:text-accent transition-colors duration-150"><HighlightText text={activity.subject} query={searchQuery} /></a>
-        </td>
-        <td class="text-xs text-text-muted">
-          {#if activity.viaHumanName}
-            <HighlightText text={activity.viaHumanName} query={searchQuery} />
-          {:else}
-            <span class="text-text-muted">&mdash;</span>
-          {/if}
-        </td>
-        <td class="text-text-muted max-w-xs truncate"><HighlightText text={truncateText(activity.notes ?? activity.body, 80)} query={searchQuery} /></td>
-        <td class="text-text-muted whitespace-nowrap">{formatDateTime(activity.activityDate)}</td>
-        <td>
-          <button
-            type="button"
-            onclick={() => deleteActivity(activity.id)}
-            class="flex items-center justify-center w-7 h-7 rounded-lg text-text-muted hover:text-destructive-foreground hover:bg-destructive transition-colors duration-150"
-            aria-label="Delete activity"
-          >
-            <Trash2 size={14} />
-          </button>
-        </td>
-      {/snippet}
       {#snippet addForm()}
         <form method="POST" action="?/addActivity" class="space-y-3">
           <div>
@@ -964,7 +916,7 @@
           <Button type="submit" size="sm">Add Activity</Button>
         </form>
       {/snippet}
-    </RelatedListTable>
+    </ActivityConversationView>
   </div>
 
   <!-- Change History -->

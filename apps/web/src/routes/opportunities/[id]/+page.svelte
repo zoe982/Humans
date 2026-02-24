@@ -3,6 +3,7 @@
   import type { PageData, ActionData } from "./$types";
   import RecordManagementBar from "$lib/components/RecordManagementBar.svelte";
   import RelatedListTable from "$lib/components/RelatedListTable.svelte";
+  import ActivityConversationView from "$lib/components/ActivityConversationView.svelte";
   import AlertBanner from "$lib/components/AlertBanner.svelte";
   import SearchableSelect from "$lib/components/SearchableSelect.svelte";
   import SaveIndicator from "$lib/components/SaveIndicator.svelte";
@@ -34,7 +35,10 @@
     type: string;
     subject: string;
     notes: string | null;
+    body: string | null;
     activityDate: string;
+    frontConversationId: string | null;
+    direction: string | null;
     createdAt: string;
   };
   type AuditEntry = {
@@ -696,46 +700,14 @@
 
   <!-- Activities -->
   <div class="mt-6">
-    <RelatedListTable
-      title="Activities"
-      items={activities}
-      columns={[
-        { key: "displayId", label: "ID" },
-        { key: "type", label: "Type", sortable: true, sortValue: (a) => a.type },
-        { key: "subject", label: "Subject", sortable: true, sortValue: (a) => a.subject },
-        { key: "notes", label: "Notes" },
-        { key: "activityDate", label: "Date", sortable: true, sortValue: (a) => a.activityDate },
-        { key: "delete", label: "", headerClass: "w-10" },
-      ]}
-      defaultSortKey="activityDate"
-      defaultSortDirection="desc"
-      searchFilter={(a, q) => a.subject.toLowerCase().includes(q) || (a.notes ?? "").toLowerCase().includes(q) || a.type.toLowerCase().includes(q)}
-      emptyMessage="No activities yet."
-      addLabel="Activity"
+    <ActivityConversationView
+      {activities}
+      entityType="opportunity"
+      entityId={opportunity.id}
+      maxMessages={8}
+      showViewAll={true}
+      onDelete={deleteActivity}
     >
-      {#snippet row(activity, _searchQuery)}
-        <td class="font-mono text-sm whitespace-nowrap">
-          <a href="/activities/{activity.id}" class="text-accent hover:text-[var(--link-hover)]">{activity.displayId}</a>
-        </td>
-        <td>
-          <span class="glass-badge {activity.type === 'email' ? 'badge-blue' : activity.type === 'whatsapp_message' ? 'badge-green' : 'bg-glass text-text-secondary'}">
-            {activityTypeLabels[activity.type] ?? activity.type}
-          </span>
-        </td>
-        <td class="font-medium max-w-sm truncate">{activity.subject}</td>
-        <td class="text-text-muted max-w-xs truncate">{activity.notes ?? "\u2014"}</td>
-        <td class="text-text-muted whitespace-nowrap">{formatDateTime(activity.activityDate)}</td>
-        <td>
-          <button
-            type="button"
-            onclick={() => deleteActivity(activity.id)}
-            class="flex items-center justify-center w-7 h-7 rounded-lg text-text-muted hover:text-destructive-foreground hover:bg-destructive transition-colors duration-150"
-            aria-label="Delete activity"
-          >
-            <Trash2 size={14} />
-          </button>
-        </td>
-      {/snippet}
       {#snippet addForm()}
         <form method="POST" action="?/addActivity" class="space-y-3">
           <div class="flex gap-3 items-end">
@@ -777,7 +749,7 @@
           <Button type="submit" size="sm">Add Activity</Button>
         </form>
       {/snippet}
-    </RelatedListTable>
+    </ActivityConversationView>
   </div>
 
   <!-- Next Action -->

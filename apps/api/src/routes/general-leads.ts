@@ -4,9 +4,12 @@ import {
   updateGeneralLeadSchema,
   updateGeneralLeadStatusSchema,
   convertGeneralLeadSchema,
+  updateEntityNextActionSchema,
+  ERROR_CODES,
 } from "@humans/shared";
 import { authMiddleware } from "../middleware/auth";
 import { requirePermission } from "../middleware/rbac";
+import { badRequest } from "../lib/errors";
 import {
   listGeneralLeads,
   getGeneralLead,
@@ -16,6 +19,7 @@ import {
   convertGeneralLead,
   deleteGeneralLead,
 } from "../services/general-leads";
+import { getNextAction, updateNextAction, completeNextAction } from "../services/entity-next-actions";
 import type { AppContext } from "../types";
 
 const generalLeadRoutes = new Hono<AppContext>();
@@ -43,8 +47,10 @@ generalLeadRoutes.get("/api/general-leads", requirePermission("viewGeneralLeads"
 
 // GET /api/general-leads/:id
 generalLeadRoutes.get("/api/general-leads/:id", requirePermission("viewGeneralLeads"), async (c) => {
-  const data = await getGeneralLead(c.get("db"), c.req.param("id"));
-  return c.json({ data });
+  const db = c.get("db");
+  const data = await getGeneralLead(db, c.req.param("id"));
+  const nextAction = await getNextAction(db, "general_lead", c.req.param("id"));
+  return c.json({ data: { ...data, nextAction: nextAction ?? null } });
 });
 
 // POST /api/general-leads
@@ -90,6 +96,32 @@ generalLeadRoutes.post("/api/general-leads/:id/convert", requirePermission("mana
 // DELETE /api/general-leads/:id
 generalLeadRoutes.delete("/api/general-leads/:id", requirePermission("deleteGeneralLeads"), async (c) => {
   await deleteGeneralLead(c.get("db"), c.req.param("id"));
+  return c.json({ success: true });
+});
+
+// PATCH /api/general-leads/:id/next-action
+generalLeadRoutes.patch("/api/general-leads/:id/next-action", requirePermission("manageGeneralLeads"), async (c) => {
+  const body: unknown = await c.req.json();
+  const parsed = updateEntityNextActionSchema.safeParse(body);
+  if (!parsed.success) {
+    throw badRequest(ERROR_CODES.VALIDATION_FAILED, "Invalid input", parsed.error.flatten().fieldErrors);
+  }
+
+  const session = c.get("session");
+  if (session === null) return c.json({ error: "Unauthorized" }, 401);
+
+  const db = c.get("db");
+  const nextAction = await updateNextAction(db, "general_lead", c.req.param("id"), parsed.data, session.colleagueId);
+  return c.json({ data: nextAction });
+});
+
+// POST /api/general-leads/:id/next-action/done
+generalLeadRoutes.post("/api/general-leads/:id/next-action/done", requirePermission("manageGeneralLeads"), async (c) => {
+  const session = c.get("session");
+  if (session === null) return c.json({ error: "Unauthorized" }, 401);
+
+  const db = c.get("db");
+  await completeNextAction(db, "general_lead", c.req.param("id"), session.colleagueId);
   return c.json({ success: true });
 });
 

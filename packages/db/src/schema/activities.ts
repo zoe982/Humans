@@ -33,6 +33,7 @@ export const activities = sqliteTable("activities", {
   frontId: text("front_id"),
   frontConversationId: text("front_conversation_id"),
   frontContactHandle: text("front_contact_handle"),
+  direction: text("direction"),
   syncRunId: text("sync_run_id").references(() => frontSyncRuns.id),
   colleagueId: text("colleague_id").references(() => colleagues.id),
   createdAt: text("created_at").notNull(),

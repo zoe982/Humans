@@ -38,6 +38,7 @@ export const signupStatusLabels: Record<string, string> = {
   qualified: "Qualified",
   closed_converted: "Converted",
   closed_rejected: "Rejected",
+  closed_no_response: "No Response",
 };
 
 /** Booking request status display labels */
@@ -68,6 +69,7 @@ export const generalLeadStatusLabels: Record<string, string> = {
   qualified: "Qualified",
   closed_converted: "Converted",
   closed_rejected: "Rejected",
+  closed_no_response: "No Response",
 };
 
 /** General lead source display labels */

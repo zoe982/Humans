@@ -6,17 +6,17 @@ import { notFound } from "../lib/errors";
 import { nextDisplayId } from "../lib/display-id";
 import type { DB } from "./types";
 
-export async function listWebsites(db: DB) {
+export async function listWebsites(db: DB): Promise<{ humanName: string | null; humanDisplayId: string | null; accountName: string | null; accountDisplayId: string | null; id: string; displayId: string; url: string; humanId: string | null; accountId: string | null; createdAt: string }[]> {
   const allWebsites = await db.select().from(websites);
   const allHumans = await db.select().from(humans);
   const allAccounts = await db.select().from(accounts);
 
   const data = allWebsites.map((w) => {
-    const human = w.humanId ? allHumans.find((h) => h.id === w.humanId) : null;
-    const account = w.accountId ? allAccounts.find((a) => a.id === w.accountId) : null;
+    const human = w.humanId != null ? allHumans.find((h) => h.id === w.humanId) : null;
+    const account = w.accountId != null ? allAccounts.find((a) => a.id === w.accountId) : null;
     return {
       ...w,
-      humanName: human ? `${human.firstName} ${human.lastName}` : null,
+      humanName: human != null ? `${human.firstName} ${human.lastName}` : null,
       humanDisplayId: human?.displayId ?? null,
       accountName: account?.name ?? null,
       accountDisplayId: account?.displayId ?? null,
@@ -26,7 +26,7 @@ export async function listWebsites(db: DB) {
   return data;
 }
 
-export async function getWebsite(db: DB, id: string) {
+export async function getWebsite(db: DB, id: string): Promise<{ humanName: string | null; humanDisplayId: string | null; accountName: string | null; accountDisplayId: string | null; id: string; displayId: string; url: string; humanId: string | null; accountId: string | null; createdAt: string }> {
   const result = await db.select().from(websites).where(eq(websites.id, id));
   const website = result[0];
   if (website == null) {
@@ -36,12 +36,12 @@ export async function getWebsite(db: DB, id: string) {
   const allHumans = await db.select().from(humans);
   const allAccounts = await db.select().from(accounts);
 
-  const human = website.humanId ? allHumans.find((h) => h.id === website.humanId) : null;
-  const account = website.accountId ? allAccounts.find((a) => a.id === website.accountId) : null;
+  const human = website.humanId != null ? allHumans.find((h) => h.id === website.humanId) : null;
+  const account = website.accountId != null ? allAccounts.find((a) => a.id === website.accountId) : null;
 
   return {
     ...website,
-    humanName: human ? `${human.firstName} ${human.lastName}` : null,
+    humanName: human != null ? `${human.firstName} ${human.lastName}` : null,
     humanDisplayId: human?.displayId ?? null,
     accountName: account?.name ?? null,
     accountDisplayId: account?.displayId ?? null,
@@ -55,7 +55,7 @@ export async function createWebsite(
     humanId?: string | null;
     accountId?: string | null;
   },
-) {
+): Promise<{ id: string; displayId: string; url: string; humanId: string | null; accountId: string | null; createdAt: string }> {
   const now = new Date().toISOString();
   const displayId = await nextDisplayId(db, "WEB");
 
@@ -76,7 +76,7 @@ export async function updateWebsite(
   db: DB,
   id: string,
   data: Record<string, unknown>,
-) {
+): Promise<typeof websites.$inferSelect | undefined> {
   const existing = await db.query.websites.findFirst({
     where: eq(websites.id, id),
   });
@@ -96,7 +96,7 @@ export async function updateWebsite(
   return updated;
 }
 
-export async function deleteWebsite(db: DB, id: string) {
+export async function deleteWebsite(db: DB, id: string): Promise<void> {
   const existing = await db.query.websites.findFirst({
     where: eq(websites.id, id),
   });

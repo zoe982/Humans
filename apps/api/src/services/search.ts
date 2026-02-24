@@ -1,4 +1,4 @@
-import { like, or, eq } from "drizzle-orm";
+import { like, or } from "drizzle-orm";
 import {
   humans,
   emails,
@@ -12,7 +12,7 @@ import {
 } from "@humans/db/schema";
 import type { DB } from "./types";
 
-export async function searchD1(db: DB, query: string) {
+export async function searchD1(db: DB, query: string): Promise<{ matchedHumans: { emails: (typeof emails.$inferSelect)[]; id: string; displayId: string; firstName: string; lastName: string; status: string | null; createdAt: string; updatedAt: string }[]; activityResults: (typeof activities.$inferSelect)[]; geoInterestsWithCounts: { expressionCount: number; humanCount: number; id: string; displayId: string; city: string; country: string; createdAt: string }[]; matchedAccounts: { types: { id: string; name: string }[]; id: string; displayId: string; name: string; status: string; createdAt: string; updatedAt: string }[] }> {
   const pattern = `%${query}%`;
 
   // Search D1 in parallel
@@ -47,14 +47,14 @@ export async function searchD1(db: DB, query: string) {
 
   // Merge human results: collect unique human IDs from name, email, phone, geo-interest matches
   const humanIds = new Set<string>();
-  humanResults.forEach((h) => humanIds.add(h.id));
-  emailResults.filter((e) => e.ownerType === "human").forEach((e) => humanIds.add(e.ownerId));
-  phoneResults.filter((p) => p.ownerType === "human").forEach((p) => humanIds.add(p.ownerId));
+  humanResults.forEach((h) => { humanIds.add(h.id); });
+  emailResults.filter((e) => e.ownerType === "human").forEach((e) => { humanIds.add(e.ownerId); });
+  phoneResults.filter((p) => p.ownerType === "human").forEach((p) => { humanIds.add(p.ownerId); });
 
   const matchedGeoInterestIds = new Set(geoInterestResults.map((gi) => gi.id));
   allExpressions
     .filter((e) => matchedGeoInterestIds.has(e.geoInterestId))
-    .forEach((e) => humanIds.add(e.humanId));
+    .forEach((e) => { humanIds.add(e.humanId); });
 
   // Fetch full data for matched humans
   const allHumans = await db.select().from(humans);
@@ -78,9 +78,9 @@ export async function searchD1(db: DB, query: string) {
 
   // Merge account results: collect unique account IDs from name, email, phone matches
   const accountIds = new Set<string>();
-  accountResults.forEach((a) => accountIds.add(a.id));
-  accountEmailResults.filter((e) => e.ownerType === "account").forEach((e) => accountIds.add(e.ownerId));
-  accountPhoneResults.filter((p) => p.ownerType === "account").forEach((p) => accountIds.add(p.ownerId));
+  accountResults.forEach((a) => { accountIds.add(a.id); });
+  accountEmailResults.filter((e) => e.ownerType === "account").forEach((e) => { accountIds.add(e.ownerId); });
+  accountPhoneResults.filter((p) => p.ownerType === "account").forEach((p) => { accountIds.add(p.ownerId); });
 
   const allAccounts = accountIds.size > 0 ? await db.select().from(accounts) : [];
   const allAccountTypes = accountIds.size > 0 ? await db.select().from(accountTypes) : [];

@@ -65,11 +65,12 @@ export async function listDiscountCodes(supabase: SupabaseClient, db: DB): Promi
   const { data: codes, error } = await supabase
     .from("discount_codes")
     .select("*")
-    .order("created_at", { ascending: false });
+    .order("created_at", { ascending: false })
+    .overrideTypes<SupabaseDiscountCode[], { merge: false }>();
 
   if (error != null) throw new Error(`Supabase error: ${error.message}`);
 
-  const typedCodes = (codes ?? []) as SupabaseDiscountCode[];
+  const typedCodes: SupabaseDiscountCode[] = codes;
   await ensureDiscountCodeDisplayIds(supabase, db, typedCodes);
 
   const allHumans = await db.select().from(humans);
@@ -95,14 +96,15 @@ export async function getDiscountCode(supabase: SupabaseClient, db: DB, id: stri
   const { data: codes, error } = await supabase
     .from("discount_codes")
     .select("*")
-    .eq("id", id);
+    .eq("id", id)
+    .overrideTypes<SupabaseDiscountCode[], { merge: false }>();
 
   if (error != null) throw new Error(`Supabase error: ${error.message}`);
-  if (codes == null || codes.length === 0) {
+  if (codes.length === 0) {
     throw notFound(ERROR_CODES.DISCOUNT_CODE_NOT_FOUND, "Discount code not found");
   }
 
-  const typedCodes = codes as SupabaseDiscountCode[];
+  const typedCodes: SupabaseDiscountCode[] = codes;
   await ensureDiscountCodeDisplayIds(supabase, db, typedCodes);
 
   const dc = toApiShape(typedCodes[0]);
@@ -160,10 +162,11 @@ export async function updateDiscountCode(
   const { data: existing, error: fetchError } = await supabase
     .from("discount_codes")
     .select("id")
-    .eq("id", id);
+    .eq("id", id)
+    .overrideTypes<{ id: string }[], { merge: false }>();
 
   if (fetchError != null) throw new Error(`Supabase error: ${fetchError.message}`);
-  if (existing == null || existing.length === 0) {
+  if (existing.length === 0) {
     throw notFound(ERROR_CODES.DISCOUNT_CODE_NOT_FOUND, "Discount code not found");
   }
 
@@ -176,13 +179,11 @@ export async function updateDiscountCode(
     .update(updates)
     .eq("id", id)
     .select("*")
-    .single();
+    .single<SupabaseDiscountCode>();
 
   if (error != null) throw new Error(`Supabase error: ${error.message}`);
-  if (updated == null) throw new Error("No data returned from update");
 
-  const typedUpdated: SupabaseDiscountCode = updated as SupabaseDiscountCode;
-  return toApiShape(typedUpdated);
+  return toApiShape(updated);
 }
 
 export async function getDiscountCodesForFlight(supabase: SupabaseClient, db: DB, flightId: string): Promise<(ReturnType<typeof toApiShape> & { humanName: string | null })[]> {
@@ -197,11 +198,12 @@ export async function getDiscountCodesForFlight(supabase: SupabaseClient, db: DB
   const { data: codes, error } = await supabase
     .from("discount_codes")
     .select("*")
-    .in("id", codeIds);
+    .in("id", codeIds)
+    .overrideTypes<SupabaseDiscountCode[], { merge: false }>();
 
   if (error != null) throw new Error(`Supabase error: ${error.message}`);
 
-  const typedCodes = (codes ?? []) as SupabaseDiscountCode[];
+  const typedCodes: SupabaseDiscountCode[] = codes;
   await ensureDiscountCodeDisplayIds(supabase, db, typedCodes);
 
   const allHumans = await db.select().from(humans);

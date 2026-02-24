@@ -8,10 +8,21 @@
   import { bookingRequestStatusColors, activityTypeColors } from "$lib/constants/colors";
   import { bookingRequestStatusLabels, depositStatusLabels, balanceStatusLabels, activityTypeLabels, ACTIVITY_TYPE_OPTIONS } from "$lib/constants/labels";
   import SearchableSelect from "$lib/components/SearchableSelect.svelte";
+  import NextActionSection from "$lib/components/NextActionSection.svelte";
   import { Button } from "$lib/components/ui/button";
   import { formatDateTime } from "$lib/utils/format";
 
   let { data, form }: { data: PageData; form: ActionData } = $props();
+
+  type NextAction = {
+    id: string;
+    ownerId: string | null;
+    description: string | null;
+    type: string | null;
+    dueDate: string | null;
+    cadenceNote: string | null;
+  };
+  type Colleague = { id: string; name: string; displayId?: string };
 
   type Booking = {
     id: string;
@@ -39,6 +50,7 @@
     inserted_at: string;
     booking_request_ref: string | null;
     additional_information: string | null;
+    nextAction?: NextAction | null;
   };
 
   type Activity = {
@@ -56,8 +68,12 @@
 
   const booking = $derived(data.booking as Booking);
   const activities = $derived(data.activities as Activity[]);
+  const colleaguesList = $derived((data.colleagues ?? []) as Colleague[]);
+  const colleagueOptions = $derived(colleaguesList.map((c) => ({ value: c.id, label: `${c.displayId ?? ""} ${c.name}`.trim() })));
   const isAdmin = $derived(data.user?.role === "admin");
   const isManager = $derived(data.user?.role === "manager" || data.user?.role === "admin");
+  const isClosed = $derived(booking.status?.startsWith("closed_") ?? false);
+  const currentColleagueId = $derived(data.user?.id ?? "");
 
   let showDeleteConfirm = $state(false);
   let editingNote = $state(false);
@@ -410,6 +426,18 @@
       {/snippet}
     </RelatedListTable>
   </div>
+
+  <!-- Next Action -->
+  {#if !isClosed}
+    <div class="mb-6">
+      <NextActionSection
+        apiEndpoint={`/api/website-booking-requests/${booking.id}/next-action`}
+        {colleagueOptions}
+        {currentColleagueId}
+        nextAction={booking.nextAction ?? null}
+      />
+    </div>
+  {/if}
 
   <!-- Danger Zone (Admin only) -->
   {#if isAdmin}

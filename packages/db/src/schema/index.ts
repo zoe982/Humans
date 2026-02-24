@@ -74,3 +74,8 @@ export { websites } from "./websites";
 export { humanRelationshipLabelsConfig } from "./human-relationship-labels-config";
 export { humanRelationships } from "./human-relationships";
 export { activityOpportunities } from "./activity-opportunities";
+export {
+  entityNextActions,
+  entityNextActionTypes,
+  type EntityNextActionType,
+} from "./entity-next-actions";

@@ -1,17 +1,49 @@
 import { Hono } from "hono";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { sql, inArray } from "drizzle-orm";
 import { activities } from "@humans/db/schema";
-import { updateRouteSignupSchema, ERROR_CODES } from "@humans/shared";
+import { updateRouteSignupSchema, updateEntityNextActionSchema, ERROR_CODES } from "@humans/shared";
 import { authMiddleware } from "../middleware/auth";
 import { requirePermission } from "../middleware/rbac";
 import { supabaseMiddleware } from "../middleware/supabase";
 import { internal, notFound, badRequest } from "../lib/errors";
+import { nextDisplayId } from "../lib/display-id";
+import { getNextAction, updateNextAction, completeNextAction } from "../services/entity-next-actions";
 import type { AppContext } from "../types";
+import type { DB } from "../services/types";
 
 const routeSignupRoutes = new Hono<AppContext>();
 
 routeSignupRoutes.use("/*", authMiddleware);
 routeSignupRoutes.use("/*", supabaseMiddleware);
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+/**
+ * Auto-assign crm_display_id to route signups that don't have one yet.
+ * Writes back to Supabase and mutates the row objects in place.
+ */
+async function ensureDisplayIds(
+  supabase: SupabaseClient,
+  db: DB,
+  rows: unknown[],
+): Promise<void> {
+  for (const row of rows) {
+    if (!isRecord(row)) continue;
+    if (row["display_id"] == null) {
+      const displayId = await nextDisplayId(db, "ROU");
+      const { error } = await supabase
+        .from("announcement_signups")
+        .update({ display_id: displayId })
+        .eq("id", row["id"]);
+      if (error === null) {
+        row["display_id"] = displayId;
+      }
+    }
+  }
+}
 
 // List all route signups (paginated, filterable)
 routeSignupRoutes.get("/api/route-signups", requirePermission("viewRouteSignups"), async (c) => {
@@ -53,11 +85,15 @@ routeSignupRoutes.get("/api/route-signups", requirePermission("viewRouteSignups"
     throw internal(ERROR_CODES.SUPABASE_ERROR, error.message);
   }
 
+  const db = c.get("db");
+
+  // Auto-assign display IDs to rows missing them
+  await ensureDisplayIds(supabase, db, data);
+
   // Fetch last activity dates from D1
   const signupIds = data.map((s: { id: string }) => s.id);
   let enriched = data;
   if (signupIds.length > 0) {
-    const db = c.get("db");
     const lastDates = await db
       .select({
         routeSignupId: activities.routeSignupId,
@@ -80,6 +116,7 @@ routeSignupRoutes.get("/api/route-signups", requirePermission("viewRouteSignups"
 // Get single route signup
 routeSignupRoutes.get("/api/route-signups/:id", requirePermission("viewRouteSignups"), async (c) => {
   const supabase = c.get("supabase");
+  const db = c.get("db");
   const result = await supabase
     .from("announcement_signups")
     .select("*")
@@ -90,7 +127,13 @@ routeSignupRoutes.get("/api/route-signups/:id", requirePermission("viewRouteSign
     throw notFound(ERROR_CODES.ROUTE_SIGNUP_NOT_FOUND, result.error.message);
   }
 
-  return c.json({ data: result.data });
+  // Auto-assign display ID if missing
+  await ensureDisplayIds(supabase, db, [result.data]);
+
+  // Fetch next action from D1
+  const nextAction = await getNextAction(db, "route_signup", c.req.param("id"));
+
+  return c.json({ data: { ...result.data, nextAction: nextAction ?? null } });
 });
 
 // Update route signup (status and/or note)
@@ -121,6 +164,15 @@ routeSignupRoutes.patch("/api/route-signups/:id", requirePermission("manageRoute
     throw internal(ERROR_CODES.SUPABASE_ERROR, result.error.message);
   }
 
+  // Clear next action when transitioning to a closed status
+  if (typeof parsed.data.status === "string" && parsed.data.status.startsWith("closed_")) {
+    const session = c.get("session");
+    if (session !== null) {
+      const db = c.get("db");
+      await completeNextAction(db, "route_signup", c.req.param("id"), session.colleagueId);
+    }
+  }
+
   return c.json({ data: result.data });
 });
 
@@ -136,6 +188,32 @@ routeSignupRoutes.delete("/api/route-signups/:id", requirePermission("deleteRout
     throw internal(ERROR_CODES.SUPABASE_ERROR, error.message);
   }
 
+  return c.json({ success: true });
+});
+
+// Update next action
+routeSignupRoutes.patch("/api/route-signups/:id/next-action", requirePermission("manageRouteSignups"), async (c) => {
+  const body: unknown = await c.req.json();
+  const parsed = updateEntityNextActionSchema.safeParse(body);
+  if (!parsed.success) {
+    throw badRequest(ERROR_CODES.VALIDATION_FAILED, "Invalid input", parsed.error.flatten().fieldErrors);
+  }
+
+  const session = c.get("session");
+  if (session === null) return c.json({ error: "Unauthorized" }, 401);
+
+  const db = c.get("db");
+  const nextAction = await updateNextAction(db, "route_signup", c.req.param("id"), parsed.data, session.colleagueId);
+  return c.json({ data: nextAction });
+});
+
+// Complete next action
+routeSignupRoutes.post("/api/route-signups/:id/next-action/done", requirePermission("manageRouteSignups"), async (c) => {
+  const session = c.get("session");
+  if (session === null) return c.json({ error: "Unauthorized" }, 401);
+
+  const db = c.get("db");
+  await completeNextAction(db, "route_signup", c.req.param("id"), session.colleagueId);
   return c.json({ success: true });
 });
 

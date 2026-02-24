@@ -15,7 +15,7 @@ import type { DB } from "./types";
 // Geo-interests
 // ---------------------------------------------------------------------------
 
-export async function listGeoInterests(db: DB) {
+export async function listGeoInterests(db: DB): Promise<{ humanCount: number; expressionCount: number; id: string; displayId: string; city: string; country: string; createdAt: string }[]> {
   const allGeoInterests = await db.select().from(geoInterests);
   const allExpressions = await db.select().from(geoInterestExpressions);
 
@@ -30,8 +30,8 @@ export async function listGeoInterests(db: DB) {
   });
 }
 
-export async function searchGeoInterests(db: DB, query: string) {
-  if (!query || query.trim().length === 0) {
+export async function searchGeoInterests(db: DB, query: string): Promise<(typeof geoInterests.$inferSelect)[]> {
+  if (query === "" || query.trim().length === 0) {
     return [];
   }
 
@@ -42,7 +42,7 @@ export async function searchGeoInterests(db: DB, query: string) {
     .where(or(like(geoInterests.city, pattern), like(geoInterests.country, pattern)));
 }
 
-export async function getGeoInterestDetail(db: DB, id: string) {
+export async function getGeoInterestDetail(db: DB, id: string): Promise<{ expressions: { humanName: string | null; activitySubject: string | null; id: string; displayId: string; humanId: string; geoInterestId: string; activityId: string | null; notes: string | null; createdAt: string }[]; id: string; displayId: string; city: string; country: string; createdAt: string }> {
   const geoInterest = await db.query.geoInterests.findFirst({
     where: eq(geoInterests.id, id),
   });
@@ -60,10 +60,10 @@ export async function getGeoInterestDetail(db: DB, id: string) {
 
   const expressionsWithDetails = expressions.map((expr) => {
     const human = allHumans.find((h) => h.id === expr.humanId);
-    const activity = expr.activityId ? allActivities.find((a) => a.id === expr.activityId) : null;
+    const activity = expr.activityId != null ? allActivities.find((a) => a.id === expr.activityId) : null;
     return {
       ...expr,
-      humanName: human ? `${human.firstName} ${human.lastName}` : null,
+      humanName: human != null ? `${human.firstName} ${human.lastName}` : null,
       activitySubject: activity?.subject ?? null,
     };
   });
@@ -77,12 +77,12 @@ export async function getGeoInterestDetail(db: DB, id: string) {
 export async function createGeoInterest(
   db: DB,
   data: { city: string; country: string },
-) {
+): Promise<{ data: typeof geoInterests.$inferSelect; created: boolean }> {
   const existing = await db.query.geoInterests.findFirst({
     where: and(eq(geoInterests.city, data.city), eq(geoInterests.country, data.country)),
   });
 
-  if (existing) {
+  if (existing != null) {
     return { data: existing, created: false };
   }
 
@@ -100,7 +100,7 @@ export async function createGeoInterest(
   return { data: gi, created: true };
 }
 
-export async function deleteGeoInterest(db: DB, id: string) {
+export async function deleteGeoInterest(db: DB, id: string): Promise<void> {
   const existing = await db.query.geoInterests.findFirst({
     where: eq(geoInterests.id, id),
   });
@@ -119,11 +119,11 @@ export async function deleteGeoInterest(db: DB, id: string) {
 export async function listExpressions(
   db: DB,
   filters: { humanId?: string; geoInterestId?: string; activityId?: string },
-) {
+): Promise<{ humanName: string | null; city: string | null; country: string | null; activitySubject: string | null; id: string; displayId: string; humanId: string; geoInterestId: string; activityId: string | null; notes: string | null; createdAt: string }[]> {
   const conditions = [];
-  if (filters.humanId) conditions.push(eq(geoInterestExpressions.humanId, filters.humanId));
-  if (filters.geoInterestId) conditions.push(eq(geoInterestExpressions.geoInterestId, filters.geoInterestId));
-  if (filters.activityId) conditions.push(eq(geoInterestExpressions.activityId, filters.activityId));
+  if (filters.humanId != null) conditions.push(eq(geoInterestExpressions.humanId, filters.humanId));
+  if (filters.geoInterestId != null) conditions.push(eq(geoInterestExpressions.geoInterestId, filters.geoInterestId));
+  if (filters.activityId != null) conditions.push(eq(geoInterestExpressions.activityId, filters.activityId));
 
   let expressions;
   if (conditions.length > 0) {
@@ -142,10 +142,10 @@ export async function listExpressions(
   return expressions.map((expr) => {
     const human = allHumans.find((h) => h.id === expr.humanId);
     const gi = allGeoInterests.find((g) => g.id === expr.geoInterestId);
-    const activity = expr.activityId ? allActivities.find((a) => a.id === expr.activityId) : null;
+    const activity = expr.activityId != null ? allActivities.find((a) => a.id === expr.activityId) : null;
     return {
       ...expr,
-      humanName: human ? `${human.firstName} ${human.lastName}` : null,
+      humanName: human != null ? `${human.firstName} ${human.lastName}` : null,
       city: gi?.city ?? null,
       country: gi?.country ?? null,
       activitySubject: activity?.subject ?? null,
@@ -163,7 +163,7 @@ export async function createExpression(
     activityId?: string | null;
     notes?: string | null;
   },
-) {
+): Promise<{ id: string; displayId: string; humanId: string; geoInterestId: string; activityId: string | null; notes: string | null; createdAt: string }> {
   const now = new Date().toISOString();
 
   // Verify human exists
@@ -176,11 +176,11 @@ export async function createExpression(
 
   // Resolve geo-interest
   let geoInterestId = data.geoInterestId;
-  if (!geoInterestId && data.city && data.country) {
+  if (geoInterestId == null && data.city != null && data.country != null) {
     const existing = await db.query.geoInterests.findFirst({
       where: and(eq(geoInterests.city, data.city), eq(geoInterests.country, data.country)),
     });
-    if (existing) {
+    if (existing != null) {
       geoInterestId = existing.id;
     } else {
       const geoDisplayId = await nextDisplayId(db, "GEO");
@@ -196,7 +196,7 @@ export async function createExpression(
   }
 
   // Verify activity if provided
-  if (data.activityId) {
+  if (data.activityId != null) {
     const activity = await db.query.activities.findFirst({
       where: eq(activities.id, data.activityId),
     });
@@ -207,11 +207,15 @@ export async function createExpression(
 
   const displayId = await nextDisplayId(db, "GEX");
 
+  if (geoInterestId == null) {
+    throw notFound(ERROR_CODES.GEO_INTEREST_NOT_FOUND, "Geo-interest could not be resolved");
+  }
+
   const expression = {
     id: createId(),
     displayId,
     humanId: data.humanId,
-    geoInterestId: geoInterestId!,
+    geoInterestId,
     activityId: data.activityId ?? null,
     notes: data.notes ?? null,
     createdAt: now,
@@ -221,7 +225,7 @@ export async function createExpression(
   return expression;
 }
 
-export async function getGeoInterestExpressionDetail(db: DB, id: string) {
+export async function getGeoInterestExpressionDetail(db: DB, id: string): Promise<{ humanName: string | null; humanDisplayId: string | null; city: string | null; country: string | null; geoDisplayId: string | null; activitySubject: string | null; id: string; displayId: string; humanId: string; geoInterestId: string; activityId: string | null; notes: string | null; createdAt: string }> {
   const expr = await db.query.geoInterestExpressions.findFirst({
     where: eq(geoInterestExpressions.id, id),
   });
@@ -232,12 +236,12 @@ export async function getGeoInterestExpressionDetail(db: DB, id: string) {
   const [gi, human, activity] = await Promise.all([
     db.query.geoInterests.findFirst({ where: eq(geoInterests.id, expr.geoInterestId) }),
     db.query.humans.findFirst({ where: eq(humans.id, expr.humanId) }),
-    expr.activityId ? db.query.activities.findFirst({ where: eq(activities.id, expr.activityId) }) : null,
+    expr.activityId != null ? db.query.activities.findFirst({ where: eq(activities.id, expr.activityId) }) : null,
   ]);
 
   return {
     ...expr,
-    humanName: human ? `${human.firstName} ${human.lastName}` : null,
+    humanName: human != null ? `${human.firstName} ${human.lastName}` : null,
     humanDisplayId: human?.displayId ?? null,
     city: gi?.city ?? null,
     country: gi?.country ?? null,
@@ -250,7 +254,7 @@ export async function updateExpression(
   db: DB,
   id: string,
   data: { notes?: string | null },
-) {
+): Promise<typeof geoInterestExpressions.$inferSelect | undefined> {
   const existing = await db.query.geoInterestExpressions.findFirst({
     where: eq(geoInterestExpressions.id, id),
   });
@@ -269,7 +273,7 @@ export async function updateExpression(
   return updated;
 }
 
-export async function deleteExpression(db: DB, id: string) {
+export async function deleteExpression(db: DB, id: string): Promise<void> {
   const existing = await db.query.geoInterestExpressions.findFirst({
     where: eq(geoInterestExpressions.id, id),
   });

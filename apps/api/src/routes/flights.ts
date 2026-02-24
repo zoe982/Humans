@@ -135,7 +135,7 @@ flightRoutes.get(
 
     // Fetch primary humans for each opportunity
     const oppIds = linkedOpps.map((o) => o.id);
-    const primaryHumans: Map<string, { firstName: string; lastName: string; displayId: string }> = new Map();
+    const primaryHumans = new Map<string, { firstName: string; lastName: string; displayId: string }>();
 
     if (oppIds.length > 0) {
       const roleConfigs = await db.select().from(opportunityHumanRolesConfig);

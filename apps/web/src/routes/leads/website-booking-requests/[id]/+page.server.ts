@@ -19,10 +19,15 @@ export const load = async ({ locals, cookies, params }: RequestEvent) => {
   const booking = isObjData(bookingRaw) ? bookingRaw.data : null;
   if (booking == null) redirect(302, "/leads/website-booking-requests");
 
-  // Fetch activities for this booking request
-  const activitiesRes = await fetch(`${PUBLIC_API_URL}/api/activities?websiteBookingRequestId=${id}`, {
-    headers: { Cookie: `humans_session=${sessionToken ?? ""}` },
-  });
+  // Fetch activities and colleagues concurrently
+  const [activitiesRes, colleaguesRes] = await Promise.all([
+    fetch(`${PUBLIC_API_URL}/api/activities?websiteBookingRequestId=${id}`, {
+      headers: { Cookie: `humans_session=${sessionToken ?? ""}` },
+    }),
+    fetch(`${PUBLIC_API_URL}/api/colleagues`, {
+      headers: { Cookie: `humans_session=${sessionToken ?? ""}` },
+    }),
+  ]);
 
   let activities: unknown[] = [];
   if (activitiesRes.ok) {
@@ -30,7 +35,13 @@ export const load = async ({ locals, cookies, params }: RequestEvent) => {
     activities = isListData(activitiesRaw) ? activitiesRaw.data : [];
   }
 
-  return { booking, activities, user: locals.user };
+  let colleagues: unknown[] = [];
+  if (colleaguesRes.ok) {
+    const colleaguesRaw: unknown = await colleaguesRes.json();
+    colleagues = isListData(colleaguesRaw) ? colleaguesRaw.data : [];
+  }
+
+  return { booking, activities, colleagues, user: locals.user };
 };
 
 export const actions = {

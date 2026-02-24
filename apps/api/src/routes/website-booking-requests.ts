@@ -1,11 +1,12 @@
 import { Hono } from "hono";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { updateWebsiteBookingRequestSchema, ERROR_CODES } from "@humans/shared";
+import { updateWebsiteBookingRequestSchema, updateEntityNextActionSchema, ERROR_CODES } from "@humans/shared";
 import { authMiddleware } from "../middleware/auth";
 import { requirePermission } from "../middleware/rbac";
 import { supabaseMiddleware } from "../middleware/supabase";
 import { internal, notFound, badRequest } from "../lib/errors";
 import { nextDisplayId } from "../lib/display-id";
+import { getNextAction, updateNextAction, completeNextAction } from "../services/entity-next-actions";
 import type { AppContext } from "../types";
 import type { DB } from "../services/types";
 
@@ -93,7 +94,10 @@ websiteBookingRequestRoutes.get(
     // Auto-assign display ID if missing
     await ensureDisplayIds(supabase, db, [result.data]);
 
-    return c.json({ data: result.data });
+    // Fetch next action from D1
+    const nextAction = await getNextAction(db, "website_booking_request", c.req.param("id"));
+
+    return c.json({ data: { ...result.data, nextAction: nextAction ?? null } });
   },
 );
 
@@ -128,6 +132,15 @@ websiteBookingRequestRoutes.patch(
       throw internal(ERROR_CODES.SUPABASE_ERROR, result.error.message);
     }
 
+    // Clear next action when transitioning to a closed status
+    if (typeof parsed.data.status === "string" && parsed.data.status.startsWith("closed_")) {
+      const session = c.get("session");
+      if (session !== null) {
+        const db = c.get("db");
+        await completeNextAction(db, "website_booking_request", c.req.param("id"), session.colleagueId);
+      }
+    }
+
     return c.json({ data: result.data });
   },
 );
@@ -147,6 +160,40 @@ websiteBookingRequestRoutes.delete(
       throw internal(ERROR_CODES.SUPABASE_ERROR, error.message);
     }
 
+    return c.json({ success: true });
+  },
+);
+
+// Update next action
+websiteBookingRequestRoutes.patch(
+  "/api/website-booking-requests/:id/next-action",
+  requirePermission("manageWebsiteBookingRequests"),
+  async (c) => {
+    const body: unknown = await c.req.json();
+    const parsed = updateEntityNextActionSchema.safeParse(body);
+    if (!parsed.success) {
+      throw badRequest(ERROR_CODES.VALIDATION_FAILED, "Invalid input", parsed.error.flatten().fieldErrors);
+    }
+
+    const session = c.get("session");
+    if (session === null) return c.json({ error: "Unauthorized" }, 401);
+
+    const db = c.get("db");
+    const nextAction = await updateNextAction(db, "website_booking_request", c.req.param("id"), parsed.data, session.colleagueId);
+    return c.json({ data: nextAction });
+  },
+);
+
+// Complete next action
+websiteBookingRequestRoutes.post(
+  "/api/website-booking-requests/:id/next-action/done",
+  requirePermission("manageWebsiteBookingRequests"),
+  async (c) => {
+    const session = c.get("session");
+    if (session === null) return c.json({ error: "Unauthorized" }, 401);
+
+    const db = c.get("db");
+    await completeNextAction(db, "website_booking_request", c.req.param("id"), session.colleagueId);
     return c.json({ success: true });
   },
 );

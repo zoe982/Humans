@@ -6,13 +6,13 @@ import { notFound } from "../lib/errors";
 import { nextDisplayId } from "../lib/display-id";
 import type { DB } from "./types";
 
-export async function getPetCount(db: DB) {
+export async function getPetCount(db: DB): Promise<{ total: number }> {
   const countResult = await db.select({ total: sql<number>`count(*)` }).from(pets);
   const total = countResult[0]?.total ?? 0;
   return { total };
 }
 
-export async function listPets(db: DB) {
+export async function listPets(db: DB): Promise<{ id: string; displayId: string; humanId: string; type: string; name: string; breed: string | null; weight: number | null; notes: string | null; isActive: boolean; createdAt: string; updatedAt: string; ownerName: string | null; ownerDisplayId: string | null }[]> {
   const rows = await db
     .select({
       id: pets.id,
@@ -45,14 +45,14 @@ export async function listPets(db: DB) {
     isActive: r.isActive,
     createdAt: r.createdAt,
     updatedAt: r.updatedAt,
-    ownerName: r.ownerFirstName && r.ownerLastName
+    ownerName: r.ownerFirstName != null && r.ownerLastName != null
       ? `${r.ownerFirstName} ${r.ownerLastName}`
       : null,
     ownerDisplayId: r.ownerDisplayId,
   }));
 }
 
-export async function listPetsForHuman(db: DB, humanId: string) {
+export async function listPetsForHuman(db: DB, humanId: string): Promise<(typeof pets.$inferSelect)[]> {
   const humanPets = await db
     .select()
     .from(pets)
@@ -60,7 +60,7 @@ export async function listPetsForHuman(db: DB, humanId: string) {
   return humanPets;
 }
 
-export async function getPet(db: DB, id: string) {
+export async function getPet(db: DB, id: string): Promise<{ id: string; displayId: string; humanId: string; type: string; name: string; breed: string | null; weight: number | null; notes: string | null; isActive: boolean; createdAt: string; updatedAt: string; ownerName: string | null; ownerDisplayId: string | null }> {
   const rows = await db
     .select({
       id: pets.id,
@@ -99,7 +99,7 @@ export async function getPet(db: DB, id: string) {
     isActive: row.isActive,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
-    ownerName: row.ownerFirstName && row.ownerLastName
+    ownerName: row.ownerFirstName != null && row.ownerLastName != null
       ? `${row.ownerFirstName} ${row.ownerLastName}`
       : null,
     ownerDisplayId: row.ownerDisplayId,
@@ -116,7 +116,7 @@ export async function createPet(
     weight?: number | null | undefined;
     notes?: string | null | undefined;
   },
-) {
+): Promise<{ id: string; displayId: string; humanId: string; type: string; name: string; breed: string | null; weight: number | null; notes: string | null; isActive: boolean; createdAt: string; updatedAt: string }> {
   const now = new Date().toISOString();
   const displayId = await nextDisplayId(db, "PET");
 
@@ -138,7 +138,7 @@ export async function createPet(
   return newPet;
 }
 
-export async function deletePet(db: DB, id: string) {
+export async function deletePet(db: DB, id: string): Promise<void> {
   const existing = await db.query.pets.findFirst({
     where: eq(pets.id, id),
   });
@@ -153,7 +153,7 @@ export async function updatePet(
   db: DB,
   id: string,
   data: Record<string, unknown>,
-) {
+): Promise<typeof pets.$inferSelect | undefined> {
   const existing = await db.query.pets.findFirst({
     where: eq(pets.id, id),
   });

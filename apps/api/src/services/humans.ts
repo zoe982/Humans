@@ -27,14 +27,14 @@ import { ERROR_CODES } from "@humans/shared";
 import { computeDiff, logAuditEntry } from "../lib/audit";
 import { notFound, conflict } from "../lib/errors";
 import { nextDisplayId } from "../lib/display-id";
-import { rematchActivitiesByEmail, rematchActivitiesByPhone } from "./activity-rematch";
+import { rematchActivitiesByEmail } from "./activity-rematch";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { DB } from "./types";
 
-export async function listHumans(db: DB, page: number, limit: number, search?: string) {
+export async function listHumans(db: DB, page: number, limit: number, search?: string): Promise<{ data: { emails: (typeof emails.$inferSelect)[]; types: string[]; id: string; displayId: string; firstName: string; middleName: string | null; lastName: string; status: string; createdAt: string; updatedAt: string }[]; meta: { page: number; limit: number; total: number } }> {
   const offset = (page - 1) * limit;
 
-  const searchFilter = search
+  const searchFilter = search != null
     ? or(
         like(humans.firstName, `%${search}%`),
         like(humans.lastName, `%${search}%`),
@@ -71,7 +71,7 @@ export async function listHumans(db: DB, page: number, limit: number, search?: s
   return { data, meta: { page, limit, total } };
 }
 
-export async function getHumanDetail(supabase: SupabaseClient, db: DB, humanId: string) {
+export async function getHumanDetail(supabase: SupabaseClient, db: DB, humanId: string): Promise<Record<string, unknown>> {
   const human = await db.query.humans.findFirst({
     where: eq(humans.id, humanId),
   });
@@ -161,7 +161,7 @@ export async function getHumanDetail(supabase: SupabaseClient, db: DB, humanId: 
     ]);
     linkedAccounts = linkedAccountRows.map((row) => {
       const account = allAccounts.find((a) => a.id === row.accountId);
-      const label = row.labelId ? allLabels.find((l) => l.id === row.labelId) : null;
+      const label = row.labelId != null ? allLabels.find((l) => l.id === row.labelId) : null;
       return {
         id: row.id,
         accountId: row.accountId,
@@ -175,18 +175,18 @@ export async function getHumanDetail(supabase: SupabaseClient, db: DB, humanId: 
   const emailsWithLabels = humanEmails
     .filter((e) => e.ownerType === "human")
     .map((e) => {
-      const label = e.labelId ? emailLabelConfigs.find((l) => l.id === e.labelId) : null;
+      const label = e.labelId != null ? emailLabelConfigs.find((l) => l.id === e.labelId) : null;
       return { ...e, labelName: label?.name ?? null };
     });
   const phoneNumbersWithLabels = humanPhones
     .filter((p) => p.ownerType === "human")
     .map((p) => {
-      const label = p.labelId ? phoneLabelConfigs.find((l) => l.id === p.labelId) : null;
+      const label = p.labelId != null ? phoneLabelConfigs.find((l) => l.id === p.labelId) : null;
       return { ...p, labelName: label?.name ?? null };
     });
 
   const socialIdsWithPlatforms = humanSocialIds.map((s) => {
-    const platform = s.platformId ? allPlatforms.find((p) => p.id === s.platformId) : null;
+    const platform = s.platformId != null ? allPlatforms.find((p) => p.id === s.platformId) : null;
     return { ...s, platformName: platform?.name ?? null };
   });
 
@@ -213,12 +213,12 @@ async function assertNoDuplicateName(
   firstName: string,
   lastName: string,
   excludeId?: string,
-) {
+): Promise<void> {
   const conditions = [
     sql`lower(${humans.firstName}) = lower(${firstName})`,
     sql`lower(${humans.lastName}) = lower(${lastName})`,
   ];
-  if (excludeId) {
+  if (excludeId != null) {
     conditions.push(ne(humans.id, excludeId));
   }
   const existing = await db.query.humans.findFirst({
@@ -235,7 +235,7 @@ async function assertNoDuplicateName(
 export async function createHuman(
   db: DB,
   data: { firstName: string; middleName?: string | null; lastName: string; status?: string; emails: { email: string; labelId?: string | null; isPrimary?: boolean }[]; types: string[] },
-) {
+): Promise<{ id: string; displayId: string }> {
   const now = new Date().toISOString();
   const humanId = createId();
   const displayId = await nextDisplayId(db, "HUM");
@@ -289,7 +289,7 @@ export async function updateHuman(
   id: string,
   data: { firstName?: string; middleName?: string; lastName?: string; status?: string; emails?: { email: string; labelId?: string | null; isPrimary?: boolean }[]; types?: string[] },
   colleagueId: string,
-) {
+): Promise<{ data: typeof humans.$inferSelect | undefined; auditEntryId: string | undefined }> {
   const now = new Date().toISOString();
 
   const existing = await db.query.humans.findFirst({
@@ -312,7 +312,7 @@ export async function updateHuman(
     lastName: existing.lastName,
   };
   if (data.types !== undefined) {
-    oldValues["types"] = existingTypes.map((t) => t.type).sort();
+    oldValues["types"] = existingTypes.map((t) => t.type).sort((a, b) => a.localeCompare(b));
   }
 
   const updateFields: Record<string, unknown> = { updatedAt: now };
@@ -323,7 +323,7 @@ export async function updateHuman(
 
   await db.update(humans).set(updateFields).where(eq(humans.id, id));
 
-  if (data.emails) {
+  if (data.emails != null) {
     await db.delete(emails).where(eq(emails.ownerId, id));
     for (const email of data.emails) {
       const emailDisplayId = await nextDisplayId(db, "EML");
@@ -340,7 +340,7 @@ export async function updateHuman(
     }
   }
 
-  if (data.types) {
+  if (data.types != null) {
     await db.delete(humanTypes).where(eq(humanTypes.humanId, id));
     for (const type of data.types) {
       await db.insert(humanTypes).values({
@@ -356,11 +356,11 @@ export async function updateHuman(
   if (data.firstName !== undefined) newValues["firstName"] = data.firstName;
   if (data.middleName !== undefined) newValues["middleName"] = data.middleName;
   if (data.lastName !== undefined) newValues["lastName"] = data.lastName;
-  if (data.types !== undefined) newValues["types"] = [...data.types].sort();
+  if (data.types !== undefined) newValues["types"] = [...data.types].sort((a, b) => a.localeCompare(b));
 
   const diff = computeDiff(oldValues, newValues);
   let auditEntryId: string | undefined;
-  if (diff) {
+  if (diff != null) {
     auditEntryId = await logAuditEntry({
       db,
       colleagueId,
@@ -377,7 +377,7 @@ export async function updateHuman(
   return { data: updated, auditEntryId };
 }
 
-export async function updateHumanStatus(db: DB, id: string, status: string, colleagueId: string) {
+export async function updateHumanStatus(db: DB, id: string, status: string, colleagueId: string): Promise<{ id: string; status: string; auditEntryId: string | undefined }> {
   const existing = await db.query.humans.findFirst({
     where: eq(humans.id, id),
   });
@@ -394,7 +394,7 @@ export async function updateHumanStatus(db: DB, id: string, status: string, coll
   let auditEntryId: string | undefined;
   if (oldStatus !== status) {
     const diff = computeDiff({ status: oldStatus }, { status });
-    if (diff) {
+    if (diff != null) {
       auditEntryId = await logAuditEntry({
         db,
         colleagueId,
@@ -409,7 +409,7 @@ export async function updateHumanStatus(db: DB, id: string, status: string, coll
   return { id, status, auditEntryId };
 }
 
-export async function deleteHuman(supabase: SupabaseClient, db: DB, id: string) {
+export async function deleteHuman(supabase: SupabaseClient, db: DB, id: string): Promise<void> {
   const existing = await db.query.humans.findFirst({
     where: eq(humans.id, id),
   });
@@ -434,7 +434,7 @@ export async function deleteHuman(supabase: SupabaseClient, db: DB, id: string) 
   await db.delete(humans).where(eq(humans.id, id));
 }
 
-export async function linkRouteSignup(db: DB, humanId: string, routeSignupId: string) {
+export async function linkRouteSignup(db: DB, humanId: string, routeSignupId: string): Promise<{ id: string; humanId: string; routeSignupId: string; linkedAt: string }> {
   const existing = await db.query.humans.findFirst({
     where: eq(humans.id, humanId),
   });
@@ -452,11 +452,11 @@ export async function linkRouteSignup(db: DB, humanId: string, routeSignupId: st
   return link;
 }
 
-export async function unlinkRouteSignup(db: DB, linkId: string) {
+export async function unlinkRouteSignup(db: DB, linkId: string): Promise<void> {
   await db.delete(humanRouteSignups).where(eq(humanRouteSignups.id, linkId));
 }
 
-export async function linkWebsiteBookingRequest(db: DB, humanId: string, websiteBookingRequestId: string) {
+export async function linkWebsiteBookingRequest(db: DB, humanId: string, websiteBookingRequestId: string): Promise<{ id: string; humanId: string; websiteBookingRequestId: string; linkedAt: string }> {
   const existing = await db.query.humans.findFirst({
     where: eq(humans.id, humanId),
   });
@@ -474,11 +474,11 @@ export async function linkWebsiteBookingRequest(db: DB, humanId: string, website
   return link;
 }
 
-export async function unlinkWebsiteBookingRequest(db: DB, linkId: string) {
+export async function unlinkWebsiteBookingRequest(db: DB, linkId: string): Promise<void> {
   await db.delete(humanWebsiteBookingRequests).where(eq(humanWebsiteBookingRequests.id, linkId));
 }
 
-export async function getHumanRelationships(db: DB, humanId: string) {
+export async function getHumanRelationships(db: DB, humanId: string): Promise<{ id: string; displayId: string; otherHumanId: string; otherHumanName: string; otherHumanDisplayId: string | null; labelId: string | null; labelName: string | null; createdAt: string }[]> {
   const rows = await db
     .select()
     .from(humanRelationships)
@@ -504,12 +504,12 @@ export async function getHumanRelationships(db: DB, humanId: string) {
   return rows.map((row) => {
     const otherHumanId = row.humanId1 === humanId ? row.humanId2 : row.humanId1;
     const otherHuman = otherHumans.find((h) => h.id === otherHumanId);
-    const label = row.labelId ? allLabels.find((l) => l.id === row.labelId) : null;
+    const label = row.labelId != null ? allLabels.find((l) => l.id === row.labelId) : null;
     return {
       id: row.id,
       displayId: row.displayId,
       otherHumanId,
-      otherHumanName: otherHuman ? `${otherHuman.firstName} ${otherHuman.lastName}` : "Unknown",
+      otherHumanName: otherHuman != null ? `${otherHuman.firstName} ${otherHuman.lastName}` : "Unknown",
       otherHumanDisplayId: otherHuman?.displayId ?? null,
       labelId: row.labelId,
       labelName: label?.name ?? null,
@@ -518,7 +518,7 @@ export async function getHumanRelationships(db: DB, humanId: string) {
   });
 }
 
-export async function createHumanRelationship(db: DB, humanId1: string, humanId2: string, labelId?: string) {
+export async function createHumanRelationship(db: DB, humanId1: string, humanId2: string, labelId?: string): Promise<{ id: string; displayId: string }> {
   // Check for duplicate pair (in either direction)
   const existing = await db
     .select()
@@ -550,6 +550,20 @@ export async function createHumanRelationship(db: DB, humanId1: string, humanId2
   return { id, displayId };
 }
 
-export async function deleteHumanRelationship(db: DB, id: string) {
+export async function updateHumanRelationship(db: DB, id: string, data: { labelId?: string | null }): Promise<{ id: string; labelId: string | null }> {
+  const existing = await db.query.humanRelationships.findFirst({
+    where: eq(humanRelationships.id, id),
+  });
+  if (existing == null) {
+    throw notFound(ERROR_CODES.RELATIONSHIP_NOT_FOUND, "Relationship not found");
+  }
+
+  const newLabelId = data.labelId === undefined ? existing.labelId : (data.labelId ?? null);
+  await db.update(humanRelationships).set({ labelId: newLabelId }).where(eq(humanRelationships.id, id));
+
+  return { id, labelId: newLabelId };
+}
+
+export async function deleteHumanRelationship(db: DB, id: string): Promise<void> {
   await db.delete(humanRelationships).where(eq(humanRelationships.id, id));
 }

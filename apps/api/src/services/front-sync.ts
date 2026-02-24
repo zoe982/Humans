@@ -39,7 +39,7 @@ export function classifyChannel(
   messageType?: string,
 ): ActivityType {
   // Priority 1: Known channel ID
-  if (channelId) {
+  if (channelId != null) {
     if (SOCIAL_CHANNEL_IDS.has(channelId)) return "social_message";
     if (WHATSAPP_CHANNEL_IDS.has(channelId)) return "whatsapp_message";
     if (EMAIL_CHANNEL_IDS.has(channelId)) return "email";
@@ -59,14 +59,14 @@ export function classifyChannel(
 // --- Cached reference data (fixes subrequest limits) ---
 
 interface CachedReferenceData {
-  allEmails: Array<{ id: string; email: string; ownerType: string; ownerId: string }>;
-  allPhones: Array<{ id: string; phoneNumber: string; ownerType: string; ownerId: string }>;
-  allColleagues: Array<{ id: string; email: string }>;
-  allLeads: Array<{ id: string; email: string | null; phone: string | null }>;
-  allAccountHumans: Array<{ accountId: string; humanId: string }>;
-  allSignups: Array<{ id: string; email?: string; phone?: string; whatsapp_phone?: string }>;
-  allBookings: Array<{ id: string; client_email?: string; email_for_notifications?: string; phone_number?: string; alt_whatsapp_phone_number?: string }>;
-  allSocialIds: Array<{ id: string; handle: string; humanId: string | null; accountId: string | null }>;
+  allEmails: { id: string; email: string; ownerType: string; ownerId: string }[];
+  allPhones: { id: string; phoneNumber: string; ownerType: string; ownerId: string }[];
+  allColleagues: { id: string; email: string }[];
+  allLeads: { id: string; email: string | null; phone: string | null }[];
+  allAccountHumans: { accountId: string; humanId: string }[];
+  allSignups: { id: string; email?: string | null; phone?: string | null; whatsapp_phone?: string | null }[];
+  allBookings: { id: string; client_email?: string | null; email_for_notifications?: string | null; phone_number?: string | null; alt_whatsapp_phone_number?: string | null }[];
+  allSocialIds: { id: string; handle: string; humanId: string | null; accountId: string | null }[];
   humanNames: Map<string, { firstName: string; lastName: string; displayId: string }>;
 }
 
@@ -150,7 +150,7 @@ function matchByEmail(cache: CachedReferenceData, emailHandle: string): MatchRes
   const matched = cache.allEmails.find(
     (e) => e.email.toLowerCase() === lowerEmail && e.ownerType === "human",
   );
-  if (matched) {
+  if (matched != null) {
     const accountId = findAccountForHuman(cache, matched.ownerId);
     return {
       ...NO_MATCH,
@@ -162,9 +162,9 @@ function matchByEmail(cache: CachedReferenceData, emailHandle: string): MatchRes
 
   // 2. Check Supabase announcement_signups
   const signup = cache.allSignups.find(
-    (s) => s.email && s.email.toLowerCase() === lowerEmail,
+    (s) => s.email?.toLowerCase() === lowerEmail,
   );
-  if (signup) {
+  if (signup != null) {
     return {
       ...NO_MATCH,
       routeSignupId: signup.id,
@@ -174,9 +174,9 @@ function matchByEmail(cache: CachedReferenceData, emailHandle: string): MatchRes
 
   // 3. Check D1 general_leads by email
   const matchedLead = cache.allLeads.find(
-    (l) => l.email && l.email.toLowerCase() === lowerEmail,
+    (l) => l.email?.toLowerCase() === lowerEmail,
   );
-  if (matchedLead) {
+  if (matchedLead != null) {
     return {
       ...NO_MATCH,
       generalLeadId: matchedLead.id,
@@ -187,10 +187,10 @@ function matchByEmail(cache: CachedReferenceData, emailHandle: string): MatchRes
   // 4. Check Supabase bookings
   const booking = cache.allBookings.find(
     (b) =>
-      (b.client_email && b.client_email.toLowerCase() === lowerEmail) ||
-      (b.email_for_notifications && b.email_for_notifications.toLowerCase() === lowerEmail),
+      b.client_email?.toLowerCase() === lowerEmail ||
+      b.email_for_notifications?.toLowerCase() === lowerEmail,
   );
-  if (booking) {
+  if (booking != null) {
     return {
       ...NO_MATCH,
       websiteBookingRequestId: booking.id,
@@ -209,7 +209,7 @@ function matchByPhone(cache: CachedReferenceData, phoneHandle: string): MatchRes
   const matched = cache.allPhones.find(
     (p) => p.ownerType === "human" && phonesMatch(p.phoneNumber, phoneHandle),
   );
-  if (matched) {
+  if (matched != null) {
     const accountId = findAccountForHuman(cache, matched.ownerId);
     return {
       ...NO_MATCH,
@@ -224,11 +224,11 @@ function matchByPhone(cache: CachedReferenceData, phoneHandle: string): MatchRes
     const phone = s.phone;
     const wp = s.whatsapp_phone;
     return (
-      (phone && normalizePhone(phone).slice(-9) === suffix) ||
-      (wp && normalizePhone(wp).slice(-9) === suffix)
+      (phone != null && normalizePhone(phone).slice(-9) === suffix) ||
+      (wp != null && normalizePhone(wp).slice(-9) === suffix)
     );
   });
-  if (matchedSignup) {
+  if (matchedSignup != null) {
     return {
       ...NO_MATCH,
       routeSignupId: matchedSignup.id,
@@ -238,9 +238,9 @@ function matchByPhone(cache: CachedReferenceData, phoneHandle: string): MatchRes
 
   // 3. Check D1 general_leads by phone
   const matchedLead = cache.allLeads.find(
-    (l) => l.phone && phonesMatch(l.phone, phoneHandle),
+    (l) => l.phone != null && phonesMatch(l.phone, phoneHandle),
   );
-  if (matchedLead) {
+  if (matchedLead != null) {
     return {
       ...NO_MATCH,
       generalLeadId: matchedLead.id,
@@ -253,11 +253,11 @@ function matchByPhone(cache: CachedReferenceData, phoneHandle: string): MatchRes
     const phone = b.phone_number;
     const alt = b.alt_whatsapp_phone_number;
     return (
-      (phone && normalizePhone(phone).slice(-9) === suffix) ||
-      (alt && normalizePhone(alt).slice(-9) === suffix)
+      (phone != null && normalizePhone(phone).slice(-9) === suffix) ||
+      (alt != null && normalizePhone(alt).slice(-9) === suffix)
     );
   });
-  if (matchedBooking) {
+  if (matchedBooking != null) {
     return {
       ...NO_MATCH,
       websiteBookingRequestId: matchedBooking.id,
@@ -277,7 +277,8 @@ function matchBySocialId(cache: CachedReferenceData, handle: string): MatchResul
   const match = cache.allSocialIds.find(
     (s) => normalizeSocialHandle(s.handle) === normalized,
   );
-  if (!match || !match.humanId) return NO_MATCH;
+  if (match == null) return NO_MATCH;
+  if (match.humanId == null) return NO_MATCH;
 
   const accountId = match.accountId ?? findAccountForHuman(cache, match.humanId);
   return {
@@ -305,13 +306,13 @@ function matchContact(
     if (handle.includes("@")) {
       result = matchByEmail(cache, handle);
     }
-    if (!result.matchedEntity && /\d/.test(handle)) {
+    if (result.matchedEntity == null && /\d/.test(handle)) {
       result = matchByPhone(cache, handle);
     }
   }
 
   // Universal fallback: try social IDs
-  if (!result.matchedEntity) {
+  if (result.matchedEntity == null) {
     result = matchBySocialId(cache, handle);
   }
 
@@ -345,7 +346,12 @@ interface FrontConversation {
   _links?: { related?: { messages?: { href: string } } };
 }
 
-async function frontFetch<T>(url: string, token: string): Promise<T> {
+interface FrontPaginatedResponse<T> {
+  _results: T[];
+  _pagination: FrontPagination;
+}
+
+async function frontFetch(url: string, token: string): Promise<unknown> {
   const res = await fetch(url, {
     headers: {
       Authorization: `Bearer ${token}`,
@@ -354,9 +360,11 @@ async function frontFetch<T>(url: string, token: string): Promise<T> {
   });
   if (!res.ok) {
     const text = await res.text();
-    throw new Error(`Front API ${res.status}: ${text}`);
+    throw new Error(`Front API ${res.status.toString()}: ${text}`);
   }
-  return res.json() as Promise<T>;
+  const text = await res.text();
+  const parsed: unknown = JSON.parse(text);
+  return parsed;
 }
 
 async function frontPostComment(token: string, conversationId: string, body: string): Promise<void> {
@@ -371,7 +379,7 @@ async function frontPostComment(token: string, conversationId: string, body: str
   });
   if (!res.ok) {
     const text = await res.text();
-    throw new Error(`Front comment API ${res.status}: ${text}`);
+    throw new Error(`Front comment API ${res.status.toString()}: ${text}`);
   }
 }
 
@@ -384,6 +392,58 @@ export interface UnmatchedContact {
   conversationSubject: string;
   type: ActivityType;
   messageCount: number;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
+function isPaginated<T>(value: unknown): value is FrontPaginatedResponse<T> {
+  if (!isRecord(value)) return false;
+  if (!Array.isArray(value["_results"])) return false;
+  if (!isRecord(value["_pagination"])) return false;
+  return true;
+}
+
+function assertPaginated<T>(raw: unknown, label: string): FrontPaginatedResponse<T> {
+  if (!isPaginated<T>(raw)) {
+    throw new Error(`Invalid Front API paginated response: ${label}`);
+  }
+  return raw;
+}
+
+function assertRecord(raw: unknown, label: string): Record<string, unknown> {
+  if (!isRecord(raw)) {
+    throw new Error(`Invalid Front API response: ${label}`);
+  }
+  return raw;
+}
+
+interface FrontResultsResponse<T> {
+  _results: T[];
+}
+
+function isResultsResponse<T>(value: unknown): value is FrontResultsResponse<T> {
+  return isRecord(value) && Array.isArray(value["_results"]);
+}
+
+function assertResultsArray<T>(raw: unknown, label: string): FrontResultsResponse<T> {
+  if (!isResultsResponse<T>(raw)) {
+    throw new Error(`Invalid Front API results response: ${label}`);
+  }
+  return raw;
+}
+
+function isUnmatchedContact(value: unknown): value is UnmatchedContact {
+  if (!isRecord(value)) return false;
+  return (
+    typeof value["handle"] === "string" &&
+    (value["name"] === null || typeof value["name"] === "string") &&
+    typeof value["conversationId"] === "string" &&
+    typeof value["conversationSubject"] === "string" &&
+    typeof value["type"] === "string" &&
+    typeof value["messageCount"] === "number"
+  );
 }
 
 export interface SyncStats {
@@ -423,7 +483,7 @@ function emptySyncStats(): SyncStats {
   };
 }
 
-function mergeStats(target: SyncStats, source: SyncStats) {
+function mergeStats(target: SyncStats, source: SyncStats): void {
   target.total += source.total;
   target.imported += source.imported;
   target.skipped += source.skipped;
@@ -451,10 +511,7 @@ async function processConversation(
 
   // Fetch all messages for this conversation
   const messagesUrl = `https://api2.frontapp.com/conversations/${conversation.id}/messages`;
-  const msgResponse = await frontFetch<{
-    _results: FrontMessage[];
-    _pagination: FrontPagination;
-  }>(messagesUrl, frontToken);
+  const msgResponse = assertPaginated<FrontMessage>(await frontFetch(messagesUrl, frontToken), "messages");
 
   // Determine the contact handle from the conversation
   const contactHandle = conversation.recipient?.handle ?? "";
@@ -465,14 +522,14 @@ async function processConversation(
   let effectiveContactHandle = contactHandle;
   let senderColleagueId: string | null = null;
 
-  if (contactHandle) {
+  if (contactHandle !== "") {
     const recipientColleagueId = findColleagueByEmail(cache, contactHandle);
-    if (recipientColleagueId) {
+    if (recipientColleagueId != null) {
       senderColleagueId = recipientColleagueId;
       // Look through messages for the actual external "to" recipient
       for (const message of msgResponse._results) {
         for (const r of message.recipients) {
-          if (r.role === "to" && !findColleagueByEmail(cache, r.handle)) {
+          if (r.role === "to" && findColleagueByEmail(cache, r.handle) == null) {
             effectiveContactHandle = r.handle;
             break;
           }
@@ -490,7 +547,7 @@ async function processConversation(
   const match = matchContact(cache, effectiveContactHandle, activityType);
 
   // If no match, skip entire conversation and record unmatched contact
-  if (!match.matchedEntity) {
+  if (match.matchedEntity == null) {
     // Count new (non-draft, non-existing) messages that would have been imported
     let newMessageCount = 0;
     for (const message of msgResponse._results) {
@@ -508,7 +565,7 @@ async function processConversation(
         handle: contactHandle,
         name: conversation.recipient?.name ?? null,
         conversationId: conversation.id,
-        conversationSubject: conversation.subject || "(no subject)",
+        conversationSubject: conversation.subject !== "" ? conversation.subject : "(no subject)",
         type: activityType,
         messageCount: newMessageCount,
       });
@@ -536,28 +593,28 @@ async function processConversation(
 
     // Auto-link colleague based on message author
     let colleagueId: string | null = null;
-    if (!message.is_inbound && message.author?.handle) {
+    if (!message.is_inbound && message.author?.handle != null) {
       colleagueId = findColleagueByEmail(cache, message.author.handle);
     } else if (message.is_inbound) {
       for (const recipient of message.recipients) {
         if (recipient.role === "to" || recipient.role === "cc") {
           const cid = findColleagueByEmail(cache, recipient.handle);
-          if (cid) {
+          if (cid != null) {
             colleagueId = cid;
             break;
           }
         }
       }
       // If no colleague found in to/cc, check if the "from" is a colleague
-      if (!colleagueId) {
+      if (colleagueId == null) {
         const fromRecipient = message.recipients.find(r => r.role === "from");
-        if (fromRecipient) {
+        if (fromRecipient != null) {
           colleagueId = findColleagueByEmail(cache, fromRecipient.handle);
         }
       }
     }
     // Final fallback: use the senderColleagueId from conversation recipient
-    if (!colleagueId && senderColleagueId) {
+    if (colleagueId == null && senderColleagueId != null) {
       colleagueId = senderColleagueId;
     }
 
@@ -567,15 +624,16 @@ async function processConversation(
     const noteLines: string[] = [];
 
     noteLines.push(`${direction} from ${authorInfo}`);
-    if (message.text) {
+    if (message.text !== "") {
       noteLines.push(message.text);
-    } else if (message.blurb) {
+    } else if (message.blurb !== "") {
       noteLines.push(message.blurb);
     }
 
     const subject =
-      conversation.subject ||
-      `${activityType === "email" ? "Email" : activityType === "whatsapp_message" ? "WhatsApp" : "Social"} conversation`;
+      conversation.subject !== ""
+        ? conversation.subject
+        : `${activityType === "email" ? "Email" : activityType === "whatsapp_message" ? "WhatsApp" : "Social"} conversation`;
     const activityDate = new Date(message.created_at * 1000).toISOString();
     const displayId = await nextDisplayId(db, "ACT");
 
@@ -584,7 +642,7 @@ async function processConversation(
       displayId,
       type: activityType,
       subject: subject.slice(0, 500),
-      body: message.text || message.blurb || null,
+      body: message.text !== "" ? message.text : message.blurb !== "" ? message.blurb : null,
       notes: noteLines.join("\n"),
       activityDate,
       humanId: match.humanId,
@@ -595,7 +653,8 @@ async function processConversation(
       gmailId: null,
       frontId: message.id,
       frontConversationId: conversation.id,
-      frontContactHandle: effectiveContactHandle || null,
+      frontContactHandle: effectiveContactHandle !== "" ? effectiveContactHandle : null,
+      direction: message.is_inbound ? "inbound" : "outbound",
       syncRunId,
       colleagueId,
       createdAt: new Date().toISOString(),
@@ -608,25 +667,25 @@ async function processConversation(
     importedDisplayIds.push(displayId);
 
     // Track linking stats
-    if (match.humanId) stats.linkedToHumans++;
-    if (match.accountId) stats.linkedToAccounts++;
-    if (match.routeSignupId) stats.linkedToRouteSignups++;
-    if (match.websiteBookingRequestId) stats.linkedToBookings++;
-    if (match.generalLeadId) stats.linkedToGeneralLeads++;
-    if (colleagueId) stats.linkedToColleagues++;
+    if (match.humanId != null) stats.linkedToHumans++;
+    if (match.accountId != null) stats.linkedToAccounts++;
+    if (match.routeSignupId != null) stats.linkedToRouteSignups++;
+    if (match.websiteBookingRequestId != null) stats.linkedToBookings++;
+    if (match.generalLeadId != null) stats.linkedToGeneralLeads++;
+    if (colleagueId != null) stats.linkedToColleagues++;
   }
 
   // Comment writeback to Front
   if (importedDisplayIds.length > 0) {
     const actIds = importedDisplayIds.join(", ");
     let commentBody = `Synced to Humans CRM: ${actIds}`;
-    if (match.humanId) {
+    if (match.humanId != null) {
       const human = cache.humanNames.get(match.humanId);
-      if (human) {
+      if (human != null) {
         commentBody += `\nLinked to: ${human.firstName} ${human.lastName} (${human.displayId})`;
       }
     }
-    frontPostComment(frontToken, conversation.id, commentBody).catch((err) => {
+    frontPostComment(frontToken, conversation.id, commentBody).catch((err: unknown) => {
       console.warn(`Failed to post Front comment for ${conversation.id}:`, err);
     });
   }
@@ -640,7 +699,7 @@ async function updateSyncRunStats(
   syncRunId: string,
   stats: SyncStats,
   markComplete: boolean,
-) {
+): Promise<void> {
   // Read-append-write for unmatchedContacts (multiple pages may contribute)
   let unmatchedContactsJson: string | undefined;
   if (stats.unmatchedContacts.length > 0) {
@@ -649,8 +708,10 @@ async function updateSyncRunStats(
       .from(frontSyncRuns)
       .where(eq(frontSyncRuns.id, syncRunId))
       .limit(1);
-    const prev: UnmatchedContact[] = existing[0]?.unmatchedContacts
-      ? JSON.parse(existing[0].unmatchedContacts)
+    const existingUnmatched = existing[0]?.unmatchedContacts;
+    const parsedJson: unknown = existingUnmatched != null ? JSON.parse(existingUnmatched) : [];
+    const prev: UnmatchedContact[] = Array.isArray(parsedJson)
+      ? parsedJson.filter(isUnmatchedContact)
       : [];
     unmatchedContactsJson = JSON.stringify([...prev, ...stats.unmatchedContacts]);
   }
@@ -722,11 +783,8 @@ export async function syncFrontConversations(
     const cache = await preloadReferenceData(db, supabase);
 
     const conversationsUrl =
-      cursor ?? `https://api2.frontapp.com/conversations?limit=${limit}`;
-    const convResponse = await frontFetch<{
-      _results: FrontConversation[];
-      _pagination: FrontPagination;
-    }>(conversationsUrl, frontToken);
+      cursor ?? `https://api2.frontapp.com/conversations?limit=${limit.toString()}`;
+    const convResponse = assertPaginated<FrontConversation>(await frontFetch(conversationsUrl, frontToken), "conversations");
 
     result.nextCursor = convResponse._pagination.next ?? null;
 
@@ -735,7 +793,7 @@ export async function syncFrontConversations(
       .select({ frontId: activities.frontId })
       .from(activities);
     const existingFrontIds = new Set(
-      existingActivities.map((a) => a.frontId).filter(Boolean),
+      existingActivities.map((a) => a.frontId).filter((id): id is string => id != null),
     );
 
     for (const conversation of convResponse._results) {
@@ -798,7 +856,7 @@ export async function syncFrontConversationsIncremental(
       .orderBy(sql`${frontSyncRuns.startedAt} DESC`)
       .limit(1);
 
-    const updatedAfter = lastRun[0]
+    const updatedAfter = lastRun[0] != null
       ? Math.floor(new Date(lastRun[0].startedAt).getTime() / 1000)
       : Math.floor((Date.now() - 24 * 60 * 60 * 1000) / 1000);
 
@@ -807,21 +865,18 @@ export async function syncFrontConversationsIncremental(
       .select({ frontId: activities.frontId })
       .from(activities);
     const existingFrontIds = new Set(
-      existingActivities.map((a) => a.frontId).filter(Boolean),
+      existingActivities.map((a) => a.frontId).filter((id): id is string => id != null),
     );
 
-    let nextUrl: string | null = `https://api2.frontapp.com/conversations?limit=10&q[updated_after]=${updatedAfter}`;
+    let nextUrl: string | null = `https://api2.frontapp.com/conversations?limit=10&q[updated_after]=${updatedAfter.toString()}`;
 
-    while (nextUrl) {
+    while (nextUrl != null) {
       // Wall-clock safety valve
       if (Date.now() - startTime > WALL_CLOCK_LIMIT_MS) {
         break;
       }
 
-      const convResponse = await frontFetch<{
-        _results: FrontConversation[];
-        _pagination: FrontPagination;
-      }>(nextUrl, frontToken);
+      const convResponse: FrontPaginatedResponse<FrontConversation> = assertPaginated<FrontConversation>(await frontFetch(nextUrl, frontToken), "conversations");
 
       for (const conversation of convResponse._results) {
         if (Date.now() - startTime > WALL_CLOCK_LIMIT_MS) break;
@@ -879,46 +934,46 @@ function debugMatchByEmail(cache: CachedReferenceData, emailHandle: string): Mat
   attempts.push({
     source: "Emails table (humans)",
     searchedFor: lowerEmail,
-    found: !!emailMatch,
-    detail: emailMatch ? `human:${emailMatch.ownerId}` : undefined,
+    found: emailMatch != null,
+    detail: emailMatch != null ? `human:${emailMatch.ownerId}` : undefined,
   });
-  if (emailMatch) return attempts;
+  if (emailMatch != null) return attempts;
 
   // 2. announcement_signups
   const signup = cache.allSignups.find(
-    (s) => s.email && s.email.toLowerCase() === lowerEmail,
+    (s) => s.email?.toLowerCase() === lowerEmail,
   );
   attempts.push({
     source: "Announcement signups",
     searchedFor: lowerEmail,
-    found: !!signup,
-    detail: signup ? `signup:${signup.id}` : undefined,
+    found: signup != null,
+    detail: signup != null ? `signup:${signup.id}` : undefined,
   });
-  if (signup) return attempts;
+  if (signup != null) return attempts;
 
   // 3. general_leads
   const lead = cache.allLeads.find(
-    (l) => l.email && l.email.toLowerCase() === lowerEmail,
+    (l) => l.email?.toLowerCase() === lowerEmail,
   );
   attempts.push({
     source: "General leads",
     searchedFor: lowerEmail,
-    found: !!lead,
-    detail: lead ? `general_lead:${lead.id}` : undefined,
+    found: lead != null,
+    detail: lead != null ? `general_lead:${lead.id}` : undefined,
   });
-  if (lead) return attempts;
+  if (lead != null) return attempts;
 
   // 4. bookings
   const booking = cache.allBookings.find(
     (b) =>
-      (b.client_email && b.client_email.toLowerCase() === lowerEmail) ||
-      (b.email_for_notifications && b.email_for_notifications.toLowerCase() === lowerEmail),
+      b.client_email?.toLowerCase() === lowerEmail ||
+      b.email_for_notifications?.toLowerCase() === lowerEmail,
   );
   attempts.push({
     source: "Bookings",
     searchedFor: lowerEmail,
-    found: !!booking,
-    detail: booking ? `booking:${booking.id}` : undefined,
+    found: booking != null,
+    detail: booking != null ? `booking:${booking.id}` : undefined,
   });
 
   // 5. colleagues
@@ -928,8 +983,8 @@ function debugMatchByEmail(cache: CachedReferenceData, emailHandle: string): Mat
   attempts.push({
     source: "Colleagues",
     searchedFor: lowerEmail,
-    found: !!colleague,
-    detail: colleague ? `colleague:${colleague.id}` : undefined,
+    found: colleague != null,
+    detail: colleague != null ? `colleague:${colleague.id}` : undefined,
   });
 
   return attempts;
@@ -947,54 +1002,54 @@ function debugMatchByPhone(cache: CachedReferenceData, phoneHandle: string): Mat
   attempts.push({
     source: "Phones table (humans)",
     searchedFor: `${phoneHandle} (normalized suffix: ${suffix})`,
-    found: !!phoneMatch,
-    detail: phoneMatch ? `human:${phoneMatch.ownerId}` : undefined,
+    found: phoneMatch != null,
+    detail: phoneMatch != null ? `human:${phoneMatch.ownerId}` : undefined,
   });
-  if (phoneMatch) return attempts;
+  if (phoneMatch != null) return attempts;
 
   // 2. announcement_signups
   const signup = cache.allSignups.find((s) => {
     const phone = s.phone;
     const wp = s.whatsapp_phone;
     return (
-      (phone && normalizePhone(phone).slice(-9) === suffix) ||
-      (wp && normalizePhone(wp).slice(-9) === suffix)
+      (phone != null && normalizePhone(phone).slice(-9) === suffix) ||
+      (wp != null && normalizePhone(wp).slice(-9) === suffix)
     );
   });
   attempts.push({
     source: "Announcement signups (phone/whatsapp)",
     searchedFor: `suffix ${suffix}`,
-    found: !!signup,
-    detail: signup ? `signup:${signup.id}` : undefined,
+    found: signup != null,
+    detail: signup != null ? `signup:${signup.id}` : undefined,
   });
-  if (signup) return attempts;
+  if (signup != null) return attempts;
 
   // 3. general_leads
   const lead = cache.allLeads.find(
-    (l) => l.phone && phonesMatch(l.phone, phoneHandle),
+    (l) => l.phone != null && phonesMatch(l.phone, phoneHandle),
   );
   attempts.push({
     source: "General leads (phone)",
-    searchedFor: `${phoneHandle}`,
-    found: !!lead,
-    detail: lead ? `general_lead:${lead.id}` : undefined,
+    searchedFor: phoneHandle,
+    found: lead != null,
+    detail: lead != null ? `general_lead:${lead.id}` : undefined,
   });
-  if (lead) return attempts;
+  if (lead != null) return attempts;
 
   // 4. bookings
   const booking = cache.allBookings.find((b) => {
     const phone = b.phone_number;
     const alt = b.alt_whatsapp_phone_number;
     return (
-      (phone && normalizePhone(phone).slice(-9) === suffix) ||
-      (alt && normalizePhone(alt).slice(-9) === suffix)
+      (phone != null && normalizePhone(phone).slice(-9) === suffix) ||
+      (alt != null && normalizePhone(alt).slice(-9) === suffix)
     );
   });
   attempts.push({
     source: "Bookings (phone)",
     searchedFor: `suffix ${suffix}`,
-    found: !!booking,
-    detail: booking ? `booking:${booking.id}` : undefined,
+    found: booking != null,
+    detail: booking != null ? `booking:${booking.id}` : undefined,
   });
 
   return attempts;
@@ -1008,8 +1063,8 @@ function debugMatchBySocialId(cache: CachedReferenceData, handle: string): Match
   return [{
     source: "Social IDs",
     searchedFor: `${handle} (normalized: ${normalized})`,
-    found: !!match && !!match.humanId,
-    detail: match?.humanId ? `human:${match.humanId}` : match ? "Social ID found but no humanId linked" : undefined,
+    found: match?.humanId != null,
+    detail: match?.humanId != null ? `human:${match.humanId}` : match != null ? "Social ID found but no humanId linked" : undefined,
   }];
 }
 
@@ -1062,24 +1117,26 @@ export async function debugUnmatchedContact(
   frontToken: string,
   conversationId: string,
   contactHandle: string,
-) {
+): Promise<{ conversation: Record<string, unknown>; messages: FrontMessage[]; matchAttempts: MatchAttempt[] }> {
   const cache = await preloadReferenceData(db, supabase);
 
-  const conversation = await frontFetch<Record<string, unknown>>(
+  const conversation = assertRecord(await frontFetch(
     `https://api2.frontapp.com/conversations/${conversationId}`,
     frontToken,
-  );
+  ), "conversation");
 
   // Fetch messages via the conversation's messages link
-  const messagesHref =
-    (conversation as { _links?: { related?: { messages?: { href?: string } } } })
-      ._links?.related?.messages?.href
-    ?? `https://api2.frontapp.com/conversations/${conversationId}/messages`;
+  const links = isRecord(conversation["_links"]) ? conversation["_links"] : undefined;
+  const related = links !== undefined && isRecord(links["related"]) ? links["related"] : undefined;
+  const messagesLink = related !== undefined && isRecord(related["messages"]) ? related["messages"] : undefined;
+  const messagesHref = messagesLink !== undefined && typeof messagesLink["href"] === "string"
+    ? messagesLink["href"]
+    : `https://api2.frontapp.com/conversations/${conversationId}/messages`;
 
-  const messagesResponse = await frontFetch<{ _results: FrontMessage[] }>(
+  const messagesResponse = assertResultsArray<FrontMessage>(await frontFetch(
     messagesHref,
     frontToken,
-  );
+  ), "conversation-messages");
 
   // Use message type from first non-draft message for classification
   const firstMsg = messagesResponse._results.find((m) => !m.is_draft);
@@ -1095,7 +1152,7 @@ export async function debugUnmatchedContact(
 
 // --- Sync run management ---
 
-export async function listSyncRuns(db: DB) {
+export async function listSyncRuns(db: DB): Promise<{ id: string; displayId: string; status: string; startedAt: string; completedAt: string | null; totalMessages: number | null; imported: number | null; skipped: number | null; unmatched: number | null; errorCount: number | null; errorMessages: string | null; unmatchedContacts: string | null; linkedToHumans: number | null; linkedToAccounts: number | null; linkedToRouteSignups: number | null; linkedToBookings: number | null; linkedToColleagues: number | null; linkedToGeneralLeads: number | null; initiatedByColleagueId: string | null; initiatedByName: string | null; createdAt: string }[]> {
   const runs = await db
     .select({
       id: frontSyncRuns.id,
@@ -1127,18 +1184,18 @@ export async function listSyncRuns(db: DB) {
   return runs.reverse();
 }
 
-export async function getSyncRun(db: DB, id: string) {
+export async function getSyncRun(db: DB, id: string): Promise<typeof frontSyncRuns.$inferSelect | null> {
   const run = await db.query.frontSyncRuns.findFirst({
     where: eq(frontSyncRuns.id, id),
   });
   return run ?? null;
 }
 
-export async function revertSyncRun(db: DB, syncRunId: string) {
+export async function revertSyncRun(db: DB, syncRunId: string): Promise<{ deleted: number; skipped: number; error?: string }> {
   const run = await db.query.frontSyncRuns.findFirst({
     where: eq(frontSyncRuns.id, syncRunId),
   });
-  if (!run) return { deleted: 0, skipped: 0, error: "Sync run not found" };
+  if (run == null) return { deleted: 0, skipped: 0, error: "Sync run not found" };
   if (run.status === "reverted")
     return { deleted: 0, skipped: 0, error: "Already reverted" };
 
@@ -1187,7 +1244,7 @@ export async function reclassifyActivities(
   db: DB,
   frontToken: string,
   cursor?: string,
-) {
+): Promise<{ updated: number; checked: number; errors: string[]; nextCursor: string | null }> {
   const BATCH_SIZE = 20;
   let updated = 0;
   let checked = 0;
@@ -1206,7 +1263,7 @@ export async function reclassifyActivities(
     .orderBy(activities.frontConversationId);
 
   // Simple cursor-based pagination: skip conversations until we pass the cursor
-  let started = !cursor;
+  let started = cursor == null;
   let processed = 0;
   let nextCursor: string | null = null;
 
@@ -1226,11 +1283,14 @@ export async function reclassifyActivities(
     processed++;
     checked++;
 
+    const convId = row.frontConversationId;
+    if (convId == null) continue;
+
     try {
-      const msgResponse = await frontFetch<{ _results: FrontMessage[] }>(
-        `https://api2.frontapp.com/conversations/${row.frontConversationId}/messages`,
+      const msgResponse = assertResultsArray<FrontMessage>(await frontFetch(
+        `https://api2.frontapp.com/conversations/${convId}/messages`,
         frontToken,
-      );
+      ), "reclassify-messages");
 
       const firstMsg = msgResponse._results.find((m) => !m.is_draft);
       const handle = row.frontContactHandle ?? firstMsg?.author?.handle ?? "";
@@ -1242,7 +1302,7 @@ export async function reclassifyActivities(
           .set({ type: correctType, updatedAt: new Date().toISOString() })
           .where(
             and(
-              eq(activities.frontConversationId, row.frontConversationId!),
+              eq(activities.frontConversationId, convId),
               sql`${activities.type} != ${correctType}`,
             ),
           );
@@ -1250,7 +1310,7 @@ export async function reclassifyActivities(
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
-      errors.push(`${row.frontConversationId}: ${msg}`);
+      errors.push(`${convId}: ${msg}`);
     }
   }
 

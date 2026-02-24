@@ -7,19 +7,19 @@ import { nextDisplayId } from "../lib/display-id";
 import { rematchActivitiesBySocialId } from "./activity-rematch";
 import type { DB } from "./types";
 
-export async function listSocialIds(db: DB) {
+export async function listSocialIds(db: DB): Promise<{ humanName: string | null; humanDisplayId: string | null; accountName: string | null; accountDisplayId: string | null; platformName: string | null; id: string; displayId: string; handle: string; platformId: string | null; humanId: string | null; accountId: string | null; createdAt: string }[]> {
   const allSocialIds = await db.select().from(socialIds);
   const allHumans = await db.select().from(humans);
   const allAccounts = await db.select().from(accounts);
   const allPlatforms = await db.select().from(socialIdPlatformsConfig);
 
   const data = allSocialIds.map((s) => {
-    const human = s.humanId ? allHumans.find((h) => h.id === s.humanId) : null;
-    const account = s.accountId ? allAccounts.find((a) => a.id === s.accountId) : null;
-    const platform = s.platformId ? allPlatforms.find((p) => p.id === s.platformId) : null;
+    const human = s.humanId != null ? allHumans.find((h) => h.id === s.humanId) : null;
+    const account = s.accountId != null ? allAccounts.find((a) => a.id === s.accountId) : null;
+    const platform = s.platformId != null ? allPlatforms.find((p) => p.id === s.platformId) : null;
     return {
       ...s,
-      humanName: human ? `${human.firstName} ${human.lastName}` : null,
+      humanName: human != null ? `${human.firstName} ${human.lastName}` : null,
       humanDisplayId: human?.displayId ?? null,
       accountName: account?.name ?? null,
       accountDisplayId: account?.displayId ?? null,
@@ -30,7 +30,7 @@ export async function listSocialIds(db: DB) {
   return data;
 }
 
-export async function getSocialId(db: DB, id: string) {
+export async function getSocialId(db: DB, id: string): Promise<{ humanName: string | null; humanDisplayId: string | null; accountName: string | null; accountDisplayId: string | null; platformName: string | null; id: string; displayId: string; handle: string; platformId: string | null; humanId: string | null; accountId: string | null; createdAt: string }> {
   const result = await db.select().from(socialIds).where(eq(socialIds.id, id));
   const socialId = result[0];
   if (socialId == null) {
@@ -41,13 +41,13 @@ export async function getSocialId(db: DB, id: string) {
   const allAccounts = await db.select().from(accounts);
   const allPlatforms = await db.select().from(socialIdPlatformsConfig);
 
-  const human = socialId.humanId ? allHumans.find((h) => h.id === socialId.humanId) : null;
-  const account = socialId.accountId ? allAccounts.find((a) => a.id === socialId.accountId) : null;
-  const platform = socialId.platformId ? allPlatforms.find((p) => p.id === socialId.platformId) : null;
+  const human = socialId.humanId != null ? allHumans.find((h) => h.id === socialId.humanId) : null;
+  const account = socialId.accountId != null ? allAccounts.find((a) => a.id === socialId.accountId) : null;
+  const platform = socialId.platformId != null ? allPlatforms.find((p) => p.id === socialId.platformId) : null;
 
   return {
     ...socialId,
-    humanName: human ? `${human.firstName} ${human.lastName}` : null,
+    humanName: human != null ? `${human.firstName} ${human.lastName}` : null,
     humanDisplayId: human?.displayId ?? null,
     accountName: account?.name ?? null,
     accountDisplayId: account?.displayId ?? null,
@@ -63,7 +63,7 @@ export async function createSocialId(
     humanId?: string | null;
     accountId?: string | null;
   },
-) {
+): Promise<{ id: string; displayId: string; handle: string; platformId: string | null; humanId: string | null; accountId: string | null; createdAt: string }> {
   const now = new Date().toISOString();
   const displayId = await nextDisplayId(db, "SOC");
 
@@ -79,7 +79,7 @@ export async function createSocialId(
 
   await db.insert(socialIds).values(record);
 
-  if (data.humanId) {
+  if (data.humanId != null) {
     await rematchActivitiesBySocialId(db, data.humanId, data.handle);
   }
 
@@ -90,7 +90,7 @@ export async function updateSocialId(
   db: DB,
   id: string,
   data: Record<string, unknown>,
-) {
+): Promise<typeof socialIds.$inferSelect | undefined> {
   const existing = await db.query.socialIds.findFirst({
     where: eq(socialIds.id, id),
   });
@@ -107,14 +107,14 @@ export async function updateSocialId(
     where: eq(socialIds.id, id),
   });
 
-  if (updated?.humanId && updated?.handle) {
+  if (updated?.humanId != null && updated.handle !== "") {
     await rematchActivitiesBySocialId(db, updated.humanId, updated.handle);
   }
 
   return updated;
 }
 
-export async function deleteSocialId(db: DB, id: string) {
+export async function deleteSocialId(db: DB, id: string): Promise<void> {
   const existing = await db.query.socialIds.findFirst({
     where: eq(socialIds.id, id),
   });

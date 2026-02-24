@@ -4,7 +4,7 @@ import { createId } from "@humans/db";
 import { nextDisplayId } from "../lib/display-id";
 import type { DB } from "./types";
 
-export async function listLeadSources(db: DB) {
+export async function listLeadSources(db: DB): Promise<(typeof leadSources.$inferSelect)[]> {
   const sources = await db.select().from(leadSources);
   return sources;
 }
@@ -15,7 +15,7 @@ export async function createLeadSource(
     name: string;
     [key: string]: unknown;
   },
-) {
+): Promise<Record<string, unknown>> {
   const now = new Date().toISOString();
   const displayId = await nextDisplayId(db, "LES");
 
@@ -32,7 +32,7 @@ export async function createLeadSource(
   return newSource;
 }
 
-export async function listLeadEvents(db: DB, humanId?: string) {
+export async function listLeadEvents(db: DB, humanId?: string): Promise<(typeof leadEvents.$inferSelect)[]> {
   if (humanId != null && humanId !== "") {
     const events = await db
       .select()
@@ -53,7 +53,7 @@ export async function createLeadEvent(
     [key: string]: unknown;
   },
   colleagueId?: string | null,
-) {
+): Promise<Record<string, unknown>> {
   const displayId = await nextDisplayId(db, "LED");
 
   const newEvent = {

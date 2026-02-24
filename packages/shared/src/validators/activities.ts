@@ -23,6 +23,7 @@ export const createActivitySchema = z
     gmailId: z.string().optional(),
     frontId: z.string().optional(),
     frontConversationId: z.string().optional(),
+    direction: z.enum(["inbound", "outbound"]).optional(),
     syncRunId: z.string().optional(),
   })
   .superRefine((data, ctx) => {
@@ -56,6 +57,7 @@ export const updateActivitySchema = z.object({
   gmailId: z.string().optional(),
   frontId: z.string().optional(),
   frontConversationId: z.string().optional(),
+  direction: z.enum(["inbound", "outbound"]).nullish(),
   syncRunId: z.string().optional(),
   ownerId: z.string().nullish(),
 });

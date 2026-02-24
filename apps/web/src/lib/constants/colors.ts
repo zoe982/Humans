@@ -28,6 +28,7 @@ export const signupStatusColors: Record<string, string> = {
   qualified: "badge-yellow",
   closed_converted: "badge-green",
   closed_rejected: "badge-red",
+  closed_no_response: "badge-yellow",
 };
 
 /** Booking request status colors */
@@ -57,6 +58,7 @@ export const generalLeadStatusColors: Record<string, string> = {
   qualified: "badge-yellow",
   closed_converted: "badge-green",
   closed_rejected: "badge-red",
+  closed_no_response: "badge-yellow",
 };
 
 /** General lead source badge colors */

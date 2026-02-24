@@ -34,8 +34,9 @@ export async function listActivities(db: DB, filters: ActivityFilters): Promise<
     const validTypes = ["email", "whatsapp_message", "online_meeting", "phone_call", "social_message"] as const;
     type ValidType = typeof validTypes[number];
     const t = filters.type;
-    if (validTypes.includes(t as ValidType)) {
-      conditions.push(eq(activities.type, t as ValidType));
+    const isValidType = (v: string): v is ValidType => (validTypes as readonly string[]).includes(v);
+    if (isValidType(t)) {
+      conditions.push(eq(activities.type, t));
     }
   }
   if (filters.dateFrom != null) conditions.push(gte(activities.activityDate, filters.dateFrom));
@@ -183,10 +184,11 @@ export async function createActivity(
     gmailId?: string | null;
     frontId?: string | null;
     frontConversationId?: string | null;
+    direction?: string | null;
     syncRunId?: string | null;
   },
   colleagueId: string,
-): Promise<{ id: string; displayId: string; type: string; subject: string; body: string | null; notes: string | null; activityDate: string; humanId: string | null; accountId: string | null; routeSignupId: string | null; websiteBookingRequestId: string | null; generalLeadId: string | null; opportunityId: string | null; gmailId: string | null; frontId: string | null; frontConversationId: string | null; syncRunId: string | null; colleagueId: string; createdAt: string; updatedAt: string }> {
+): Promise<{ id: string; displayId: string; type: string; subject: string; body: string | null; notes: string | null; activityDate: string; humanId: string | null; accountId: string | null; routeSignupId: string | null; websiteBookingRequestId: string | null; generalLeadId: string | null; opportunityId: string | null; gmailId: string | null; frontId: string | null; frontConversationId: string | null; direction: string | null; syncRunId: string | null; colleagueId: string; createdAt: string; updatedAt: string }> {
   const now = new Date().toISOString();
   const displayId = await nextDisplayId(db, "ACT");
 
@@ -207,6 +209,7 @@ export async function createActivity(
     gmailId: data.gmailId ?? null,
     frontId: data.frontId ?? null,
     frontConversationId: data.frontConversationId ?? null,
+    direction: data.direction ?? null,
     syncRunId: data.syncRunId ?? null,
     colleagueId,
     createdAt: now,
@@ -233,6 +236,7 @@ export async function updateActivity(
     gmailId?: string | null;
     frontId?: string | null;
     frontConversationId?: string | null;
+    direction?: string | null;
     syncRunId?: string | null;
     colleagueId?: string | null;
   },
@@ -260,6 +264,7 @@ export async function updateActivity(
   if (data.gmailId !== undefined) updateFields["gmailId"] = data.gmailId;
   if (data.frontId !== undefined) updateFields["frontId"] = data.frontId;
   if (data.frontConversationId !== undefined) updateFields["frontConversationId"] = data.frontConversationId;
+  if (data.direction !== undefined) updateFields["direction"] = data.direction;
   if (data.syncRunId !== undefined) updateFields["syncRunId"] = data.syncRunId;
   if (data.colleagueId !== undefined) updateFields["colleagueId"] = data.colleagueId;
 

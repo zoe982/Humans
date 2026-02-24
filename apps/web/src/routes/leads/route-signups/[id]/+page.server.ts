@@ -19,10 +19,15 @@ export const load = async ({ locals, cookies, params }: RequestEvent) => {
   const signup = isObjData(signupRaw) ? signupRaw.data : null;
   if (signup == null) redirect(302, "/leads/route-signups");
 
-  // Fetch activities for this signup
-  const activitiesRes = await fetch(`${PUBLIC_API_URL}/api/activities?routeSignupId=${id}`, {
-    headers: { Cookie: `humans_session=${sessionToken ?? ""}` },
-  });
+  // Fetch activities and colleagues concurrently
+  const [activitiesRes, colleaguesRes] = await Promise.all([
+    fetch(`${PUBLIC_API_URL}/api/activities?routeSignupId=${id}`, {
+      headers: { Cookie: `humans_session=${sessionToken ?? ""}` },
+    }),
+    fetch(`${PUBLIC_API_URL}/api/colleagues`, {
+      headers: { Cookie: `humans_session=${sessionToken ?? ""}` },
+    }),
+  ]);
 
   let activities: unknown[] = [];
   if (activitiesRes.ok) {
@@ -30,7 +35,13 @@ export const load = async ({ locals, cookies, params }: RequestEvent) => {
     activities = isListData(activitiesRaw) ? activitiesRaw.data : [];
   }
 
-  return { signup, activities, user: locals.user };
+  let colleagues: unknown[] = [];
+  if (colleaguesRes.ok) {
+    const colleaguesRaw: unknown = await colleaguesRes.json();
+    colleagues = isListData(colleaguesRaw) ? colleaguesRaw.data : [];
+  }
+
+  return { signup, activities, colleagues, user: locals.user };
 };
 
 export const actions = {

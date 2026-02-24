@@ -7,12 +7,24 @@
   import { invalidateAll } from "$app/navigation";
   import { api } from "$lib/api";
   import { signupStatusColors as statusColorMap, activityTypeColors } from "$lib/constants/colors";
-  import { activityTypeLabels, ACTIVITY_TYPE_OPTIONS } from "$lib/constants/labels";
+  import { signupStatusLabels, activityTypeLabels, ACTIVITY_TYPE_OPTIONS } from "$lib/constants/labels";
   import SearchableSelect from "$lib/components/SearchableSelect.svelte";
+  import NextActionSection from "$lib/components/NextActionSection.svelte";
   import { Button } from "$lib/components/ui/button";
   import { formatDateTime, formatRelativeTime } from "$lib/utils/format";
+  import { routeSignupStatuses } from "@humans/shared";
 
   let { data, form }: { data: PageData; form: ActionData } = $props();
+
+  type NextAction = {
+    id: string;
+    ownerId: string | null;
+    description: string | null;
+    type: string | null;
+    dueDate: string | null;
+    cadenceNote: string | null;
+  };
+  type Colleague = { id: string; name: string; displayId?: string };
 
   type Signup = {
     id: string;
@@ -28,6 +40,7 @@
     inserted_at: string;
     consent: boolean | null;
     newsletter_opt_in: boolean | null;
+    nextAction?: NextAction | null;
   };
 
   type Activity = {
@@ -43,7 +56,11 @@
 
   const signup = $derived(data.signup as Signup);
   const activities = $derived(data.activities as Activity[]);
+  const colleaguesList = $derived((data.colleagues ?? []) as Colleague[]);
+  const colleagueOptions = $derived(colleaguesList.map((c) => ({ value: c.id, label: `${c.displayId ?? ""} ${c.name}`.trim() })));
   const isAdmin = $derived(data.user?.role === "admin");
+  const isClosed = $derived(signup.status?.startsWith("closed_") ?? false);
+  const currentColleagueId = $derived(data.user?.id ?? "");
   const lastActivityDate = $derived(
     activities.length > 0
       ? activities.reduce((latest, a) => (a.activityDate > latest ? a.activityDate : latest), "")
@@ -116,7 +133,8 @@
     backLabel="Route Signups"
     title="{signup.display_id ? signup.display_id + ' — ' : ''}{displayName(signup)}"
     status={signup.status ?? undefined}
-    statusOptions={["open", "qualified", "closed_converted", "closed_rejected"]}
+    statusOptions={[...routeSignupStatuses]}
+    statusLabels={signupStatusLabels}
     {statusColorMap}
     onStatusChange={handleStatusChange}
   >
@@ -320,6 +338,16 @@
       {/snippet}
     </RelatedListTable>
   </div>
+
+  <!-- Next Action -->
+  {#if !isClosed}
+    <NextActionSection
+      apiEndpoint={`/api/route-signups/${signup.id}/next-action`}
+      {colleagueOptions}
+      {currentColleagueId}
+      nextAction={signup.nextAction ?? null}
+    />
+  {/if}
 
   <!-- Danger Zone (Admin only) -->
   {#if isAdmin}

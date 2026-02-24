@@ -3,6 +3,7 @@
   import type { PageData, ActionData } from "./$types";
   import RecordManagementBar from "$lib/components/RecordManagementBar.svelte";
   import RelatedListTable from "$lib/components/RelatedListTable.svelte";
+  import ActivityConversationView from "$lib/components/ActivityConversationView.svelte";
   import AlertBanner from "$lib/components/AlertBanner.svelte";
   import SearchableSelect from "$lib/components/SearchableSelect.svelte";
   import GeoInterestPicker from "$lib/components/GeoInterestPicker.svelte";
@@ -10,7 +11,7 @@
   import PhoneInput from "$lib/components/PhoneInput.svelte";
   import SaveIndicator from "$lib/components/SaveIndicator.svelte";
   import { toast } from "svelte-sonner";
-  import { Trash2 } from "lucide-svelte";
+  import { Trash2, Pencil } from "lucide-svelte";
   import * as Select from "$lib/components/ui/select";
   import * as Dialog from "$lib/components/ui/dialog";
   import GlassDateTimePicker from "$lib/components/GlassDateTimePicker.svelte";
@@ -79,6 +80,8 @@
     activityDate: string;
     gmailId: string | null;
     frontId: string | null;
+    frontConversationId: string | null;
+    direction: string | null;
     ownerId: string | null;
     ownerName: string | null;
     ownerDisplayId: string | null;
@@ -193,6 +196,10 @@
   let lastAuditEntryId = $state<string | null>(null);
   let initialized = $state(false);
 
+  // Name edit lock
+  let editingNames = $state(false);
+  const namesSet = $derived(!!(human.firstName || human.lastName));
+
   // Change history
   let historyEntries = $state<AuditEntry[]>([]);
   let historyLoaded = $state(false);
@@ -234,6 +241,7 @@
     middleName = human.middleName ?? "";
     lastName = human.lastName;
     types = [...human.types];
+    editingNames = false;
     if (!initialized) initialized = true;
   });
 
@@ -241,6 +249,7 @@
     endpoint: `/api/humans/${human.id}`,
     onStatusChange: (s) => { saveStatus = s; },
     onSaved: (result) => {
+      editingNames = false;
       if (result.auditEntryId) {
         lastAuditEntryId = result.auditEntryId;
         toast("Changes saved", {
@@ -386,35 +395,62 @@
       <SaveIndicator status={saveStatus} />
     </div>
 
-    <div class="grid gap-4 sm:grid-cols-3">
-      <div>
-        <label for="firstName" class="block text-sm font-medium text-text-secondary">First Name</label>
-        <input
-          id="firstName" type="text" required
-          bind:value={firstName}
-          oninput={triggerSave}
-          class="glass-input mt-1 block w-full"
-        />
+    {#if namesSet && !editingNames}
+      <div class="grid gap-4 sm:grid-cols-3">
+        <div>
+          <span class="block text-sm font-medium text-text-secondary">First Name</span>
+          <p class="mt-1 text-text-primary">{human.firstName}</p>
+        </div>
+        <div>
+          <span class="block text-sm font-medium text-text-secondary">Middle Name</span>
+          <p class="mt-1 text-text-primary">{human.middleName || "—"}</p>
+        </div>
+        <div class="flex items-end justify-between">
+          <div>
+            <span class="block text-sm font-medium text-text-secondary">Last Name</span>
+            <p class="mt-1 text-text-primary">{human.lastName}</p>
+          </div>
+          <button
+            type="button"
+            class="flex items-center justify-center w-7 h-7 rounded-lg text-text-muted hover:text-text-primary hover:bg-glass transition-colors duration-150"
+            aria-label="Edit names"
+            onclick={() => { editingNames = true; }}
+          >
+            <Pencil size={14} />
+          </button>
+        </div>
       </div>
-      <div>
-        <label for="middleName" class="block text-sm font-medium text-text-secondary">Middle Name</label>
-        <input
-          id="middleName" type="text"
-          bind:value={middleName}
-          oninput={triggerSave}
-          class="glass-input mt-1 block w-full"
-        />
+    {:else}
+      <div class="grid gap-4 sm:grid-cols-3">
+        <div>
+          <label for="firstName" class="block text-sm font-medium text-text-secondary">First Name</label>
+          <input
+            id="firstName" type="text" required
+            bind:value={firstName}
+            oninput={triggerSave}
+            class="glass-input mt-1 block w-full"
+          />
+        </div>
+        <div>
+          <label for="middleName" class="block text-sm font-medium text-text-secondary">Middle Name</label>
+          <input
+            id="middleName" type="text"
+            bind:value={middleName}
+            oninput={triggerSave}
+            class="glass-input mt-1 block w-full"
+          />
+        </div>
+        <div>
+          <label for="lastName" class="block text-sm font-medium text-text-secondary">Last Name</label>
+          <input
+            id="lastName" type="text" required
+            bind:value={lastName}
+            oninput={triggerSave}
+            class="glass-input mt-1 block w-full"
+          />
+        </div>
       </div>
-      <div>
-        <label for="lastName" class="block text-sm font-medium text-text-secondary">Last Name</label>
-        <input
-          id="lastName" type="text" required
-          bind:value={lastName}
-          oninput={triggerSave}
-          class="glass-input mt-1 block w-full"
-        />
-      </div>
-    </div>
+    {/if}
 
     <!-- Types -->
     <div>
@@ -568,13 +604,26 @@
           {/if}
         </td>
         <td>
-          {#if rel.labelName}
-            <span class="glass-badge inline-flex rounded-full px-2 py-0.5 text-xs font-medium badge-orange">
-              {rel.labelName}
-            </span>
-          {:else}
-            <span class="text-text-muted">&mdash;</span>
-          {/if}
+          <div class="w-44">
+            <SearchableSelect
+              options={humanRelationshipLabelOptions}
+              name="relLabel-{rel.id}"
+              id="relLabel-{rel.id}"
+              value={rel.labelId ?? ""}
+              emptyOption="None"
+              placeholder="Label..."
+              onSelect={async (value) => {
+                try {
+                  await api(`/api/humans/${human.id}/relationships/${rel.id}`, {
+                    method: "PATCH",
+                    body: JSON.stringify({ labelId: value || null }),
+                  });
+                  toast("Label updated");
+                  await invalidateAll();
+                } catch { toast("Failed to update label"); }
+              }}
+            />
+          </div>
         </td>
         <td>
           <form method="POST" action="?/removeRelationship">
@@ -1168,57 +1217,15 @@
 
   <!-- Activities -->
   <div class="mt-6">
-    <RelatedListTable
-      title="Activities"
-      items={activities}
-      columns={[
-        { key: "displayId", label: "ID", sortable: true, sortValue: (a) => a.displayId },
-        { key: "type", label: "Type", sortable: true, sortValue: (a) => activityTypeLabels[a.type] ?? a.type },
-        { key: "owner", label: "Owner", sortable: true, sortValue: (a) => a.ownerName ?? "" },
-        { key: "subject", label: "Subject", sortable: true, sortValue: (a) => a.subject },
-        { key: "notes", label: "Notes", sortable: true, sortValue: (a) => a.notes ?? "" },
-        { key: "activityDate", label: "Date", sortable: true, sortValue: (a) => a.activityDate },
-        { key: "delete", label: "", headerClass: "w-10" },
-      ]}
-      defaultSortKey="activityDate"
-      defaultSortDirection="desc"
-      searchFilter={(a, q) => {
-        const typeLabel = (activityTypeLabels[a.type] ?? a.type).toLowerCase();
-        return a.subject.toLowerCase().includes(q) ||
-          (a.notes ?? "").toLowerCase().includes(q) ||
-          typeLabel.includes(q);
-      }}
-      emptyMessage="No activities yet."
-      searchEmptyMessage="No activities match your search."
-      addLabel="Activity"
+    <ActivityConversationView
+      {activities}
+      entityType="human"
+      entityId={human.id as string}
+      maxMessages={8}
+      showViewAll={true}
+      onDelete={deleteActivity}
       onFormToggle={(open) => { if (!open) { geoInterests = []; routeInterests = []; } }}
     >
-      {#snippet row(activity, searchQuery)}
-        <td class="font-mono text-sm whitespace-nowrap">
-          <a href="/activities/{activity.id}" class="text-accent hover:text-[var(--link-hover)]">{activity.displayId}</a>
-        </td>
-        <td>
-          <span class="glass-badge {activityTypeColors[activity.type] ?? 'bg-glass text-text-secondary'}">
-            <HighlightText text={activityTypeLabels[activity.type] ?? activity.type} query={searchQuery} />
-          </span>
-        </td>
-        <td class="text-sm text-text-secondary">{activity.ownerName ?? "\u2014"}</td>
-        <td class="font-medium max-w-sm truncate">
-          <a href="/activities/{activity.id}" class="hover:text-accent transition-colors duration-150"><HighlightText text={activity.subject} query={searchQuery} /></a>
-        </td>
-        <td class="text-text-muted max-w-xs truncate"><HighlightText text={truncateText(activity.notes ?? activity.body, 80)} query={searchQuery} /></td>
-        <td class="text-text-muted whitespace-nowrap">{formatDateTime(activity.activityDate)}</td>
-        <td>
-          <button
-            type="button"
-            onclick={() => deleteActivity(activity.id)}
-            class="flex items-center justify-center w-7 h-7 rounded-lg text-text-muted hover:text-destructive-foreground hover:bg-destructive transition-colors duration-150"
-            aria-label="Delete activity"
-          >
-            <Trash2 size={14} />
-          </button>
-        </td>
-      {/snippet}
       {#snippet addForm()}
         <form method="POST" action="?/addActivity" class="space-y-3">
           <div class="flex gap-3 items-end">
@@ -1304,7 +1311,7 @@
           </div>
         </form>
       {/snippet}
-    </RelatedListTable>
+    </ActivityConversationView>
   </div>
 
   <Dialog.Root bind:open={geoInterestDialogOpen}>

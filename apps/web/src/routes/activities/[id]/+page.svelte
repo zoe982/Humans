@@ -200,7 +200,7 @@
   const metadataItems = $derived([
     { id: "created", field: "Created", value: formatDateTime(activity.createdAt) },
     { id: "updated", field: "Updated", value: formatDateTime(activity.updatedAt) },
-    { id: "createdBy", field: "Created by", value: activity.ownerName ? `${activity.ownerName} (${activity.ownerDisplayId})` : "—" },
+    { id: "createdBy", field: "Created by", value: isFrontSynced ? "Front.com Sync" : (activity.ownerName ? `${activity.ownerName} (${activity.ownerDisplayId})` : "—") },
   ]);
 </script>
 
@@ -260,8 +260,9 @@
           id="activityDate"
           type="datetime-local"
           bind:value={activityDate}
-          onchange={triggerSaveImmediate}
-          class="glass-input mt-1 block w-full"
+          onchange={() => { if (!isFrontSynced) triggerSaveImmediate(); }}
+          disabled={isFrontSynced}
+          class="glass-input mt-1 block w-full {isFrontSynced ? 'opacity-50 cursor-not-allowed' : ''}"
         />
       </div>
     </div>

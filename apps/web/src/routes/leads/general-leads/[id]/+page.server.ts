@@ -19,14 +19,24 @@ export const load = async ({ locals, cookies, params }: RequestEvent) => {
   if (lead == null) redirect(302, "/leads/general-leads");
 
   const headers = { Cookie: `humans_session=${sessionToken ?? ""}` };
-  const humansRes = await fetch(`${PUBLIC_API_URL}/api/humans?limit=200`, { headers });
+  const [humansRes, colleaguesRes] = await Promise.all([
+    fetch(`${PUBLIC_API_URL}/api/humans?limit=200`, { headers }),
+    fetch(`${PUBLIC_API_URL}/api/colleagues`, { headers }),
+  ]);
+
   let allHumans: unknown[] = [];
   if (humansRes.ok) {
     const raw: unknown = await humansRes.json();
     allHumans = isListData(raw) ? raw.data : [];
   }
 
-  return { lead, user: locals.user, allHumans };
+  let colleagues: unknown[] = [];
+  if (colleaguesRes.ok) {
+    const raw: unknown = await colleaguesRes.json();
+    colleagues = isListData(raw) ? raw.data : [];
+  }
+
+  return { lead, user: locals.user, allHumans, colleagues };
 };
 
 export const actions = {

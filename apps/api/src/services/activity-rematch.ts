@@ -1,6 +1,6 @@
 import { eq, isNull } from "drizzle-orm";
 import { activities } from "@humans/db/schema";
-import { normalizePhone, phonesMatch } from "../lib/phone-utils";
+import { normalizePhone } from "../lib/phone-utils";
 import type { DB } from "./types";
 
 /**
@@ -21,7 +21,7 @@ export async function rematchActivitiesByEmail(
     .where(isNull(activities.humanId));
 
   const toUpdate = candidates.filter(
-    (a) => a.frontContactHandle != null && a.frontContactHandle.toLowerCase() === lowerEmail,
+    (a) => a.frontContactHandle?.toLowerCase() === lowerEmail,
   );
 
   if (toUpdate.length === 0) return 0;
