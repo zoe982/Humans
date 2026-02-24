@@ -10,6 +10,7 @@
     "typecheck": "turbo typecheck",
     "test": "turbo test",
     "test:coverage": "turbo test -- --coverage",
+    "quality-gate": "bash scripts/quality-gate.sh",
     "format": "prettier --write .",
     "db:generate": "pnpm --filter @humans/db generate",
     "db:migrate": "pnpm --filter @humans/db migrate",

@@ -1,0 +1,11 @@
+# Default semgrep ignores
+node_modules/
+dist/
+.svelte-kit/
+coverage/
+.turbo/
+
+# Config files — not application code
+# eslint.config.mjs triggers a false positive on "$host" (Svelte rune guard)
+# being detected as an nginx $host variable by generic.nginx.security rules
+eslint.config.mjs

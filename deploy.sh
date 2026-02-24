@@ -156,9 +156,13 @@ log "Running Semgrep security scan..."
 if command -v semgrep &> /dev/null; then
   semgrep scan \
     --config p/typescript \
+    --config p/javascript \
     --config p/owasp-top-ten \
     --config p/xss \
     --config p/sql-injection \
+    --config p/secrets \
+    --config p/security-audit \
+    --config p/insecure-transport \
     --error --strict
   ok "Semgrep scan passed"
 else

@@ -80,6 +80,32 @@ A PreToolUse hook (`.claude/hooks/enforce-model-selection.sh`) auto-corrects Tas
 
 **When spawning subagents for Sonnet tasks, always pass `model: "sonnet"` explicitly.** The hook is a safety net, not a substitute for correct behavior.
 
+## Quality Gates — MANDATORY
+
+Every feature branch and every deploy MUST pass the full quality gate. Run `pnpm quality-gate` or `bash scripts/quality-gate.sh` from the monorepo root.
+
+### Gate sequence
+1. **ESLint** — `pnpm turbo lint` (strictTypeChecked + stylisticTypeChecked + eslint-plugin-security)
+2. **Typecheck** — `pnpm turbo typecheck`
+3. **Tests with coverage** — `pnpm turbo test -- --coverage` (95% threshold on all metrics per package)
+4. **Semgrep** — security scan with all rulesets (`p/typescript`, `p/javascript`, `p/owasp-top-ten`, `p/xss`, `p/sql-injection`, `p/secrets`, `p/security-audit`, `p/insecure-transport`)
+
+### When to run
+- **Per feature**: Before considering any feature complete, run the full quality gate
+- **Per deploy**: `deploy.sh` runs all gates automatically; CI runs them in parallel jobs
+- **Test engineer validation**: After every feature, the test-engineer subagent must validate 95% coverage is maintained
+
+### Coverage policy
+- **95% minimum** on all metrics (lines, functions, branches, statements) per package aggregate
+- Enforced in vitest config thresholds — tests fail if coverage drops below 95%
+- `apps/api` integration tests are exempt (workerd isolation prevents instrumentation); service-layer coverage is enforced via `vitest.unit.config.ts`
+- `packages/db` and `packages/shared` are at 100% — do not let them drop
+
+### Security scanning
+- **ESLint**: `eslint-plugin-security` with all rules as errors (already in `eslint.config.mjs`)
+- **Semgrep**: 8 registry rulesets covering OWASP Top 10, XSS, SQL injection, secrets detection, insecure transport, and general security audit
+- Both tools block on findings (`--error --strict` for Semgrep, all security rules as `"error"` for ESLint)
+
 ## Testing Commands
 
 **ALWAYS run tests via Bash in the main context. NEVER delegate test runs to subagents.** Subagents lack the shell environment and their output wastes context transferring results back. All commands use absolute paths and pipe through `tail` to prevent context flooding.
