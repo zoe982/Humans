@@ -129,7 +129,7 @@ describe("schema tables", () => {
 
   it("geoInterestExpressions table has indexes", () => {
     const config = getTableConfig(geoInterestExpressions);
-    expect(config.indexes.length).toBe(2);
+    expect(config.indexes.length).toBe(3);
   });
 });
 

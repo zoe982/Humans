@@ -12,7 +12,7 @@ export const load = async ({ locals, cookies, params }: RequestEvent): Promise<{
 
   const [accountRes, activitiesRes] = await Promise.all([
     fetch(`${PUBLIC_API_URL}/api/accounts/${id}`, { headers }),
-    fetch(`${PUBLIC_API_URL}/api/activities?accountId=${id}&limit=200`, { headers }),
+    fetch(`${PUBLIC_API_URL}/api/activities?accountId=${id}&limit=200&include=linkedEntities`, { headers }),
   ]);
 
   if (!accountRes.ok) redirect(302, "/accounts");

@@ -28,5 +28,6 @@ export const routeInterestExpressions = sqliteTable(
   (table) => [
     index("route_interest_expressions_human_id_idx").on(table.humanId),
     index("route_interest_expressions_route_interest_id_idx").on(table.routeInterestId),
+    index("route_interest_expressions_activity_id_idx").on(table.activityId),
   ],
 );

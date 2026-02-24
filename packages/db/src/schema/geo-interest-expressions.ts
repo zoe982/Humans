@@ -21,5 +21,6 @@ export const geoInterestExpressions = sqliteTable(
   (table) => [
     index("geo_interest_expressions_human_id_idx").on(table.humanId),
     index("geo_interest_expressions_geo_interest_id_idx").on(table.geoInterestId),
+    index("geo_interest_expressions_activity_id_idx").on(table.activityId),
   ],
 );

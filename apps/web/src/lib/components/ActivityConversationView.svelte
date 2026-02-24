@@ -9,6 +9,10 @@
   import { parseActivityContent } from "$lib/utils/activity-helpers";
   import { resolve } from "$app/paths";
 
+  type GeoExpr = { city?: string | null; country?: string | null };
+  type RouteExpr = { originCity?: string | null; originCountry?: string | null; destinationCity?: string | null; destinationCountry?: string | null };
+  type LinkedOpp = { displayId?: string | null; stage?: string | null; opportunityId?: string | null };
+
   type Activity = {
     id: string;
     displayId: string;
@@ -22,6 +26,9 @@
     senderName?: string | null;
     ownerName?: string | null;
     humanName?: string | null;
+    geoInterestExpressions?: GeoExpr[];
+    routeInterestExpressions?: RouteExpr[];
+    linkedOpportunities?: LinkedOpp[];
     [key: string]: unknown;
   };
 
@@ -174,13 +181,21 @@
     if (direction === "inbound") return `← ${name}`;
     return name;
   }
+
+  function hasLinkedEntities(a: Activity): boolean {
+    return (
+      (a.geoInterestExpressions != null && a.geoInterestExpressions.length > 0) ||
+      (a.routeInterestExpressions != null && a.routeInterestExpressions.length > 0) ||
+      (a.linkedOpportunities != null && a.linkedOpportunities.length > 0)
+    );
+  }
 </script>
 
 <div class="glass-card overflow-hidden">
   <!-- Header -->
-  <div class="flex items-center justify-between px-5 pt-5 pb-4">
+  <div class="flex items-center justify-between px-4 pt-4 pb-3">
     <div class="flex items-center gap-3">
-      <h2 class="text-lg font-semibold text-text-primary">Conversations</h2>
+      <h2 class="text-lg font-semibold text-text-primary">Activities</h2>
       {#if !showForm && activities.length > 0 && externalQuery === undefined}
         <div class="relative">
           <Search
@@ -241,7 +256,7 @@
 
         <!-- Day Separator -->
         {#if showDay}
-          <div class="flex items-center gap-3 my-2">
+          <div class="flex items-center gap-3 my-1.5">
             <div class="flex-1 h-px" style="background: rgba(255,255,255,0.10);"></div>
             <span class="text-xs text-text-muted select-none shrink-0">
               {formatDaySeparator(activity.activityDate)}
@@ -252,7 +267,7 @@
 
         <!-- Conversation Divider -->
         {#if showConvDivider}
-          <div class="flex items-center gap-2 my-2">
+          <div class="flex items-center gap-2 my-1.5">
             <div class="flex-1 h-px" style="background: rgba(255,255,255,0.08);"></div>
             <span
               class="text-xs select-none shrink-0"
@@ -292,6 +307,27 @@
               <HighlightText text={activity.subject} query={searchQuery} />
             {/if}
           </div>
+
+          <!-- Linked Entity Tags -->
+          {#if hasLinkedEntities(activity)}
+            <div class="flex flex-wrap gap-1.5 mb-2">
+              {#each activity.geoInterestExpressions ?? [] as geo}
+                <span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs" style="background: rgba(6,182,212,0.15); color: var(--color-accent);">
+                  {geo.city ?? "?"}{geo.country ? `, ${geo.country}` : ""}
+                </span>
+              {/each}
+              {#each activity.routeInterestExpressions ?? [] as route}
+                <span class="inline-flex items-center rounded-full badge-purple px-2 py-0.5 text-xs">
+                  {route.originCity ?? "?"} &rarr; {route.destinationCity ?? "?"}
+                </span>
+              {/each}
+              {#each activity.linkedOpportunities ?? [] as opp}
+                <span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs" style="background: rgba(245,158,11,0.15); color: rgb(245,158,11);">
+                  {opp.displayId ?? "OPP"}{opp.stage ? ` · ${opp.stage}` : ""}
+                </span>
+              {/each}
+            </div>
+          {/if}
 
           <!-- Footer Metadata -->
           <div class="flex items-center justify-between gap-3">
@@ -383,7 +419,7 @@
             {#if showViewAll}
               ·
               <a
-                href={resolve(`/${entityType === 'human' ? 'humans' : entityType === 'account' ? 'accounts' : 'opportunities'}/${entityId}/conversations`)}
+                href={resolve(`/${entityType === 'human' ? 'humans' : entityType === 'account' ? 'accounts' : 'opportunities'}/${entityId}/activities`)}
                 class="text-accent hover:text-[var(--link-hover)] transition-colors duration-150"
               >
                 View all →
@@ -406,7 +442,7 @@
     border-radius: 12px;
     -webkit-backdrop-filter: blur(12px);
     backdrop-filter: blur(12px);
-    padding: 10px 14px;
+    padding: 8px 12px;
     border-left: 3px solid rgba(147, 165, 184, 0.25);
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
     transition: border-left-color 0.2s, background 0.2s, box-shadow 0.2s;

@@ -12,7 +12,7 @@ export const load = async ({ locals, cookies, params }: RequestEvent): Promise<{
 
   const [oppRes, activitiesRes] = await Promise.all([
     fetch(`${PUBLIC_API_URL}/api/opportunities/${id}`, { headers }),
-    fetch(`${PUBLIC_API_URL}/api/activities?opportunityId=${id}&limit=200`, { headers }),
+    fetch(`${PUBLIC_API_URL}/api/activities?opportunityId=${id}&limit=200&include=linkedEntities`, { headers }),
   ]);
 
   if (!oppRes.ok) redirect(302, "/opportunities");

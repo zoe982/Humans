@@ -1,4 +1,4 @@
-import { eq, and, gte, lte, sql, desc, like, or } from "drizzle-orm";
+import { eq, and, gte, lte, sql, desc, like, or, inArray } from "drizzle-orm";
 import { activities, humans, accounts, colleagues, geoInterestExpressions, geoInterests, routeInterestExpressions, routeInterests, activityOpportunities, opportunities } from "@humans/db/schema";
 import { createId } from "@humans/db";
 import { ERROR_CODES } from "@humans/shared";
@@ -18,9 +18,10 @@ interface ActivityFilters {
   q?: string;
   page: number;
   limit: number;
+  includeLinkedEntities?: boolean;
 }
 
-export async function listActivities(db: DB, filters: ActivityFilters): Promise<{ data: ({ humanName: string | null; accountName: string | null; ownerId: string | null; ownerName: string | null; ownerDisplayId: string | null } & typeof activities.$inferSelect)[]; meta: { page: number; limit: number; total: number } }> {
+export async function listActivities(db: DB, filters: ActivityFilters): Promise<{ data: ({ humanName: string | null; accountName: string | null; ownerId: string | null; ownerName: string | null; ownerDisplayId: string | null; geoInterestExpressions?: unknown[]; routeInterestExpressions?: unknown[]; linkedOpportunities?: unknown[] } & typeof activities.$inferSelect)[]; meta: { page: number; limit: number; total: number } }> {
   const { page, limit } = filters;
   const offset = (page - 1) * limit;
 
@@ -63,15 +64,88 @@ export async function listActivities(db: DB, filters: ActivityFilters): Promise<
     .limit(limit)
     .offset(offset);
 
-  // Attach human names, account names, and owner info
-  const allHumans = await db.select().from(humans);
-  const allAccounts = await db.select().from(accounts);
-  const allColleagues = await db.select().from(colleagues);
+  // Collect unique IDs for batch lookups instead of full-table scans
+  const humanIds = [...new Set(results.map((a) => a.humanId).filter((id): id is string => id != null))];
+  const accountIds = [...new Set(results.map((a) => a.accountId).filter((id): id is string => id != null))];
+  const colleagueIds = [...new Set(results.map((a) => a.colleagueId).filter((id): id is string => id != null))];
+
+  const [batchHumans, batchAccounts, batchColleagues] = await Promise.all([
+    humanIds.length > 0 ? db.select().from(humans).where(inArray(humans.id, humanIds)) : Promise.resolve([]),
+    accountIds.length > 0 ? db.select().from(accounts).where(inArray(accounts.id, accountIds)) : Promise.resolve([]),
+    colleagueIds.length > 0 ? db.select().from(colleagues).where(inArray(colleagues.id, colleagueIds)) : Promise.resolve([]),
+  ]);
+
+  // Build lookup maps
+  const humanMap = new Map(batchHumans.map((h) => [h.id, h]));
+  const accountMap = new Map(batchAccounts.map((a) => [a.id, a]));
+  const colleagueMap = new Map(batchColleagues.map((c) => [c.id, c]));
+
+  // Optionally batch-fetch linked entities
+  let geoExprMap = new Map<string, unknown[]>();
+  let routeExprMap = new Map<string, unknown[]>();
+  let oppMap = new Map<string, unknown[]>();
+
+  if (filters.includeLinkedEntities === true && results.length > 0) {
+    const activityIds = results.map((a) => a.id);
+
+    const [geoExprs, routeExprs, linkedOpps] = await Promise.all([
+      db.select().from(geoInterestExpressions).where(inArray(geoInterestExpressions.activityId, activityIds)),
+      db.select().from(routeInterestExpressions).where(inArray(routeInterestExpressions.activityId, activityIds)),
+      db.select({
+        id: activityOpportunities.id,
+        activityId: activityOpportunities.activityId,
+        opportunityId: activityOpportunities.opportunityId,
+        displayId: opportunities.displayId,
+        stage: opportunities.stage,
+        createdAt: activityOpportunities.createdAt,
+      }).from(activityOpportunities)
+        .innerJoin(opportunities, eq(activityOpportunities.opportunityId, opportunities.id))
+        .where(inArray(activityOpportunities.activityId, activityIds)),
+    ]);
+
+    // Batch-fetch related geo interests and route interests
+    const geoInterestIds = [...new Set(geoExprs.map((e) => e.geoInterestId))];
+    const routeInterestIds = [...new Set(routeExprs.map((e) => e.routeInterestId))];
+
+    const [batchGeoInterests, batchRouteInterests] = await Promise.all([
+      geoInterestIds.length > 0 ? db.select().from(geoInterests).where(inArray(geoInterests.id, geoInterestIds)) : Promise.resolve([]),
+      routeInterestIds.length > 0 ? db.select().from(routeInterests).where(inArray(routeInterests.id, routeInterestIds)) : Promise.resolve([]),
+    ]);
+
+    const geoInterestMap = new Map(batchGeoInterests.map((g) => [g.id, g]));
+    const routeInterestMap = new Map(batchRouteInterests.map((r) => [r.id, r]));
+
+    // Group expressions by activity ID
+    for (const expr of geoExprs) {
+      if (expr.activityId == null) continue;
+      const gi = geoInterestMap.get(expr.geoInterestId);
+      const enriched = { ...expr, city: gi?.city ?? null, country: gi?.country ?? null };
+      const list = geoExprMap.get(expr.activityId) ?? [];
+      list.push(enriched);
+      geoExprMap.set(expr.activityId, list);
+    }
+
+    for (const expr of routeExprs) {
+      if (expr.activityId == null) continue;
+      const ri = routeInterestMap.get(expr.routeInterestId);
+      const enriched = { ...expr, originCity: ri?.originCity ?? null, originCountry: ri?.originCountry ?? null, destinationCity: ri?.destinationCity ?? null, destinationCountry: ri?.destinationCountry ?? null };
+      const list = routeExprMap.get(expr.activityId) ?? [];
+      list.push(enriched);
+      routeExprMap.set(expr.activityId, list);
+    }
+
+    for (const opp of linkedOpps) {
+      const list = oppMap.get(opp.activityId) ?? [];
+      list.push(opp);
+      oppMap.set(opp.activityId, list);
+    }
+  }
+
   const data = results.map((a) => {
-    const human = a.humanId != null ? allHumans.find((h) => h.id === a.humanId) : null;
-    const account = a.accountId != null ? allAccounts.find((ac) => ac.id === a.accountId) : null;
-    const owner = a.colleagueId != null ? allColleagues.find((c) => c.id === a.colleagueId) : null;
-    return {
+    const human = a.humanId != null ? humanMap.get(a.humanId) : null;
+    const account = a.accountId != null ? accountMap.get(a.accountId) : null;
+    const owner = a.colleagueId != null ? colleagueMap.get(a.colleagueId) : null;
+    const base = {
       ...a,
       humanName: human != null ? `${human.firstName} ${human.lastName}` : null,
       accountId: a.accountId,
@@ -80,6 +154,15 @@ export async function listActivities(db: DB, filters: ActivityFilters): Promise<
       ownerName: owner?.name ?? null,
       ownerDisplayId: owner?.displayId ?? null,
     };
+    if (filters.includeLinkedEntities === true) {
+      return {
+        ...base,
+        geoInterestExpressions: geoExprMap.get(a.id) ?? [],
+        routeInterestExpressions: routeExprMap.get(a.id) ?? [],
+        linkedOpportunities: oppMap.get(a.id) ?? [],
+      };
+    }
+    return base;
   });
 
   return { data, meta: { page, limit, total } };

@@ -9,7 +9,7 @@
 
   let { data }: { data: PageData } = $props();
 
-  const human = $derived(data.human as { id: string; displayId: string; firstName: string; lastName: string });
+  const account = $derived(data.account as { id: string; displayId: string; name: string });
   const activities = $derived(data.activities as Array<{
     id: string; displayId: string; type: string; subject: string;
     body: string | null; notes: string | null; direction: string | null;
@@ -17,7 +17,6 @@
     ownerName?: string | null;
   }>);
 
-  const humanName = $derived(`${human.firstName} ${human.lastName}`);
   const dateRange = $derived.by(() => {
     if (activities.length === 0) return "";
     const sorted = [...activities].sort((a, b) => a.activityDate.localeCompare(b.activityDate));
@@ -39,11 +38,11 @@
 </script>
 
 <PageHeader
-  title="Conversation History"
+  title="Activity History"
   breadcrumbs={[
-    { label: "Humans", href: "/humans" },
-    { label: `${humanName} (${human.displayId})`, href: `/humans/${human.id}` },
-    { label: "Conversations" },
+    { label: "Accounts", href: "/accounts" },
+    { label: `${account.name} (${account.displayId})`, href: `/accounts/${account.id}` },
+    { label: "Activities" },
   ]}
 />
 
@@ -53,7 +52,7 @@
 
 <ActivityConversationView
   {activities}
-  entityType="human"
-  entityId={human.id}
+  entityType="account"
+  entityId={account.id}
   onDelete={deleteActivity}
 />

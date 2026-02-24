@@ -60,7 +60,7 @@ export const load = async ({ locals, cookies, params }: RequestEvent): Promise<{
   // Batch 1: all configs in one call + activities + route signups
   const [configs, activities, allRouteSignups, allBookingRequests, allAccounts] = await Promise.all([
     fetchConfigs(token, ["human-email-labels", "human-phone-labels", "social-id-platforms", "account-human-labels", "human-relationship-labels"]),
-    fetchList(`${PUBLIC_API_URL}/api/activities?humanId=${id}`),
+    fetchList(`${PUBLIC_API_URL}/api/activities?humanId=${id}&include=linkedEntities`),
     fetchList(`${PUBLIC_API_URL}/api/route-signups?limit=100`),
     fetchList(`${PUBLIC_API_URL}/api/website-booking-requests?limit=100`),
     fetchList(`${PUBLIC_API_URL}/api/accounts`),

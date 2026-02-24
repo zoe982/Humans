@@ -9,7 +9,7 @@
 
   let { data }: { data: PageData } = $props();
 
-  const account = $derived(data.account as { id: string; displayId: string; name: string });
+  const opportunity = $derived(data.opportunity as { id: string; displayId: string; stage: string });
   const activities = $derived(data.activities as Array<{
     id: string; displayId: string; type: string; subject: string;
     body: string | null; notes: string | null; direction: string | null;
@@ -38,11 +38,11 @@
 </script>
 
 <PageHeader
-  title="Conversation History"
+  title="Activity History"
   breadcrumbs={[
-    { label: "Accounts", href: "/accounts" },
-    { label: `${account.name} (${account.displayId})`, href: `/accounts/${account.id}` },
-    { label: "Conversations" },
+    { label: "Opportunities", href: "/opportunities" },
+    { label: opportunity.displayId, href: `/opportunities/${opportunity.id}` },
+    { label: "Activities" },
   ]}
 />
 
@@ -52,7 +52,7 @@
 
 <ActivityConversationView
   {activities}
-  entityType="account"
-  entityId={account.id}
+  entityType="opportunity"
+  entityId={opportunity.id}
   onDelete={deleteActivity}
 />

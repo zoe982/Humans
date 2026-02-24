@@ -1,15 +1,15 @@
 <script lang="ts">
   import type { PageData } from "./$types";
-  import PageHeader from "$lib/components/PageHeader.svelte";
   import ActivityConversationView from "$lib/components/ActivityConversationView.svelte";
   import { api } from "$lib/api";
   import { ApiRequestError } from "$lib/api";
   import { toast } from "svelte-sonner";
   import { invalidateAll } from "$app/navigation";
+  import { ArrowLeft } from "lucide-svelte";
 
   let { data }: { data: PageData } = $props();
 
-  const opportunity = $derived(data.opportunity as { id: string; displayId: string; stage: string });
+  const human = $derived(data.human as { id: string; displayId: string; firstName: string; lastName: string });
   const activities = $derived(data.activities as Array<{
     id: string; displayId: string; type: string; subject: string;
     body: string | null; notes: string | null; direction: string | null;
@@ -17,6 +17,7 @@
     ownerName?: string | null;
   }>);
 
+  const humanName = $derived(`${human.firstName} ${human.lastName}`);
   const dateRange = $derived.by(() => {
     if (activities.length === 0) return "";
     const sorted = [...activities].sort((a, b) => a.activityDate.localeCompare(b.activityDate));
@@ -37,22 +38,25 @@
   }
 </script>
 
-<PageHeader
-  title="Conversation History"
-  breadcrumbs={[
-    { label: "Opportunities", href: "/opportunities" },
-    { label: opportunity.displayId, href: `/opportunities/${opportunity.id}` },
-    { label: "Conversations" },
-  ]}
-/>
-
-<p class="text-sm text-text-muted mb-4">
-  {activities.length} messages{dateRange ? ` · ${dateRange}` : ""}
-</p>
+<div class="flex items-center gap-3 mb-4">
+  <a
+    href="/humans/{human.id}"
+    class="flex items-center gap-1.5 text-sm text-text-muted hover:text-accent transition-colors duration-150"
+  >
+    <ArrowLeft size={14} />
+    <span class="font-medium text-text-primary hover:text-accent">{humanName}</span>
+    <span class="text-text-muted text-xs">({human.displayId})</span>
+  </a>
+  <span class="text-text-muted text-xs select-none" style="opacity: 0.4;">|</span>
+  <span class="text-sm font-semibold text-text-primary">Activities</span>
+  {#if activities.length > 0}
+    <span class="text-xs text-text-muted">{activities.length} messages{dateRange ? ` · ${dateRange}` : ""}</span>
+  {/if}
+</div>
 
 <ActivityConversationView
   {activities}
-  entityType="opportunity"
-  entityId={opportunity.id}
+  entityType="human"
+  entityId={human.id}
   onDelete={deleteActivity}
 />
