@@ -402,6 +402,174 @@ describe("accounts/[id] createAndLinkHuman missing ID path", () => {
   });
 });
 
+describe("accounts/[id] addWebsite action", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("returns success when website is added", async () => {
+    const mockFetch = createMockFetch({
+      "/api/websites": { body: { data: { id: "web-1" } } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent({ formData: { url: "https://acme.com" } });
+    const result = await actions.addWebsite(event as any);
+    expect(result).toEqual({ success: true });
+  });
+
+  it("returns failure on API error", async () => {
+    const mockFetch = createMockFetch({
+      "/api/websites": { status: 422, body: { error: "Invalid URL" } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent({ formData: { url: "not-a-url" } });
+    const result = await actions.addWebsite(event as any);
+    expect(isActionFailure(result)).toBe(true);
+  });
+});
+
+describe("accounts/[id] deleteWebsite action", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("returns success on delete", async () => {
+    const mockFetch = createMockFetch({
+      "/api/websites/web-1": { body: {} },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent({ formData: { id: "web-1" } });
+    const result = await actions.deleteWebsite(event as any);
+    expect(result).toEqual({ success: true });
+  });
+
+  it("returns failure on API error", async () => {
+    const mockFetch = createMockFetch({
+      "/api/websites/web-1": { status: 500, body: { error: "Server error" } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent({ formData: { id: "web-1" } });
+    const result = await actions.deleteWebsite(event as any);
+    expect(isActionFailure(result)).toBe(true);
+  });
+});
+
+describe("accounts/[id] addReferralCode action", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("returns success when referral code is added", async () => {
+    const mockFetch = createMockFetch({
+      "/api/referral-codes": { body: { data: { id: "ref-1" } } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent({ formData: { code: "ACME10", description: "10% off" } });
+    const result = await actions.addReferralCode(event as any);
+    expect(result).toEqual({ success: true });
+  });
+
+  it("returns failure on API error", async () => {
+    const mockFetch = createMockFetch({
+      "/api/referral-codes": { status: 409, body: { error: "Code already exists" } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent({ formData: { code: "DUPLICATE" } });
+    const result = await actions.addReferralCode(event as any);
+    expect(isActionFailure(result)).toBe(true);
+  });
+});
+
+describe("accounts/[id] deleteReferralCode action", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("returns success on delete", async () => {
+    const mockFetch = createMockFetch({
+      "/api/referral-codes/ref-1": { body: {} },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent({ formData: { id: "ref-1" } });
+    const result = await actions.deleteReferralCode(event as any);
+    expect(result).toEqual({ success: true });
+  });
+
+  it("returns failure on API error", async () => {
+    const mockFetch = createMockFetch({
+      "/api/referral-codes/ref-1": { status: 404, body: { error: "Not found" } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent({ formData: { id: "ref-1" } });
+    const result = await actions.deleteReferralCode(event as any);
+    expect(isActionFailure(result)).toBe(true);
+  });
+});
+
+describe("accounts/[id] linkDiscountCode action", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("returns success when discount code is linked", async () => {
+    const mockFetch = createMockFetch({
+      "/api/discount-codes/dc-1": { body: { data: {} } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent({ formData: { discountCodeId: "dc-1" } });
+    const result = await actions.linkDiscountCode(event as any);
+    expect(result).toEqual({ success: true });
+  });
+
+  it("returns failure on API error", async () => {
+    const mockFetch = createMockFetch({
+      "/api/discount-codes/dc-1": { status: 404, body: { error: "Not found" } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent({ formData: { discountCodeId: "dc-1" } });
+    const result = await actions.linkDiscountCode(event as any);
+    expect(isActionFailure(result)).toBe(true);
+  });
+});
+
+describe("accounts/[id] unlinkDiscountCode action", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("returns success when discount code is unlinked", async () => {
+    const mockFetch = createMockFetch({
+      "/api/discount-codes/dc-1": { body: { data: {} } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent({ formData: { id: "dc-1" } });
+    const result = await actions.unlinkDiscountCode(event as any);
+    expect(result).toEqual({ success: true });
+  });
+
+  it("returns failure on API error", async () => {
+    const mockFetch = createMockFetch({
+      "/api/discount-codes/dc-1": { status: 500, body: { error: "Server error" } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent({ formData: { id: "dc-1" } });
+    const result = await actions.unlinkDiscountCode(event as any);
+    expect(isActionFailure(result)).toBe(true);
+  });
+});
+
 describe("accounts/[id] addActivity action", () => {
   afterEach(() => {
     vi.unstubAllGlobals();

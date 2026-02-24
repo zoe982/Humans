@@ -27,6 +27,10 @@ import GeoInterestDetailPage from "../../src/routes/geo-interests/[id]/+page.sve
 import RouteInterestDetailPage from "../../src/routes/route-interests/[id]/+page.svelte";
 import SocialIdDetailPage from "../../src/routes/social-ids/[id]/+page.svelte";
 import AccountDetailPage from "../../src/routes/accounts/[id]/+page.svelte";
+import ReferralCodeDetailPage from "../../src/routes/referral-codes/[id]/+page.svelte";
+import DiscountCodeDetailPage from "../../src/routes/discount-codes/[id]/+page.svelte";
+import GeneralLeadDetailPage from "../../src/routes/leads/general-leads/[id]/+page.svelte";
+import WebsiteDetailPage from "../../src/routes/websites/[id]/+page.svelte";
 
 // ---------------------------------------------------------------------------
 // Smoke tests — each page gets the minimal data shape for the primary record
@@ -250,6 +254,114 @@ describe("Detail page smoke tests", () => {
       },
     });
     expect(screen.getByRole("heading", { name: /ACC-001/ })).toBeDefined();
+  });
+
+  it("Referral Code detail page renders without error", () => {
+    render(ReferralCodeDetailPage, {
+      props: {
+        data: {
+          referralCode: {
+            id: "ref-1",
+            displayId: "REF-AAA-001",
+            code: "SUMMER20",
+            description: null,
+            isActive: true,
+            humanId: null,
+            humanName: null,
+            accountId: null,
+            accountName: null,
+          },
+          allHumans: [],
+          allAccounts: [],
+        },
+      },
+    });
+    // RecordManagementBar renders <h1>{displayId} — {code}</h1>
+    expect(screen.getByRole("heading", { name: "REF-AAA-001 — SUMMER20" })).toBeDefined();
+  });
+
+  it("Discount Code detail page renders without error", () => {
+    render(DiscountCodeDetailPage, {
+      props: {
+        data: {
+          discountCode: {
+            id: "dc-1",
+            crmDisplayId: "DSC-AAA-001",
+            code: "WINTER10",
+            description: null,
+            percentOff: 10,
+            isActive: true,
+            maxUses: null,
+            timesUsed: 0,
+            expiresAt: null,
+            createdAt: "2025-01-15T10:00:00.000Z",
+            humanId: null,
+            humanName: null,
+            accountId: null,
+            accountName: null,
+            linkedFlights: [],
+          },
+          allHumans: [],
+          allAccounts: [],
+        },
+      },
+    });
+    // RecordManagementBar renders <h1>{crmDisplayId} — {code}</h1>
+    expect(screen.getByRole("heading", { name: "DSC-AAA-001 — WINTER10" })).toBeDefined();
+  });
+
+  it("General Lead detail page renders without error", () => {
+    render(GeneralLeadDetailPage, {
+      props: {
+        data: {
+          lead: {
+            id: "gl-1",
+            displayId: "LEA-AAA-001",
+            status: "open",
+            source: "whatsapp",
+            notes: null,
+            rejectReason: null,
+            email: null,
+            phone: null,
+            ownerName: null,
+            ownerId: null,
+            convertedHumanId: null,
+            convertedHumanDisplayId: null,
+            convertedHumanName: null,
+            activities: [],
+            createdAt: "2025-01-15T10:00:00.000Z",
+            updatedAt: "2025-01-15T10:00:00.000Z",
+          },
+          allHumans: [],
+          user: { id: "user-1", email: "test@example.com", role: "agent", name: "Test User" },
+        },
+        form: null,
+      },
+    });
+    // RecordManagementBar renders <h1>{displayId}</h1>
+    expect(screen.getByRole("heading", { name: "LEA-AAA-001" })).toBeDefined();
+  });
+
+  it("Website detail page renders without error", () => {
+    render(WebsiteDetailPage, {
+      props: {
+        data: {
+          website: {
+            id: "web-1",
+            displayId: "WEB-AAA-001",
+            url: "https://example.com",
+            humanId: null,
+            humanName: null,
+            accountId: null,
+            accountName: null,
+          },
+          allHumans: [],
+          allAccounts: [],
+        },
+      },
+    });
+    // RecordManagementBar renders <h1>{displayId} — {url}</h1>
+    expect(screen.getByRole("heading", { name: "WEB-AAA-001 — https://example.com" })).toBeDefined();
   });
 });
 

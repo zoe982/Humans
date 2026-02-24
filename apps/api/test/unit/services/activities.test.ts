@@ -192,6 +192,41 @@ describe("getActivityDetail", () => {
     expect(result.geoInterestExpressions).toHaveLength(0);
   });
 
+  it("returns ownerName and ownerDisplayId when colleagueId is set", async () => {
+    const db = getTestDb();
+    await seedColleague(db, "col-1");
+    await seedActivity(db, "act-1", { colleagueId: "col-1" });
+
+    const result = await getActivityDetail(db, "act-1");
+    expect(result.ownerName).toBe("Test User");
+    expect(result.ownerDisplayId).toMatch(/^COL-/);
+    expect(result.ownerId).toBe("col-1");
+  });
+
+  it("returns null ownerName and ownerDisplayId when colleagueId is not set", async () => {
+    const db = getTestDb();
+    // Seed a colleague so seedActivity works but don't link it to the activity
+    await seedColleague(db, "col-1");
+    const ts = now();
+    await db.insert(schema.activities).values({
+      id: "act-orphan",
+      displayId: nextDisplayId("ACT"),
+      type: "email",
+      subject: "No owner",
+      activityDate: ts,
+      humanId: null,
+      accountId: null,
+      colleagueId: null,
+      createdAt: ts,
+      updatedAt: ts,
+    });
+
+    const result = await getActivityDetail(db, "act-orphan");
+    expect(result.ownerName).toBeNull();
+    expect(result.ownerDisplayId).toBeNull();
+    expect(result.ownerId).toBeNull();
+  });
+
   it("returns geo-interest expressions with city and country", async () => {
     const db = getTestDb();
     const ts = now();
@@ -314,6 +349,42 @@ describe("updateActivity", () => {
     const result = await updateActivity(db, "act-1", { notes: "new notes" });
     expect(result!.notes).toBe("new notes");
     expect(result!.body).toBe("new notes");
+  });
+
+  it("updates gmailId, frontId, frontConversationId, and syncRunId", async () => {
+    const db = getTestDb();
+    await seedColleague(db);
+    await seedActivity(db, "act-1");
+
+    const result = await updateActivity(db, "act-1", {
+      gmailId: "gmail-abc",
+      frontId: "front-xyz",
+      frontConversationId: "conv-123",
+      syncRunId: "sync-456",
+    });
+    expect(result!.gmailId).toBe("gmail-abc");
+    expect(result!.frontId).toBe("front-xyz");
+    expect(result!.frontConversationId).toBe("conv-123");
+    expect(result!.syncRunId).toBe("sync-456");
+  });
+
+  it("updates colleagueId to reassign ownership", async () => {
+    const db = getTestDb();
+    await seedColleague(db, "col-1");
+    await seedColleague(db, "col-2");
+    await seedActivity(db, "act-1", { colleagueId: "col-1" });
+
+    const result = await updateActivity(db, "act-1", { colleagueId: "col-2" });
+    expect(result!.colleagueId).toBe("col-2");
+  });
+
+  it("clears colleagueId by setting it to null", async () => {
+    const db = getTestDb();
+    await seedColleague(db, "col-1");
+    await seedActivity(db, "act-1", { colleagueId: "col-1" });
+
+    const result = await updateActivity(db, "act-1", { colleagueId: null });
+    expect(result!.colleagueId).toBeNull();
   });
 });
 

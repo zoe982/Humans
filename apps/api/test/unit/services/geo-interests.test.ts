@@ -8,6 +8,7 @@ import {
   deleteGeoInterest,
   listExpressions,
   createExpression,
+  getGeoInterestExpressionDetail,
   updateExpression,
   deleteExpression,
 } from "../../../src/services/geo-interests";
@@ -401,6 +402,89 @@ describe("createExpression", () => {
     });
     expect(result.activityId).toBe("act-1");
     expect(result.notes).toBe("From email");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// getGeoInterestExpressionDetail
+// ---------------------------------------------------------------------------
+
+describe("getGeoInterestExpressionDetail", () => {
+  it("throws notFound for missing expression", async () => {
+    const db = getTestDb();
+    await expect(
+      getGeoInterestExpressionDetail(db, "nonexistent"),
+    ).rejects.toThrowError("Geo-interest expression not found");
+  });
+
+  it("returns expression with human, geo-interest, and activity details", async () => {
+    const db = getTestDb();
+    const ts = now();
+
+    await db.insert(schema.geoInterests).values({
+      id: "gi-1", displayId: nextDisplayId("GEO"), city: "Rome", country: "Italy", createdAt: ts,
+    });
+    await seedHuman(db, "h-1", "Marco", "Rossi");
+    await seedColleague(db);
+
+    await db.insert(schema.activities).values({
+      id: "act-1", displayId: nextDisplayId("ACT"), type: "email", subject: "Rome trip inquiry",
+      activityDate: ts, colleagueId: "col-1", createdAt: ts, updatedAt: ts,
+    });
+
+    await db.insert(schema.geoInterestExpressions).values({
+      id: "expr-1", displayId: nextDisplayId("GEX"), humanId: "h-1", geoInterestId: "gi-1",
+      activityId: "act-1", notes: "Very interested", createdAt: ts,
+    });
+
+    const result = await getGeoInterestExpressionDetail(db, "expr-1");
+    expect(result.id).toBe("expr-1");
+    expect(result.humanName).toBe("Marco Rossi");
+    expect(result.humanDisplayId).toMatch(/^HUM-/);
+    expect(result.city).toBe("Rome");
+    expect(result.country).toBe("Italy");
+    expect(result.geoDisplayId).toMatch(/^GEO-/);
+    expect(result.activitySubject).toBe("Rome trip inquiry");
+  });
+
+  it("returns null fields when human and activity are absent", async () => {
+    const db = getTestDb();
+    const ts = now();
+
+    await db.insert(schema.geoInterests).values({
+      id: "gi-1", displayId: nextDisplayId("GEO"), city: "Oslo", country: "Norway", createdAt: ts,
+    });
+    await seedHuman(db, "h-1");
+
+    await db.insert(schema.geoInterestExpressions).values({
+      id: "expr-1", displayId: nextDisplayId("GEX"), humanId: "h-1", geoInterestId: "gi-1",
+      activityId: null, createdAt: ts,
+    });
+
+    const result = await getGeoInterestExpressionDetail(db, "expr-1");
+    expect(result.activitySubject).toBeNull();
+    // activityId was null so no activity fetch happens
+    expect(result.city).toBe("Oslo");
+  });
+
+  it("resolves correctly when no activityId is set", async () => {
+    const db = getTestDb();
+    const ts = now();
+
+    await db.insert(schema.geoInterests).values({
+      id: "gi-1", displayId: nextDisplayId("GEO"), city: "Vienna", country: "Austria", createdAt: ts,
+    });
+    await seedHuman(db, "h-1", "Anna", "Bauer");
+
+    await db.insert(schema.geoInterestExpressions).values({
+      id: "expr-1", displayId: nextDisplayId("GEX"), humanId: "h-1", geoInterestId: "gi-1",
+      activityId: null, createdAt: ts,
+    });
+
+    const result = await getGeoInterestExpressionDetail(db, "expr-1");
+    expect(result.humanName).toBe("Anna Bauer");
+    expect(result.activitySubject).toBeNull();
+    expect(result.country).toBe("Austria");
   });
 });
 

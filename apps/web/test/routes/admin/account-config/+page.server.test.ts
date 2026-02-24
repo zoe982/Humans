@@ -418,5 +418,128 @@ describe("admin/account-config +page.server", () => {
         expect(isActionFailure(result)).toBe(true);
       });
     });
+
+    describe("createOpportunityHumanRole", () => {
+      it("creates an opportunity human role successfully", async () => {
+        mockFetch = createMockFetch({
+          "opportunity-human-roles": { body: { data: { id: "1", name: "Primary" } } },
+        });
+        vi.stubGlobal("fetch", mockFetch);
+
+        const event = mockEvent({ formData: { name: "Primary" } });
+        const result = await actions.createOpportunityHumanRole(event as any);
+
+        expect(result).toEqual({ success: true });
+        expect(mockFetch).toHaveBeenCalledWith(
+          expect.stringContaining("opportunity-human-roles"),
+          expect.objectContaining({ method: "POST" }),
+        );
+      });
+
+      it("returns failure when API errors", async () => {
+        mockFetch = createMockFetch({
+          "opportunity-human-roles": { status: 409, body: { error: "Already exists" } },
+        });
+        vi.stubGlobal("fetch", mockFetch);
+
+        const event = mockEvent({ formData: { name: "Duplicate" } });
+        const result = await actions.createOpportunityHumanRole(event as any);
+
+        expect(isActionFailure(result)).toBe(true);
+        if (isActionFailure(result)) {
+          expect(result.status).toBe(409);
+        }
+      });
+    });
+
+    describe("deleteOpportunityHumanRole", () => {
+      it("deletes an opportunity human role successfully", async () => {
+        mockFetch = createMockFetch({
+          "opportunity-human-roles": { body: {} },
+        });
+        vi.stubGlobal("fetch", mockFetch);
+
+        const event = mockEvent({ formData: { id: "ohr-1" } });
+        const result = await actions.deleteOpportunityHumanRole(event as any);
+
+        expect(result).toEqual({ success: true });
+        expect(mockFetch).toHaveBeenCalledWith(
+          expect.stringContaining("opportunity-human-roles/ohr-1"),
+          expect.objectContaining({ method: "DELETE" }),
+        );
+      });
+
+      it("returns failure when API errors", async () => {
+        mockFetch = createMockFetch({
+          "opportunity-human-roles": { status: 404, body: { error: "Not found" } },
+        });
+        vi.stubGlobal("fetch", mockFetch);
+
+        const event = mockEvent({ formData: { id: "bad-id" } });
+        const result = await actions.deleteOpportunityHumanRole(event as any);
+
+        expect(isActionFailure(result)).toBe(true);
+      });
+    });
+
+    describe("createHumanRelationshipLabel", () => {
+      it("creates a human relationship label successfully", async () => {
+        mockFetch = createMockFetch({
+          "human-relationship-labels": { body: { data: { id: "1", name: "Spouse" } } },
+        });
+        vi.stubGlobal("fetch", mockFetch);
+
+        const event = mockEvent({ formData: { name: "Spouse" } });
+        const result = await actions.createHumanRelationshipLabel(event as any);
+
+        expect(result).toEqual({ success: true });
+        expect(mockFetch).toHaveBeenCalledWith(
+          expect.stringContaining("human-relationship-labels"),
+          expect.objectContaining({ method: "POST" }),
+        );
+      });
+
+      it("returns failure when API errors", async () => {
+        mockFetch = createMockFetch({
+          "human-relationship-labels": { status: 400, body: { error: "Invalid name" } },
+        });
+        vi.stubGlobal("fetch", mockFetch);
+
+        const event = mockEvent({ formData: { name: "" } });
+        const result = await actions.createHumanRelationshipLabel(event as any);
+
+        expect(isActionFailure(result)).toBe(true);
+      });
+    });
+
+    describe("deleteHumanRelationshipLabel", () => {
+      it("deletes a human relationship label successfully", async () => {
+        mockFetch = createMockFetch({
+          "human-relationship-labels": { body: {} },
+        });
+        vi.stubGlobal("fetch", mockFetch);
+
+        const event = mockEvent({ formData: { id: "hrl-1" } });
+        const result = await actions.deleteHumanRelationshipLabel(event as any);
+
+        expect(result).toEqual({ success: true });
+        expect(mockFetch).toHaveBeenCalledWith(
+          expect.stringContaining("human-relationship-labels/hrl-1"),
+          expect.objectContaining({ method: "DELETE" }),
+        );
+      });
+
+      it("returns failure when API errors", async () => {
+        mockFetch = createMockFetch({
+          "human-relationship-labels": { status: 500, body: { error: "Server error" } },
+        });
+        vi.stubGlobal("fetch", mockFetch);
+
+        const event = mockEvent({ formData: { id: "hrl-1" } });
+        const result = await actions.deleteHumanRelationshipLabel(event as any);
+
+        expect(isActionFailure(result)).toBe(true);
+      });
+    });
   });
 });

@@ -96,6 +96,11 @@ export default defineConfig({
         "src/lib/stores/theme.svelte.ts",
         // Pure data files — no executable logic
         "src/lib/constants/**",
+        // Service worker — uses browser-only APIs (caches, FetchEvent)
+        // that are unavailable in happy-dom
+        "src/service-worker.ts",
+        // WebSocket realtime client — requires live WS connection
+        "src/lib/realtime.ts",
       ],
       reportOnFailure: true,
       thresholds: {

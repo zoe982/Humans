@@ -338,6 +338,16 @@ const MIGRATION_STATEMENTS = [
     \`updated_at\` text NOT NULL
   )`,
 
+  // ── Opportunity stage cadence config ──────────────────────────
+  `CREATE TABLE IF NOT EXISTS \`opportunity_stage_cadence_config\` (
+    \`id\` text PRIMARY KEY NOT NULL,
+    \`stage\` text NOT NULL UNIQUE,
+    \`cadence_hours\` integer NOT NULL,
+    \`display_text\` text NOT NULL,
+    \`created_at\` text NOT NULL,
+    \`updated_at\` text NOT NULL
+  )`,
+
   // ── Opportunities ──────────────────────────────────────────────
   `CREATE TABLE IF NOT EXISTS \`opportunity_human_roles_config\` (
     \`id\` text PRIMARY KEY NOT NULL,
@@ -474,6 +484,7 @@ afterEach(async () => {
   await env.DB.exec("DELETE FROM email_labels_config");
   await env.DB.exec("DELETE FROM phone_labels_config");
   await env.DB.exec("DELETE FROM opportunities");
+  await env.DB.exec("DELETE FROM opportunity_stage_cadence_config");
   await env.DB.exec("DELETE FROM opportunity_human_roles_config");
   await env.DB.exec("DELETE FROM display_id_counters");
   await env.DB.exec("DELETE FROM accounts");

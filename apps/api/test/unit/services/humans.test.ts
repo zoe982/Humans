@@ -9,6 +9,11 @@ import {
   deleteHuman,
   linkRouteSignup,
   unlinkRouteSignup,
+  linkWebsiteBookingRequest,
+  unlinkWebsiteBookingRequest,
+  getHumanRelationships,
+  createHumanRelationship,
+  deleteHumanRelationship,
 } from "../../../src/services/humans";
 import { AppError } from "../../../src/lib/errors";
 import * as schema from "@humans/db/schema";
@@ -535,5 +540,290 @@ describe("unlinkRouteSignup", () => {
 
     await unlinkRouteSignup(db, "link-1");
     expect(await db.select().from(schema.humanRouteSignups)).toHaveLength(0);
+  });
+});
+
+describe("linkWebsiteBookingRequest", () => {
+  it("throws notFound for missing human", async () => {
+    const db = getTestDb();
+    await expect(
+      linkWebsiteBookingRequest(db, "nonexistent", "wbr-1"),
+    ).rejects.toThrowError("Human not found");
+  });
+
+  it("creates link between human and website booking request", async () => {
+    const db = getTestDb();
+    await seedHuman(db, "h-1");
+
+    const link = await linkWebsiteBookingRequest(db, "h-1", "wbr-1");
+    expect(link.humanId).toBe("h-1");
+    expect(link.websiteBookingRequestId).toBe("wbr-1");
+    expect(link.id).toBeDefined();
+    expect(link.linkedAt).toBeDefined();
+
+    const links = await db.select().from(schema.humanWebsiteBookingRequests);
+    expect(links).toHaveLength(1);
+    expect(links[0]!.humanId).toBe("h-1");
+    expect(links[0]!.websiteBookingRequestId).toBe("wbr-1");
+  });
+
+  it("can link multiple booking requests to the same human", async () => {
+    const db = getTestDb();
+    await seedHuman(db, "h-1");
+
+    await linkWebsiteBookingRequest(db, "h-1", "wbr-1");
+    await linkWebsiteBookingRequest(db, "h-1", "wbr-2");
+
+    const links = await db.select().from(schema.humanWebsiteBookingRequests);
+    expect(links).toHaveLength(2);
+  });
+});
+
+describe("unlinkWebsiteBookingRequest", () => {
+  it("deletes the booking request link", async () => {
+    const db = getTestDb();
+    await seedHuman(db, "h-1");
+    const ts = now();
+
+    await db.insert(schema.humanWebsiteBookingRequests).values({
+      id: "link-1", humanId: "h-1", websiteBookingRequestId: "wbr-1", linkedAt: ts,
+    });
+
+    await unlinkWebsiteBookingRequest(db, "link-1");
+    expect(await db.select().from(schema.humanWebsiteBookingRequests)).toHaveLength(0);
+  });
+
+  it("does nothing when link does not exist (no-op delete)", async () => {
+    const db = getTestDb();
+    await unlinkWebsiteBookingRequest(db, "nonexistent");
+    expect(await db.select().from(schema.humanWebsiteBookingRequests)).toHaveLength(0);
+  });
+});
+
+describe("getHumanRelationships", () => {
+  it("returns empty array when human has no relationships", async () => {
+    const db = getTestDb();
+    await seedHuman(db, "h-1");
+
+    const result = await getHumanRelationships(db, "h-1");
+    expect(result).toHaveLength(0);
+  });
+
+  it("returns relationships where human is humanId1", async () => {
+    const db = getTestDb();
+    const ts = now();
+    await seedHuman(db, "h-1", "Alice", "Smith");
+    await seedHuman(db, "h-2", "Bob", "Jones");
+
+    await db.insert(schema.humanRelationships).values({
+      id: "rel-1",
+      displayId: nextDisplayId("REL"),
+      humanId1: "h-1",
+      humanId2: "h-2",
+      labelId: null,
+      createdAt: ts,
+    });
+
+    const result = await getHumanRelationships(db, "h-1");
+    expect(result).toHaveLength(1);
+    expect(result[0]!.otherHumanId).toBe("h-2");
+    expect(result[0]!.otherHumanName).toBe("Bob Jones");
+  });
+
+  it("returns relationships where human is humanId2", async () => {
+    const db = getTestDb();
+    const ts = now();
+    await seedHuman(db, "h-1", "Alice", "Smith");
+    await seedHuman(db, "h-2", "Bob", "Jones");
+
+    await db.insert(schema.humanRelationships).values({
+      id: "rel-1",
+      displayId: nextDisplayId("REL"),
+      humanId1: "h-1",
+      humanId2: "h-2",
+      labelId: null,
+      createdAt: ts,
+    });
+
+    // Queried from h-2's perspective
+    const result = await getHumanRelationships(db, "h-2");
+    expect(result).toHaveLength(1);
+    expect(result[0]!.otherHumanId).toBe("h-1");
+    expect(result[0]!.otherHumanName).toBe("Alice Smith");
+  });
+
+  it("resolves labelName when a label is set", async () => {
+    const db = getTestDb();
+    const ts = now();
+    await seedHuman(db, "h-1", "Alice", "Smith");
+    await seedHuman(db, "h-2", "Bob", "Jones");
+
+    await db.insert(schema.humanRelationshipLabelsConfig).values({
+      id: "lbl-1", name: "Spouse", createdAt: ts,
+    });
+    await db.insert(schema.humanRelationships).values({
+      id: "rel-1",
+      displayId: nextDisplayId("REL"),
+      humanId1: "h-1",
+      humanId2: "h-2",
+      labelId: "lbl-1",
+      createdAt: ts,
+    });
+
+    const result = await getHumanRelationships(db, "h-1");
+    expect(result[0]!.labelId).toBe("lbl-1");
+    expect(result[0]!.labelName).toBe("Spouse");
+  });
+
+  it("sets labelName to null when no label is set", async () => {
+    const db = getTestDb();
+    const ts = now();
+    await seedHuman(db, "h-1", "Alice", "Smith");
+    await seedHuman(db, "h-2", "Bob", "Jones");
+
+    await db.insert(schema.humanRelationships).values({
+      id: "rel-1",
+      displayId: nextDisplayId("REL"),
+      humanId1: "h-1",
+      humanId2: "h-2",
+      labelId: null,
+      createdAt: ts,
+    });
+
+    const result = await getHumanRelationships(db, "h-1");
+    expect(result[0]!.labelId).toBeNull();
+    expect(result[0]!.labelName).toBeNull();
+  });
+
+  it("includes displayId and otherHumanDisplayId in returned rows", async () => {
+    const db = getTestDb();
+    const ts = now();
+    await seedHuman(db, "h-1", "Alice", "Smith");
+    await seedHuman(db, "h-2", "Bob", "Jones");
+
+    await db.insert(schema.humanRelationships).values({
+      id: "rel-1",
+      displayId: "REL-AAA-001",
+      humanId1: "h-1",
+      humanId2: "h-2",
+      labelId: null,
+      createdAt: ts,
+    });
+
+    const result = await getHumanRelationships(db, "h-1");
+    expect(result[0]!.displayId).toBe("REL-AAA-001");
+    expect(result[0]!.otherHumanDisplayId).toMatch(/^HUM-/);
+  });
+});
+
+describe("createHumanRelationship", () => {
+  it("creates a new relationship between two humans", async () => {
+    const db = getTestDb();
+    await seedHuman(db, "h-1");
+    await seedHuman(db, "h-2");
+
+    const result = await createHumanRelationship(db, "h-1", "h-2");
+    expect(result.id).toBeDefined();
+    expect(result.displayId).toMatch(/^REL-/);
+
+    const rows = await db.select().from(schema.humanRelationships);
+    expect(rows).toHaveLength(1);
+    expect(rows[0]!.humanId1).toBe("h-1");
+    expect(rows[0]!.humanId2).toBe("h-2");
+  });
+
+  it("creates relationship with a label", async () => {
+    const db = getTestDb();
+    const ts = now();
+    await seedHuman(db, "h-1");
+    await seedHuman(db, "h-2");
+
+    await db.insert(schema.humanRelationshipLabelsConfig).values({
+      id: "lbl-1", name: "Friend", createdAt: ts,
+    });
+
+    await createHumanRelationship(db, "h-1", "h-2", "lbl-1");
+
+    const rows = await db.select().from(schema.humanRelationships);
+    expect(rows[0]!.labelId).toBe("lbl-1");
+  });
+
+  it("creates relationship with no label (null)", async () => {
+    const db = getTestDb();
+    await seedHuman(db, "h-1");
+    await seedHuman(db, "h-2");
+
+    await createHumanRelationship(db, "h-1", "h-2");
+
+    const rows = await db.select().from(schema.humanRelationships);
+    expect(rows[0]!.labelId).toBeNull();
+  });
+
+  it("throws conflict when the relationship already exists (same direction)", async () => {
+    const db = getTestDb();
+    const ts = now();
+    await seedHuman(db, "h-1");
+    await seedHuman(db, "h-2");
+
+    await db.insert(schema.humanRelationships).values({
+      id: "rel-1",
+      displayId: nextDisplayId("REL"),
+      humanId1: "h-1",
+      humanId2: "h-2",
+      labelId: null,
+      createdAt: ts,
+    });
+
+    await expect(
+      createHumanRelationship(db, "h-1", "h-2"),
+    ).rejects.toThrowError("already exists");
+  });
+
+  it("throws conflict when the relationship already exists (reverse direction)", async () => {
+    const db = getTestDb();
+    const ts = now();
+    await seedHuman(db, "h-1");
+    await seedHuman(db, "h-2");
+
+    await db.insert(schema.humanRelationships).values({
+      id: "rel-1",
+      displayId: nextDisplayId("REL"),
+      humanId1: "h-2",
+      humanId2: "h-1",
+      labelId: null,
+      createdAt: ts,
+    });
+
+    await expect(
+      createHumanRelationship(db, "h-1", "h-2"),
+    ).rejects.toThrowError("already exists");
+  });
+});
+
+describe("deleteHumanRelationship", () => {
+  it("deletes an existing relationship", async () => {
+    const db = getTestDb();
+    const ts = now();
+    await seedHuman(db, "h-1");
+    await seedHuman(db, "h-2");
+
+    await db.insert(schema.humanRelationships).values({
+      id: "rel-1",
+      displayId: nextDisplayId("REL"),
+      humanId1: "h-1",
+      humanId2: "h-2",
+      labelId: null,
+      createdAt: ts,
+    });
+
+    await deleteHumanRelationship(db, "rel-1");
+
+    expect(await db.select().from(schema.humanRelationships)).toHaveLength(0);
+  });
+
+  it("does nothing when relationship does not exist (no-op delete)", async () => {
+    const db = getTestDb();
+    await deleteHumanRelationship(db, "nonexistent");
+    expect(await db.select().from(schema.humanRelationships)).toHaveLength(0);
   });
 });

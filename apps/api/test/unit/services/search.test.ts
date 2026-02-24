@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+import { eq, sql } from "drizzle-orm";
 import { getTestDb } from "../setup";
 import { searchD1 } from "../../../src/services/search";
 import * as schema from "@humans/db/schema";
@@ -159,5 +160,114 @@ describe("searchD1", () => {
     // "Alice" matches firstName and "alice" matches email
     const result = await searchD1(db, "alice");
     expect(result.matchedHumans).toHaveLength(1);
+  });
+
+  it("matches activities by notes", async () => {
+    const db = getTestDb();
+    await seedColleague(db);
+    const ts = now();
+    await db.insert(schema.activities).values({
+      id: "act-1", displayId: nextDisplayId("ACT"), type: "phone_call", subject: "Routine call",
+      notes: "Discussed London relocation plans", activityDate: ts, colleagueId: "col-1", createdAt: ts, updatedAt: ts,
+    });
+
+    // Query matches notes but not subject
+    const result = await searchD1(db, "London relocation");
+    expect(result.activityResults).toHaveLength(1);
+    expect(result.activityResults[0]!.notes).toContain("London relocation");
+  });
+
+  it("matches geo-interests by country", async () => {
+    const db = getTestDb();
+    const ts = now();
+    await db.insert(schema.geoInterests).values({
+      id: "gi-1", displayId: nextDisplayId("GEO"), city: "Valletta", country: "Malta", createdAt: ts,
+    });
+
+    // Query matches country but not city
+    const result = await searchD1(db, "Malta");
+    expect(result.geoInterestsWithCounts).toHaveLength(1);
+    expect(result.geoInterestsWithCounts[0]!.country).toBe("Malta");
+  });
+
+  it("matches accounts by phone number", async () => {
+    const db = getTestDb();
+    const ts = now();
+    await db.insert(schema.accounts).values({
+      id: "acc-1", displayId: nextDisplayId("ACC"), name: "Acme Corp", status: "open", createdAt: ts, updatedAt: ts,
+    });
+    await db.insert(schema.phones).values({
+      id: "p-1", displayId: nextDisplayId("FON"), ownerType: "account", ownerId: "acc-1",
+      phoneNumber: "+44207000999", hasWhatsapp: false, isPrimary: true, createdAt: ts,
+    });
+
+    // Query matches account phone, not account name
+    const result = await searchD1(db, "207000999");
+    expect(result.matchedAccounts).toHaveLength(1);
+    expect(result.matchedAccounts[0]!.id).toBe("acc-1");
+  });
+
+  it("returns geo-interest with zero expression count when no expressions exist", async () => {
+    const db = getTestDb();
+    const ts = now();
+    await db.insert(schema.geoInterests).values({
+      id: "gi-1", displayId: nextDisplayId("GEO"), city: "Berlin", country: "Germany", createdAt: ts,
+    });
+
+    // geoInterestResults.length > 0, so allExpressions is fetched, but it is empty
+    const result = await searchD1(db, "Berlin");
+    expect(result.geoInterestsWithCounts).toHaveLength(1);
+    expect(result.geoInterestsWithCounts[0]!.expressionCount).toBe(0);
+    expect(result.geoInterestsWithCounts[0]!.humanCount).toBe(0);
+    // No humans linked via expressions
+    expect(result.matchedHumans).toHaveLength(0);
+  });
+
+  it("falls back to typeId as name when account type config is missing", async () => {
+    const db = getTestDb();
+    const ts = now();
+    await db.insert(schema.accounts).values({
+      id: "acc-1", displayId: nextDisplayId("ACC"), name: "Mystery Corp", status: "open", createdAt: ts, updatedAt: ts,
+    });
+    // Insert a config row first to satisfy the FK, then delete it to simulate a missing config
+    await db.insert(schema.accountTypesConfig).values({
+      id: "orphan-type-id", name: "Orphan Type", createdAt: ts,
+    });
+    await db.insert(schema.accountTypes).values({
+      id: "at-1", accountId: "acc-1", typeId: "orphan-type-id", createdAt: ts,
+    });
+    await db.run(sql`PRAGMA foreign_keys = OFF`);
+    await db.delete(schema.accountTypesConfig).where(eq(schema.accountTypesConfig.id, "orphan-type-id"));
+    await db.run(sql`PRAGMA foreign_keys = ON`);
+
+    const result = await searchD1(db, "Mystery");
+    expect(result.matchedAccounts).toHaveLength(1);
+    expect(result.matchedAccounts[0]!.types).toHaveLength(1);
+    // config is undefined so name falls back to typeId
+    expect(result.matchedAccounts[0]!.types[0]!.name).toBe("orphan-type-id");
+  });
+
+  it("counts distinct humans across multiple geo-interest expressions", async () => {
+    const db = getTestDb();
+    await seedHuman(db, "h-1", "Carol", "Chen");
+    await seedHuman(db, "h-2", "Dave", "Diaz");
+    const ts = now();
+    await db.insert(schema.geoInterests).values({
+      id: "gi-1", displayId: nextDisplayId("GEO"), city: "Tokyo", country: "Japan", createdAt: ts,
+    });
+    // Two different humans, same geo-interest
+    await db.insert(schema.geoInterestExpressions).values({
+      id: "expr-1", displayId: nextDisplayId("GEX"), humanId: "h-1", geoInterestId: "gi-1", createdAt: ts,
+    });
+    await db.insert(schema.geoInterestExpressions).values({
+      id: "expr-2", displayId: nextDisplayId("GEX"), humanId: "h-2", geoInterestId: "gi-1", createdAt: ts,
+    });
+
+    const result = await searchD1(db, "Tokyo");
+    expect(result.geoInterestsWithCounts).toHaveLength(1);
+    expect(result.geoInterestsWithCounts[0]!.expressionCount).toBe(2);
+    expect(result.geoInterestsWithCounts[0]!.humanCount).toBe(2);
+    // Both humans are returned via the expression linkage
+    expect(result.matchedHumans).toHaveLength(2);
   });
 });

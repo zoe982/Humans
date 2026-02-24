@@ -1,5 +1,31 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { formatRelativeTime, summarizeChanges, displayName } from "./format";
+import { formatDateTime, formatDate, formatRelativeTime, summarizeChanges, displayName } from "./format";
+
+describe("formatDateTime", () => {
+  it("returns a non-empty string for a valid ISO date string", () => {
+    const result = formatDateTime("2026-02-18T21:03:00.000Z");
+    expect(typeof result).toBe("string");
+    expect(result.length).toBeGreaterThan(0);
+  });
+
+  it("includes the year from the date string", () => {
+    const result = formatDateTime("2026-02-18T21:03:00.000Z");
+    expect(result).toContain("2026");
+  });
+});
+
+describe("formatDate", () => {
+  it("returns a non-empty string for a valid ISO date string", () => {
+    const result = formatDate("2026-02-18T00:00:00.000Z");
+    expect(typeof result).toBe("string");
+    expect(result.length).toBeGreaterThan(0);
+  });
+
+  it("includes the year from the date string", () => {
+    const result = formatDate("2026-02-18T00:00:00.000Z");
+    expect(result).toContain("2026");
+  });
+});
 
 describe("formatRelativeTime", () => {
   beforeEach(() => {

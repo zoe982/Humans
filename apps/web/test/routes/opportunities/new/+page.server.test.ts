@@ -138,4 +138,42 @@ describe("opportunities/new actions.create", () => {
     expect(body.passengerSeats).toBe(1);
     expect(body.petSeats).toBe(0);
   });
+
+  it("links primary human when humanId is provided", async () => {
+    const mockFetch = createMockFetch({
+      "/api/opportunities/opp-h/humans": { status: 200, body: { data: {} } },
+      "/api/opportunities": { status: 201, body: { data: { id: "opp-h" } } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = mockEvent({ formData: { passengerSeats: "1", humanId: "h-1" } });
+    try {
+      await actions.create(event as any);
+      expect.fail("should have redirected");
+    } catch (e) {
+      expect(isRedirect(e)).toBe(true);
+      expect((e as Redirect).location).toBe("/opportunities/opp-h");
+    }
+    const calls = mockFetch.mock.calls.map((c: unknown[]) => String(c[0]));
+    expect(calls.some((u: string) => u.includes("/api/opportunities/opp-h/humans"))).toBe(true);
+  });
+
+  it("links pets when petIds are provided", async () => {
+    const mockFetch = createMockFetch({
+      "/api/opportunities/opp-p/pets": { status: 200, body: { data: {} } },
+      "/api/opportunities/opp-p/humans": { status: 200, body: { data: {} } },
+      "/api/opportunities": { status: 201, body: { data: { id: "opp-p" } } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = mockEvent({ formData: { passengerSeats: "2", petIds: ["pet-1", "pet-2"] } });
+    try {
+      await actions.create(event as any);
+      expect.fail("should have redirected");
+    } catch (e) {
+      expect(isRedirect(e)).toBe(true);
+    }
+    const calls = mockFetch.mock.calls.map((c: unknown[]) => String(c[0]));
+    expect(calls.some((u: string) => u.includes("/api/opportunities/opp-p/pets"))).toBe(true);
+  });
 });

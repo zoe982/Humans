@@ -179,4 +179,50 @@ describe("humans/new create action", () => {
       expect(isRedirect(e)).toBe(true);
     }
   });
+
+  it("calls convert general lead endpoint when fromGeneralLead is set", async () => {
+    mockFetch = createMockFetch({
+      "/api/humans": { body: { data: { id: "h-3" } } },
+      "/convert": { body: { data: {} } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = mockEvent({
+      formData: {
+        firstName: "Jane",
+        lastName: "Doe",
+        fromGeneralLead: "lead-1",
+      },
+    });
+    try {
+      await actions.create(event as any);
+      expect.fail("should have redirected");
+    } catch (e) {
+      expect(isRedirect(e)).toBe(true);
+    }
+    const calls = mockFetch.mock.calls.map((c: unknown[]) => String(c[0]));
+    expect(calls.some((u: string) => u.includes("/convert"))).toBe(true);
+  });
+
+  it("redirects to human when convert general lead fails", async () => {
+    mockFetch = createMockFetch({
+      "/api/humans": { body: { data: { id: "h-4" } } },
+      "/convert": { status: 500, body: { error: "Convert failed" } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = mockEvent({
+      formData: {
+        firstName: "Jane",
+        lastName: "Doe",
+        fromGeneralLead: "lead-bad",
+      },
+    });
+    try {
+      await actions.create(event as any);
+      expect.fail("should have redirected");
+    } catch (e) {
+      expect(isRedirect(e)).toBe(true);
+    }
+  });
 });

@@ -251,6 +251,133 @@ describe("opportunities/[id] actions.unlinkPet", () => {
   });
 });
 
+describe("opportunities/[id] actions.linkFlight", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("sends PATCH to API and returns success", async () => {
+    const mockFetch = createMockFetch({
+      "/api/opportunities/opp1/flight": { status: 200, body: { data: {} } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent({ formData: { flightId: "flt-1" } });
+    const result = await actions.linkFlight(event as any);
+
+    expect(result).toEqual({ success: true });
+  });
+
+  it("returns failure on API error", async () => {
+    const mockFetch = createMockFetch({
+      "/api/opportunities/opp1/flight": { status: 404, body: { error: "Flight not found" } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent({ formData: { flightId: "flt-bad" } });
+    const result = await actions.linkFlight(event as any);
+
+    expect(isActionFailure(result)).toBe(true);
+    expect((result as any).status).toBe(404);
+    expect((result as any).data.error).toBe("Flight not found");
+  });
+});
+
+describe("opportunities/[id] actions.unlinkFlight", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("sends DELETE to API and returns success", async () => {
+    const mockFetch = createMockFetch({
+      "/api/opportunities/opp1/flight": { status: 200, body: { data: {} } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent();
+    const result = await actions.unlinkFlight(event as any);
+
+    expect(result).toEqual({ success: true });
+  });
+
+  it("returns failure on API error", async () => {
+    const mockFetch = createMockFetch({
+      "/api/opportunities/opp1/flight": { status: 400, body: { error: "No flight linked" } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent();
+    const result = await actions.unlinkFlight(event as any);
+
+    expect(isActionFailure(result)).toBe(true);
+    expect((result as any).data.error).toBe("No flight linked");
+  });
+});
+
+describe("opportunities/[id] actions.linkBookingRequest", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("sends POST to API and returns success", async () => {
+    const mockFetch = createMockFetch({
+      "/api/opportunities/opp1/booking-requests": { status: 200, body: { data: {} } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent({ formData: { bookingRequestLinkId: "br-1" } });
+    const result = await actions.linkBookingRequest(event as any);
+
+    expect(result).toEqual({ success: true });
+  });
+
+  it("returns failure on API error", async () => {
+    const mockFetch = createMockFetch({
+      "/api/opportunities/opp1/booking-requests": { status: 409, body: { error: "Already linked" } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent({ formData: { bookingRequestLinkId: "br-1" } });
+    const result = await actions.linkBookingRequest(event as any);
+
+    expect(isActionFailure(result)).toBe(true);
+    expect((result as any).status).toBe(409);
+    expect((result as any).data.error).toBe("Already linked");
+  });
+});
+
+describe("opportunities/[id] actions.unlinkBookingRequest", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("sends DELETE to API and returns success", async () => {
+    const mockFetch = createMockFetch({
+      "/api/opportunities/opp1/booking-requests/link-1": { status: 200, body: { data: {} } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent({ formData: { linkId: "link-1" } });
+    const result = await actions.unlinkBookingRequest(event as any);
+
+    expect(result).toEqual({ success: true });
+  });
+
+  it("returns failure on API error", async () => {
+    const mockFetch = createMockFetch({
+      "/api/opportunities/opp1/booking-requests/link-1": { status: 404, body: { error: "Link not found" } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent({ formData: { linkId: "link-1" } });
+    const result = await actions.unlinkBookingRequest(event as any);
+
+    expect(isActionFailure(result)).toBe(true);
+    expect((result as any).status).toBe(404);
+    expect((result as any).data.error).toBe("Link not found");
+  });
+});
+
 describe("opportunities/[id] actions.addActivity", () => {
   afterEach(() => {
     vi.unstubAllGlobals();

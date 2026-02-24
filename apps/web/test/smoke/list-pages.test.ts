@@ -21,6 +21,11 @@ import PhoneNumbersPage from "../../src/routes/phone-numbers/+page.svelte";
 import GeoInterestsPage from "../../src/routes/geo-interests/+page.svelte";
 import RouteInterestsPage from "../../src/routes/route-interests/+page.svelte";
 import SocialIdsPage from "../../src/routes/social-ids/+page.svelte";
+import ReferralCodesPage from "../../src/routes/referral-codes/+page.svelte";
+import DiscountCodesPage from "../../src/routes/discount-codes/+page.svelte";
+import GeneralLeadsPage from "../../src/routes/leads/general-leads/+page.svelte";
+import ColleaguesPage from "../../src/routes/colleagues/+page.svelte";
+import WebsitesPage from "../../src/routes/websites/+page.svelte";
 
 // ---------------------------------------------------------------------------
 // Smoke tests — each page gets the minimal data shape with empty collections
@@ -132,5 +137,61 @@ describe("List page smoke tests", () => {
     });
     // Title is "Social Media IDs" — must match EntityListPage title prop exactly
     expect(screen.getByRole("heading", { name: "Social Media IDs" })).toBeDefined();
+  });
+
+  it("Referral Codes page renders without error", () => {
+    render(ReferralCodesPage, {
+      props: {
+        data: { referralCodes: [] },
+      },
+    });
+    expect(screen.getByRole("heading", { name: "Referral Codes" })).toBeDefined();
+  });
+
+  it("Discount Codes page renders without error", () => {
+    render(DiscountCodesPage, {
+      props: {
+        data: { discountCodes: [] },
+      },
+    });
+    expect(screen.getByRole("heading", { name: "Discount Codes" })).toBeDefined();
+  });
+
+  it("General Leads page renders without error", () => {
+    render(GeneralLeadsPage, {
+      props: {
+        data: {
+          leads: [],
+          status: "",
+          source: "",
+          q: "",
+          page: 1,
+          limit: 50,
+          total: 0,
+          userRole: "agent",
+        },
+        form: null,
+      },
+    });
+    expect(screen.getByRole("heading", { name: "General Leads" })).toBeDefined();
+  });
+
+  it("Colleagues page renders without error", () => {
+    render(ColleaguesPage, {
+      props: {
+        data: { colleagues: [] },
+      },
+    });
+    // Colleagues uses PageHeader (not EntityListPage) which renders an <h1>
+    expect(screen.getByRole("heading", { name: "Colleagues" })).toBeDefined();
+  });
+
+  it("Websites page renders without error", () => {
+    render(WebsitesPage, {
+      props: {
+        data: { websites: [] },
+      },
+    });
+    expect(screen.getByRole("heading", { name: "Websites" })).toBeDefined();
   });
 });

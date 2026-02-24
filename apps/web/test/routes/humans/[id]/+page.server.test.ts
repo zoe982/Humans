@@ -826,6 +826,152 @@ describe("humans/[id] createAndLinkAccount action", () => {
   });
 });
 
+describe("humans/[id] createAndLinkAccount — no ID in response", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("returns failure when created account has no ID in response", async () => {
+    const mockFetch = createMockFetch({
+      "/api/accounts": { body: { data: {} } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent({ formData: { accountName: "Missing ID Corp" } });
+    const result = await actions.createAndLinkAccount(event as any);
+    expect(isActionFailure(result)).toBe(true);
+    if (isActionFailure(result)) {
+      expect(result.data.error).toContain("Failed to get new account ID");
+    }
+  });
+
+  it("returns failure when linking the new account fails", async () => {
+    const mockFetch = createMockFetch({
+      "/api/accounts/acc-new/humans": { status: 500, body: { error: "Link failed" } },
+      "/api/accounts": { body: { data: { id: "acc-new" } } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent({ formData: { accountName: "Acme Corp" } });
+    const result = await actions.createAndLinkAccount(event as any);
+    expect(isActionFailure(result)).toBe(true);
+  });
+});
+
+describe("humans/[id] addOpportunity action", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("returns success when opportunity is created and human is linked", async () => {
+    const mockFetch = createMockFetch({
+      "/api/opportunities/opp-new/humans": { body: { data: {} } },
+      "/api/opportunities": { body: { data: { id: "opp-new" } } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent({ formData: { passengerSeats: "2", petSeats: "0" } });
+    const result = await actions.addOpportunity(event as any);
+    expect(result).toEqual({ success: true });
+  });
+
+  it("returns failure when opportunity creation fails", async () => {
+    const mockFetch = createMockFetch({
+      "/api/opportunities": { status: 400, body: { error: "Bad request" } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent({ formData: { passengerSeats: "0" } });
+    const result = await actions.addOpportunity(event as any);
+    expect(isActionFailure(result)).toBe(true);
+  });
+
+  it("returns failure when opportunity API returns unexpected shape", async () => {
+    const mockFetch = createMockFetch({
+      "/api/opportunities": { body: { weird: true } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent({ formData: { passengerSeats: "1" } });
+    const result = await actions.addOpportunity(event as any);
+    expect(isActionFailure(result)).toBe(true);
+    if (isActionFailure(result)) {
+      expect(result.data.error).toBe("Unexpected response");
+    }
+  });
+
+  it("links pets when petIds are provided", async () => {
+    const mockFetch = createMockFetch({
+      "/api/opportunities/opp-pets/pets": { body: { data: {} } },
+      "/api/opportunities/opp-pets/humans": { body: { data: {} } },
+      "/api/opportunities": { body: { data: { id: "opp-pets" } } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent({ formData: { passengerSeats: "1", petIds: ["pet-1", "pet-2"] } });
+    const result = await actions.addOpportunity(event as any);
+    expect(result).toEqual({ success: true });
+    const calls = mockFetch.mock.calls.map((c: unknown[]) => String(c[0]));
+    expect(calls.some((u: string) => u.includes("/api/opportunities/opp-pets/pets"))).toBe(true);
+  });
+});
+
+describe("humans/[id] addRelationship action", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("returns success when relationship is added", async () => {
+    const mockFetch = createMockFetch({
+      "/api/humans/h-1/relationships": { body: { data: {} } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent({ formData: { humanId2: "h-2", labelId: "lbl-1" } });
+    const result = await actions.addRelationship(event as any);
+    expect(result).toEqual({ success: true });
+  });
+
+  it("returns failure on API error", async () => {
+    const mockFetch = createMockFetch({
+      "/api/humans/h-1/relationships": { status: 409, body: { error: "Already related" } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent({ formData: { humanId2: "h-2" } });
+    const result = await actions.addRelationship(event as any);
+    expect(isActionFailure(result)).toBe(true);
+  });
+});
+
+describe("humans/[id] removeRelationship action", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("returns success when relationship is removed", async () => {
+    const mockFetch = createMockFetch({
+      "/api/humans/h-1/relationships/rel-1": { body: {} },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent({ formData: { id: "rel-1" } });
+    const result = await actions.removeRelationship(event as any);
+    expect(result).toEqual({ success: true });
+  });
+
+  it("returns failure on API error", async () => {
+    const mockFetch = createMockFetch({
+      "/api/humans/h-1/relationships/rel-1": { status: 404, body: { error: "Not found" } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent({ formData: { id: "rel-1" } });
+    const result = await actions.removeRelationship(event as any);
+    expect(isActionFailure(result)).toBe(true);
+  });
+});
+
 describe("humans/[id] unlinkAccount action", () => {
   afterEach(() => {
     vi.unstubAllGlobals();
@@ -851,5 +997,701 @@ describe("humans/[id] unlinkAccount action", () => {
     const event = makeEvent({ formData: { accountId: "acc-1", linkId: "link-1" } });
     const result = await actions.unlinkAccount(event as any);
     expect(isActionFailure(result)).toBe(true);
+  });
+});
+
+describe("humans/[id] addWebsite action", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("returns success when website is added", async () => {
+    const mockFetch = createMockFetch({
+      "/api/websites": { body: { data: { id: "web-1" } } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent({ formData: { url: "https://example.com" } });
+    const result = await actions.addWebsite(event as any);
+    expect(result).toEqual({ success: true });
+  });
+
+  it("returns failure on API error", async () => {
+    const mockFetch = createMockFetch({
+      "/api/websites": { status: 422, body: { error: "Invalid URL" } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent({ formData: { url: "not-a-url" } });
+    const result = await actions.addWebsite(event as any);
+    expect(isActionFailure(result)).toBe(true);
+  });
+});
+
+describe("humans/[id] deleteWebsite action", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("returns success on delete", async () => {
+    const mockFetch = createMockFetch({
+      "/api/websites/web-1": { body: {} },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent({ formData: { id: "web-1" } });
+    const result = await actions.deleteWebsite(event as any);
+    expect(result).toEqual({ success: true });
+  });
+
+  it("returns failure on API error", async () => {
+    const mockFetch = createMockFetch({
+      "/api/websites/web-1": { status: 500, body: { error: "Server error" } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent({ formData: { id: "web-1" } });
+    const result = await actions.deleteWebsite(event as any);
+    expect(isActionFailure(result)).toBe(true);
+  });
+});
+
+describe("humans/[id] addReferralCode action", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("returns success when referral code is added", async () => {
+    const mockFetch = createMockFetch({
+      "/api/referral-codes": { body: { data: { id: "ref-1" } } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent({ formData: { code: "SAVE10", description: "10% off" } });
+    const result = await actions.addReferralCode(event as any);
+    expect(result).toEqual({ success: true });
+  });
+
+  it("returns success when description is omitted", async () => {
+    const mockFetch = createMockFetch({
+      "/api/referral-codes": { body: { data: { id: "ref-2" } } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent({ formData: { code: "NODESC" } });
+    const result = await actions.addReferralCode(event as any);
+    expect(result).toEqual({ success: true });
+  });
+
+  it("returns failure on API error", async () => {
+    const mockFetch = createMockFetch({
+      "/api/referral-codes": { status: 409, body: { error: "Code already exists" } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent({ formData: { code: "DUPE" } });
+    const result = await actions.addReferralCode(event as any);
+    expect(isActionFailure(result)).toBe(true);
+  });
+});
+
+describe("humans/[id] deleteReferralCode action", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("returns success on delete", async () => {
+    const mockFetch = createMockFetch({
+      "/api/referral-codes/ref-1": { body: {} },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent({ formData: { id: "ref-1" } });
+    const result = await actions.deleteReferralCode(event as any);
+    expect(result).toEqual({ success: true });
+  });
+
+  it("returns failure on API error", async () => {
+    const mockFetch = createMockFetch({
+      "/api/referral-codes/ref-1": { status: 500, body: { error: "Server error" } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent({ formData: { id: "ref-1" } });
+    const result = await actions.deleteReferralCode(event as any);
+    expect(isActionFailure(result)).toBe(true);
+  });
+});
+
+describe("humans/[id] linkDiscountCode action", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("returns success when discount code is linked", async () => {
+    const mockFetch = createMockFetch({
+      "/api/discount-codes/dc-1": { body: { data: {} } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent({ formData: { discountCodeId: "dc-1" } });
+    const result = await actions.linkDiscountCode(event as any);
+    expect(result).toEqual({ success: true });
+  });
+
+  it("returns failure on API error", async () => {
+    const mockFetch = createMockFetch({
+      "/api/discount-codes/dc-1": { status: 404, body: { error: "Not found" } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent({ formData: { discountCodeId: "dc-1" } });
+    const result = await actions.linkDiscountCode(event as any);
+    expect(isActionFailure(result)).toBe(true);
+  });
+});
+
+describe("humans/[id] unlinkDiscountCode action", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("returns success when discount code is unlinked", async () => {
+    const mockFetch = createMockFetch({
+      "/api/discount-codes/dc-1": { body: { data: {} } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent({ formData: { id: "dc-1" } });
+    const result = await actions.unlinkDiscountCode(event as any);
+    expect(result).toEqual({ success: true });
+  });
+
+  it("returns failure on API error", async () => {
+    const mockFetch = createMockFetch({
+      "/api/discount-codes/dc-1": { status: 500, body: { error: "Server error" } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent({ formData: { id: "dc-1" } });
+    const result = await actions.unlinkDiscountCode(event as any);
+    expect(isActionFailure(result)).toBe(true);
+  });
+});
+
+describe("humans/[id] load — additional branches", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("redirects to /humans when human API returns ok but data is null", async () => {
+    const mockFetch = createMockFetch({
+      "/api/admin/account-config/human-email-labels": { body: { data: [] } },
+      "/api/admin/account-config/human-phone-labels": { body: { data: [] } },
+      "/api/admin/account-config/social-id-platforms": { body: { data: [] } },
+      "/api/admin/account-config/account-human-labels": { body: { data: [] } },
+      "/api/admin/account-config/human-relationship-labels": { body: { data: [] } },
+      "/api/route-signups": { body: { data: [] } },
+      "/api/website-booking-requests": { body: { data: [] } },
+      "/api/accounts": { body: { data: [] } },
+      "/api/general-leads": { body: { data: [] } },
+      "/api/opportunities": { body: { data: [] } },
+      "/api/discount-codes": { body: { data: [] } },
+      "/api/humans/h-1/relationships": { body: { data: [] } },
+      "/api/humans/h-1": { body: { something: "else" } },
+      "/api/humans": { body: { data: [] } },
+      "/api/activities": { body: { data: [] } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent();
+    event.params = { id: "h-1" };
+    try {
+      await load(event as any);
+      expect.fail("should have redirected");
+    } catch (e) {
+      expect(isRedirect(e)).toBe(true);
+    }
+  });
+
+  it("resolves convertedFromLead when generalLeads has items", async () => {
+    const humanWithNoLinks = {
+      id: "h-1",
+      firstName: "Jane",
+      lastName: "Doe",
+      emails: [],
+      phoneNumbers: [],
+      pets: [],
+      linkedRouteSignups: [],
+      linkedWebsiteBookingRequests: [],
+    };
+
+    const mockFetch = createMockFetch({
+      "/api/admin/account-config/human-email-labels": { body: { data: [] } },
+      "/api/admin/account-config/human-phone-labels": { body: { data: [] } },
+      "/api/admin/account-config/social-id-platforms": { body: { data: [] } },
+      "/api/admin/account-config/account-human-labels": { body: { data: [] } },
+      "/api/admin/account-config/human-relationship-labels": { body: { data: [] } },
+      "/api/route-signups": { body: { data: [] } },
+      "/api/website-booking-requests": { body: { data: [] } },
+      "/api/accounts": { body: { data: [] } },
+      "/api/general-leads": { body: { data: [{ id: "lead-1", displayId: "LEA-AAA-001" }] } },
+      "/api/opportunities": { body: { data: [] } },
+      "/api/discount-codes": { body: { data: [] } },
+      "/api/humans/h-1/relationships": { body: { data: [] } },
+      "/api/humans/h-1": { body: { data: humanWithNoLinks } },
+      "/api/humans": { body: { data: [] } },
+      "/api/activities": { body: { data: [] } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent();
+    event.params = { id: "h-1" };
+    const result = await load(event as any);
+    expect(result.convertedFromLead).toEqual({ id: "lead-1", displayId: "LEA-AAA-001" });
+  });
+
+  it("enriches linkedRouteSignups with matching signup data", async () => {
+    const humanWithLinkedSignup = {
+      id: "h-1",
+      firstName: "Jane",
+      lastName: "Doe",
+      emails: [],
+      phoneNumbers: [],
+      pets: [],
+      linkedRouteSignups: [{ id: "link-1", routeSignupId: "rs-1", linkedAt: "2025-01-01" }],
+      linkedWebsiteBookingRequests: [],
+    };
+
+    const mockFetch = createMockFetch({
+      "/api/admin/account-config/human-email-labels": { body: { data: [] } },
+      "/api/admin/account-config/human-phone-labels": { body: { data: [] } },
+      "/api/admin/account-config/social-id-platforms": { body: { data: [] } },
+      "/api/admin/account-config/account-human-labels": { body: { data: [] } },
+      "/api/admin/account-config/human-relationship-labels": { body: { data: [] } },
+      "/api/route-signups": { body: { data: [{ id: "rs-1", display_id: "ROI-AAA-001", first_name: "Bob", last_name: "Smith", origin: "JFK", destination: "LHR" }] } },
+      "/api/website-booking-requests": { body: { data: [] } },
+      "/api/accounts": { body: { data: [] } },
+      "/api/general-leads": { body: { data: [] } },
+      "/api/opportunities": { body: { data: [] } },
+      "/api/discount-codes": { body: { data: [] } },
+      "/api/humans/h-1/relationships": { body: { data: [] } },
+      "/api/humans/h-1": { body: { data: humanWithLinkedSignup } },
+      "/api/humans": { body: { data: [] } },
+      "/api/activities": { body: { data: [] } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent();
+    event.params = { id: "h-1" };
+    const result = await load(event as any);
+    expect(result.human.linkedRouteSignups).toHaveLength(1);
+    const enriched = (result.human.linkedRouteSignups as Array<Record<string, unknown>>)[0];
+    expect(enriched.displayId).toBe("ROI-AAA-001");
+    expect(enriched.passengerName).toBe("Bob Smith");
+    expect(enriched.origin).toBe("JFK");
+    expect(enriched.destination).toBe("LHR");
+  });
+
+  it("enriches linkedRouteSignups with nulls when signup not found in allRouteSignups", async () => {
+    const humanWithUnmatchedSignup = {
+      id: "h-1",
+      firstName: "Jane",
+      lastName: "Doe",
+      emails: [],
+      phoneNumbers: [],
+      pets: [],
+      linkedRouteSignups: [{ id: "link-1", routeSignupId: "rs-missing", linkedAt: "2025-01-01" }],
+      linkedWebsiteBookingRequests: [],
+    };
+
+    const mockFetch = createMockFetch({
+      "/api/admin/account-config/human-email-labels": { body: { data: [] } },
+      "/api/admin/account-config/human-phone-labels": { body: { data: [] } },
+      "/api/admin/account-config/social-id-platforms": { body: { data: [] } },
+      "/api/admin/account-config/account-human-labels": { body: { data: [] } },
+      "/api/admin/account-config/human-relationship-labels": { body: { data: [] } },
+      "/api/route-signups": { body: { data: [] } },
+      "/api/website-booking-requests": { body: { data: [] } },
+      "/api/accounts": { body: { data: [] } },
+      "/api/general-leads": { body: { data: [] } },
+      "/api/opportunities": { body: { data: [] } },
+      "/api/discount-codes": { body: { data: [] } },
+      "/api/humans/h-1/relationships": { body: { data: [] } },
+      "/api/humans": { body: { data: [] } },
+      "/api/humans/h-1": { body: { data: humanWithUnmatchedSignup } },
+      "/api/activities": { body: { data: [] } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent();
+    event.params = { id: "h-1" };
+    const result = await load(event as any);
+    const enriched = (result.human.linkedRouteSignups as Array<Record<string, unknown>>)[0];
+    expect(enriched.displayId).toBeNull();
+    expect(enriched.passengerName).toBeNull();
+    expect(enriched.origin).toBeNull();
+    expect(enriched.destination).toBeNull();
+  });
+
+  it("enriches linkedWebsiteBookingRequests with matching booking data", async () => {
+    const humanWithLinkedBooking = {
+      id: "h-1",
+      firstName: "Jane",
+      lastName: "Doe",
+      emails: [],
+      phoneNumbers: [],
+      pets: [],
+      linkedRouteSignups: [],
+      linkedWebsiteBookingRequests: [{ id: "blink-1", websiteBookingRequestId: "wbr-1", linkedAt: "2025-01-01" }],
+    };
+
+    const mockFetch = createMockFetch({
+      "/api/admin/account-config/human-email-labels": { body: { data: [] } },
+      "/api/admin/account-config/human-phone-labels": { body: { data: [] } },
+      "/api/admin/account-config/social-id-platforms": { body: { data: [] } },
+      "/api/admin/account-config/account-human-labels": { body: { data: [] } },
+      "/api/admin/account-config/human-relationship-labels": { body: { data: [] } },
+      "/api/route-signups": { body: { data: [] } },
+      "/api/website-booking-requests": { body: { data: [{ id: "wbr-1", crm_display_id: "BOR-AAA-001", first_name: "Alice", last_name: "Jones", origin_city: "NYC", destination_city: "Paris" }] } },
+      "/api/accounts": { body: { data: [] } },
+      "/api/general-leads": { body: { data: [] } },
+      "/api/opportunities": { body: { data: [] } },
+      "/api/discount-codes": { body: { data: [] } },
+      "/api/humans/h-1/relationships": { body: { data: [] } },
+      "/api/humans": { body: { data: [] } },
+      "/api/humans/h-1": { body: { data: humanWithLinkedBooking } },
+      "/api/activities": { body: { data: [] } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent();
+    event.params = { id: "h-1" };
+    const result = await load(event as any);
+    expect(result.human.linkedWebsiteBookingRequests).toHaveLength(1);
+    const enriched = (result.human.linkedWebsiteBookingRequests as Array<Record<string, unknown>>)[0];
+    expect(enriched.displayId).toBe("BOR-AAA-001");
+    expect(enriched.passengerName).toBe("Alice Jones");
+    expect(enriched.originCity).toBe("NYC");
+    expect(enriched.destinationCity).toBe("Paris");
+  });
+
+  it("enriches linkedWebsiteBookingRequests with nulls when booking not found", async () => {
+    const humanWithUnmatchedBooking = {
+      id: "h-1",
+      firstName: "Jane",
+      lastName: "Doe",
+      emails: [],
+      phoneNumbers: [],
+      pets: [],
+      linkedRouteSignups: [],
+      linkedWebsiteBookingRequests: [{ id: "blink-1", websiteBookingRequestId: "wbr-missing", linkedAt: "2025-01-01" }],
+    };
+
+    const mockFetch = createMockFetch({
+      "/api/admin/account-config/human-email-labels": { body: { data: [] } },
+      "/api/admin/account-config/human-phone-labels": { body: { data: [] } },
+      "/api/admin/account-config/social-id-platforms": { body: { data: [] } },
+      "/api/admin/account-config/account-human-labels": { body: { data: [] } },
+      "/api/admin/account-config/human-relationship-labels": { body: { data: [] } },
+      "/api/route-signups": { body: { data: [] } },
+      "/api/website-booking-requests": { body: { data: [] } },
+      "/api/accounts": { body: { data: [] } },
+      "/api/general-leads": { body: { data: [] } },
+      "/api/opportunities": { body: { data: [] } },
+      "/api/discount-codes": { body: { data: [] } },
+      "/api/humans/h-1/relationships": { body: { data: [] } },
+      "/api/humans": { body: { data: [] } },
+      "/api/humans/h-1": { body: { data: humanWithUnmatchedBooking } },
+      "/api/activities": { body: { data: [] } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent();
+    event.params = { id: "h-1" };
+    const result = await load(event as any);
+    const enriched = (result.human.linkedWebsiteBookingRequests as Array<Record<string, unknown>>)[0];
+    expect(enriched.displayId).toBeNull();
+    expect(enriched.passengerName).toBeNull();
+    expect(enriched.originCity).toBeNull();
+    expect(enriched.destinationCity).toBeNull();
+  });
+
+  it("returns empty arrays when fetchConfig endpoints return non-ok status", async () => {
+    const humanWithNoLinks = {
+      id: "h-1",
+      firstName: "Jane",
+      lastName: "Doe",
+      emails: [],
+      phoneNumbers: [],
+      pets: [],
+      linkedRouteSignups: [],
+      linkedWebsiteBookingRequests: [],
+    };
+
+    const mockFetch = createMockFetch({
+      "/api/admin/account-config/human-email-labels": { status: 500, body: { error: "Server error" } },
+      "/api/admin/account-config/human-phone-labels": { status: 500, body: { error: "Server error" } },
+      "/api/admin/account-config/social-id-platforms": { status: 500, body: { error: "Server error" } },
+      "/api/admin/account-config/account-human-labels": { status: 500, body: { error: "Server error" } },
+      "/api/admin/account-config/human-relationship-labels": { status: 500, body: { error: "Server error" } },
+      "/api/route-signups": { body: { data: [] } },
+      "/api/website-booking-requests": { body: { data: [] } },
+      "/api/accounts": { body: { data: [] } },
+      "/api/general-leads": { body: { data: [] } },
+      "/api/opportunities": { body: { data: [] } },
+      "/api/discount-codes": { body: { data: [] } },
+      "/api/humans/h-1/relationships": { body: { data: [] } },
+      "/api/humans": { body: { data: [] } },
+      "/api/humans/h-1": { body: { data: humanWithNoLinks } },
+      "/api/activities": { body: { data: [] } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent();
+    event.params = { id: "h-1" };
+    const result = await load(event as any);
+    expect(result.emailLabelConfigs).toEqual([]);
+    expect(result.phoneLabelConfigs).toEqual([]);
+    expect(result.socialIdPlatformConfigs).toEqual([]);
+    expect(result.accountHumanLabelConfigs).toEqual([]);
+    expect(result.humanRelationshipLabelConfigs).toEqual([]);
+  });
+
+  it("returns empty arrays when fetchList endpoints return non-ok status", async () => {
+    const humanWithNoLinks = {
+      id: "h-1",
+      firstName: "Jane",
+      lastName: "Doe",
+      emails: [],
+      phoneNumbers: [],
+      pets: [],
+      linkedRouteSignups: [],
+      linkedWebsiteBookingRequests: [],
+    };
+
+    const mockFetch = createMockFetch({
+      "/api/admin/account-config/human-email-labels": { body: { data: [] } },
+      "/api/admin/account-config/human-phone-labels": { body: { data: [] } },
+      "/api/admin/account-config/social-id-platforms": { body: { data: [] } },
+      "/api/admin/account-config/account-human-labels": { body: { data: [] } },
+      "/api/admin/account-config/human-relationship-labels": { body: { data: [] } },
+      "/api/route-signups": { status: 500, body: { error: "Server error" } },
+      "/api/website-booking-requests": { status: 500, body: { error: "Server error" } },
+      "/api/accounts": { status: 500, body: { error: "Server error" } },
+      "/api/general-leads": { status: 500, body: { error: "Server error" } },
+      "/api/opportunities": { status: 500, body: { error: "Server error" } },
+      "/api/discount-codes": { status: 500, body: { error: "Server error" } },
+      "/api/humans/h-1/relationships": { status: 500, body: { error: "Server error" } },
+      "/api/humans": { status: 500, body: { error: "Server error" } },
+      "/api/humans/h-1": { body: { data: humanWithNoLinks } },
+      "/api/activities": { status: 500, body: { error: "Server error" } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent();
+    event.params = { id: "h-1" };
+    const result = await load(event as any);
+    expect(result.activities).toEqual([]);
+    expect(result.allRouteSignups).toEqual([]);
+    expect(result.allBookingRequests).toEqual([]);
+    expect(result.allAccounts).toEqual([]);
+    expect(result.generalLeads).toEqual([]);
+    expect(result.humanOpportunities).toEqual([]);
+    expect(result.allDiscountCodes).toEqual([]);
+    expect(result.humanRelationships).toEqual([]);
+    expect(result.allHumans).toEqual([]);
+  });
+
+  it("returns empty arrays when fetchConfig response has no data array", async () => {
+    const humanWithNoLinks = {
+      id: "h-1",
+      firstName: "Jane",
+      lastName: "Doe",
+      emails: [],
+      phoneNumbers: [],
+      pets: [],
+      linkedRouteSignups: [],
+      linkedWebsiteBookingRequests: [],
+    };
+
+    const mockFetch = createMockFetch({
+      "/api/admin/account-config/human-email-labels": { body: { items: [] } },
+      "/api/admin/account-config/human-phone-labels": { body: { items: [] } },
+      "/api/admin/account-config/social-id-platforms": { body: { items: [] } },
+      "/api/admin/account-config/account-human-labels": { body: { items: [] } },
+      "/api/admin/account-config/human-relationship-labels": { body: { items: [] } },
+      "/api/route-signups": { body: { data: [] } },
+      "/api/website-booking-requests": { body: { data: [] } },
+      "/api/accounts": { body: { data: [] } },
+      "/api/general-leads": { body: { data: [] } },
+      "/api/opportunities": { body: { data: [] } },
+      "/api/discount-codes": { body: { data: [] } },
+      "/api/humans/h-1/relationships": { body: { data: [] } },
+      "/api/humans": { body: { data: [] } },
+      "/api/humans/h-1": { body: { data: humanWithNoLinks } },
+      "/api/activities": { body: { data: [] } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent();
+    event.params = { id: "h-1" };
+    const result = await load(event as any);
+    expect(result.emailLabelConfigs).toEqual([]);
+    expect(result.phoneLabelConfigs).toEqual([]);
+    expect(result.socialIdPlatformConfigs).toEqual([]);
+  });
+
+  it("returns empty arrays when fetchList response has no data array", async () => {
+    const humanWithNoLinks = {
+      id: "h-1",
+      firstName: "Jane",
+      lastName: "Doe",
+      emails: [],
+      phoneNumbers: [],
+      pets: [],
+      linkedRouteSignups: [],
+      linkedWebsiteBookingRequests: [],
+    };
+
+    const mockFetch = createMockFetch({
+      "/api/admin/account-config/human-email-labels": { body: { data: [] } },
+      "/api/admin/account-config/human-phone-labels": { body: { data: [] } },
+      "/api/admin/account-config/social-id-platforms": { body: { data: [] } },
+      "/api/admin/account-config/account-human-labels": { body: { data: [] } },
+      "/api/admin/account-config/human-relationship-labels": { body: { data: [] } },
+      "/api/route-signups": { body: { items: [] } },
+      "/api/website-booking-requests": { body: { items: [] } },
+      "/api/accounts": { body: { items: [] } },
+      "/api/general-leads": { body: { items: [] } },
+      "/api/opportunities": { body: { items: [] } },
+      "/api/discount-codes": { body: { items: [] } },
+      "/api/humans/h-1/relationships": { body: { items: [] } },
+      "/api/humans": { body: { items: [] } },
+      "/api/humans/h-1": { body: { data: humanWithNoLinks } },
+      "/api/activities": { body: { items: [] } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent();
+    event.params = { id: "h-1" };
+    const result = await load(event as any);
+    expect(result.activities).toEqual([]);
+    expect(result.allRouteSignups).toEqual([]);
+    expect(result.allBookingRequests).toEqual([]);
+    expect(result.allAccounts).toEqual([]);
+  });
+
+  it("returns socialIdPlatformConfigs from config fetch", async () => {
+    const humanWithNoLinks = {
+      id: "h-1",
+      firstName: "Jane",
+      lastName: "Doe",
+      emails: [],
+      phoneNumbers: [],
+      pets: [],
+      linkedRouteSignups: [],
+      linkedWebsiteBookingRequests: [],
+    };
+
+    const mockFetch = createMockFetch({
+      "/api/admin/account-config/human-email-labels": { body: { data: [] } },
+      "/api/admin/account-config/human-phone-labels": { body: { data: [] } },
+      "/api/admin/account-config/social-id-platforms": { body: { data: [mockConfigItem({ id: "plat-1", name: "Instagram" })] } },
+      "/api/admin/account-config/account-human-labels": { body: { data: [] } },
+      "/api/admin/account-config/human-relationship-labels": { body: { data: [] } },
+      "/api/route-signups": { body: { data: [] } },
+      "/api/website-booking-requests": { body: { data: [] } },
+      "/api/accounts": { body: { data: [] } },
+      "/api/general-leads": { body: { data: [] } },
+      "/api/opportunities": { body: { data: [] } },
+      "/api/discount-codes": { body: { data: [] } },
+      "/api/humans/h-1/relationships": { body: { data: [] } },
+      "/api/humans": { body: { data: [] } },
+      "/api/humans/h-1": { body: { data: humanWithNoLinks } },
+      "/api/activities": { body: { data: [] } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent();
+    event.params = { id: "h-1" };
+    const result = await load(event as any);
+    expect(result.socialIdPlatformConfigs).toEqual([expect.objectContaining({ id: "plat-1", name: "Instagram" })]);
+  });
+
+  it("produces null passengerName for route signup with no first or last name", async () => {
+    const humanWithLinkedSignup = {
+      id: "h-1",
+      firstName: "Jane",
+      lastName: "Doe",
+      emails: [],
+      phoneNumbers: [],
+      pets: [],
+      linkedRouteSignups: [{ id: "link-1", routeSignupId: "rs-1", linkedAt: "2025-01-01" }],
+      linkedWebsiteBookingRequests: [],
+    };
+
+    const mockFetch = createMockFetch({
+      "/api/admin/account-config/human-email-labels": { body: { data: [] } },
+      "/api/admin/account-config/human-phone-labels": { body: { data: [] } },
+      "/api/admin/account-config/social-id-platforms": { body: { data: [] } },
+      "/api/admin/account-config/account-human-labels": { body: { data: [] } },
+      "/api/admin/account-config/human-relationship-labels": { body: { data: [] } },
+      "/api/route-signups": { body: { data: [{ id: "rs-1", display_id: null, first_name: null, last_name: null, origin: null, destination: null }] } },
+      "/api/website-booking-requests": { body: { data: [] } },
+      "/api/accounts": { body: { data: [] } },
+      "/api/general-leads": { body: { data: [] } },
+      "/api/opportunities": { body: { data: [] } },
+      "/api/discount-codes": { body: { data: [] } },
+      "/api/humans/h-1/relationships": { body: { data: [] } },
+      "/api/humans": { body: { data: [] } },
+      "/api/humans/h-1": { body: { data: humanWithLinkedSignup } },
+      "/api/activities": { body: { data: [] } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent();
+    event.params = { id: "h-1" };
+    const result = await load(event as any);
+    const enriched = (result.human.linkedRouteSignups as Array<Record<string, unknown>>)[0];
+    expect(enriched.passengerName).toBeNull();
+  });
+
+  it("produces null passengerName for booking with no first or last name", async () => {
+    const humanWithLinkedBooking = {
+      id: "h-1",
+      firstName: "Jane",
+      lastName: "Doe",
+      emails: [],
+      phoneNumbers: [],
+      pets: [],
+      linkedRouteSignups: [],
+      linkedWebsiteBookingRequests: [{ id: "blink-1", websiteBookingRequestId: "wbr-1", linkedAt: "2025-01-01" }],
+    };
+
+    const mockFetch = createMockFetch({
+      "/api/admin/account-config/human-email-labels": { body: { data: [] } },
+      "/api/admin/account-config/human-phone-labels": { body: { data: [] } },
+      "/api/admin/account-config/social-id-platforms": { body: { data: [] } },
+      "/api/admin/account-config/account-human-labels": { body: { data: [] } },
+      "/api/admin/account-config/human-relationship-labels": { body: { data: [] } },
+      "/api/route-signups": { body: { data: [] } },
+      "/api/website-booking-requests": { body: { data: [{ id: "wbr-1", crm_display_id: null, first_name: null, last_name: null, origin_city: null, destination_city: null }] } },
+      "/api/accounts": { body: { data: [] } },
+      "/api/general-leads": { body: { data: [] } },
+      "/api/opportunities": { body: { data: [] } },
+      "/api/discount-codes": { body: { data: [] } },
+      "/api/humans/h-1/relationships": { body: { data: [] } },
+      "/api/humans": { body: { data: [] } },
+      "/api/humans/h-1": { body: { data: humanWithLinkedBooking } },
+      "/api/activities": { body: { data: [] } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent();
+    event.params = { id: "h-1" };
+    const result = await load(event as any);
+    const enriched = (result.human.linkedWebsiteBookingRequests as Array<Record<string, unknown>>)[0];
+    expect(enriched.passengerName).toBeNull();
   });
 });
