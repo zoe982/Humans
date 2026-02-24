@@ -11,6 +11,7 @@ import {
   unlinkRouteSignup,
   linkWebsiteBookingRequest,
   unlinkWebsiteBookingRequest,
+  getLinkedHumansForBookingRequest,
   getHumanRelationships,
   createHumanRelationship,
   deleteHumanRelationship,
@@ -825,5 +826,53 @@ describe("deleteHumanRelationship", () => {
     const db = getTestDb();
     await deleteHumanRelationship(db, "nonexistent");
     expect(await db.select().from(schema.humanRelationships)).toHaveLength(0);
+  });
+});
+
+describe("getLinkedHumansForBookingRequest", () => {
+  it("returns empty array when no humans are linked", async () => {
+    const db = getTestDb();
+    const result = await getLinkedHumansForBookingRequest(db, "wbr-1");
+    expect(result).toHaveLength(0);
+  });
+
+  it("returns linked human with correct fields", async () => {
+    const db = getTestDb();
+    const ts = now();
+    await seedHuman(db, "h-1", "Alice", "Smith");
+
+    await db.insert(schema.humanWebsiteBookingRequests).values({
+      id: "link-1",
+      humanId: "h-1",
+      websiteBookingRequestId: "wbr-1",
+      linkedAt: ts,
+    });
+
+    const result = await getLinkedHumansForBookingRequest(db, "wbr-1");
+    expect(result).toHaveLength(1);
+    expect(result[0]).toMatchObject({
+      id: "link-1",
+      humanId: "h-1",
+      humanFirstName: "Alice",
+      humanLastName: "Smith",
+      linkedAt: ts,
+    });
+    expect(result[0]!.humanDisplayId).toMatch(/^HUM-/);
+  });
+
+  it("does not return links for other booking requests", async () => {
+    const db = getTestDb();
+    const ts = now();
+    await seedHuman(db, "h-1");
+
+    await db.insert(schema.humanWebsiteBookingRequests).values({
+      id: "link-1",
+      humanId: "h-1",
+      websiteBookingRequestId: "wbr-other",
+      linkedAt: ts,
+    });
+
+    const result = await getLinkedHumansForBookingRequest(db, "wbr-1");
+    expect(result).toHaveLength(0);
   });
 });

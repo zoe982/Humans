@@ -66,8 +66,18 @@
     createdAt: string;
   };
 
+  type LinkedHuman = {
+    id: string;
+    humanId: string;
+    humanDisplayId: string;
+    humanFirstName: string;
+    humanLastName: string;
+    linkedAt: string;
+  };
+
   const booking = $derived(data.booking as Booking);
   const activities = $derived(data.activities as Activity[]);
+  const linkedHumans = $derived((data.linkedHumans ?? []) as LinkedHuman[]);
   const colleaguesList = $derived((data.colleagues ?? []) as Colleague[]);
   const colleagueOptions = $derived(colleaguesList.map((c) => ({ value: c.id, label: `${c.displayId ?? ""} ${c.name}`.trim() })));
   const isAdmin = $derived(data.user?.role === "admin");
@@ -294,58 +304,80 @@
     {/if}
   </div>
 
-  <!-- Convert to Human -->
-  <div class="glass-card p-6 mb-6">
-    <h2 class="text-lg font-semibold text-text-primary">Convert to Human</h2>
-    <div class="mt-4 space-y-4">
-      <!-- Link to existing human -->
-      <div>
-        <p class="text-sm font-medium text-text-secondary">Link to existing human</p>
-        <div class="mt-2 flex items-center gap-2">
-          <input
-            type="text"
-            bind:value={searchQuery}
-            oninput={() => { if (searchQuery.length >= 2) searchHumans(); else searchResults = []; }}
-            placeholder="Search by name..."
-            class="glass-input flex-1 px-3 py-2 text-sm"
-          />
+  <!-- Linked Human / Convert to Human -->
+  {#if linkedHumans.length > 0}
+    <div class="glass-card p-6 mb-6">
+      <h2 class="text-lg font-semibold text-text-primary">Linked Human</h2>
+      {#each linkedHumans as lh}
+        <div class="mt-4 flex items-center justify-between">
+          <div>
+            <a href="/humans/{lh.humanId}" class="text-sm font-medium text-accent-primary hover:underline">
+              {lh.humanFirstName} {lh.humanLastName}
+            </a>
+            <p class="text-xs text-text-muted">{lh.humanDisplayId}</p>
+            <p class="text-xs text-text-muted">Linked {formatDateTime(lh.linkedAt)}</p>
+          </div>
+          <form method="POST" action="?/unlinkHuman">
+            <input type="hidden" name="humanId" value={lh.humanId} />
+            <input type="hidden" name="linkId" value={lh.id} />
+            <Button type="submit" variant="ghost" size="sm">Unlink</Button>
+          </form>
         </div>
-        {#if searchResults.length > 0}
-          <ul class="mt-2 divide-y divide-glass-border rounded-xl border border-glass-border overflow-hidden">
-            {#each searchResults as human}
-              <li class="flex items-center justify-between px-4 py-3 bg-glass hover:bg-glass-hover transition-colors">
-                <div>
-                  <p class="text-sm font-medium text-text-primary">{human.firstName} {human.lastName}</p>
-                  {#if human.emails?.[0]}
-                    <p class="text-xs text-text-muted">{human.emails[0].email}</p>
-                  {/if}
-                </div>
-                <form method="POST" action="?/convertToHuman">
-                  <input type="hidden" name="humanId" value={human.id} />
-                  <Button type="submit" size="sm">
-                    Link
-                  </Button>
-                </form>
-              </li>
-            {/each}
-          </ul>
-        {/if}
-        {#if searching}
-          <p class="mt-2 text-sm text-text-muted">Searching...</p>
-        {/if}
-      </div>
+      {/each}
+    </div>
+  {:else}
+    <div class="glass-card p-6 mb-6">
+      <h2 class="text-lg font-semibold text-text-primary">Convert to Human</h2>
+      <div class="mt-4 space-y-4">
+        <!-- Link to existing human -->
+        <div>
+          <p class="text-sm font-medium text-text-secondary">Link to existing human</p>
+          <div class="mt-2 flex items-center gap-2">
+            <input
+              type="text"
+              bind:value={searchQuery}
+              oninput={() => { if (searchQuery.length >= 2) searchHumans(); else searchResults = []; }}
+              placeholder="Search by name..."
+              class="glass-input flex-1 px-3 py-2 text-sm"
+            />
+          </div>
+          {#if searchResults.length > 0}
+            <ul class="mt-2 divide-y divide-glass-border rounded-xl border border-glass-border overflow-hidden">
+              {#each searchResults as human}
+                <li class="flex items-center justify-between px-4 py-3 bg-glass hover:bg-glass-hover transition-colors">
+                  <div>
+                    <p class="text-sm font-medium text-text-primary">{human.firstName} {human.lastName}</p>
+                    {#if human.emails?.[0]}
+                      <p class="text-xs text-text-muted">{human.emails[0].email}</p>
+                    {/if}
+                  </div>
+                  <form method="POST" action="?/convertToHuman">
+                    <input type="hidden" name="humanId" value={human.id} />
+                    <Button type="submit" size="sm">
+                      Link
+                    </Button>
+                  </form>
+                </li>
+              {/each}
+            </ul>
+          {/if}
+          {#if searching}
+            <p class="mt-2 text-sm text-text-muted">Searching...</p>
+          {/if}
+        </div>
 
-      <div class="border-t border-glass-border pt-4">
-        <p class="text-sm font-medium text-text-secondary">Or create a new human</p>
-        <a
-          href={convertUrl()}
-          class="btn-primary mt-2 inline-block text-sm"
-        >
-          Create New Human
-        </a>
+        <div class="border-t border-glass-border pt-4">
+          <p class="text-sm font-medium text-text-secondary">Or create a new human</p>
+          <a
+            href={convertUrl()}
+            class="btn-primary mt-2 inline-block text-sm"
+          >
+            Create New Human
+          </a>
+        </div>
       </div>
     </div>
-  </div>
+  {/if}
 
   <!-- Activities -->
   <div class="mb-6">

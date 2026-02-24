@@ -7,6 +7,7 @@ import { supabaseMiddleware } from "../middleware/supabase";
 import { internal, notFound, badRequest } from "../lib/errors";
 import { nextDisplayId } from "../lib/display-id";
 import { getNextAction, updateNextAction, completeNextAction } from "../services/entity-next-actions";
+import { getLinkedHumansForBookingRequest } from "../services/humans";
 import type { AppContext } from "../types";
 import type { DB } from "../services/types";
 
@@ -98,6 +99,17 @@ websiteBookingRequestRoutes.get(
     const nextAction = await getNextAction(db, "website_booking_request", c.req.param("id"));
 
     return c.json({ data: { ...result.data, nextAction: nextAction ?? null } });
+  },
+);
+
+// Get linked humans for a website booking request
+websiteBookingRequestRoutes.get(
+  "/api/website-booking-requests/:id/linked-humans",
+  requirePermission("viewWebsiteBookingRequests"),
+  async (c) => {
+    const db = c.get("db");
+    const data = await getLinkedHumansForBookingRequest(db, c.req.param("id"));
+    return c.json({ data });
   },
 );
 

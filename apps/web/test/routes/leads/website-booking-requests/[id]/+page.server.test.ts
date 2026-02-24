@@ -4,6 +4,9 @@ import { mockEvent, createMockFetch } from "../../../../helpers";
 import { load, actions } from "../../../../../src/routes/leads/website-booking-requests/[id]/+page.server";
 
 const sampleBooking = { id: "b1", status: "new", petName: "Buddy" };
+const sampleLinkedHumans = [
+  { id: "link-1", humanId: "h1", humanDisplayId: "HUM-AAA-001", humanFirstName: "Alice", humanLastName: "Smith", linkedAt: "2026-01-01T00:00:00.000Z" },
+];
 
 function makeEvent(overrides: Parameters<typeof mockEvent>[0] = {}) {
   const event = mockEvent(overrides);
@@ -16,6 +19,7 @@ describe("website-booking-requests/[id] +page.server load", () => {
 
   beforeEach(() => {
     mockFetch = createMockFetch({
+      "/api/website-booking-requests/b1/linked-humans": { body: { data: sampleLinkedHumans } },
       "/api/website-booking-requests/b1": { body: { data: sampleBooking } },
       "/api/activities": { body: { data: [{ id: "a1", type: "email" }] } },
     });
@@ -38,12 +42,25 @@ describe("website-booking-requests/[id] +page.server load", () => {
     }
   });
 
-  it("returns booking, activities, and user on success", async () => {
+  it("returns booking, activities, linkedHumans, and user on success", async () => {
     const event = makeEvent();
     const result = await load(event as any);
     expect(result.booking).toEqual(sampleBooking);
     expect(result.activities).toHaveLength(1);
+    expect(result.linkedHumans).toEqual(sampleLinkedHumans);
     expect(result.user).toBeDefined();
+  });
+
+  it("returns empty linkedHumans when linked-humans API fails", async () => {
+    mockFetch = createMockFetch({
+      "/api/website-booking-requests/b1/linked-humans": { status: 500, body: { error: "fail" } },
+      "/api/website-booking-requests/b1": { body: { data: sampleBooking } },
+      "/api/activities": { body: { data: [] } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+    const event = makeEvent();
+    const result = await load(event as any);
+    expect(result.linkedHumans).toEqual([]);
   });
 
   it("redirects to /leads/website-booking-requests when booking API returns 404", async () => {
@@ -285,5 +302,35 @@ describe("website-booking-requests/[id] actions.convertToHuman", () => {
       ? ((postCall as unknown[])[1] as RequestInit).body as string
       : "{}");
     expect(body.websiteBookingRequestId).toBe("b1");
+  });
+});
+
+describe("website-booking-requests/[id] actions.unlinkHuman", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("calls DELETE on correct URL with humanId and linkId", async () => {
+    const mockFetch = createMockFetch({
+      "/api/humans/h1/website-booking-requests/link-1": { body: {} },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+    const event = makeEvent({ formData: { humanId: "h1", linkId: "link-1" } });
+    const result = await actions.unlinkHuman(event as any);
+    expect(result).toEqual({ success: true });
+    expect(mockFetch).toHaveBeenCalledWith(
+      expect.stringContaining("/api/humans/h1/website-booking-requests/link-1"),
+      expect.objectContaining({ method: "DELETE" }),
+    );
+  });
+
+  it("returns action failure when API returns error", async () => {
+    const mockFetch = createMockFetch({
+      "/api/humans/h1/website-booking-requests/link-1": { status: 404, body: { error: "Not found" } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+    const event = makeEvent({ formData: { humanId: "h1", linkId: "link-1" } });
+    const result = await actions.unlinkHuman(event as any);
+    expect(isActionFailure(result)).toBe(true);
   });
 });

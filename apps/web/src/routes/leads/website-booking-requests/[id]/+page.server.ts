@@ -8,7 +8,7 @@ function getFormString(form: FormData, key: string): string {
   return typeof raw === "string" ? raw : "";
 }
 
-export const load = async ({ locals, cookies, params }: RequestEvent): Promise<{ booking: unknown; activities: unknown[]; colleagues: unknown[]; user: NonNullable<typeof locals.user> }> => {
+export const load = async ({ locals, cookies, params }: RequestEvent): Promise<{ booking: unknown; activities: unknown[]; colleagues: unknown[]; linkedHumans: unknown[]; user: NonNullable<typeof locals.user> }> => {
   if (locals.user == null) redirect(302, "/login");
 
   const sessionToken = cookies.get("humans_session");
@@ -24,12 +24,15 @@ export const load = async ({ locals, cookies, params }: RequestEvent): Promise<{
   const booking = isObjData(bookingRaw) ? bookingRaw.data : null;
   if (booking == null) redirect(302, "/leads/website-booking-requests");
 
-  // Fetch activities and colleagues concurrently
-  const [activitiesRes, colleaguesRes] = await Promise.all([
+  // Fetch activities, colleagues, and linked humans concurrently
+  const [activitiesRes, colleaguesRes, linkedHumansRes] = await Promise.all([
     fetch(`${PUBLIC_API_URL}/api/activities?websiteBookingRequestId=${id ?? ""}`, {
       headers: { Cookie: `humans_session=${sessionToken ?? ""}` },
     }),
     fetch(`${PUBLIC_API_URL}/api/colleagues`, {
+      headers: { Cookie: `humans_session=${sessionToken ?? ""}` },
+    }),
+    fetch(`${PUBLIC_API_URL}/api/website-booking-requests/${id ?? ""}/linked-humans`, {
       headers: { Cookie: `humans_session=${sessionToken ?? ""}` },
     }),
   ]);
@@ -46,7 +49,13 @@ export const load = async ({ locals, cookies, params }: RequestEvent): Promise<{
     colleagues = isListData(colleaguesRaw) ? colleaguesRaw.data : [];
   }
 
-  return { booking, activities, colleagues, user: locals.user };
+  let linkedHumans: unknown[] = [];
+  if (linkedHumansRes.ok) {
+    const linkedHumansRaw: unknown = await linkedHumansRes.json();
+    linkedHumans = isListData(linkedHumansRaw) ? linkedHumansRaw.data : [];
+  }
+
+  return { booking, activities, colleagues, linkedHumans, user: locals.user };
 };
 
 export const actions = {
@@ -157,6 +166,27 @@ export const actions = {
     if (!res.ok) {
       const resBody: unknown = await res.json();
       return failFromApi(resBody, res.status, "Failed to convert");
+    }
+
+    return { success: true };
+  },
+
+  unlinkHuman: async ({ request, cookies }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
+    const form = await request.formData();
+    const sessionToken = cookies.get("humans_session");
+    const humanId = getFormString(form, "humanId");
+    const linkId = getFormString(form, "linkId");
+
+    const res = await fetch(`${PUBLIC_API_URL}/api/humans/${humanId}/website-booking-requests/${linkId}`, {
+      method: "DELETE",
+      headers: {
+        Cookie: `humans_session=${sessionToken ?? ""}`,
+      },
+    });
+
+    if (!res.ok) {
+      const resBody: unknown = await res.json();
+      return failFromApi(resBody, res.status, "Failed to unlink human");
     }
 
     return { success: true };

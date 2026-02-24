@@ -478,6 +478,26 @@ export async function unlinkWebsiteBookingRequest(db: DB, linkId: string): Promi
   await db.delete(humanWebsiteBookingRequests).where(eq(humanWebsiteBookingRequests.id, linkId));
 }
 
+export async function getLinkedHumansForBookingRequest(
+  db: DB,
+  websiteBookingRequestId: string,
+): Promise<{ id: string; humanId: string; humanDisplayId: string; humanFirstName: string; humanLastName: string; linkedAt: string }[]> {
+  const links = await db
+    .select({
+      id: humanWebsiteBookingRequests.id,
+      humanId: humanWebsiteBookingRequests.humanId,
+      humanDisplayId: humans.displayId,
+      humanFirstName: humans.firstName,
+      humanLastName: humans.lastName,
+      linkedAt: humanWebsiteBookingRequests.linkedAt,
+    })
+    .from(humanWebsiteBookingRequests)
+    .innerJoin(humans, eq(humanWebsiteBookingRequests.humanId, humans.id))
+    .where(eq(humanWebsiteBookingRequests.websiteBookingRequestId, websiteBookingRequestId));
+
+  return links;
+}
+
 export async function getHumanRelationships(db: DB, humanId: string): Promise<{ id: string; displayId: string; otherHumanId: string; otherHumanName: string; otherHumanDisplayId: string | null; labelId: string | null; labelName: string | null; createdAt: string }[]> {
   const rows = await db
     .select()
