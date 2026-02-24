@@ -12,7 +12,7 @@ function failFromApi(resBody: unknown, status: number, fallback: string): Action
   return fail(status, { error: info.message, code: info.code, requestId: info.requestId });
 }
 
-const CONFIG_TYPES = ["account-types", "account-human-labels", "account-email-labels", "account-phone-labels", "human-email-labels", "human-phone-labels", "opportunity-human-roles"] as const;
+const CONFIG_TYPES = ["account-types", "account-human-labels", "account-email-labels", "account-phone-labels", "human-email-labels", "human-phone-labels", "opportunity-human-roles", "human-relationship-labels"] as const;
 
 async function fetchConfig(sessionToken: string, configType: string) {
   const res = await fetch(`${PUBLIC_API_URL}/api/admin/account-config/${configType}`, {
@@ -29,11 +29,11 @@ export const load = async ({ locals, cookies }: RequestEvent) => {
 
   const sessionToken = cookies.get("humans_session") ?? "";
 
-  const [accountTypes, humanLabels, emailLabels, phoneLabels, humanEmailLabels, humanPhoneLabels, opportunityHumanRoles] = await Promise.all(
+  const [accountTypes, humanLabels, emailLabels, phoneLabels, humanEmailLabels, humanPhoneLabels, opportunityHumanRoles, humanRelationshipLabels] = await Promise.all(
     CONFIG_TYPES.map((type) => fetchConfig(sessionToken, type)),
   );
 
-  return { accountTypes, humanLabels, emailLabels, phoneLabels, humanEmailLabels, humanPhoneLabels, opportunityHumanRoles };
+  return { accountTypes, humanLabels, emailLabels, phoneLabels, humanEmailLabels, humanPhoneLabels, opportunityHumanRoles, humanRelationshipLabels };
 };
 
 export const actions = {
@@ -271,6 +271,41 @@ export const actions = {
     const id = form.get("id") as string;
 
     const res = await fetch(`${PUBLIC_API_URL}/api/admin/account-config/opportunity-human-roles/${id}`, {
+      method: "DELETE",
+      headers: { Cookie: `humans_session=${sessionToken}` },
+    });
+
+    if (!res.ok) {
+      const resBody: unknown = await res.json().catch(() => ({}));
+      return failFromApi(resBody, res.status, "Failed to delete");
+    }
+    return { success: true };
+  },
+
+  createHumanRelationshipLabel: async ({ request, cookies }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
+    const form = await request.formData();
+    const sessionToken = cookies.get("humans_session") ?? "";
+    const name = form.get("name") as string;
+
+    const res = await fetch(`${PUBLIC_API_URL}/api/admin/account-config/human-relationship-labels`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Cookie: `humans_session=${sessionToken}` },
+      body: JSON.stringify({ name }),
+    });
+
+    if (!res.ok) {
+      const resBody: unknown = await res.json().catch(() => ({}));
+      return failFromApi(resBody, res.status, "Failed to create");
+    }
+    return { success: true };
+  },
+
+  deleteHumanRelationshipLabel: async ({ request, cookies }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
+    const form = await request.formData();
+    const sessionToken = cookies.get("humans_session") ?? "";
+    const id = form.get("id") as string;
+
+    const res = await fetch(`${PUBLIC_API_URL}/api/admin/account-config/human-relationship-labels/${id}`, {
       method: "DELETE",
       headers: { Cookie: `humans_session=${sessionToken}` },
     });

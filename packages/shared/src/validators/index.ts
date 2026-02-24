@@ -26,11 +26,13 @@ export {
   updateHumanStatusSchema,
   linkRouteSignupSchema,
   linkWebsiteBookingRequestSchema,
+  createHumanRelationshipSchema,
   humanTypeEnum,
   humanStatusEnum,
   type CreateHumanInput,
   type UpdateHumanInput,
   type UpdateHumanStatusInput,
+  type CreateHumanRelationshipInput,
 } from "./humans";
 
 export {

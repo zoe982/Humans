@@ -170,6 +170,7 @@ Maximum capacity: ~17.5M IDs per prefix.
 | LED | Lead Designations | `services/leads.ts` |
 | REF | Referral Codes | `services/referral-codes.ts` |
 | WEB | Websites | `services/websites.ts` |
+| REL | Human Relationships | `services/humans.ts` |
 | FLY | Flights | `routes/flights.ts` |
 | FRY | Front Sync Runs | `services/front-sync.ts` |
 | BOR | Booking Requests | `routes/website-booking-requests.ts` |

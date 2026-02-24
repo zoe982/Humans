@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { eq } from "drizzle-orm";
 import { activities, humanRouteSignups } from "@humans/db/schema";
-import { createHumanSchema, updateHumanSchema, updateHumanStatusSchema, linkRouteSignupSchema, linkWebsiteBookingRequestSchema } from "@humans/shared";
+import { createHumanSchema, updateHumanSchema, updateHumanStatusSchema, linkRouteSignupSchema, linkWebsiteBookingRequestSchema, createHumanRelationshipSchema } from "@humans/shared";
 import { ERROR_CODES } from "@humans/shared";
 import { authMiddleware } from "../middleware/auth";
 import { requirePermission } from "../middleware/rbac";
@@ -19,6 +19,9 @@ import {
   unlinkRouteSignup,
   linkWebsiteBookingRequest,
   unlinkWebsiteBookingRequest,
+  getHumanRelationships,
+  createHumanRelationship,
+  deleteHumanRelationship,
 } from "../services/humans";
 import type { AppContext } from "../types";
 
@@ -90,6 +93,24 @@ humanRoutes.post("/api/humans/:id/website-booking-requests", requirePermission("
 
 humanRoutes.delete("/api/humans/:id/website-booking-requests/:linkId", requirePermission("manageHumans"), async (c) => {
   await unlinkWebsiteBookingRequest(c.get("db"), c.req.param("linkId"));
+  return c.json({ success: true });
+});
+
+// Human relationships
+humanRoutes.get("/api/humans/:id/relationships", requirePermission("viewRecords"), async (c) => {
+  const data = await getHumanRelationships(c.get("db"), c.req.param("id"));
+  return c.json({ data });
+});
+
+humanRoutes.post("/api/humans/:id/relationships", requirePermission("manageHumans"), async (c) => {
+  const body: unknown = await c.req.json();
+  const data = createHumanRelationshipSchema.parse(body);
+  const result = await createHumanRelationship(c.get("db"), c.req.param("id"), data.humanId2, data.labelId);
+  return c.json({ data: result }, 201);
+});
+
+humanRoutes.delete("/api/humans/:id/relationships/:relationshipId", requirePermission("manageHumans"), async (c) => {
+  await deleteHumanRelationship(c.get("db"), c.req.param("relationshipId"));
   return c.json({ success: true });
 });
 

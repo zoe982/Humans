@@ -19,6 +19,8 @@ import {
   socialIds,
   socialIdPlatformsConfig,
   websites,
+  humanRelationships,
+  humanRelationshipLabelsConfig,
 } from "@humans/db/schema";
 import { createId } from "@humans/db";
 import { ERROR_CODES } from "@humans/shared";
@@ -424,6 +426,7 @@ export async function deleteHuman(supabase: SupabaseClient, db: DB, id: string) 
   await db.delete(geoInterestExpressions).where(eq(geoInterestExpressions.humanId, id));
   await db.delete(routeInterestExpressions).where(eq(routeInterestExpressions.humanId, id));
   await db.delete(accountHumans).where(eq(accountHumans.humanId, id));
+  await db.delete(humanRelationships).where(or(eq(humanRelationships.humanId1, id), eq(humanRelationships.humanId2, id)));
   await db.update(socialIds).set({ humanId: null }).where(eq(socialIds.humanId, id));
   await db.update(websites).set({ humanId: null }).where(eq(websites.humanId, id));
   await supabase.from("referral_codes").update({ human_id: null }).eq("human_id", id);
@@ -473,4 +476,80 @@ export async function linkWebsiteBookingRequest(db: DB, humanId: string, website
 
 export async function unlinkWebsiteBookingRequest(db: DB, linkId: string) {
   await db.delete(humanWebsiteBookingRequests).where(eq(humanWebsiteBookingRequests.id, linkId));
+}
+
+export async function getHumanRelationships(db: DB, humanId: string) {
+  const rows = await db
+    .select()
+    .from(humanRelationships)
+    .where(or(eq(humanRelationships.humanId1, humanId), eq(humanRelationships.humanId2, humanId)));
+
+  if (rows.length === 0) return [];
+
+  const allHumanIds = new Set<string>();
+  for (const row of rows) {
+    allHumanIds.add(row.humanId1);
+    allHumanIds.add(row.humanId2);
+  }
+  allHumanIds.delete(humanId);
+  const otherHumanIds = [...allHumanIds];
+
+  const [otherHumans, allLabels] = await Promise.all([
+    otherHumanIds.length > 0
+      ? db.select().from(humans).where(inArray(humans.id, otherHumanIds))
+      : Promise.resolve([]),
+    db.select().from(humanRelationshipLabelsConfig),
+  ]);
+
+  return rows.map((row) => {
+    const otherHumanId = row.humanId1 === humanId ? row.humanId2 : row.humanId1;
+    const otherHuman = otherHumans.find((h) => h.id === otherHumanId);
+    const label = row.labelId ? allLabels.find((l) => l.id === row.labelId) : null;
+    return {
+      id: row.id,
+      displayId: row.displayId,
+      otherHumanId,
+      otherHumanName: otherHuman ? `${otherHuman.firstName} ${otherHuman.lastName}` : "Unknown",
+      otherHumanDisplayId: otherHuman?.displayId ?? null,
+      labelId: row.labelId,
+      labelName: label?.name ?? null,
+      createdAt: row.createdAt,
+    };
+  });
+}
+
+export async function createHumanRelationship(db: DB, humanId1: string, humanId2: string, labelId?: string) {
+  // Check for duplicate pair (in either direction)
+  const existing = await db
+    .select()
+    .from(humanRelationships)
+    .where(
+      or(
+        and(eq(humanRelationships.humanId1, humanId1), eq(humanRelationships.humanId2, humanId2)),
+        and(eq(humanRelationships.humanId1, humanId2), eq(humanRelationships.humanId2, humanId1)),
+      ),
+    );
+
+  if (existing.length > 0) {
+    throw conflict(ERROR_CODES.RELATIONSHIP_DUPLICATE, "This relationship already exists");
+  }
+
+  const id = createId();
+  const displayId = await nextDisplayId(db, "REL");
+  const now = new Date().toISOString();
+
+  await db.insert(humanRelationships).values({
+    id,
+    displayId,
+    humanId1,
+    humanId2,
+    labelId: labelId ?? null,
+    createdAt: now,
+  });
+
+  return { id, displayId };
+}
+
+export async function deleteHumanRelationship(db: DB, id: string) {
+  await db.delete(humanRelationships).where(eq(humanRelationships.id, id));
 }

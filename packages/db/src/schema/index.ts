@@ -71,3 +71,5 @@ export { opportunityHumans } from "./opportunity-humans";
 export { opportunityPets } from "./opportunity-pets";
 export { opportunityStageCadenceConfig } from "./opportunity-stage-cadence-config";
 export { websites } from "./websites";
+export { humanRelationshipLabelsConfig } from "./human-relationship-labels-config";
+export { humanRelationships } from "./human-relationships";

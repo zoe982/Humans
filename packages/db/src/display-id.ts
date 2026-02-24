@@ -23,6 +23,7 @@ export const DISPLAY_ID_PREFIXES = [
   "REF",
   "DIS",
   "WEB",
+  "REL",
 ] as const;
 
 export type DisplayIdPrefix = (typeof DISPLAY_ID_PREFIXES)[number];

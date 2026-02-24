@@ -40,6 +40,12 @@ export const linkWebsiteBookingRequestSchema = z.object({
   websiteBookingRequestId: z.string().uuid(),
 });
 
+export const createHumanRelationshipSchema = z.object({
+  humanId2: z.string().min(1),
+  labelId: z.string().optional(),
+});
+
 export type CreateHumanInput = z.infer<typeof createHumanSchema>;
 export type UpdateHumanInput = z.infer<typeof updateHumanSchema>;
 export type UpdateHumanStatusInput = z.infer<typeof updateHumanStatusSchema>;
+export type CreateHumanRelationshipInput = z.infer<typeof createHumanRelationshipSchema>;

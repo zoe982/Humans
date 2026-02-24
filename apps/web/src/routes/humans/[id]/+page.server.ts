@@ -55,6 +55,9 @@ export const load = async ({ locals, cookies, params }: RequestEvent) => {
     generalLeadsRes,
     opportunitiesRes,
     discountCodesRes,
+    relationshipsRes,
+    humanRelationshipLabelConfigs,
+    allHumansRes,
   ] = await Promise.all([
     fetch(`${PUBLIC_API_URL}/api/activities?humanId=${id}`, { headers }),
     fetchConfig(sessionToken ?? "", "human-email-labels"),
@@ -67,6 +70,9 @@ export const load = async ({ locals, cookies, params }: RequestEvent) => {
     fetch(`${PUBLIC_API_URL}/api/general-leads?convertedHumanId=${id}&limit=50`, { headers }),
     fetch(`${PUBLIC_API_URL}/api/opportunities?humanId=${id}&limit=50`, { headers }),
     fetch(`${PUBLIC_API_URL}/api/discount-codes`, { headers }),
+    fetch(`${PUBLIC_API_URL}/api/humans/${id}/relationships`, { headers }),
+    fetchConfig(sessionToken ?? "", "human-relationship-labels"),
+    fetch(`${PUBLIC_API_URL}/api/humans?limit=500`, { headers }),
   ]);
 
   let activities: unknown[] = [];
@@ -109,6 +115,18 @@ export const load = async ({ locals, cookies, params }: RequestEvent) => {
   if (discountCodesRes.ok) {
     const raw: unknown = await discountCodesRes.json();
     allDiscountCodes = isListData(raw) ? raw.data : [];
+  }
+
+  let humanRelationships: unknown[] = [];
+  if (relationshipsRes.ok) {
+    const raw: unknown = await relationshipsRes.json();
+    humanRelationships = isListData(raw) ? raw.data : [];
+  }
+
+  let allHumans: unknown[] = [];
+  if (allHumansRes.ok) {
+    const raw: unknown = await allHumansRes.json();
+    allHumans = isListData(raw) ? raw.data : [];
   }
 
   // Derive convertedFromLead from the first general lead (backwards compat)
@@ -165,6 +183,9 @@ export const load = async ({ locals, cookies, params }: RequestEvent) => {
     generalLeads,
     humanOpportunities,
     allDiscountCodes,
+    humanRelationships,
+    humanRelationshipLabelConfigs,
+    allHumans,
   };
 };
 
@@ -938,6 +959,49 @@ export const actions = {
           body: JSON.stringify({ petId }),
         });
       }
+    }
+
+    return { success: true };
+  },
+
+  addRelationship: async ({ request, cookies, params }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
+    const form = await request.formData();
+    const sessionToken = cookies.get("humans_session");
+    const humanId2 = form.get("humanId2") as string;
+    const labelId = (form.get("labelId") as string) || undefined;
+
+    const res = await fetch(`${PUBLIC_API_URL}/api/humans/${params.id}/relationships`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Cookie: `humans_session=${sessionToken ?? ""}`,
+      },
+      body: JSON.stringify({ humanId2, labelId }),
+    });
+
+    if (!res.ok) {
+      const resBody: unknown = await res.json();
+      return failFromApi(resBody, res.status, "Failed to add relationship");
+    }
+
+    return { success: true };
+  },
+
+  removeRelationship: async ({ request, cookies, params }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
+    const form = await request.formData();
+    const sessionToken = cookies.get("humans_session");
+    const relationshipId = form.get("id");
+
+    const res = await fetch(`${PUBLIC_API_URL}/api/humans/${params.id}/relationships/${relationshipId}`, {
+      method: "DELETE",
+      headers: {
+        Cookie: `humans_session=${sessionToken ?? ""}`,
+      },
+    });
+
+    if (!res.ok) {
+      const resBody: unknown = await res.json();
+      return failFromApi(resBody, res.status, "Failed to remove relationship");
     }
 
     return { success: true };

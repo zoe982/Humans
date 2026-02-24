@@ -91,6 +91,17 @@
     labelId: string | null;
     labelName: string | null;
   };
+  type HumanRelationship = {
+    id: string;
+    displayId: string;
+    otherHumanId: string;
+    otherHumanName: string;
+    otherHumanDisplayId: string | null;
+    labelId: string | null;
+    labelName: string | null;
+    createdAt: string;
+  };
+  type HumanOption = { id: string; displayId?: string; firstName: string; lastName: string };
   type LinkedBookingRequest = { id: string; websiteBookingRequestId: string; linkedAt: string; displayId: string | null; passengerName: string | null; originCity: string | null; destinationCity: string | null };
   type RouteSignupOption = { id: string; display_id?: string | null; first_name?: string | null; last_name?: string | null; origin?: string | null; destination?: string | null };
   type BookingRequestOption = { id: string; crm_display_id?: string | null; first_name?: string | null; last_name?: string | null; origin_city?: string | null; destination_city?: string | null };
@@ -140,6 +151,9 @@
   const allAccounts = $derived(data.allAccounts as AccountOption[]);
   const accountHumanLabelConfigs = $derived(data.accountHumanLabelConfigs as ConfigItem[]);
   const convertedFromLead = $derived(data.convertedFromLead as { id: string; displayId: string } | null);
+  const humanRelationships = $derived(data.humanRelationships as HumanRelationship[]);
+  const humanRelationshipLabelConfigs = $derived(data.humanRelationshipLabelConfigs as ConfigItem[]);
+  const allHumans = $derived(data.allHumans as HumanOption[]);
 
   type GeneralLead = { id: string; displayId: string; source: string; status: string; createdAt: string };
   type HumanOpportunity = { id: string; displayId: string; stage: string; passengerSeats: number; petSeats: number; createdAt: string };
@@ -163,6 +177,12 @@
   }));
   const accountOptions = $derived(allAccounts.map((a) => ({ value: a.id, label: a.displayId ? `${a.displayId} — ${a.name}` : a.name })));
   const accountHumanLabelOptions = $derived(accountHumanLabelConfigs.map((l) => ({ value: l.id, label: l.name })));
+  const humanRelationshipLabelOptions = $derived(humanRelationshipLabelConfigs.map((l) => ({ value: l.id, label: l.name })));
+  const humanOptions = $derived(
+    allHumans
+      .filter((h) => h.id !== human.id)
+      .map((h) => ({ value: h.id, label: h.displayId ? `${h.displayId} — ${h.firstName} ${h.lastName}` : `${h.firstName} ${h.lastName}` }))
+  );
 
   // Auto-save state
   let firstName = $state("");
@@ -518,6 +538,80 @@
             <Button type="submit" size="sm">Create & Link</Button>
           </form>
         {/if}
+      {/snippet}
+    </RelatedListTable>
+  </div>
+
+  <!-- Related Humans -->
+  <div class="mt-6">
+    <RelatedListTable
+      title="Related Humans"
+      items={humanRelationships}
+      columns={[
+        { key: "human", label: "Human", sortable: true, sortValue: (r) => r.otherHumanName },
+        { key: "label", label: "Label", sortable: true, sortValue: (r) => r.labelName ?? "" },
+        { key: "remove", label: "", headerClass: "w-10" },
+      ]}
+      defaultSortKey="human"
+      defaultSortDirection="asc"
+      searchFilter={(r, q) => (r.otherHumanName ?? "").toLowerCase().includes(q) || (r.labelName ?? "").toLowerCase().includes(q)}
+      emptyMessage="No related humans."
+      addLabel="Relationship"
+    >
+      {#snippet row(rel, _searchQuery)}
+        <td>
+          <a href="/humans/{rel.otherHumanId}" class="text-sm font-medium text-accent hover:text-[var(--link-hover)]">
+            {rel.otherHumanName}
+          </a>
+          {#if rel.otherHumanDisplayId}
+            <span class="text-xs text-text-muted ml-1">{rel.otherHumanDisplayId}</span>
+          {/if}
+        </td>
+        <td>
+          {#if rel.labelName}
+            <span class="glass-badge inline-flex rounded-full px-2 py-0.5 text-xs font-medium badge-orange">
+              {rel.labelName}
+            </span>
+          {:else}
+            <span class="text-text-muted">&mdash;</span>
+          {/if}
+        </td>
+        <td>
+          <form method="POST" action="?/removeRelationship">
+            <input type="hidden" name="id" value={rel.id} />
+            <button type="submit" class="flex items-center justify-center w-7 h-7 rounded-lg text-text-muted hover:text-destructive-foreground hover:bg-destructive transition-colors duration-150" aria-label="Remove relationship">
+              <Trash2 size={14} />
+            </button>
+          </form>
+        </td>
+      {/snippet}
+      {#snippet addForm()}
+        <form method="POST" action="?/addRelationship" class="space-y-3">
+          <div class="grid gap-3 sm:grid-cols-2">
+            <div>
+              <label for="relHumanSelect" class="block text-sm font-medium text-text-secondary">Human</label>
+              <SearchableSelect
+                options={humanOptions}
+                name="humanId2"
+                id="relHumanSelect"
+                required={true}
+                emptyOption="Select a human..."
+                placeholder="Search humans..."
+              />
+            </div>
+            <div>
+              <label for="relLabelSelect" class="block text-sm font-medium text-text-secondary">Label</label>
+              <SearchableSelect
+                options={humanRelationshipLabelOptions}
+                name="labelId"
+                id="relLabelSelect"
+                emptyOption="None"
+                placeholder="Select label..."
+              />
+            </div>
+          </div>
+          <Button type="submit" size="sm">Add Relationship</Button>
+        </form>
       {/snippet}
     </RelatedListTable>
   </div>
