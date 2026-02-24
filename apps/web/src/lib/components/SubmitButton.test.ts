@@ -18,7 +18,8 @@ describe("SubmitButton", () => {
     const { container } = render(SubmitButton, {
       props: { label: "Save", submitting: false },
     });
-    const btn = container.querySelector("button") as HTMLButtonElement;
+    const btn = container.querySelector("button");
+    if (!(btn instanceof HTMLButtonElement)) throw new Error("expected button");
     expect(btn.disabled).toBe(false);
   });
 
@@ -26,7 +27,8 @@ describe("SubmitButton", () => {
     const { container } = render(SubmitButton, {
       props: { label: "Save", submitting: true },
     });
-    const btn = container.querySelector("button") as HTMLButtonElement;
+    const btn = container.querySelector("button");
+    if (!(btn instanceof HTMLButtonElement)) throw new Error("expected button");
     expect(btn.disabled).toBe(true);
   });
 
@@ -52,7 +54,8 @@ describe("SubmitButton", () => {
 
   it("defaults submitting to false — not disabled by default", () => {
     const { container } = render(SubmitButton, { props: { label: "Go" } });
-    const btn = container.querySelector("button") as HTMLButtonElement;
+    const btn = container.querySelector("button");
+    if (!(btn instanceof HTMLButtonElement)) throw new Error("expected button");
     expect(btn.disabled).toBe(false);
   });
 

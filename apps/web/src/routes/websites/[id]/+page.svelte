@@ -9,6 +9,7 @@
   import { formatRelativeTime, summarizeChanges } from "$lib/utils/format";
   import { createChangeHistoryLoader } from "$lib/changeHistory";
   import RelatedListTable from "$lib/components/RelatedListTable.svelte";
+  import { resolve } from "$app/paths";
 
   let { data }: { data: PageData } = $props();
 
@@ -142,7 +143,7 @@
         onSelect={handleHumanChange}
       />
       {#if humanId}
-        <a href="/humans/{humanId}" class="mt-1 inline-block text-sm text-accent hover:text-[var(--link-hover)]">
+        <a href={resolve(`/humans/${humanId}`)} class="mt-1 inline-block text-sm text-accent hover:text-[var(--link-hover)]">
           View Human
         </a>
       {/if}
@@ -160,7 +161,7 @@
         onSelect={handleAccountChange}
       />
       {#if accountId}
-        <a href="/accounts/{accountId}" class="mt-1 inline-block text-sm text-accent hover:text-[var(--link-hover)]">
+        <a href={resolve(`/accounts/${accountId}`)} class="mt-1 inline-block text-sm text-accent hover:text-[var(--link-hover)]">
           View Account
         </a>
       {/if}

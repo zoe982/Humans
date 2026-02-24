@@ -71,7 +71,7 @@
 
     <div class="flex gap-3">
       <Button type="submit">Create Social ID</Button>
-      <a href="/social-ids" class="btn-ghost">Cancel</a>
+      <a href={resolve('/social-ids')} class="btn-ghost">Cancel</a>
     </div>
   </form>
 </div>

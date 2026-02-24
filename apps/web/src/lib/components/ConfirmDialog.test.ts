@@ -134,15 +134,16 @@ describe("ConfirmDialog", () => {
     // Walk up from the title to find the dialog content container with glass styling
     let el: HTMLElement | null = title;
     let dialogContent: HTMLElement | null = null;
-    while (el) {
-      if (el.getAttribute?.("role") === "alertdialog") {
+    while (el != null) {
+      if (el.getAttribute("role") === "alertdialog") {
         dialogContent = el;
         break;
       }
       el = el.parentElement;
     }
     expect(dialogContent).not.toBeNull();
-    expect(dialogContent!.className).toContain("glass-dialog");
-    expect(dialogContent!.className).not.toContain("glass-card-strong");
+    if (dialogContent == null) throw new Error("expected dialog content element");
+    expect(dialogContent.className).toContain("glass-dialog");
+    expect(dialogContent.className).not.toContain("glass-card-strong");
   });
 });

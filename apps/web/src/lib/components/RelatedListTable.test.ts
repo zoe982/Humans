@@ -19,7 +19,7 @@ const columns = [
   { key: "date", label: "Date", sortable: true, sortValue: (i: TestItem): string => i.date },
 ];
 
-const searchFilter = (item: TestItem, q: string) =>
+const searchFilter = (item: TestItem, q: string): boolean =>
   item.name.toLowerCase().includes(q);
 
 function makeRow(): ReturnType<typeof createRawSnippet> {
