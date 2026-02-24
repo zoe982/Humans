@@ -31,7 +31,7 @@ describe("EmptyState", () => {
   it("renders action snippet content when provided", () => {
     const action = createRawSnippet(() => ({
       render: () => `<a href="/new">Create new record</a>`,
-      setup: () => {},
+      setup: () => { /* noop */ },
     }));
     render(EmptyState, { props: { message: "No items", action } });
     expect(screen.getByText("Create new record")).toBeDefined();
@@ -40,7 +40,7 @@ describe("EmptyState", () => {
   it("renders action inside a mt-4 wrapper div", () => {
     const action = createRawSnippet(() => ({
       render: () => `<button>Add</button>`,
-      setup: () => {},
+      setup: () => { /* noop */ },
     }));
     const { container } = render(EmptyState, { props: { message: "Empty", action } });
     const wrapper = container.querySelector(".mt-4");
