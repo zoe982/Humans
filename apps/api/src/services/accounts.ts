@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import {
   accounts,
   accountTypes,
@@ -125,17 +125,12 @@ export async function getAccountDetail(supabase: SupabaseClient, db: DB, id: str
   let humanActivities: (typeof activities.$inferSelect)[] = [];
 
   if (humanIds.length > 0) {
-    [allHumans, allHumanEmails, allHumanPhones] = await Promise.all([
-      db.select().from(humans),
-      db.select().from(emails),
-      db.select().from(phones),
+    [allHumans, allHumanEmails, allHumanPhones, humanActivities] = await Promise.all([
+      db.select().from(humans).where(inArray(humans.id, humanIds)),
+      db.select().from(emails).where(inArray(emails.ownerId, humanIds)),
+      db.select().from(phones).where(inArray(phones.ownerId, humanIds)),
+      db.select().from(activities).where(inArray(activities.humanId, humanIds)),
     ]);
-
-    // Get activities for linked humans
-    const allActivities = await db.select().from(activities);
-    humanActivities = allActivities.filter(
-      (a) => a.humanId != null && humanIds.includes(a.humanId),
-    );
   }
 
   const typesWithNames = types.map((t) => {

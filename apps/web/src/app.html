@@ -69,11 +69,30 @@
         });
         observer.observe(document.body, { childList: true, subtree: true });
 
-        // After 4 seconds, if main-content is empty, show diagnostics
+        // After 4 seconds, if main-content appears blank, show diagnostics unconditionally
         setTimeout(function() {
           var main = document.getElementById('main-content');
-          var hasVisible = main && main.children.length > 0 && main.offsetHeight > 50;
-          if (!hasVisible && events.length > 0) {
+          var mainKids = main ? main.children.length : -1;
+          var mainH = main ? main.offsetHeight : -1;
+          var body = document.body;
+          var bodyH = body ? body.scrollHeight : -1;
+          var title = document.title;
+          var url = location.href;
+          log('[check@4s] main.children=' + mainKids + ' main.h=' + mainH + ' body.h=' + bodyH + ' title=' + title + ' url=' + url);
+
+          // Snapshot the visible DOM structure
+          var container = document.querySelector('body > div[style*="contents"]');
+          if (container) {
+            var kids = [];
+            for (var i = 0; i < Math.min(container.children.length, 5); i++) {
+              var el = container.children[i];
+              kids.push(el.tagName + (el.id ? '#' + el.id : '') + (el.className ? '.' + String(el.className).split(' ')[0] : ''));
+            }
+            log('[check@4s] container.children=[' + kids.join(', ') + '] total=' + container.children.length);
+          }
+
+          var hasVisible = main && mainKids > 0 && mainH > 50;
+          if (!hasVisible) {
             shown = true;
             showDiag();
           }

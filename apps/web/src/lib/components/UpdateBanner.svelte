@@ -4,7 +4,7 @@
 </script>
 
 {#if $updated}
-  <div role="alert" class="fixed bottom-4 left-4 z-50 glass-card-strong p-4 shadow-xl flex items-center gap-3">
+  <div role="alert" class="fixed bottom-4 left-4 z-50 rounded-xl p-4 shadow-xl flex items-center gap-3" style="background: var(--color-surface-overlay); border: 1px solid var(--color-accent);">
     <RefreshCw size={18} class="text-accent shrink-0" />
     <span class="text-sm text-text-primary">A new version is available</span>
     <button

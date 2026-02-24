@@ -43,7 +43,7 @@ clientErrorRoutes.post("/api/client-errors", async (c) => {
   const task = db.insert(errorLog).values({
     id,
     displayId,
-    requestId: c.get("requestId") ?? id,
+    requestId: c.get("requestId"),
     code: "CLIENT_ERROR",
     message: safeMessage,
     status: 0,
