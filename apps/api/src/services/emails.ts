@@ -1,4 +1,4 @@
-import { eq, and } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { emails, humans, accounts, humanEmailLabelsConfig, accountEmailLabelsConfig } from "@humans/db/schema";
 import { createId } from "@humans/db";
 import { ERROR_CODES } from "@humans/shared";
@@ -7,7 +7,7 @@ import { nextDisplayId } from "../lib/display-id";
 import { rematchActivitiesByEmail } from "./activity-rematch";
 import type { DB } from "./types";
 
-export async function listEmails(db: DB) {
+export async function listEmails(db: DB): Promise<{ ownerName: string | null; ownerDisplayId: string | null; labelName: string | null; id: string; displayId: string; ownerType: string; ownerId: string; email: string; labelId: string | null; isPrimary: boolean; createdAt: string }[]> {
   const allEmails = await db.select().from(emails);
   const allHumans = await db.select().from(humans);
   const allAccounts = await db.select().from(accounts);
@@ -19,7 +19,7 @@ export async function listEmails(db: DB) {
     let ownerDisplayId: string | null = null;
     if (e.ownerType === "human") {
       const human = allHumans.find((h) => h.id === e.ownerId);
-      ownerName = human ? `${human.firstName} ${human.lastName}` : null;
+      ownerName = human != null ? `${human.firstName} ${human.lastName}` : null;
       ownerDisplayId = human?.displayId ?? null;
     } else {
       const account = allAccounts.find((a) => a.id === e.ownerId);
@@ -27,7 +27,7 @@ export async function listEmails(db: DB) {
       ownerDisplayId = account?.displayId ?? null;
     }
     const labels = e.ownerType === "human" ? humanLabels : accountLabels;
-    const label = e.labelId ? labels.find((l) => l.id === e.labelId) : null;
+    const label = e.labelId != null ? labels.find((l) => l.id === e.labelId) : null;
     return {
       ...e,
       ownerName,
@@ -39,7 +39,7 @@ export async function listEmails(db: DB) {
   return data;
 }
 
-export async function getEmail(db: DB, id: string) {
+export async function getEmail(db: DB, id: string): Promise<{ ownerName: string | null; ownerDisplayId: string | null; labelName: string | null; id: string; displayId: string; ownerType: string; ownerId: string; email: string; labelId: string | null; isPrimary: boolean; createdAt: string }> {
   const allEmails = await db.select().from(emails).where(eq(emails.id, id));
   const email = allEmails[0];
   if (email == null) {
@@ -55,7 +55,7 @@ export async function getEmail(db: DB, id: string) {
   let ownerDisplayId: string | null = null;
   if (email.ownerType === "human") {
     const human = allHumans.find((h) => h.id === email.ownerId);
-    ownerName = human ? `${human.firstName} ${human.lastName}` : null;
+    ownerName = human != null ? `${human.firstName} ${human.lastName}` : null;
     ownerDisplayId = human?.displayId ?? null;
   } else {
     const account = allAccounts.find((a) => a.id === email.ownerId);
@@ -63,7 +63,7 @@ export async function getEmail(db: DB, id: string) {
     ownerDisplayId = account?.displayId ?? null;
   }
   const labels = email.ownerType === "human" ? humanLabels : accountLabels;
-  const label = email.labelId ? labels.find((l) => l.id === email.labelId) : null;
+  const label = email.labelId != null ? labels.find((l) => l.id === email.labelId) : null;
 
   return {
     ...email,
@@ -77,7 +77,7 @@ export async function updateEmail(
   db: DB,
   id: string,
   data: Record<string, unknown>,
-) {
+): Promise<typeof emails.$inferSelect | undefined> {
   const existing = await db.query.emails.findFirst({
     where: eq(emails.id, id),
   });
@@ -104,7 +104,7 @@ export async function createEmail(
     labelId?: string | null;
     isPrimary?: boolean;
   },
-) {
+): Promise<{ id: string; displayId: string; ownerType: "human"; ownerId: string; email: string; labelId: string | null; isPrimary: boolean; createdAt: string }> {
   const now = new Date().toISOString();
   const displayId = await nextDisplayId(db, "EML");
 
@@ -127,7 +127,7 @@ export async function createEmail(
   return email;
 }
 
-export async function deleteEmail(db: DB, id: string) {
+export async function deleteEmail(db: DB, id: string): Promise<void> {
   const existing = await db.query.emails.findFirst({
     where: eq(emails.id, id),
   });

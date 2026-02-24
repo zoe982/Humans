@@ -67,7 +67,7 @@ websiteBookingRequestRoutes.get(
     }
 
     // Auto-assign display IDs to rows missing them
-    await ensureDisplayIds(supabase, db, data as unknown[]);
+    await ensureDisplayIds(supabase, db, data);
 
     return c.json({ data, meta: { page, limit, total: count ?? 0 } });
   },
@@ -91,7 +91,7 @@ websiteBookingRequestRoutes.get(
     }
 
     // Auto-assign display ID if missing
-    await ensureDisplayIds(supabase, db, [result.data as unknown]);
+    await ensureDisplayIds(supabase, db, [result.data]);
 
     return c.json({ data: result.data });
   },

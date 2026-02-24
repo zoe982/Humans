@@ -17,14 +17,14 @@ const flightRoutes = new Hono<AppContext>();
 flightRoutes.use("/*", authMiddleware);
 flightRoutes.use("/*", supabaseMiddleware);
 
-/**
- * Auto-assign crm_display_id to flights that don't have one yet.
- * Writes back to Supabase and mutates the row objects in place.
- */
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
 }
 
+/**
+ * Auto-assign crm_display_id to flights that don't have one yet.
+ * Writes back to Supabase and mutates the row objects in place.
+ */
 async function ensureFlightDisplayIds(
   supabase: SupabaseClient,
   db: DB,
@@ -69,7 +69,7 @@ flightRoutes.get(
       throw internal(ERROR_CODES.SUPABASE_ERROR, error.message);
     }
 
-    await ensureFlightDisplayIds(supabase, db, data as unknown[]);
+    await ensureFlightDisplayIds(supabase, db, data);
 
     return c.json({ data, meta: { page, limit, total: count ?? 0 } });
   },
@@ -93,7 +93,7 @@ flightRoutes.get(
       throw internal(ERROR_CODES.SUPABASE_ERROR, error.message);
     }
 
-    await ensureFlightDisplayIds(supabase, db, data as unknown[]);
+    await ensureFlightDisplayIds(supabase, db, data);
 
     return c.json({ data });
   },
@@ -119,7 +119,7 @@ flightRoutes.get(
     }
 
     const flightData = flightResult.data;
-    await ensureFlightDisplayIds(supabase, db, [flightData as unknown]);
+    await ensureFlightDisplayIds(supabase, db, [flightData]);
 
     // Fetch linked opportunities from D1
     const linkedOpps = await db
