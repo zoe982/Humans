@@ -3,7 +3,7 @@ set -euo pipefail
 
 # ─── Quality Gate ────────────────────────────────────────────────────
 # Run this after completing a feature and before deploying.
-# Runs: lint → typecheck → tests (with coverage) → semgrep
+# Runs: test quality audit → lint → typecheck → tests (with coverage) → semgrep
 # All gates must pass — any failure aborts with a non-zero exit code.
 # ─────────────────────────────────────────────────────────────────────
 
@@ -32,6 +32,16 @@ header() {
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(dirname "$SCRIPT_DIR")"
 cd "$ROOT_DIR"
+
+# ── Gate 0: Test Quality Audit ────────────────────────────────────────
+header "Gate 0: Test Quality Audit (anti-gaming)"
+log "Scanning for gaming patterns in test files..."
+if bash "$ROOT_DIR/scripts/test-quality-audit.sh"; then
+  ok "No gaming patterns detected"
+else
+  fail "Gaming patterns detected — fix before proceeding"
+  exit 1
+fi
 
 # ── Gate 1: Lint ──────────────────────────────────────────────────────
 header "Gate 1: Lint"

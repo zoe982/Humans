@@ -1,6 +1,5 @@
 export {
   buildColleague,
-  buildUser,
   buildPet,
   buildHuman,
   buildAccount,

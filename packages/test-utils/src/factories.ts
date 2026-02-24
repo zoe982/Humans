@@ -1,18 +1,21 @@
 import { createId, formatDisplayId, type DisplayIdPrefix } from "@humans/db";
 import type { Role } from "@humans/shared";
 
-const now = () => new Date().toISOString();
+const now = (): string => new Date().toISOString();
 
 // Test display ID counter — call resetTestDisplayIdCounters() between tests
 const testCounters: Record<string, number> = {};
 
 export function nextTestDisplayId(prefix: DisplayIdPrefix): string {
+  // eslint-disable-next-line security/detect-object-injection
   testCounters[prefix] = (testCounters[prefix] ?? 0) + 1;
+  // eslint-disable-next-line security/detect-object-injection
   return formatDisplayId(prefix, testCounters[prefix]);
 }
 
-export function resetTestDisplayIdCounters() {
+export function resetTestDisplayIdCounters(): void {
   for (const key of Object.keys(testCounters)) {
+    // eslint-disable-next-line @typescript-eslint/no-dynamic-delete, security/detect-object-injection
     delete testCounters[key];
   }
 }
@@ -31,7 +34,21 @@ export function buildColleague(overrides: Partial<{
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
-}> = {}) {
+}> = {}): {
+  id: string;
+  displayId: string;
+  email: string;
+  firstName: string;
+  middleNames: string | null;
+  lastName: string;
+  name: string;
+  avatarUrl: string | null;
+  googleId: string | null;
+  role: Role;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+} {
   const ts = now();
   return {
     id: createId(),
@@ -69,7 +86,22 @@ export function buildPet(overrides: Partial<{
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
-}> = {}) {
+}> = {}): {
+  id: string;
+  displayId: string;
+  humanId: string | null;
+  name: string;
+  breed: string | null;
+  weight: number | null;
+  age: number | null;
+  notes: string | null;
+  specialNeeds: string | null;
+  healthCertR2Key: string | null;
+  vaccinationR2Key: string | null;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+} {
   const ts = now();
   return {
     id: createId(),
@@ -99,7 +131,16 @@ export function buildHuman(overrides: Partial<{
   status: "open" | "active" | "closed";
   createdAt: string;
   updatedAt: string;
-}> = {}) {
+}> = {}): {
+  id: string;
+  displayId: string;
+  firstName: string;
+  middleName: string | null;
+  lastName: string;
+  status: "open" | "active" | "closed";
+  createdAt: string;
+  updatedAt: string;
+} {
   const ts = now();
   return {
     id: createId(),
@@ -121,7 +162,14 @@ export function buildAccount(overrides: Partial<{
   status: "open" | "active" | "closed";
   createdAt: string;
   updatedAt: string;
-}> = {}) {
+}> = {}): {
+  id: string;
+  displayId: string;
+  name: string;
+  status: "open" | "active" | "closed";
+  createdAt: string;
+  updatedAt: string;
+} {
   const ts = now();
   return {
     id: createId(),
@@ -156,7 +204,29 @@ export function buildActivity(overrides: Partial<{
   colleagueId: string | null;
   createdAt: string;
   updatedAt: string;
-}> = {}) {
+}> = {}): {
+  id: string;
+  displayId: string;
+  type: string;
+  subject: string;
+  body: string | null;
+  notes: string | null;
+  activityDate: string;
+  humanId: string | null;
+  accountId: string | null;
+  routeSignupId: string | null;
+  opportunityId: string | null;
+  generalLeadId: string | null;
+  gmailId: string | null;
+  frontId: string | null;
+  frontConversationId: string | null;
+  frontContactHandle: string | null;
+  websiteBookingRequestId: string | null;
+  syncRunId: string | null;
+  colleagueId: string | null;
+  createdAt: string;
+  updatedAt: string;
+} {
   const ts = now();
   return {
     id: createId(),
@@ -190,7 +260,13 @@ export function buildGeoInterest(overrides: Partial<{
   city: string;
   country: string;
   createdAt: string;
-}> = {}) {
+}> = {}): {
+  id: string;
+  displayId: string;
+  city: string;
+  country: string;
+  createdAt: string;
+} {
   return {
     id: createId(),
     displayId: nextTestDisplayId("GEO"),
@@ -209,7 +285,15 @@ export function buildGeoInterestExpression(overrides: Partial<{
   activityId: string | null;
   notes: string | null;
   createdAt: string;
-}> = {}) {
+}> = {}): {
+  id: string;
+  displayId: string;
+  humanId: string;
+  geoInterestId: string;
+  activityId: string | null;
+  notes: string | null;
+  createdAt: string;
+} {
   return {
     id: createId(),
     displayId: nextTestDisplayId("GEX"),
@@ -231,7 +315,16 @@ export function buildEmail(overrides: Partial<{
   labelId: string | null;
   isPrimary: boolean;
   createdAt: string;
-}> = {}) {
+}> = {}): {
+  id: string;
+  displayId: string;
+  ownerType: "human" | "account";
+  ownerId: string;
+  email: string;
+  labelId: string | null;
+  isPrimary: boolean;
+  createdAt: string;
+} {
   return {
     id: createId(),
     displayId: nextTestDisplayId("EML"),
@@ -255,7 +348,17 @@ export function buildPhoneNumber(overrides: Partial<{
   hasWhatsapp: boolean;
   isPrimary: boolean;
   createdAt: string;
-}> = {}) {
+}> = {}): {
+  id: string;
+  displayId: string;
+  ownerType: "human" | "account";
+  ownerId: string;
+  phoneNumber: string;
+  labelId: string | null;
+  hasWhatsapp: boolean;
+  isPrimary: boolean;
+  createdAt: string;
+} {
   return {
     id: createId(),
     displayId: nextTestDisplayId("FON"),
@@ -278,7 +381,15 @@ export function buildLeadSource(overrides: Partial<{
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
-}> = {}) {
+}> = {}): {
+  id: string;
+  displayId: string;
+  name: string;
+  category: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+} {
   const ts = now();
   return {
     id: createId(),
@@ -296,7 +407,11 @@ export function buildConfigItem(overrides: Partial<{
   id: string;
   name: string;
   createdAt: string;
-}> = {}) {
+}> = {}): {
+  id: string;
+  name: string;
+  createdAt: string;
+} {
   return {
     id: createId(),
     name: "Default Label",
@@ -324,7 +439,26 @@ export function buildOpportunity(overrides: Partial<{
   flightId: string | null;
   createdAt: string;
   updatedAt: string;
-}> = {}) {
+}> = {}): {
+  id: string;
+  displayId: string;
+  stage: string;
+  seatsRequested: number;
+  notes: string | null;
+  nextActionStartDate: string | null;
+  passengerSeats: number;
+  petSeats: number;
+  lossReason: string | null;
+  nextActionOwnerId: string | null;
+  nextActionDescription: string | null;
+  nextActionType: string | null;
+  nextActionDueDate: string | null;
+  nextActionCompletedAt: string | null;
+  nextActionCadenceNote: string | null;
+  flightId: string | null;
+  createdAt: string;
+  updatedAt: string;
+} {
   const ts = now();
   return {
     id: createId(),
@@ -355,7 +489,13 @@ export function buildOpportunityHuman(overrides: Partial<{
   humanId: string;
   roleId: string | null;
   createdAt: string;
-}> = {}) {
+}> = {}): {
+  id: string;
+  opportunityId: string;
+  humanId: string;
+  roleId: string | null;
+  createdAt: string;
+} {
   return {
     id: createId(),
     opportunityId: createId(),
@@ -371,7 +511,12 @@ export function buildOpportunityPet(overrides: Partial<{
   opportunityId: string;
   petId: string;
   createdAt: string;
-}> = {}) {
+}> = {}): {
+  id: string;
+  opportunityId: string;
+  petId: string;
+  createdAt: string;
+} {
   return {
     id: createId(),
     opportunityId: createId(),
@@ -390,7 +535,16 @@ export function buildLeadEvent(overrides: Partial<{
   metadata: Record<string, unknown> | null;
   createdByColleagueId: string | null;
   createdAt: string;
-}> = {}) {
+}> = {}): {
+  id: string;
+  displayId: string;
+  humanId: string;
+  eventType: string;
+  notes: string | null;
+  metadata: Record<string, unknown> | null;
+  createdByColleagueId: string | null;
+  createdAt: string;
+} {
   return {
     id: createId(),
     displayId: nextTestDisplayId("LED"),
@@ -417,7 +571,20 @@ export function buildGeneralLead(overrides: Partial<{
   ownerId: string | null;
   createdAt: string;
   updatedAt: string;
-}> = {}) {
+}> = {}): {
+  id: string;
+  displayId: string;
+  status: string;
+  source: string;
+  notes: string | null;
+  rejectReason: string | null;
+  convertedHumanId: string | null;
+  email: string | null;
+  phone: string | null;
+  ownerId: string | null;
+  createdAt: string;
+  updatedAt: string;
+} {
   const ts = now();
   return {
     id: createId(),

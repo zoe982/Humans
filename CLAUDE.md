@@ -80,20 +80,54 @@ A PreToolUse hook (`.claude/hooks/enforce-model-selection.sh`) auto-corrects Tas
 
 **When spawning subagents for Sonnet tasks, always pass `model: "sonnet"` explicitly.** The hook is a safety net, not a substitute for correct behavior.
 
+## TDD Process — MANDATORY
+
+ALL code engineering follows Test-Driven Development. No exceptions.
+
+### Red-Green-Refactor cycle
+1. **RED**: Write a failing test that describes the desired behavior
+2. **GREEN**: Write the minimum implementation to make the test pass
+3. **REFACTOR**: Clean up while keeping tests green
+
+### Enforcement rules
+- **Tests FIRST**: Before writing ANY implementation code, write a failing test for the behavior. The `superpowers:test-driven-development` skill MUST be invoked for all feature work.
+- **No implementation without a failing test**: If you find yourself writing implementation code before a test exists, STOP and write the test first.
+- **Test engineer validation**: After every feature, the `test-engineer` subagent MUST run a coverage audit. This is not optional — it is a blocking step before any feature is considered complete.
+- **Anti-gaming audit**: `scripts/test-quality-audit.sh` scans for gaming patterns (trivial assertions, coverage suppression, placeholder test names, type-assertion gaming in expect(), empty test bodies). This runs as Gate 0 in the quality gate.
+
+### What counts as gaming (hard fail)
+- Trivial assertions: `expect(true).toBe(true)`, `expect(1).toBe(1)`
+- Coverage suppression: `/* istanbul ignore */`, `/* c8 ignore */`, `/* vitest ignore */`
+- Placeholder test names: `it("test")`, `it("works")`, `it("should work")`
+- Type-assertion gaming: `expect((result as any).field)` — properly type the result instead
+- Empty test bodies: `it("does something", () => {})`
+- Tests without assertions (caught by ESLint `vitest/expect-expect`)
+- Disabled/focused tests (caught by ESLint `vitest/no-disabled-tests`, `vitest/no-focused-tests`)
+- Conditional assertions (caught by ESLint `vitest/no-conditional-expect`)
+
+### Test engineer validation checklist (per feature)
+The test-engineer subagent must verify:
+1. All new/modified source files have corresponding test files
+2. Coverage thresholds pass (`pnpm turbo test -- --coverage`)
+3. Anti-gaming audit passes (`bash scripts/test-quality-audit.sh`)
+4. Assertions test actual behavior (not just that functions don't throw)
+5. Edge cases and error paths are covered
+
 ## Quality Gates — MANDATORY
 
 Every feature branch and every deploy MUST pass the full quality gate. Run `pnpm quality-gate` or `bash scripts/quality-gate.sh` from the monorepo root.
 
 ### Gate sequence
+0. **Anti-gaming audit** — `bash scripts/test-quality-audit.sh` (blocks trivial/gaming tests)
 1. **ESLint** — `pnpm turbo lint` (strictTypeChecked + stylisticTypeChecked + eslint-plugin-security)
 2. **Typecheck** — `pnpm turbo typecheck`
 3. **Tests with coverage** — `pnpm turbo test -- --coverage` (95% threshold on all metrics per package)
 4. **Semgrep** — security scan with all rulesets (`p/typescript`, `p/javascript`, `p/owasp-top-ten`, `p/xss`, `p/sql-injection`, `p/secrets`, `p/security-audit`, `p/insecure-transport`)
 
 ### When to run
-- **Per feature**: Before considering any feature complete, run the full quality gate
+- **Per feature**: Before considering any feature complete, run the full quality gate AND test-engineer validation
 - **Per deploy**: `deploy.sh` runs all gates automatically; CI runs them in parallel jobs
-- **Test engineer validation**: After every feature, the test-engineer subagent must validate 95% coverage is maintained
+- **Per PR**: CI enforces all gates — merge is blocked if any gate fails
 
 ### Coverage policy
 - **95% minimum** on all metrics (lines, functions, branches, statements) per package aggregate

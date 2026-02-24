@@ -38,7 +38,7 @@ export const updateGeneralLeadStatusSchema = z
     rejectReason: z.string().max(5000).optional(),
   })
   .superRefine((data, ctx) => {
-    if (data.status === "closed_rejected" && (!data.rejectReason || data.rejectReason.trim() === "")) {
+    if (data.status === "closed_rejected" && (data.rejectReason == null || data.rejectReason.trim() === "")) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ["rejectReason"],

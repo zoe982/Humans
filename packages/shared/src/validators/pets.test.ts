@@ -49,6 +49,7 @@ describe("createPetSchema", () => {
   });
 
   it("accepts missing name", () => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { name: _name, ...inputWithoutName } = validInput;
     const result = createPetSchema.parse(inputWithoutName);
     expect(result.name).toBeUndefined();
