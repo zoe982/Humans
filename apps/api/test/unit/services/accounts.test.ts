@@ -201,11 +201,13 @@ describe("getAccountDetail", () => {
     expect(result.phoneNumbers).toHaveLength(1);
     expect(result.phoneNumbers[0]!.labelName).toBe("Office");
 
-    expect(result.activities).toHaveLength(1);
-    expect(result.activities[0]!.subject).toBe("Account Meeting");
-
-    expect(result.humanActivities).toHaveLength(1);
-    expect(result.humanActivities[0]!.viaHumanName).toBe("Jane Smith");
+    expect(result.activities).toHaveLength(2);
+    const directActivity = result.activities.find((a) => a.subject === "Account Meeting");
+    const humanActivity = result.activities.find((a) => a.subject === "Follow-up");
+    expect(directActivity).toBeDefined();
+    expect(directActivity!.viaHumanName).toBeNull();
+    expect(humanActivity).toBeDefined();
+    expect(humanActivity!.viaHumanName).toBe("Jane Smith");
   });
 
   it("returns account with social IDs enriched with platform names", async () => {

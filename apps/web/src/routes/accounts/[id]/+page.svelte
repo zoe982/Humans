@@ -49,6 +49,7 @@
   };
   type Activity = {
     id: string;
+    displayId: string;
     type: string;
     subject: string;
     notes: string | null;
@@ -57,9 +58,9 @@
     ownerId: string | null;
     ownerName: string | null;
     ownerDisplayId: string | null;
+    viaHumanName: string | null;
     createdAt: string;
   };
-  type HumanActivity = Activity & { viaHumanName: string };
   type HumanListItem = { id: string; firstName: string; lastName: string };
   type Account = {
     id: string;
@@ -70,7 +71,6 @@
     phoneNumbers: AccountPhone[];
     linkedHumans: LinkedHuman[];
     activities: Activity[];
-    humanActivities: HumanActivity[];
     socialIds: SocialIdItem[];
     websites: WebsiteItem[];
     referralCodes: ReferralCodeItem[];
@@ -206,6 +206,12 @@
       void loadHistory();
     }
   });
+
+  async function deleteActivity(id: string) {
+    await api(`/api/activities/${id}`, { method: "DELETE" });
+    toast("Activity deleted");
+    await invalidateAll();
+  }
 
 </script>
 
@@ -859,17 +865,20 @@
     </RelatedListTable>
   </div>
 
-  <!-- Account Activities (direct) -->
+  <!-- Activities -->
   <div class="mt-6">
     <RelatedListTable
-      title="Account Activities"
+      title="Activities"
       items={account.activities}
       columns={[
+        { key: "displayId", label: "ID", sortable: true, sortValue: (a) => a.displayId },
         { key: "type", label: "Type", sortable: true, sortValue: (a) => activityTypeLabels[a.type] ?? a.type },
         { key: "owner", label: "Owner", sortable: true, sortValue: (a) => a.ownerName ?? "" },
         { key: "subject", label: "Subject", sortable: true, sortValue: (a) => a.subject },
+        { key: "via", label: "Via", sortable: true, sortValue: (a) => a.viaHumanName ?? "" },
         { key: "notes", label: "Notes", sortable: true, sortValue: (a) => a.notes ?? "" },
         { key: "date", label: "Date", sortable: true, sortValue: (a) => a.activityDate },
+        { key: "delete", label: "", headerClass: "w-10" },
       ]}
       defaultSortKey="date"
       defaultSortDirection="desc"
@@ -877,24 +886,45 @@
         const typeLabel = (activityTypeLabels[a.type] ?? a.type).toLowerCase();
         return a.subject.toLowerCase().includes(q) ||
           (a.notes ?? "").toLowerCase().includes(q) ||
-          typeLabel.includes(q);
+          typeLabel.includes(q) ||
+          (a.viaHumanName ?? "").toLowerCase().includes(q);
       }}
-      emptyMessage="No account activities yet."
+      emptyMessage="No activities yet."
       searchEmptyMessage="No activities match your search."
       addLabel="Activity"
     >
       {#snippet row(activity, searchQuery)}
+        <td class="font-mono text-sm whitespace-nowrap">
+          <a href="/activities/{activity.id}" class="text-accent hover:text-[var(--link-hover)]">{activity.displayId}</a>
+        </td>
         <td>
           <span class="glass-badge inline-flex rounded-full px-2 py-0.5 text-xs font-medium {activityTypeColors[activity.type] ?? 'bg-glass text-text-secondary'}">
             <HighlightText text={activityTypeLabels[activity.type] ?? activity.type} query={searchQuery} />
           </span>
         </td>
         <td class="text-sm text-text-secondary">{activity.ownerName ?? "\u2014"}</td>
-        <td class="text-sm font-medium max-w-sm truncate">
-          <HighlightText text={activity.subject} query={searchQuery} />
+        <td class="font-medium max-w-sm truncate">
+          <a href="/activities/{activity.id}" class="hover:text-accent transition-colors duration-150"><HighlightText text={activity.subject} query={searchQuery} /></a>
+        </td>
+        <td class="text-xs text-text-muted">
+          {#if activity.viaHumanName}
+            <HighlightText text={activity.viaHumanName} query={searchQuery} />
+          {:else}
+            <span class="text-text-muted">&mdash;</span>
+          {/if}
         </td>
         <td class="text-text-muted max-w-xs truncate"><HighlightText text={truncateText(activity.notes ?? activity.body, 80)} query={searchQuery} /></td>
         <td class="text-text-muted whitespace-nowrap">{formatDateTime(activity.activityDate)}</td>
+        <td>
+          <button
+            type="button"
+            onclick={() => deleteActivity(activity.id)}
+            class="flex items-center justify-center w-7 h-7 rounded-lg text-text-muted hover:text-destructive-foreground hover:bg-destructive transition-colors duration-150"
+            aria-label="Delete activity"
+          >
+            <Trash2 size={14} />
+          </button>
+        </td>
       {/snippet}
       {#snippet addForm()}
         <form method="POST" action="?/addActivity" class="space-y-3">
@@ -933,50 +963,6 @@
           </div>
           <Button type="submit" size="sm">Add Activity</Button>
         </form>
-      {/snippet}
-    </RelatedListTable>
-  </div>
-
-  <!-- Human Activities (from linked humans, read-only) -->
-  <div class="mt-6">
-    <RelatedListTable
-      title="Human Activities"
-      items={account.humanActivities}
-      columns={[
-        { key: "type", label: "Type", sortable: true, sortValue: (a) => activityTypeLabels[a.type] ?? a.type },
-        { key: "owner", label: "Owner", sortable: true, sortValue: (a) => a.ownerName ?? "" },
-        { key: "subject", label: "Subject", sortable: true, sortValue: (a) => a.subject },
-        { key: "via", label: "Via" },
-        { key: "notes", label: "Notes", sortable: true, sortValue: (a) => a.notes ?? "" },
-        { key: "date", label: "Date", sortable: true, sortValue: (a) => a.activityDate },
-      ]}
-      defaultSortKey="date"
-      defaultSortDirection="desc"
-      searchFilter={(a, q) => {
-        const typeLabel = (activityTypeLabels[a.type] ?? a.type).toLowerCase();
-        return a.subject.toLowerCase().includes(q) ||
-          (a.notes ?? "").toLowerCase().includes(q) ||
-          typeLabel.includes(q) ||
-          a.viaHumanName.toLowerCase().includes(q);
-      }}
-      emptyMessage="No human activities."
-      searchEmptyMessage="No activities match your search."
-    >
-      {#snippet row(activity, searchQuery)}
-        <td>
-          <span class="glass-badge inline-flex rounded-full px-2 py-0.5 text-xs font-medium {activityTypeColors[activity.type] ?? 'bg-glass text-text-secondary'}">
-            <HighlightText text={activityTypeLabels[activity.type] ?? activity.type} query={searchQuery} />
-          </span>
-        </td>
-        <td class="text-sm text-text-secondary">{activity.ownerName ?? "\u2014"}</td>
-        <td class="text-sm font-medium max-w-sm truncate">
-          <HighlightText text={activity.subject} query={searchQuery} />
-        </td>
-        <td class="text-xs text-text-muted">
-          <HighlightText text={activity.viaHumanName} query={searchQuery} />
-        </td>
-        <td class="text-text-muted max-w-xs truncate"><HighlightText text={truncateText(activity.notes ?? activity.body, 80)} query={searchQuery} /></td>
-        <td class="text-text-muted whitespace-nowrap">{formatDateTime(activity.activityDate)}</td>
       {/snippet}
     </RelatedListTable>
   </div>

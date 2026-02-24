@@ -180,8 +180,10 @@ export async function getAccountDetail(supabase: SupabaseClient, db: DB, id: str
     linkedHumans: linkedHumansWithDetails,
     emails: emailsWithLabels,
     phoneNumbers: phonesWithLabels,
-    activities: directActivities,
-    humanActivities: humanActivitiesWithNames,
+    activities: [
+      ...directActivities.map((a) => ({ ...a, viaHumanName: null })),
+      ...humanActivitiesWithNames,
+    ],
     socialIds: socialIdsWithPlatforms,
     referralCodes: accountReferralCodes,
     discountCodes: accountDiscountCodes,
