@@ -13,8 +13,8 @@ describe("routeSignupStatuses", () => {
     expect(routeSignupStatuses).toContain("closed_rejected");
   });
 
-  it("has exactly 4 statuses", () => {
-    expect(routeSignupStatuses).toHaveLength(4);
+  it("has exactly 5 statuses", () => {
+    expect(routeSignupStatuses).toHaveLength(5);
   });
 });
 

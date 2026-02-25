@@ -22,14 +22,14 @@ export const createGeneralLeadSchema = z.object({
   source: z.enum(generalLeadSources),
   notes: z.string().max(10000).optional(),
   email: z.string().email().nullable().optional(),
-  phone: z.string().max(50).nullable().optional(),
+  phone: z.string().max(50).regex(/^[\d+\-() .]*$/).nullable().optional(),
   ownerId: z.string().optional(),
 });
 
 export const updateGeneralLeadSchema = z.object({
   notes: z.string().max(10000).optional(),
   email: z.string().email().nullable().optional(),
-  phone: z.string().max(50).nullable().optional(),
+  phone: z.string().max(50).regex(/^[\d+\-() .]*$/).nullable().optional(),
   ownerId: z.string().nullable().optional(),
 });
 

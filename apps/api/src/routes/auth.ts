@@ -19,7 +19,7 @@ const googleUserSchema = z.object({
   name: z.string(),
   picture: z.string(),
 });
-const meSessionSchema = z.object({ colleagueId: z.string() });
+const meSessionSchema = z.object({ colleagueId: z.string(), ip: z.string().optional() });
 
 const auth = new Hono<AppContext>();
 
@@ -100,7 +100,7 @@ auth.get("/auth/google/callback", async (c) => {
     });
 
     if (colleague == null) {
-      throw forbidden(ERROR_CODES.AUTH_ACCESS_DENIED, `Access denied (debug: google email = ${googleUser.email})`);
+      throw forbidden(ERROR_CODES.AUTH_ACCESS_DENIED, "Access denied");
     }
 
     // First Google login - populate googleId and avatar

@@ -7,6 +7,7 @@ import { authMiddleware } from "../middleware/auth";
 import { requirePermission } from "../middleware/rbac";
 import { supabaseMiddleware } from "../middleware/supabase";
 import { internal, notFound, badRequest } from "../lib/errors";
+import { sanitizePostgrestValue } from "../lib/supabase-sanitize";
 import { nextDisplayId } from "../lib/display-id";
 import { getNextAction, updateNextAction, completeNextAction } from "../services/entity-next-actions";
 import type { AppContext } from "../types";
@@ -67,13 +68,14 @@ routeSignupRoutes.get("/api/route-signups", requirePermission("viewRouteSignups"
     .select("*", { count: "exact" });
 
   if (status !== "") query = query.eq("status", status);
-  if (origin !== "") query = query.ilike("origin", `%${origin}%`);
-  if (destination !== "") query = query.ilike("destination", `%${destination}%`);
+  if (origin !== "") query = query.ilike("origin", `%${sanitizePostgrestValue(origin)}%`);
+  if (destination !== "") query = query.ilike("destination", `%${sanitizePostgrestValue(destination)}%`);
   if (dateFrom !== "") query = query.gte("inserted_at", dateFrom);
   if (dateTo !== "") query = query.lte("inserted_at", `${dateTo}T23:59:59.999Z`);
   if (q !== "") {
+    const safeQ = sanitizePostgrestValue(q);
     query = query.or(
-      `first_name.ilike.%${q}%,last_name.ilike.%${q}%,email.ilike.%${q}%,origin.ilike.%${q}%,destination.ilike.%${q}%`
+      `first_name.ilike.%${safeQ}%,last_name.ilike.%${safeQ}%,email.ilike.%${safeQ}%,origin.ilike.%${safeQ}%,destination.ilike.%${safeQ}%`
     );
   }
 

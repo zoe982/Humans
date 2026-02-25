@@ -118,6 +118,22 @@ describe("client-diagnostics", () => {
     expect(fetchSpy.mock.calls[0]![0]).toBe("/api/client-errors");
   });
 
+  it("strips query params from reported URL", async () => {
+    vi.useFakeTimers();
+    vi.stubGlobal("window", { location: { href: "https://test.app/humans?search=secret&filter=vip" } });
+    vi.resetModules();
+    const mod = await import("$lib/client-diagnostics");
+    mod.recordError("Test error with query params");
+
+    vi.advanceTimersByTime(2000);
+
+    expect(sendBeaconSpy).toHaveBeenCalledOnce();
+    const body = JSON.parse(sendBeaconSpy.mock.calls[0]![1] as string) as { url: string };
+    expect(body.url).toBe("https://test.app/humans");
+    expect(body.url).not.toContain("search=secret");
+    expect(body.url).not.toContain("filter=vip");
+  });
+
   it("builds diagnostic report with captured errors", () => {
     recordError("Error 1", "stack1", "source1");
     recordError("Error 2", undefined, "source2");

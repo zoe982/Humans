@@ -101,7 +101,7 @@
         function sendReport() {
           var payload = {
             message: 'Page blank diagnostics (' + events.length + ' events)',
-            url: window.location.href,
+            url: window.location.href.split('?')[0],
             errors: events.map(function(e) { return { type: 'diagnostic', message: e, stack: '' }; })
           };
           try {

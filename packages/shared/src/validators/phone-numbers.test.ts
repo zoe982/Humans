@@ -35,6 +35,15 @@ describe("createPhoneNumberSchema", () => {
   it("rejects phoneNumber over 50 chars", () => {
     expect(() => createPhoneNumberSchema.parse({ ...validInput, phoneNumber: "1".repeat(51) })).toThrowError();
   });
+
+  it("rejects phoneNumber with script injection", () => {
+    expect(() => createPhoneNumberSchema.parse({ humanId: "h-1", phoneNumber: "<script>alert(1)</script>" })).toThrowError();
+  });
+
+  it("accepts phoneNumber with valid characters", () => {
+    const result = createPhoneNumberSchema.parse({ humanId: "h-1", phoneNumber: "+1 (555) 123-4567" });
+    expect(result.phoneNumber).toBe("+1 (555) 123-4567");
+  });
 });
 
 describe("updatePhoneNumberSchema", () => {

@@ -38,18 +38,27 @@ import { clientErrorRoutes } from "./routes/client-errors";
 import { runScheduledFrontSync } from "./scheduled/front-sync";
 import { realtimeMiddleware } from "./middleware/realtime";
 import { timingMiddleware } from "./middleware/timing";
+import { securityHeaders } from "./middleware/security-headers";
+import { rateLimitMiddleware } from "./middleware/rate-limit";
 import type { AppContext, Env } from "./types";
 
 const app = new Hono<AppContext>();
 
 // Global middleware
 app.use("/*", cors({
-  origin: (origin) => origin, // Allow the requesting origin (cookie-based auth)
+  origin: (origin, c) => {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access -- Hono cors callback context is untyped
+    const appUrl = String(c.env.APP_URL);
+    const allowed = [appUrl, "http://localhost:5173"];
+    return allowed.includes(origin) ? origin : "";
+  },
   credentials: true,
   allowMethods: ["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
   allowHeaders: ["Content-Type"],
 }));
 app.use("/*", logger());
+app.use("/*", securityHeaders);
+app.use("/*", rateLimitMiddleware);
 app.use("/*", requestIdMiddleware);
 app.use("/*", timingMiddleware);
 app.use("/*", dbMiddleware);

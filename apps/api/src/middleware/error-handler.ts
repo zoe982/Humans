@@ -47,16 +47,20 @@ export const errorHandler: ErrorHandler<AppContext> = (err, c) => {
   } else {
     code = ERROR_CODES.INTERNAL_ERROR;
     status = 500;
+    // Keep real message for logging, send generic to client
     message = err instanceof Error ? err.message : String(err);
     stack = err instanceof Error ? err.stack : undefined;
   }
 
-  // Structured log
+  // Structured log (always uses the real message)
   logError(message, { requestId, method, path, userId, code, status, stack });
 
-  // Persist to D1 (non-blocking)
+  // Persist to D1 (non-blocking, uses real message)
   persistError(c, { requestId, code, message, status, method, path, userId, details, stack });
 
-  const body: ApiErrorResponse = { error: message, code, requestId, details };
+  // For 500 errors, hide internal details from the client
+  const clientMessage = status === 500 ? "An internal error occurred" : message;
+
+  const body: ApiErrorResponse = { error: clientMessage, code, requestId, details };
   return c.json(body, status);
 };

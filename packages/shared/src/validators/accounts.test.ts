@@ -50,6 +50,11 @@ describe("createAccountSchema", () => {
   it("rejects name over 255 chars", () => {
     expect(() => createAccountSchema.parse({ name: "a".repeat(256) })).toThrowError();
   });
+
+  it("rejects more than 20 typeIds", () => {
+    const ids = Array.from({ length: 21 }, (_, i) => `t-${String(i)}`);
+    expect(() => createAccountSchema.parse({ name: "Acme", typeIds: ids })).toThrowError();
+  });
 });
 
 describe("updateAccountSchema", () => {
@@ -64,6 +69,11 @@ describe("updateAccountSchema", () => {
 
   it("rejects empty name when provided", () => {
     expect(() => updateAccountSchema.parse({ name: "" })).toThrowError();
+  });
+
+  it("rejects more than 20 typeIds", () => {
+    const ids = Array.from({ length: 21 }, (_, i) => `t-${String(i)}`);
+    expect(() => updateAccountSchema.parse({ typeIds: ids })).toThrowError();
   });
 });
 
@@ -127,6 +137,10 @@ describe("createAccountPhoneNumberSchema", () => {
 
   it("rejects empty phone number", () => {
     expect(() => createAccountPhoneNumberSchema.parse({ phoneNumber: "" })).toThrowError();
+  });
+
+  it("rejects phone number with special characters", () => {
+    expect(() => createAccountPhoneNumberSchema.parse({ phoneNumber: "abc<script>" })).toThrowError();
   });
 });
 

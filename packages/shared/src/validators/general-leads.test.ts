@@ -86,6 +86,21 @@ describe("createGeneralLeadSchema", () => {
   it("rejects missing source", () => {
     expect(() => createGeneralLeadSchema.parse({})).toThrowError();
   });
+
+  it("rejects phone with script injection", () => {
+    expect(() => createGeneralLeadSchema.parse({
+      source: "email",
+      phone: "<script>alert(1)</script>",
+    })).toThrowError();
+  });
+
+  it("accepts phone with valid characters", () => {
+    const result = createGeneralLeadSchema.parse({
+      source: "email",
+      phone: "+1 (555) 123-4567",
+    });
+    expect(result.phone).toBe("+1 (555) 123-4567");
+  });
 });
 
 describe("updateGeneralLeadSchema", () => {

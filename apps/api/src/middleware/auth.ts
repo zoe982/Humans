@@ -9,6 +9,7 @@ const sessionSchema = z.object({
   colleagueId: z.string(),
   email: z.string(),
   role: z.string(),
+  ip: z.string().optional(),
 });
 
 export const authMiddleware = createMiddleware<AppContext>(async (c, next) => {
@@ -24,6 +25,7 @@ export const authMiddleware = createMiddleware<AppContext>(async (c, next) => {
   }
 
   const session = sessionSchema.parse(JSON.parse(sessionJson) as unknown);
+
   c.set("session", session);
   await next();
 });

@@ -114,6 +114,16 @@ describe("createHumanSchema", () => {
     const result = createHumanSchema.parse({ ...validInput, types: ["client", "trainer"] });
     expect(result.types).toHaveLength(2);
   });
+
+  it("rejects more than 20 emails", () => {
+    const emails = Array.from({ length: 21 }, (_, i) => ({ email: `e${String(i)}@test.com` }));
+    expect(() => createHumanSchema.parse({ ...validInput, emails })).toThrowError();
+  });
+
+  it("rejects more than 10 types", () => {
+    const types = Array.from({ length: 11 }, () => "client" as const);
+    expect(() => createHumanSchema.parse({ ...validInput, types })).toThrowError();
+  });
 });
 
 describe("updateHumanSchema", () => {
@@ -139,6 +149,11 @@ describe("updateHumanSchema", () => {
   it("accepts status change", () => {
     const result = updateHumanSchema.parse({ status: "closed" });
     expect(result.status).toBe("closed");
+  });
+
+  it("rejects more than 20 emails in update", () => {
+    const emails = Array.from({ length: 21 }, (_, i) => ({ email: `e${String(i)}@test.com` }));
+    expect(() => updateHumanSchema.parse({ emails })).toThrowError();
   });
 });
 

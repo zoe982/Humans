@@ -1,5 +1,7 @@
 <script lang="ts">
   import HighlightText from "./HighlightText.svelte";
+  import { ExternalLink, ShieldAlert } from "lucide-svelte";
+  import { classifyLink } from "$lib/utils/link-safety";
 
   type Props = {
     text: string;
@@ -30,8 +32,19 @@
     }
     return result;
   });
+
+  function handleSuspiciousClick(e: MouseEvent, url: string): void {
+    try {
+      const domain = new URL(url).hostname;
+      if (!confirm(`This link looks suspicious. Are you sure you want to open ${domain}?`)) {
+        e.preventDefault();
+      }
+    } catch {
+      e.preventDefault();
+    }
+  }
 </script>
 
 <!-- eslint-disable svelte/no-navigation-without-resolve -->
-<div class="whitespace-pre-line">{#each segments as seg, i (i)}{#if seg.type === "url"}<a href={seg.value} target="_blank" rel="noopener noreferrer" class="text-accent hover:underline">{seg.value}</a>{:else}<HighlightText text={seg.value} query={query} />{/if}{/each}</div>
+<div class="whitespace-pre-line">{#each segments as seg, i (i)}{#if seg.type === "url"}{#if classifyLink(seg.value) === "suspicious"}<a href={seg.value} target="_blank" rel="noopener noreferrer" class="text-amber-500 hover:underline inline-flex items-center gap-0.5" onclick={(e) => handleSuspiciousClick(e, seg.value)}>{seg.value}<ShieldAlert class="inline h-3 w-3 flex-shrink-0" /></a>{:else}<a href={seg.value} target="_blank" rel="noopener noreferrer" class="text-accent hover:underline inline-flex items-center gap-0.5">{seg.value}<ExternalLink class="inline h-3 w-3 flex-shrink-0" /></a>{/if}{:else}<HighlightText text={seg.value} query={query} />{/if}{/each}</div>
 <!-- eslint-enable svelte/no-navigation-without-resolve -->

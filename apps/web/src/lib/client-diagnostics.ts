@@ -16,7 +16,7 @@ function flushToApi(): void {
   const batch = pendingErrors.splice(0);
   flushTimer = null;
 
-  const url = window.location.href;
+  const url = window.location.href.split("?")[0];
   const summary = batch.map((e) => e.message).join("; ").slice(0, 500);
   const payload = JSON.stringify({
     message: summary,

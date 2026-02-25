@@ -1,7 +1,18 @@
 import { Hono } from "hono";
+import { z } from "zod";
 import { errorLog } from "@humans/db/schema";
 import { nextDisplayId } from "../lib/display-id";
 import type { AppContext } from "../types";
+
+const clientErrorSchema = z.object({
+  message: z.string().min(1).max(500),
+  url: z.string().max(500).optional(),
+  errors: z.array(z.object({
+    type: z.string().max(50).optional(),
+    message: z.string().max(500).optional(),
+    stack: z.string().max(3000).optional(),
+  })).max(10).optional(),
+});
 
 const clientErrorRoutes = new Hono<AppContext>();
 
@@ -19,26 +30,21 @@ clientErrorRoutes.post("/api/client-errors", async (c) => {
     return c.json({ error: "Invalid payload" }, 400);
   }
 
-  const { message, url, errors: errorList } = body as {
-    message?: string;
-    url?: string;
-    errors?: { type?: string; message?: string; stack?: string }[];
-  };
-
-  if (typeof message !== "string" || message.length === 0) {
-    return c.json({ error: "message is required" }, 400);
+  const parsed = clientErrorSchema.safeParse(body);
+  if (!parsed.success) {
+    return c.json({ error: "Invalid payload" }, 400);
   }
 
-  // Truncate fields to prevent abuse
+  const { message, url, errors: errorList } = parsed.data;
+
+  // Defense-in-depth truncation (Zod already enforces max lengths)
   const safeMessage = message.slice(0, 500);
-  const safePath = typeof url === "string" ? url.slice(0, 500) : null;
-  const safeDetails = Array.isArray(errorList)
-    ? errorList.slice(0, 10).map((e) => ({
-        type: typeof e.type === "string" ? e.type.slice(0, 50) : "unknown",
-        message: typeof e.message === "string" ? e.message.slice(0, 500) : "",
-        stack: typeof e.stack === "string" ? e.stack.slice(0, 3000) : "",
-      }))
-    : [];
+  const safePath = url != null ? url.slice(0, 500) : null;
+  const safeDetails = (errorList ?? []).map((e) => ({
+    type: (e.type ?? "unknown").slice(0, 50),
+    message: (e.message ?? "").slice(0, 500),
+    stack: (e.stack ?? "").slice(0, 3000),
+  }));
 
   const stack = safeDetails.map((e) => `[${e.type}] ${e.message}\n${e.stack}`).join("\n---\n");
 

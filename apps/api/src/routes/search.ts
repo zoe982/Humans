@@ -3,6 +3,7 @@ import { authMiddleware } from "../middleware/auth";
 import { requirePermission } from "../middleware/rbac";
 import { supabaseMiddleware } from "../middleware/supabase";
 import { searchD1 } from "../services/search";
+import { sanitizePostgrestValue } from "../lib/supabase-sanitize";
 import type { AppContext } from "../types";
 
 const searchRoutes = new Hono<AppContext>();
@@ -17,7 +18,8 @@ searchRoutes.get("/api/search", requirePermission("viewRecords"), supabaseMiddle
 
   const db = c.get("db");
   const supabase = c.get("supabase");
-  const pattern = `%${q}%`;
+  const safeQ = sanitizePostgrestValue(q);
+  const pattern = `%${safeQ}%`;
 
   // Run D1 search and Supabase search in parallel
   const [d1Results, supabaseResult] = await Promise.all([

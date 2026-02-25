@@ -5,12 +5,12 @@ export const accountStatusEnum = z.enum(["open", "active", "closed"]);
 export const createAccountSchema = z.object({
   name: z.string().min(1).max(255),
   status: accountStatusEnum.default("open"),
-  typeIds: z.array(z.string()).optional(),
+  typeIds: z.array(z.string()).max(20).optional(),
 });
 
 export const updateAccountSchema = z.object({
   name: z.string().min(1).max(255).optional(),
-  typeIds: z.array(z.string()).optional(),
+  typeIds: z.array(z.string()).max(20).optional(),
 });
 
 export const updateAccountStatusSchema = z.object({
@@ -26,7 +26,7 @@ export const createAccountEmailSchema = z.object({
 export const updateAccountEmailSchema = createAccountEmailSchema.partial();
 
 export const createAccountPhoneNumberSchema = z.object({
-  phoneNumber: z.string().min(1).max(50),
+  phoneNumber: z.string().min(1).max(50).regex(/^[\d+\-() .]+$/),
   labelId: z.string().optional(),
   hasWhatsapp: z.boolean().default(false),
   isPrimary: z.boolean().default(false),
