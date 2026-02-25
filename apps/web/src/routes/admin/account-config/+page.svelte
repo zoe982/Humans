@@ -3,6 +3,7 @@
   import PageHeader from "$lib/components/PageHeader.svelte";
   import AlertBanner from "$lib/components/AlertBanner.svelte";
   import { Button } from "$lib/components/ui/button";
+  import { enhance } from "$app/forms";
 
   let { data, form }: { data: PageData; form: ActionData } = $props();
 
@@ -17,6 +18,19 @@
   const opportunityHumanRoles = $derived(data.opportunityHumanRoles as ConfigItem[]);
   const humanRelationshipLabels = $derived(data.humanRelationshipLabels as ConfigItem[]);
   const agreementTypes = $derived(data.agreementTypes as ConfigItem[]);
+
+  let editingId: string | null = $state(null);
+  let editingName: string = $state("");
+
+  function startEdit(item: ConfigItem) {
+    editingId = item.id;
+    editingName = item.name;
+  }
+
+  function cancelEdit() {
+    editingId = null;
+    editingName = "";
+  }
 </script>
 
 <svelte:head>
@@ -46,11 +60,29 @@
         <div class="space-y-2 mb-4">
           {#each accountTypes as item (item.id)}
             <div class="flex items-center justify-between p-3 rounded-lg bg-glass hover:bg-glass-hover transition-colors">
-              <span class="text-sm text-text-primary">{item.name}</span>
-              <form method="POST" action="?/deleteAccountType">
-                <input type="hidden" name="id" value={item.id} />
-                <button type="submit" class="text-destructive-foreground hover:opacity-80 text-sm">Remove</button>
-              </form>
+              {#if editingId === item.id}
+                <form method="POST" action="?/renameAccountType" use:enhance={() => { return async ({ update }) => { cancelEdit(); await update(); }; }} class="flex items-center gap-2 flex-1 mr-2">
+                  <input type="hidden" name="id" value={item.id} />
+                  <input
+                    name="name"
+                    type="text"
+                    required
+                    bind:value={editingName}
+                    class="glass-input flex-1 px-2 py-1 text-sm"
+                    onkeydown={(e: KeyboardEvent) => { if (e.key === "Escape") cancelEdit(); }}
+                  />
+                  <button type="submit" class="text-accent hover:opacity-80 text-sm">Save</button>
+                  <button type="button" onclick={cancelEdit} class="text-text-muted hover:opacity-80 text-sm">Cancel</button>
+                </form>
+              {:else}
+                <button type="button" onclick={() => startEdit(item)} class="text-sm text-text-primary hover:text-accent transition-colors text-left flex-1 mr-2" title="Click to edit">
+                  {item.name}
+                </button>
+                <form method="POST" action="?/deleteAccountType">
+                  <input type="hidden" name="id" value={item.id} />
+                  <button type="submit" class="text-destructive-foreground hover:opacity-80 text-sm">Remove</button>
+                </form>
+              {/if}
             </div>
           {/each}
         </div>
@@ -70,11 +102,29 @@
         <div class="space-y-2 mb-4">
           {#each humanLabels as item (item.id)}
             <div class="flex items-center justify-between p-3 rounded-lg bg-glass hover:bg-glass-hover transition-colors">
-              <span class="text-sm text-text-primary">{item.name}</span>
-              <form method="POST" action="?/deleteHumanLabel">
-                <input type="hidden" name="id" value={item.id} />
-                <button type="submit" class="text-destructive-foreground hover:opacity-80 text-sm">Remove</button>
-              </form>
+              {#if editingId === item.id}
+                <form method="POST" action="?/renameHumanLabel" use:enhance={() => { return async ({ update }) => { cancelEdit(); await update(); }; }} class="flex items-center gap-2 flex-1 mr-2">
+                  <input type="hidden" name="id" value={item.id} />
+                  <input
+                    name="name"
+                    type="text"
+                    required
+                    bind:value={editingName}
+                    class="glass-input flex-1 px-2 py-1 text-sm"
+                    onkeydown={(e: KeyboardEvent) => { if (e.key === "Escape") cancelEdit(); }}
+                  />
+                  <button type="submit" class="text-accent hover:opacity-80 text-sm">Save</button>
+                  <button type="button" onclick={cancelEdit} class="text-text-muted hover:opacity-80 text-sm">Cancel</button>
+                </form>
+              {:else}
+                <button type="button" onclick={() => startEdit(item)} class="text-sm text-text-primary hover:text-accent transition-colors text-left flex-1 mr-2" title="Click to edit">
+                  {item.name}
+                </button>
+                <form method="POST" action="?/deleteHumanLabel">
+                  <input type="hidden" name="id" value={item.id} />
+                  <button type="submit" class="text-destructive-foreground hover:opacity-80 text-sm">Remove</button>
+                </form>
+              {/if}
             </div>
           {/each}
         </div>
@@ -94,11 +144,29 @@
         <div class="space-y-2 mb-4">
           {#each emailLabels as item (item.id)}
             <div class="flex items-center justify-between p-3 rounded-lg bg-glass hover:bg-glass-hover transition-colors">
-              <span class="text-sm text-text-primary">{item.name}</span>
-              <form method="POST" action="?/deleteEmailLabel">
-                <input type="hidden" name="id" value={item.id} />
-                <button type="submit" class="text-destructive-foreground hover:opacity-80 text-sm">Remove</button>
-              </form>
+              {#if editingId === item.id}
+                <form method="POST" action="?/renameEmailLabel" use:enhance={() => { return async ({ update }) => { cancelEdit(); await update(); }; }} class="flex items-center gap-2 flex-1 mr-2">
+                  <input type="hidden" name="id" value={item.id} />
+                  <input
+                    name="name"
+                    type="text"
+                    required
+                    bind:value={editingName}
+                    class="glass-input flex-1 px-2 py-1 text-sm"
+                    onkeydown={(e: KeyboardEvent) => { if (e.key === "Escape") cancelEdit(); }}
+                  />
+                  <button type="submit" class="text-accent hover:opacity-80 text-sm">Save</button>
+                  <button type="button" onclick={cancelEdit} class="text-text-muted hover:opacity-80 text-sm">Cancel</button>
+                </form>
+              {:else}
+                <button type="button" onclick={() => startEdit(item)} class="text-sm text-text-primary hover:text-accent transition-colors text-left flex-1 mr-2" title="Click to edit">
+                  {item.name}
+                </button>
+                <form method="POST" action="?/deleteEmailLabel">
+                  <input type="hidden" name="id" value={item.id} />
+                  <button type="submit" class="text-destructive-foreground hover:opacity-80 text-sm">Remove</button>
+                </form>
+              {/if}
             </div>
           {/each}
         </div>
@@ -118,11 +186,29 @@
         <div class="space-y-2 mb-4">
           {#each phoneLabels as item (item.id)}
             <div class="flex items-center justify-between p-3 rounded-lg bg-glass hover:bg-glass-hover transition-colors">
-              <span class="text-sm text-text-primary">{item.name}</span>
-              <form method="POST" action="?/deletePhoneLabel">
-                <input type="hidden" name="id" value={item.id} />
-                <button type="submit" class="text-destructive-foreground hover:opacity-80 text-sm">Remove</button>
-              </form>
+              {#if editingId === item.id}
+                <form method="POST" action="?/renamePhoneLabel" use:enhance={() => { return async ({ update }) => { cancelEdit(); await update(); }; }} class="flex items-center gap-2 flex-1 mr-2">
+                  <input type="hidden" name="id" value={item.id} />
+                  <input
+                    name="name"
+                    type="text"
+                    required
+                    bind:value={editingName}
+                    class="glass-input flex-1 px-2 py-1 text-sm"
+                    onkeydown={(e: KeyboardEvent) => { if (e.key === "Escape") cancelEdit(); }}
+                  />
+                  <button type="submit" class="text-accent hover:opacity-80 text-sm">Save</button>
+                  <button type="button" onclick={cancelEdit} class="text-text-muted hover:opacity-80 text-sm">Cancel</button>
+                </form>
+              {:else}
+                <button type="button" onclick={() => startEdit(item)} class="text-sm text-text-primary hover:text-accent transition-colors text-left flex-1 mr-2" title="Click to edit">
+                  {item.name}
+                </button>
+                <form method="POST" action="?/deletePhoneLabel">
+                  <input type="hidden" name="id" value={item.id} />
+                  <button type="submit" class="text-destructive-foreground hover:opacity-80 text-sm">Remove</button>
+                </form>
+              {/if}
             </div>
           {/each}
         </div>
@@ -142,11 +228,29 @@
         <div class="space-y-2 mb-4">
           {#each humanEmailLabels as item (item.id)}
             <div class="flex items-center justify-between p-3 rounded-lg bg-glass hover:bg-glass-hover transition-colors">
-              <span class="text-sm text-text-primary">{item.name}</span>
-              <form method="POST" action="?/deleteHumanEmailLabel">
-                <input type="hidden" name="id" value={item.id} />
-                <button type="submit" class="text-destructive-foreground hover:opacity-80 text-sm">Remove</button>
-              </form>
+              {#if editingId === item.id}
+                <form method="POST" action="?/renameHumanEmailLabel" use:enhance={() => { return async ({ update }) => { cancelEdit(); await update(); }; }} class="flex items-center gap-2 flex-1 mr-2">
+                  <input type="hidden" name="id" value={item.id} />
+                  <input
+                    name="name"
+                    type="text"
+                    required
+                    bind:value={editingName}
+                    class="glass-input flex-1 px-2 py-1 text-sm"
+                    onkeydown={(e: KeyboardEvent) => { if (e.key === "Escape") cancelEdit(); }}
+                  />
+                  <button type="submit" class="text-accent hover:opacity-80 text-sm">Save</button>
+                  <button type="button" onclick={cancelEdit} class="text-text-muted hover:opacity-80 text-sm">Cancel</button>
+                </form>
+              {:else}
+                <button type="button" onclick={() => startEdit(item)} class="text-sm text-text-primary hover:text-accent transition-colors text-left flex-1 mr-2" title="Click to edit">
+                  {item.name}
+                </button>
+                <form method="POST" action="?/deleteHumanEmailLabel">
+                  <input type="hidden" name="id" value={item.id} />
+                  <button type="submit" class="text-destructive-foreground hover:opacity-80 text-sm">Remove</button>
+                </form>
+              {/if}
             </div>
           {/each}
         </div>
@@ -166,11 +270,29 @@
         <div class="space-y-2 mb-4">
           {#each humanPhoneLabels as item (item.id)}
             <div class="flex items-center justify-between p-3 rounded-lg bg-glass hover:bg-glass-hover transition-colors">
-              <span class="text-sm text-text-primary">{item.name}</span>
-              <form method="POST" action="?/deleteHumanPhoneLabel">
-                <input type="hidden" name="id" value={item.id} />
-                <button type="submit" class="text-destructive-foreground hover:opacity-80 text-sm">Remove</button>
-              </form>
+              {#if editingId === item.id}
+                <form method="POST" action="?/renameHumanPhoneLabel" use:enhance={() => { return async ({ update }) => { cancelEdit(); await update(); }; }} class="flex items-center gap-2 flex-1 mr-2">
+                  <input type="hidden" name="id" value={item.id} />
+                  <input
+                    name="name"
+                    type="text"
+                    required
+                    bind:value={editingName}
+                    class="glass-input flex-1 px-2 py-1 text-sm"
+                    onkeydown={(e: KeyboardEvent) => { if (e.key === "Escape") cancelEdit(); }}
+                  />
+                  <button type="submit" class="text-accent hover:opacity-80 text-sm">Save</button>
+                  <button type="button" onclick={cancelEdit} class="text-text-muted hover:opacity-80 text-sm">Cancel</button>
+                </form>
+              {:else}
+                <button type="button" onclick={() => startEdit(item)} class="text-sm text-text-primary hover:text-accent transition-colors text-left flex-1 mr-2" title="Click to edit">
+                  {item.name}
+                </button>
+                <form method="POST" action="?/deleteHumanPhoneLabel">
+                  <input type="hidden" name="id" value={item.id} />
+                  <button type="submit" class="text-destructive-foreground hover:opacity-80 text-sm">Remove</button>
+                </form>
+              {/if}
             </div>
           {/each}
         </div>
@@ -190,11 +312,29 @@
         <div class="space-y-2 mb-4">
           {#each opportunityHumanRoles as item (item.id)}
             <div class="flex items-center justify-between p-3 rounded-lg bg-glass hover:bg-glass-hover transition-colors">
-              <span class="text-sm text-text-primary">{item.name}</span>
-              <form method="POST" action="?/deleteOpportunityHumanRole">
-                <input type="hidden" name="id" value={item.id} />
-                <button type="submit" class="text-destructive-foreground hover:opacity-80 text-sm">Remove</button>
-              </form>
+              {#if editingId === item.id}
+                <form method="POST" action="?/renameOpportunityHumanRole" use:enhance={() => { return async ({ update }) => { cancelEdit(); await update(); }; }} class="flex items-center gap-2 flex-1 mr-2">
+                  <input type="hidden" name="id" value={item.id} />
+                  <input
+                    name="name"
+                    type="text"
+                    required
+                    bind:value={editingName}
+                    class="glass-input flex-1 px-2 py-1 text-sm"
+                    onkeydown={(e: KeyboardEvent) => { if (e.key === "Escape") cancelEdit(); }}
+                  />
+                  <button type="submit" class="text-accent hover:opacity-80 text-sm">Save</button>
+                  <button type="button" onclick={cancelEdit} class="text-text-muted hover:opacity-80 text-sm">Cancel</button>
+                </form>
+              {:else}
+                <button type="button" onclick={() => startEdit(item)} class="text-sm text-text-primary hover:text-accent transition-colors text-left flex-1 mr-2" title="Click to edit">
+                  {item.name}
+                </button>
+                <form method="POST" action="?/deleteOpportunityHumanRole">
+                  <input type="hidden" name="id" value={item.id} />
+                  <button type="submit" class="text-destructive-foreground hover:opacity-80 text-sm">Remove</button>
+                </form>
+              {/if}
             </div>
           {/each}
         </div>
@@ -214,11 +354,29 @@
         <div class="space-y-2 mb-4">
           {#each agreementTypes as item (item.id)}
             <div class="flex items-center justify-between p-3 rounded-lg bg-glass hover:bg-glass-hover transition-colors">
-              <span class="text-sm text-text-primary">{item.name}</span>
-              <form method="POST" action="?/deleteAgreementType">
-                <input type="hidden" name="id" value={item.id} />
-                <button type="submit" class="text-destructive-foreground hover:opacity-80 text-sm">Remove</button>
-              </form>
+              {#if editingId === item.id}
+                <form method="POST" action="?/renameAgreementType" use:enhance={() => { return async ({ update }) => { cancelEdit(); await update(); }; }} class="flex items-center gap-2 flex-1 mr-2">
+                  <input type="hidden" name="id" value={item.id} />
+                  <input
+                    name="name"
+                    type="text"
+                    required
+                    bind:value={editingName}
+                    class="glass-input flex-1 px-2 py-1 text-sm"
+                    onkeydown={(e: KeyboardEvent) => { if (e.key === "Escape") cancelEdit(); }}
+                  />
+                  <button type="submit" class="text-accent hover:opacity-80 text-sm">Save</button>
+                  <button type="button" onclick={cancelEdit} class="text-text-muted hover:opacity-80 text-sm">Cancel</button>
+                </form>
+              {:else}
+                <button type="button" onclick={() => startEdit(item)} class="text-sm text-text-primary hover:text-accent transition-colors text-left flex-1 mr-2" title="Click to edit">
+                  {item.name}
+                </button>
+                <form method="POST" action="?/deleteAgreementType">
+                  <input type="hidden" name="id" value={item.id} />
+                  <button type="submit" class="text-destructive-foreground hover:opacity-80 text-sm">Remove</button>
+                </form>
+              {/if}
             </div>
           {/each}
         </div>
@@ -238,11 +396,29 @@
         <div class="space-y-2 mb-4">
           {#each humanRelationshipLabels as item (item.id)}
             <div class="flex items-center justify-between p-3 rounded-lg bg-glass hover:bg-glass-hover transition-colors">
-              <span class="text-sm text-text-primary">{item.name}</span>
-              <form method="POST" action="?/deleteHumanRelationshipLabel">
-                <input type="hidden" name="id" value={item.id} />
-                <button type="submit" class="text-destructive-foreground hover:opacity-80 text-sm">Remove</button>
-              </form>
+              {#if editingId === item.id}
+                <form method="POST" action="?/renameHumanRelationshipLabel" use:enhance={() => { return async ({ update }) => { cancelEdit(); await update(); }; }} class="flex items-center gap-2 flex-1 mr-2">
+                  <input type="hidden" name="id" value={item.id} />
+                  <input
+                    name="name"
+                    type="text"
+                    required
+                    bind:value={editingName}
+                    class="glass-input flex-1 px-2 py-1 text-sm"
+                    onkeydown={(e: KeyboardEvent) => { if (e.key === "Escape") cancelEdit(); }}
+                  />
+                  <button type="submit" class="text-accent hover:opacity-80 text-sm">Save</button>
+                  <button type="button" onclick={cancelEdit} class="text-text-muted hover:opacity-80 text-sm">Cancel</button>
+                </form>
+              {:else}
+                <button type="button" onclick={() => startEdit(item)} class="text-sm text-text-primary hover:text-accent transition-colors text-left flex-1 mr-2" title="Click to edit">
+                  {item.name}
+                </button>
+                <form method="POST" action="?/deleteHumanRelationshipLabel">
+                  <input type="hidden" name="id" value={item.id} />
+                  <button type="submit" class="text-destructive-foreground hover:opacity-80 text-sm">Remove</button>
+                </form>
+              {/if}
             </div>
           {/each}
         </div>
