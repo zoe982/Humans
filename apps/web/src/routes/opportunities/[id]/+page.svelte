@@ -22,6 +22,7 @@
   import { onDestroy } from "svelte";
   import { Button } from "$lib/components/ui/button";
   import { resolve } from "$app/paths";
+  import { page } from "$app/stores";
 
   let { data, form }: { data: PageData; form: ActionData } = $props();
 
@@ -459,7 +460,7 @@
         <label for="linkedFlight" class="block text-sm font-medium text-text-secondary">Linked Flight</label>
         {#if linkedFlight}
           <div class="flex items-center gap-2 mt-1 h-10">
-            <a href={resolve(`/flights/${linkedFlight.id}`)} class="font-mono text-sm text-accent hover:text-[var(--link-hover)]">{linkedFlight.crm_display_id ?? "Flight"}</a>
+            <a href={resolve(`/flights/${linkedFlight.id}?from=${$page.url.pathname}`)} class="font-mono text-sm text-accent hover:text-[var(--link-hover)]">{linkedFlight.crm_display_id ?? "Flight"}</a>
             <span class="text-text-secondary text-sm truncate">{linkedFlight.origin_city ?? "?"} &rarr; {linkedFlight.destination_city ?? "?"}</span>
             <form method="POST" action="?/unlinkFlight" class="ml-auto shrink-0">
               <Button type="submit" variant="ghost" size="sm">Unlink</Button>
@@ -526,10 +527,10 @@
     >
       {#snippet row(link, _searchQuery)}
         <td class="font-mono text-sm whitespace-nowrap">
-          <a href={resolve(`/humans/${link.humanId}`)} class="text-accent hover:text-[var(--link-hover)]">{link.humanDisplayId}</a>
+          <a href={resolve(`/humans/${link.humanId}?from=${$page.url.pathname}`)} class="text-accent hover:text-[var(--link-hover)]">{link.humanDisplayId}</a>
         </td>
         <td>
-          <a href={resolve(`/humans/${link.humanId}`)} class="text-sm font-medium text-accent hover:text-[var(--link-hover)]">{link.humanName}</a>
+          <a href={resolve(`/humans/${link.humanId}?from=${$page.url.pathname}`)} class="text-sm font-medium text-accent hover:text-[var(--link-hover)]">{link.humanName}</a>
         </td>
         <td>
           {#if link.roleName}
@@ -611,10 +612,10 @@
     >
       {#snippet row(link, _searchQuery)}
         <td class="font-mono text-sm whitespace-nowrap">
-          <a href={resolve(`/pets/${link.petId}`)} class="text-accent hover:text-[var(--link-hover)]">{link.petDisplayId}</a>
+          <a href={resolve(`/pets/${link.petId}?from=${$page.url.pathname}`)} class="text-accent hover:text-[var(--link-hover)]">{link.petDisplayId}</a>
         </td>
         <td>
-          <a href={resolve(`/pets/${link.petId}`)} class="text-sm font-medium text-accent hover:text-[var(--link-hover)]">{link.petName}</a>
+          <a href={resolve(`/pets/${link.petId}?from=${$page.url.pathname}`)} class="text-sm font-medium text-accent hover:text-[var(--link-hover)]">{link.petName}</a>
         </td>
         <td>
           <span class="glass-badge inline-flex rounded-full px-2 py-0.5 text-xs font-medium {link.petType === 'cat' ? 'badge-purple' : 'badge-blue'}">
