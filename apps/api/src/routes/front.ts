@@ -39,7 +39,7 @@ frontRoutes.post(
     }
 
     const rawLimit = Number(c.req.query("limit"));
-    const limit = Math.min(50, Math.max(1, rawLimit !== 0 ? rawLimit : 20));
+    const limit = Math.min(50, Math.max(1, Number.isFinite(rawLimit) ? rawLimit : 20));
     const rawCursor = c.req.query("cursor");
     const cursor = rawCursor !== undefined && rawCursor !== "" ? rawCursor : undefined;
     const rawSyncRunId = c.req.query("syncRunId");

@@ -23,8 +23,8 @@ activityRoutes.use("/*", authMiddleware);
 activityRoutes.get("/api/activities", requirePermission("viewRecords"), async (c) => {
   const rawPage = Number(c.req.query("page"));
   const rawLimit = Number(c.req.query("limit"));
-  const page = Math.max(1, rawPage !== 0 ? rawPage : 1);
-  const limit = Math.min(10000, Math.max(1, rawLimit !== 0 ? rawLimit : 25));
+  const page = Math.max(1, Number.isFinite(rawPage) ? rawPage : 1);
+  const limit = Math.min(10000, Math.max(1, Number.isFinite(rawLimit) ? rawLimit : 25));
   const include = c.req.query("include");
 
   const result = await listActivities(c.get("db"), {

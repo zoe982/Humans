@@ -51,8 +51,8 @@ routeSignupRoutes.get("/api/route-signups", requirePermission("viewRouteSignups"
   const supabase = c.get("supabase");
   const rawPage = Number(c.req.query("page"));
   const rawLimit = Number(c.req.query("limit"));
-  const page = Math.max(1, rawPage !== 0 ? rawPage : 1);
-  const limit = Math.min(10000, Math.max(1, rawLimit !== 0 ? rawLimit : 25));
+  const page = Math.max(1, Number.isFinite(rawPage) ? rawPage : 1);
+  const limit = Math.min(10000, Math.max(1, Number.isFinite(rawLimit) ? rawLimit : 25));
   const from = (page - 1) * limit;
   const to = from + limit - 1;
 
