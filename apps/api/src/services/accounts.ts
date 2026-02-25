@@ -19,6 +19,7 @@ import { createId } from "@humans/db";
 import { ERROR_CODES } from "@humans/shared";
 import { computeDiff, logAuditEntry } from "../lib/audit";
 import { notFound } from "../lib/errors";
+import { assertUniqueIds } from "../lib/assert-unique-ids";
 import { nextDisplayId } from "../lib/display-id";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { DB } from "./types";
@@ -186,13 +187,13 @@ export async function getAccountDetail(supabase: SupabaseClient, db: DB, id: str
     linkedHumans: linkedHumansWithDetails,
     emails: emailsWithLabels,
     phoneNumbers: phonesWithLabels,
-    activities: (() => {
-      const directIds = new Set(directActivities.map((a) => a.id));
-      return [
-        ...directActivities.map((a) => ({ ...a, viaHumanName: null })),
-        ...humanActivitiesWithNames.filter((a) => !directIds.has(a.id)),
-      ];
-    })(),
+    activities: assertUniqueIds(
+      [
+        ...directActivities.map((a) => ({ ...a, viaHumanName: null as string | null })),
+        ...humanActivitiesWithNames,
+      ],
+      "account-activities",
+    ),
     socialIds: socialIdsWithPlatforms,
     referralCodes: accountReferralCodes,
     discountCodes: accountDiscountCodes,

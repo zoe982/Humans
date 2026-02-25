@@ -15,6 +15,7 @@ import { createId } from "@humans/db";
 import { ERROR_CODES } from "@humans/shared";
 import { computeDiff, logAuditEntry } from "../lib/audit";
 import { notFound, badRequest } from "../lib/errors";
+import { assertUniqueIds } from "../lib/assert-unique-ids";
 import { nextDisplayId } from "../lib/display-id";
 import type { DB } from "./types";
 
@@ -216,10 +217,10 @@ export async function getOpportunityDetail(db: DB, id: string): Promise<{ linked
 
   return {
     ...opp,
-    linkedHumans,
-    linkedPets,
+    linkedHumans: assertUniqueIds(linkedHumans, "opportunity-humans"),
+    linkedPets: assertUniqueIds(linkedPets, "opportunity-pets"),
     linkedBookingRequests,
-    activities: oppActivities,
+    activities: assertUniqueIds(oppActivities, "opportunity-activities"),
     nextActionOwnerName,
     ownerName,
     ownerDisplayId,
