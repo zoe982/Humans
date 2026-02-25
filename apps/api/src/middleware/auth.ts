@@ -20,12 +20,23 @@ export const authMiddleware = createMiddleware<AppContext>(async (c, next) => {
     throw new HTTPException(401, { message: "Authentication required" });
   }
 
-  const sessionJson = await c.env.SESSIONS.get(`session:${sessionToken}`);
+  let sessionJson: string | null;
+  try {
+    sessionJson = await c.env.SESSIONS.get(`session:${sessionToken}`);
+  } catch {
+    throw new HTTPException(401, { message: "Session store unavailable" });
+  }
+
   if (sessionJson == null) {
     throw new HTTPException(401, { message: "Invalid or expired session" });
   }
 
-  const session = sessionSchema.parse(JSON.parse(sessionJson) as unknown);
+  let session: z.infer<typeof sessionSchema>;
+  try {
+    session = sessionSchema.parse(JSON.parse(sessionJson) as unknown);
+  } catch {
+    throw new HTTPException(401, { message: "Invalid session data" });
+  }
 
   // Sliding session refresh: re-PUT with fresh TTL if refreshedAt is stale or absent
   const now = Date.now();

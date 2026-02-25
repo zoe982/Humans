@@ -34,9 +34,19 @@ describe("humans/[id] load", () => {
       }),
       "/api/route-signups": { body: { data: [] } },
       "/api/website-booking-requests": { body: { data: [] } },
-      "/api/accounts": { body: { data: [] } },
-      "/api/humans/h-1": { body: { data: sampleHuman } },
-      "/api/activities?humanId=h-1": { body: { data: [{ id: "a-1", type: "email" }] } },
+      "/api/humans/h-1/full": { body: { data: {
+        human: sampleHuman,
+        activities: { data: [{ id: "a-1", type: "email" }], meta: { page: 1, limit: 200, total: 1 } },
+        opportunities: { data: [], meta: { page: 1, limit: 50, total: 0 } },
+        generalLeads: { data: [], meta: { page: 1, limit: 50, total: 0 } },
+        relationships: [],
+        agreements: { data: [], meta: { page: 1, limit: 50, total: 0 } },
+      } } },
+      "/api/ui/dropdown-data": { body: { data: {
+        accounts: [],
+        humans: [],
+        discountCodes: [],
+      } } },
     });
     vi.stubGlobal("fetch", mockFetch);
   });
@@ -58,7 +68,7 @@ describe("humans/[id] load", () => {
   it("returns human, activities, and label configs on success", async () => {
     const event = makeEvent();
     const result = await load(event as any);
-    expect(result.human).toEqual(sampleHuman);
+    expect(result.human).toMatchObject({ id: "h-1", firstName: "Jane", lastName: "Doe" });
     expect(result.activities).toEqual([{ id: "a-1", type: "email" }]);
     expect(result.emailLabelConfigs).toEqual([expect.objectContaining({ id: "lbl-1", name: "Work" })]);
     expect(result.phoneLabelConfigs).toEqual([expect.objectContaining({ id: "plbl-1", name: "Mobile" })]);
@@ -66,11 +76,17 @@ describe("humans/[id] load", () => {
     expect(result.allBookingRequests).toEqual([]);
     expect(result.allAccounts).toEqual([]);
     expect(result.accountHumanLabelConfigs).toEqual([]);
+    expect(result.humanOpportunities).toEqual([]);
+    expect(result.generalLeads).toEqual([]);
+    expect(result.humanRelationships).toEqual([]);
+    expect(result.humanAgreements).toEqual([]);
+    expect(result.allHumans).toEqual([]);
+    expect(result.allDiscountCodes).toEqual([]);
   });
 
   it("redirects to /humans when human API returns error", async () => {
     mockFetch = createMockFetch({
-      "/api/humans/h-1": { status: 404, body: { error: "Not found" } },
+      "/api/humans/h-1/full": { status: 404, body: { error: "Not found" } },
     });
     vi.stubGlobal("fetch", mockFetch);
 
@@ -1199,14 +1215,8 @@ describe("humans/[id] load — additional branches", () => {
       }),
       "/api/route-signups": { body: { data: [] } },
       "/api/website-booking-requests": { body: { data: [] } },
-      "/api/accounts": { body: { data: [] } },
-      "/api/general-leads": { body: { data: [] } },
-      "/api/opportunities": { body: { data: [] } },
-      "/api/discount-codes": { body: { data: [] } },
-      "/api/humans/h-1/relationships": { body: { data: [] } },
-      "/api/humans/h-1": { body: { something: "else" } },
-      "/api/humans": { body: { data: [] } },
-      "/api/activities": { body: { data: [] } },
+      "/api/ui/dropdown-data": { body: { data: { accounts: [], humans: [], discountCodes: [] } } },
+      "/api/humans/h-1/full": { body: { something: "else" } },
     });
     vi.stubGlobal("fetch", mockFetch);
 
@@ -1242,14 +1252,15 @@ describe("humans/[id] load — additional branches", () => {
       }),
       "/api/route-signups": { body: { data: [] } },
       "/api/website-booking-requests": { body: { data: [] } },
-      "/api/accounts": { body: { data: [] } },
-      "/api/general-leads": { body: { data: [{ id: "lead-1", displayId: "LEA-AAA-001" }] } },
-      "/api/opportunities": { body: { data: [] } },
-      "/api/discount-codes": { body: { data: [] } },
-      "/api/humans/h-1/relationships": { body: { data: [] } },
-      "/api/humans/h-1": { body: { data: humanWithNoLinks } },
-      "/api/humans": { body: { data: [] } },
-      "/api/activities": { body: { data: [] } },
+      "/api/ui/dropdown-data": { body: { data: { accounts: [], humans: [], discountCodes: [] } } },
+      "/api/humans/h-1/full": { body: { data: {
+        human: humanWithNoLinks,
+        activities: { data: [], meta: { page: 1, limit: 200, total: 0 } },
+        opportunities: { data: [], meta: { page: 1, limit: 50, total: 0 } },
+        generalLeads: { data: [{ id: "lead-1", displayId: "LEA-AAA-001" }], meta: { page: 1, limit: 50, total: 1 } },
+        relationships: [],
+        agreements: { data: [], meta: { page: 1, limit: 50, total: 0 } },
+      } } },
     });
     vi.stubGlobal("fetch", mockFetch);
 
@@ -1281,14 +1292,15 @@ describe("humans/[id] load — additional branches", () => {
       }),
       "/api/route-signups": { body: { data: [{ id: "rs-1", display_id: "ROI-AAA-001", first_name: "Bob", last_name: "Smith", origin: "JFK", destination: "LHR" }] } },
       "/api/website-booking-requests": { body: { data: [] } },
-      "/api/accounts": { body: { data: [] } },
-      "/api/general-leads": { body: { data: [] } },
-      "/api/opportunities": { body: { data: [] } },
-      "/api/discount-codes": { body: { data: [] } },
-      "/api/humans/h-1/relationships": { body: { data: [] } },
-      "/api/humans/h-1": { body: { data: humanWithLinkedSignup } },
-      "/api/humans": { body: { data: [] } },
-      "/api/activities": { body: { data: [] } },
+      "/api/ui/dropdown-data": { body: { data: { accounts: [], humans: [], discountCodes: [] } } },
+      "/api/humans/h-1/full": { body: { data: {
+        human: humanWithLinkedSignup,
+        activities: { data: [], meta: { page: 1, limit: 200, total: 0 } },
+        opportunities: { data: [], meta: { page: 1, limit: 50, total: 0 } },
+        generalLeads: { data: [], meta: { page: 1, limit: 50, total: 0 } },
+        relationships: [],
+        agreements: { data: [], meta: { page: 1, limit: 50, total: 0 } },
+      } } },
     });
     vi.stubGlobal("fetch", mockFetch);
 
@@ -1325,14 +1337,15 @@ describe("humans/[id] load — additional branches", () => {
       }),
       "/api/route-signups": { body: { data: [] } },
       "/api/website-booking-requests": { body: { data: [] } },
-      "/api/accounts": { body: { data: [] } },
-      "/api/general-leads": { body: { data: [] } },
-      "/api/opportunities": { body: { data: [] } },
-      "/api/discount-codes": { body: { data: [] } },
-      "/api/humans/h-1/relationships": { body: { data: [] } },
-      "/api/humans/h-1": { body: { data: humanWithUnmatchedSignup } },
-      "/api/humans": { body: { data: [] } },
-      "/api/activities": { body: { data: [] } },
+      "/api/ui/dropdown-data": { body: { data: { accounts: [], humans: [], discountCodes: [] } } },
+      "/api/humans/h-1/full": { body: { data: {
+        human: humanWithUnmatchedSignup,
+        activities: { data: [], meta: { page: 1, limit: 200, total: 0 } },
+        opportunities: { data: [], meta: { page: 1, limit: 50, total: 0 } },
+        generalLeads: { data: [], meta: { page: 1, limit: 50, total: 0 } },
+        relationships: [],
+        agreements: { data: [], meta: { page: 1, limit: 50, total: 0 } },
+      } } },
     });
     vi.stubGlobal("fetch", mockFetch);
 
@@ -1368,14 +1381,15 @@ describe("humans/[id] load — additional branches", () => {
       }),
       "/api/route-signups": { body: { data: [] } },
       "/api/website-booking-requests": { body: { data: [{ id: "wbr-1", crm_display_id: "BOR-AAA-001", first_name: "Alice", last_name: "Jones", origin_city: "NYC", destination_city: "Paris" }] } },
-      "/api/accounts": { body: { data: [] } },
-      "/api/general-leads": { body: { data: [] } },
-      "/api/opportunities": { body: { data: [] } },
-      "/api/discount-codes": { body: { data: [] } },
-      "/api/humans/h-1/relationships": { body: { data: [] } },
-      "/api/humans/h-1": { body: { data: humanWithLinkedBooking } },
-      "/api/humans": { body: { data: [] } },
-      "/api/activities": { body: { data: [] } },
+      "/api/ui/dropdown-data": { body: { data: { accounts: [], humans: [], discountCodes: [] } } },
+      "/api/humans/h-1/full": { body: { data: {
+        human: humanWithLinkedBooking,
+        activities: { data: [], meta: { page: 1, limit: 200, total: 0 } },
+        opportunities: { data: [], meta: { page: 1, limit: 50, total: 0 } },
+        generalLeads: { data: [], meta: { page: 1, limit: 50, total: 0 } },
+        relationships: [],
+        agreements: { data: [], meta: { page: 1, limit: 50, total: 0 } },
+      } } },
     });
     vi.stubGlobal("fetch", mockFetch);
 
@@ -1412,14 +1426,15 @@ describe("humans/[id] load — additional branches", () => {
       }),
       "/api/route-signups": { body: { data: [] } },
       "/api/website-booking-requests": { body: { data: [] } },
-      "/api/accounts": { body: { data: [] } },
-      "/api/general-leads": { body: { data: [] } },
-      "/api/opportunities": { body: { data: [] } },
-      "/api/discount-codes": { body: { data: [] } },
-      "/api/humans/h-1/relationships": { body: { data: [] } },
-      "/api/humans/h-1": { body: { data: humanWithUnmatchedBooking } },
-      "/api/humans": { body: { data: [] } },
-      "/api/activities": { body: { data: [] } },
+      "/api/ui/dropdown-data": { body: { data: { accounts: [], humans: [], discountCodes: [] } } },
+      "/api/humans/h-1/full": { body: { data: {
+        human: humanWithUnmatchedBooking,
+        activities: { data: [], meta: { page: 1, limit: 200, total: 0 } },
+        opportunities: { data: [], meta: { page: 1, limit: 50, total: 0 } },
+        generalLeads: { data: [], meta: { page: 1, limit: 50, total: 0 } },
+        relationships: [],
+        agreements: { data: [], meta: { page: 1, limit: 50, total: 0 } },
+      } } },
     });
     vi.stubGlobal("fetch", mockFetch);
 
@@ -1449,14 +1464,15 @@ describe("humans/[id] load — additional branches", () => {
       "account-config/batch": { status: 500, body: { error: "Server error" } },
       "/api/route-signups": { body: { data: [] } },
       "/api/website-booking-requests": { body: { data: [] } },
-      "/api/accounts": { body: { data: [] } },
-      "/api/general-leads": { body: { data: [] } },
-      "/api/opportunities": { body: { data: [] } },
-      "/api/discount-codes": { body: { data: [] } },
-      "/api/humans/h-1/relationships": { body: { data: [] } },
-      "/api/humans/h-1": { body: { data: humanWithNoLinks } },
-      "/api/humans": { body: { data: [] } },
-      "/api/activities": { body: { data: [] } },
+      "/api/ui/dropdown-data": { body: { data: { accounts: [], humans: [], discountCodes: [] } } },
+      "/api/humans/h-1/full": { body: { data: {
+        human: humanWithNoLinks,
+        activities: { data: [], meta: { page: 1, limit: 200, total: 0 } },
+        opportunities: { data: [], meta: { page: 1, limit: 50, total: 0 } },
+        generalLeads: { data: [], meta: { page: 1, limit: 50, total: 0 } },
+        relationships: [],
+        agreements: { data: [], meta: { page: 1, limit: 50, total: 0 } },
+      } } },
     });
     vi.stubGlobal("fetch", mockFetch);
 
@@ -1492,28 +1508,25 @@ describe("humans/[id] load — additional branches", () => {
       }),
       "/api/route-signups": { status: 500, body: { error: "Server error" } },
       "/api/website-booking-requests": { status: 500, body: { error: "Server error" } },
-      "/api/accounts": { status: 500, body: { error: "Server error" } },
-      "/api/general-leads": { status: 500, body: { error: "Server error" } },
-      "/api/opportunities": { status: 500, body: { error: "Server error" } },
-      "/api/discount-codes": { status: 500, body: { error: "Server error" } },
-      "/api/humans/h-1/relationships": { status: 500, body: { error: "Server error" } },
-      "/api/humans/h-1": { body: { data: humanWithNoLinks } },
-      "/api/humans": { status: 500, body: { error: "Server error" } },
-      "/api/activities": { status: 500, body: { error: "Server error" } },
+      "/api/ui/dropdown-data": { status: 500, body: { error: "Server error" } },
+      "/api/humans/h-1/full": { body: { data: {
+        human: humanWithNoLinks,
+        activities: { data: [], meta: { page: 1, limit: 200, total: 0 } },
+        opportunities: { data: [], meta: { page: 1, limit: 50, total: 0 } },
+        generalLeads: { data: [], meta: { page: 1, limit: 50, total: 0 } },
+        relationships: [],
+        agreements: { data: [], meta: { page: 1, limit: 50, total: 0 } },
+      } } },
     });
     vi.stubGlobal("fetch", mockFetch);
 
     const event = makeEvent();
     event.params = { id: "h-1" };
     const result = await load(event as any);
-    expect(result.activities).toEqual([]);
     expect(result.allRouteSignups).toEqual([]);
     expect(result.allBookingRequests).toEqual([]);
     expect(result.allAccounts).toEqual([]);
-    expect(result.generalLeads).toEqual([]);
-    expect(result.humanOpportunities).toEqual([]);
     expect(result.allDiscountCodes).toEqual([]);
-    expect(result.humanRelationships).toEqual([]);
     expect(result.allHumans).toEqual([]);
   });
 
@@ -1533,14 +1546,15 @@ describe("humans/[id] load — additional branches", () => {
       "account-config/batch": { body: { items: [] } },
       "/api/route-signups": { body: { data: [] } },
       "/api/website-booking-requests": { body: { data: [] } },
-      "/api/accounts": { body: { data: [] } },
-      "/api/general-leads": { body: { data: [] } },
-      "/api/opportunities": { body: { data: [] } },
-      "/api/discount-codes": { body: { data: [] } },
-      "/api/humans/h-1/relationships": { body: { data: [] } },
-      "/api/humans/h-1": { body: { data: humanWithNoLinks } },
-      "/api/humans": { body: { data: [] } },
-      "/api/activities": { body: { data: [] } },
+      "/api/ui/dropdown-data": { body: { data: { accounts: [], humans: [], discountCodes: [] } } },
+      "/api/humans/h-1/full": { body: { data: {
+        human: humanWithNoLinks,
+        activities: { data: [], meta: { page: 1, limit: 200, total: 0 } },
+        opportunities: { data: [], meta: { page: 1, limit: 50, total: 0 } },
+        generalLeads: { data: [], meta: { page: 1, limit: 50, total: 0 } },
+        relationships: [],
+        agreements: { data: [], meta: { page: 1, limit: 50, total: 0 } },
+      } } },
     });
     vi.stubGlobal("fetch", mockFetch);
 
@@ -1574,21 +1588,21 @@ describe("humans/[id] load — additional branches", () => {
       }),
       "/api/route-signups": { body: { items: [] } },
       "/api/website-booking-requests": { body: { items: [] } },
-      "/api/accounts": { body: { items: [] } },
-      "/api/general-leads": { body: { items: [] } },
-      "/api/opportunities": { body: { items: [] } },
-      "/api/discount-codes": { body: { items: [] } },
-      "/api/humans/h-1/relationships": { body: { items: [] } },
-      "/api/humans/h-1": { body: { data: humanWithNoLinks } },
-      "/api/humans": { body: { items: [] } },
-      "/api/activities": { body: { items: [] } },
+      "/api/ui/dropdown-data": { body: { items: [] } },
+      "/api/humans/h-1/full": { body: { data: {
+        human: humanWithNoLinks,
+        activities: { data: [], meta: { page: 1, limit: 200, total: 0 } },
+        opportunities: { data: [], meta: { page: 1, limit: 50, total: 0 } },
+        generalLeads: { data: [], meta: { page: 1, limit: 50, total: 0 } },
+        relationships: [],
+        agreements: { data: [], meta: { page: 1, limit: 50, total: 0 } },
+      } } },
     });
     vi.stubGlobal("fetch", mockFetch);
 
     const event = makeEvent();
     event.params = { id: "h-1" };
     const result = await load(event as any);
-    expect(result.activities).toEqual([]);
     expect(result.allRouteSignups).toEqual([]);
     expect(result.allBookingRequests).toEqual([]);
     expect(result.allAccounts).toEqual([]);
@@ -1616,14 +1630,15 @@ describe("humans/[id] load — additional branches", () => {
       }),
       "/api/route-signups": { body: { data: [] } },
       "/api/website-booking-requests": { body: { data: [] } },
-      "/api/accounts": { body: { data: [] } },
-      "/api/general-leads": { body: { data: [] } },
-      "/api/opportunities": { body: { data: [] } },
-      "/api/discount-codes": { body: { data: [] } },
-      "/api/humans/h-1/relationships": { body: { data: [] } },
-      "/api/humans/h-1": { body: { data: humanWithNoLinks } },
-      "/api/humans": { body: { data: [] } },
-      "/api/activities": { body: { data: [] } },
+      "/api/ui/dropdown-data": { body: { data: { accounts: [], humans: [], discountCodes: [] } } },
+      "/api/humans/h-1/full": { body: { data: {
+        human: humanWithNoLinks,
+        activities: { data: [], meta: { page: 1, limit: 200, total: 0 } },
+        opportunities: { data: [], meta: { page: 1, limit: 50, total: 0 } },
+        generalLeads: { data: [], meta: { page: 1, limit: 50, total: 0 } },
+        relationships: [],
+        agreements: { data: [], meta: { page: 1, limit: 50, total: 0 } },
+      } } },
     });
     vi.stubGlobal("fetch", mockFetch);
 
@@ -1655,14 +1670,15 @@ describe("humans/[id] load — additional branches", () => {
       }),
       "/api/route-signups": { body: { data: [{ id: "rs-1", display_id: null, first_name: null, last_name: null, origin: null, destination: null }] } },
       "/api/website-booking-requests": { body: { data: [] } },
-      "/api/accounts": { body: { data: [] } },
-      "/api/general-leads": { body: { data: [] } },
-      "/api/opportunities": { body: { data: [] } },
-      "/api/discount-codes": { body: { data: [] } },
-      "/api/humans/h-1/relationships": { body: { data: [] } },
-      "/api/humans/h-1": { body: { data: humanWithLinkedSignup } },
-      "/api/humans": { body: { data: [] } },
-      "/api/activities": { body: { data: [] } },
+      "/api/ui/dropdown-data": { body: { data: { accounts: [], humans: [], discountCodes: [] } } },
+      "/api/humans/h-1/full": { body: { data: {
+        human: humanWithLinkedSignup,
+        activities: { data: [], meta: { page: 1, limit: 200, total: 0 } },
+        opportunities: { data: [], meta: { page: 1, limit: 50, total: 0 } },
+        generalLeads: { data: [], meta: { page: 1, limit: 50, total: 0 } },
+        relationships: [],
+        agreements: { data: [], meta: { page: 1, limit: 50, total: 0 } },
+      } } },
     });
     vi.stubGlobal("fetch", mockFetch);
 
@@ -1695,14 +1711,15 @@ describe("humans/[id] load — additional branches", () => {
       }),
       "/api/route-signups": { body: { data: [] } },
       "/api/website-booking-requests": { body: { data: [{ id: "wbr-1", crm_display_id: null, first_name: null, last_name: null, origin_city: null, destination_city: null }] } },
-      "/api/accounts": { body: { data: [] } },
-      "/api/general-leads": { body: { data: [] } },
-      "/api/opportunities": { body: { data: [] } },
-      "/api/discount-codes": { body: { data: [] } },
-      "/api/humans/h-1/relationships": { body: { data: [] } },
-      "/api/humans/h-1": { body: { data: humanWithLinkedBooking } },
-      "/api/humans": { body: { data: [] } },
-      "/api/activities": { body: { data: [] } },
+      "/api/ui/dropdown-data": { body: { data: { accounts: [], humans: [], discountCodes: [] } } },
+      "/api/humans/h-1/full": { body: { data: {
+        human: humanWithLinkedBooking,
+        activities: { data: [], meta: { page: 1, limit: 200, total: 0 } },
+        opportunities: { data: [], meta: { page: 1, limit: 50, total: 0 } },
+        generalLeads: { data: [], meta: { page: 1, limit: 50, total: 0 } },
+        relationships: [],
+        agreements: { data: [], meta: { page: 1, limit: 50, total: 0 } },
+      } } },
     });
     vi.stubGlobal("fetch", mockFetch);
 

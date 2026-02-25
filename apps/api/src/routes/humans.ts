@@ -10,6 +10,7 @@ import { internal } from "../lib/errors";
 import {
   listHumans,
   getHumanDetail,
+  getHumanDetailFull,
   createHuman,
   updateHuman,
   updateHumanStatus,
@@ -40,6 +41,11 @@ humanRoutes.get("/api/humans", requirePermission("viewRecords"), async (c) => {
   const q = rawQ !== undefined && rawQ !== "" ? rawQ : undefined;
   const result = await listHumans(db, page, limit, q);
   return c.json(result);
+});
+
+humanRoutes.get("/api/humans/:id/full", requirePermission("viewRecords"), async (c) => {
+  const data = await getHumanDetailFull(c.get("supabase"), c.get("db"), c.req.param("id"));
+  return c.json({ data });
 });
 
 humanRoutes.get("/api/humans/:id", requirePermission("viewRecords"), async (c) => {

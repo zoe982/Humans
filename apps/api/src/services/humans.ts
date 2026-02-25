@@ -29,6 +29,10 @@ import { notFound, conflict } from "../lib/errors";
 import { assertUniqueIds } from "../lib/assert-unique-ids";
 import { nextDisplayId } from "../lib/display-id";
 import { rematchActivitiesByEmail } from "./activity-rematch";
+import { listActivities } from "./activities";
+import { listOpportunities } from "./opportunities";
+import { listGeneralLeads } from "./general-leads";
+import { listAgreements } from "./agreements";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { DB } from "./types";
 
@@ -207,6 +211,38 @@ export async function getHumanDetail(supabase: SupabaseClient, db: DB, humanId: 
     referralCodes: humanReferralCodes,
     discountCodes: humanDiscountCodes,
     websites: humanWebsites,
+  };
+}
+
+export async function getHumanDetailFull(
+  supabase: SupabaseClient,
+  db: DB,
+  humanId: string,
+): Promise<{
+  human: Record<string, unknown>;
+  activities: { data: unknown[]; meta: { page: number; limit: number; total: number } };
+  opportunities: { data: unknown[]; meta: { page: number; limit: number; total: number } };
+  generalLeads: { data: unknown[]; meta: { page: number; limit: number; total: number } };
+  relationships: unknown[];
+  agreements: { data: unknown[]; meta: { page: number; limit: number; total: number } };
+}> {
+  // getHumanDetail throws 404 if human not found
+  const [human, activitiesResult, opportunitiesResult, generalLeadsResult, relationshipsResult, agreementsResult] = await Promise.all([
+    getHumanDetail(supabase, db, humanId),
+    listActivities(db, { humanId, page: 1, limit: 200, includeLinkedEntities: true }),
+    listOpportunities(db, 1, 50, { humanId }),
+    listGeneralLeads(db, 1, 50, { convertedHumanId: humanId }),
+    getHumanRelationships(db, humanId),
+    listAgreements(db, 1, 50, { humanId }),
+  ]);
+
+  return {
+    human,
+    activities: activitiesResult,
+    opportunities: opportunitiesResult,
+    generalLeads: generalLeadsResult,
+    relationships: relationshipsResult,
+    agreements: agreementsResult,
   };
 }
 

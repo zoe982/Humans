@@ -1,63 +1,39 @@
 import { createMiddleware } from "hono/factory";
-import type { AppContext } from "../types";
+import type { AppContext, RateLimiter } from "../types";
 
-interface RateLimitConfig {
-  limit: number;
-  windowSeconds: number;
-}
-
-const RATE_LIMITS: { pattern: RegExp; config: RateLimitConfig }[] = [
-  { pattern: /^\/auth\/(?:google|logout)/, config: { limit: 10, windowSeconds: 60 } },
-  { pattern: /^\/api\/client-errors$/, config: { limit: 5, windowSeconds: 60 } },
-  { pattern: /^\/api\/search$/, config: { limit: 30, windowSeconds: 60 } },
-  { pattern: /^\/api\//, config: { limit: 100, windowSeconds: 60 } },
-];
-
-function getConfig(path: string): RateLimitConfig | null {
-  for (const { pattern, config } of RATE_LIMITS) {
-    if (pattern.test(path)) return config;
-  }
+function getRateLimiter(env: AppContext["Bindings"], path: string): RateLimiter | null {
+  if (path === "/auth/me") return null;
+  if (path.startsWith("/auth/")) return env.RL_AUTH;
+  if (path === "/api/client-errors") return env.RL_CLIENT_ERRORS;
+  if (path === "/api/search") return env.RL_SEARCH;
+  if (path.startsWith("/api/")) return env.RL_API;
   return null;
 }
 
 export const rateLimitMiddleware = createMiddleware<AppContext>(async (c, next) => {
-  const config = getConfig(c.req.path);
-  if (config == null) {
+  const limiter = getRateLimiter(c.env, c.req.path);
+  if (limiter == null) {
     await next();
     return;
   }
 
   const ip = c.req.header("CF-Connecting-IP") ?? "unknown";
-  const bucket = c.req.path.startsWith("/auth/")
-    ? "auth"
-    : c.req.path === "/api/client-errors"
-      ? "client-errors"
-      : c.req.path === "/api/search"
-        ? "search"
-        : "api";
-  const minute = Math.floor(Date.now() / (config.windowSeconds * 1000));
-  const key = `rl:${ip}:${bucket}:${String(minute)}`;
 
   try {
-    const current = await c.env.SESSIONS.get(key);
-    const count = current != null ? parseInt(current, 10) : 0;
+    const { success } = await limiter.limit({ key: ip });
 
-    if (count >= config.limit) {
+    if (!success) {
       c.res = new Response(JSON.stringify({ error: "Too many requests" }), {
         status: 429,
         headers: {
           "Content-Type": "application/json",
-          "Retry-After": String(config.windowSeconds),
+          "Retry-After": "60",
         },
       });
       return;
     }
-
-    await c.env.SESSIONS.put(key, String(count + 1), {
-      expirationTtl: config.windowSeconds * 2,
-    });
   } catch {
-    // KV failure (e.g. daily write limit exceeded) — degrade gracefully
+    // Rate limiter binding unavailable — degrade gracefully
   }
 
   await next();

@@ -35,6 +35,7 @@ import { websiteRoutes } from "./routes/websites";
 import { agreementRoutes } from "./routes/agreements";
 import { opportunityCadenceRoutes } from "./routes/opportunity-cadence";
 import { clientErrorRoutes } from "./routes/client-errors";
+import { uiDataRoutes } from "./routes/ui-data";
 import { runScheduledFrontSync } from "./scheduled/front-sync";
 import { realtimeMiddleware } from "./middleware/realtime";
 import { timingMiddleware } from "./middleware/timing";
@@ -99,6 +100,7 @@ app.route("/", opportunityCadenceRoutes);
 app.route("/", websiteRoutes);
 app.route("/", clientErrorRoutes);
 app.route("/", agreementRoutes);
+app.route("/", uiDataRoutes);
 
 export { RealtimeHub } from "./realtime/hub";
 

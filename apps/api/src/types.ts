@@ -2,6 +2,10 @@ import type { DrizzleD1Database } from "drizzle-orm/d1";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type * as schema from "@humans/db/schema";
 
+export interface RateLimiter {
+  limit(opts: { key: string }): Promise<{ success: boolean }>;
+}
+
 export interface Env {
   DB: D1Database;
   SESSIONS: KVNamespace;
@@ -15,6 +19,10 @@ export interface Env {
   SUPABASE_SERVICE_ROLE_KEY: string;
   FRONT_API_TOKEN: string;
   RealtimeHub: DurableObjectNamespace;
+  RL_AUTH: RateLimiter;
+  RL_API: RateLimiter;
+  RL_SEARCH: RateLimiter;
+  RL_CLIENT_ERRORS: RateLimiter;
 }
 
 export interface SessionData {

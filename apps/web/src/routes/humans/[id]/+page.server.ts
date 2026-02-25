@@ -37,21 +37,30 @@ export const load = async ({ locals, cookies, params }: RequestEvent): Promise<{
 
   const sessionToken = cookies.get("humans_session");
   const id = params.id ?? "";
-
-  // Fetch human detail (now includes phoneNumbers and pets)
-  const humanRes = await fetch(`${PUBLIC_API_URL}/api/humans/${id}`, {
-    headers: { Cookie: `humans_session=${sessionToken ?? ""}` },
-  });
-
-  if (!humanRes.ok) redirect(302, "/humans");
-  const humanRaw: unknown = await humanRes.json();
-  const human = isObjData(humanRaw) ? humanRaw.data : null;
-  if (human == null) redirect(302, "/humans");
-
-  // Helper: fetch + consume body immediately to release connection
-  // (Cloudflare Pages limits concurrent outbound connections to 6)
   const token = sessionToken ?? "";
   const headers = authHeaders(token);
+
+  // Composite endpoint: human detail + activities + opportunities + generalLeads + relationships + agreements
+  const fullRes = await fetch(`${PUBLIC_API_URL}/api/humans/${id}/full`, { headers });
+  if (!fullRes.ok) redirect(302, "/humans");
+  const fullRaw: unknown = await fullRes.json();
+  const fullData = isObjData(fullRaw) ? (fullRaw.data as Record<string, unknown>) : null;
+  if (fullData == null) redirect(302, "/humans");
+
+  const human = fullData.human as Record<string, unknown> | null;
+  if (human == null) redirect(302, "/humans");
+
+  const activitiesResult = fullData.activities as { data: unknown[] } | undefined;
+  const activities = activitiesResult?.data ?? [];
+  const opportunitiesResult = fullData.opportunities as { data: unknown[] } | undefined;
+  const humanOpportunities = opportunitiesResult?.data ?? [];
+  const generalLeadsResult = fullData.generalLeads as { data: unknown[] } | undefined;
+  const generalLeads = generalLeadsResult?.data ?? [];
+  const humanRelationships = (fullData.relationships ?? []) as unknown[];
+  const agreementsResult = fullData.agreements as { data: unknown[] } | undefined;
+  const humanAgreements = agreementsResult?.data ?? [];
+
+  // Helper: fetch + consume body immediately to release connection
   async function fetchList(url: string): Promise<unknown[]> {
     const res = await fetch(url, { headers });
     if (!res.ok) return [];
@@ -59,13 +68,12 @@ export const load = async ({ locals, cookies, params }: RequestEvent): Promise<{
     return isListData(raw) ? raw.data : [];
   }
 
-  // Batch 1: all configs in one call + activities + route signups
-  const [configs, activities, allRouteSignups, allBookingRequests, allAccounts] = await Promise.all([
+  // Parallel batch: configs + dropdown data + Supabase lists (route signups & booking requests)
+  const [configs, dropdownRes, allRouteSignups, allBookingRequests] = await Promise.all([
     fetchConfigs(token, ["human-email-labels", "human-phone-labels", "social-id-platforms", "account-human-labels", "human-relationship-labels", "agreement-types"]),
-    fetchList(`${PUBLIC_API_URL}/api/activities?humanId=${id}&include=linkedEntities`),
+    fetch(`${PUBLIC_API_URL}/api/ui/dropdown-data`, { headers }),
     fetchList(`${PUBLIC_API_URL}/api/route-signups?limit=100`),
     fetchList(`${PUBLIC_API_URL}/api/website-booking-requests?limit=100`),
-    fetchList(`${PUBLIC_API_URL}/api/accounts`),
   ]);
 
   const emailLabelConfigs = configs["human-email-labels"] ?? [];
@@ -75,15 +83,19 @@ export const load = async ({ locals, cookies, params }: RequestEvent): Promise<{
   const humanRelationshipLabelConfigs = configs["human-relationship-labels"] ?? [];
   const agreementTypes = configs["agreement-types"] ?? [];
 
-  // Batch 2: remaining data fetches
-  const [generalLeads, humanOpportunities, allDiscountCodes, humanRelationships, allHumans, humanAgreements] = await Promise.all([
-    fetchList(`${PUBLIC_API_URL}/api/general-leads?convertedHumanId=${id}&limit=50`),
-    fetchList(`${PUBLIC_API_URL}/api/opportunities?humanId=${id}&limit=50`),
-    fetchList(`${PUBLIC_API_URL}/api/discount-codes`),
-    fetchList(`${PUBLIC_API_URL}/api/humans/${id}/relationships`),
-    fetchList(`${PUBLIC_API_URL}/api/humans?limit=500`),
-    fetchList(`${PUBLIC_API_URL}/api/agreements?humanId=${id}&limit=50`),
-  ]);
+  // Extract dropdown data
+  let allAccounts: unknown[] = [];
+  let allHumans: unknown[] = [];
+  let allDiscountCodes: unknown[] = [];
+  if (dropdownRes.ok) {
+    const dropdownRaw: unknown = await dropdownRes.json();
+    if (isObjData(dropdownRaw)) {
+      const dd = dropdownRaw.data as Record<string, unknown>;
+      allAccounts = Array.isArray(dd.accounts) ? dd.accounts : [];
+      allHumans = Array.isArray(dd.humans) ? dd.humans : [];
+      allDiscountCodes = Array.isArray(dd.discountCodes) ? dd.discountCodes : [];
+    }
+  }
 
   // Derive convertedFromLead from the first general lead (backwards compat)
   const firstLead = generalLeads[0];
