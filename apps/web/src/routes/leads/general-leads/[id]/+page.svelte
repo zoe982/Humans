@@ -189,6 +189,19 @@
     <AlertBanner type="success" message="Saved successfully." />
   {/if}
 
+  <!-- Next Action -->
+  {#if !isClosed}
+    <div class="mb-6">
+      <NextActionSection
+        apiEndpoint={`/api/general-leads/${lead.id}/next-action`}
+        {colleagueOptions}
+        {currentColleagueId}
+        nextAction={lead.nextAction ?? null}
+        warnWhenEmpty={lead.status !== "open"}
+      />
+    </div>
+  {/if}
+
   <!-- Helper text -->
   <div class="mt-4 rounded-xl bg-glass/50 border border-glass-border px-4 py-3 text-sm text-text-muted">
     A General Lead is an unverified contact record. Convert to create a verified Human.
@@ -368,19 +381,6 @@
       {/snippet}
     </RelatedListTable>
   </div>
-
-  <!-- Next Action -->
-  {#if !isClosed}
-    <div class="mb-6">
-      <NextActionSection
-        apiEndpoint={`/api/general-leads/${lead.id}/next-action`}
-        {colleagueOptions}
-        {currentColleagueId}
-        nextAction={lead.nextAction ?? null}
-        warnWhenEmpty={lead.status !== "open"}
-      />
-    </div>
-  {/if}
 
   <!-- Danger Zone (Admin only) -->
   {#if isAdmin}

@@ -61,9 +61,12 @@ describe("auth middleware — sliding session refresh", () => {
     );
 
     // Verify refreshedAt was added to the session payload
-    const putCall = kv.put.mock.calls[0] as [string, string, { expirationTtl: number }];
-    const updated = JSON.parse(putCall[1]) as Record<string, unknown>;
-    expect(updated.refreshedAt).toEqual(expect.any(Number));
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- JSON.parse returns any
+    const storedPayload: unknown = JSON.parse(String(kv.put.mock.calls[0]?.[1]));
+    expect(storedPayload).toStrictEqual(
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- expect.any returns any
+      expect.objectContaining({ refreshedAt: expect.any(Number) }),
+    );
   });
 
   it("does NOT refresh session when refreshedAt is recent (< 1 hour)", async () => {
@@ -97,9 +100,13 @@ describe("auth middleware — sliding session refresh", () => {
       { expirationTtl: SESSION_TTL_SECONDS },
     );
 
-    const putCall = kv.put.mock.calls[0] as [string, string, { expirationTtl: number }];
-    const updated = JSON.parse(putCall[1]) as Record<string, unknown>;
-    expect(updated.refreshedAt).toEqual(expect.any(Number));
-    expect(updated.refreshedAt as number).toBeGreaterThan(staleTimestamp);
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- JSON.parse returns any
+    const storedPayload: unknown = JSON.parse(String(kv.put.mock.calls[0]?.[1]));
+    expect(storedPayload).toStrictEqual(
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- expect.any returns any
+      expect.objectContaining({ refreshedAt: expect.any(Number) }),
+    );
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- shape validated by objectContaining above
+    expect((storedPayload as { refreshedAt: number }).refreshedAt).toBeGreaterThan(staleTimestamp);
   });
 });

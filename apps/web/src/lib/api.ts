@@ -89,7 +89,7 @@ export async function api(
     // Browser 401 → redirect to login instead of throwing
     if (res.status === 401 && browser) {
       window.location.href = "/login";
-      return new Promise<never>(() => {});
+      return new Promise<never>(() => { /* never resolves — navigation takes over */ });
     }
 
     throw new ApiRequestError(info.message, info.code, info.requestId, info.details, res.status);

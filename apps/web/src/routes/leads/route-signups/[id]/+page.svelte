@@ -158,6 +158,18 @@
     <AlertBanner type="success" message="Saved successfully." />
   {/if}
 
+  <!-- Next Action -->
+  {#if !isClosed}
+    <div class="mb-6">
+      <NextActionSection
+        apiEndpoint={`/api/route-signups/${signup.id}/next-action`}
+        {colleagueOptions}
+        {currentColleagueId}
+        nextAction={signup.nextAction ?? null}
+      />
+    </div>
+  {/if}
+
   <!-- Details -->
   <div class="glass-card p-6 mb-6">
     <h2 class="text-lg font-semibold text-text-primary">Details</h2>
@@ -343,16 +355,6 @@
       {/snippet}
     </RelatedListTable>
   </div>
-
-  <!-- Next Action -->
-  {#if !isClosed}
-    <NextActionSection
-      apiEndpoint={`/api/route-signups/${signup.id}/next-action`}
-      {colleagueOptions}
-      {currentColleagueId}
-      nextAction={signup.nextAction ?? null}
-    />
-  {/if}
 
   <!-- Danger Zone (Admin only) -->
   {#if isAdmin}

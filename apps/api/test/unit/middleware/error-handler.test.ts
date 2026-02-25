@@ -36,6 +36,7 @@ describe("error handler — information disclosure hardening", () => {
 
     const res = await app.request("/boom");
     expect(res.status).toBe(500);
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- ApiErrorResponse is the documented contract shape
     const body = (await res.json()) as ApiErrorResponse;
     // Must NOT contain the real DB error
     expect(body.error).toBe("An internal error occurred");
@@ -51,6 +52,7 @@ describe("error handler — information disclosure hardening", () => {
 
     const res = await app.request("/boom");
     expect(res.status).toBe(500);
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- ApiErrorResponse is the documented contract shape
     const body = (await res.json()) as ApiErrorResponse;
     expect(body.error).toBe("An internal error occurred");
     expect(body.error).not.toContain("password");
@@ -64,6 +66,7 @@ describe("error handler — information disclosure hardening", () => {
 
     const res = await app.request("/not-found");
     expect(res.status).toBe(404);
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- ApiErrorResponse is the documented contract shape
     const body = (await res.json()) as ApiErrorResponse;
     expect(body.error).toBe("Human not found");
   });
@@ -86,6 +89,7 @@ describe("error handler — information disclosure hardening", () => {
 
     const res = await app.request("/bad");
     expect(res.status).toBe(400);
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- ApiErrorResponse is the documented contract shape
     const body = (await res.json()) as ApiErrorResponse;
     expect(body.error).toBe("Validation failed");
     expect(body.code).toBe("VALIDATION_FAILED");
@@ -101,6 +105,7 @@ describe("error handler — HTTPException code mapping", () => {
 
     const res = await app.request("/no-auth");
     expect(res.status).toBe(401);
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- ApiErrorResponse is the documented contract shape
     const body = (await res.json()) as ApiErrorResponse;
     expect(body.code).toBe("AUTH_REQUIRED");
     expect(body.error).toBe("Authentication required");
@@ -114,6 +119,7 @@ describe("error handler — HTTPException code mapping", () => {
 
     const res = await app.request("/bad-session");
     expect(res.status).toBe(401);
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- ApiErrorResponse is the documented contract shape
     const body = (await res.json()) as ApiErrorResponse;
     expect(body.code).toBe("AUTH_INVALID_SESSION");
     expect(body.error).toBe("Invalid or expired session");
@@ -127,6 +133,7 @@ describe("error handler — HTTPException code mapping", () => {
 
     const res = await app.request("/no-perms");
     expect(res.status).toBe(403);
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- ApiErrorResponse is the documented contract shape
     const body = (await res.json()) as ApiErrorResponse;
     expect(body.code).toBe("AUTH_INSUFFICIENT_PERMS");
     expect(body.error).toBe("Insufficient permissions");
@@ -140,6 +147,7 @@ describe("error handler — HTTPException code mapping", () => {
 
     const res = await app.request("/other");
     expect(res.status).toBe(418);
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- ApiErrorResponse is the documented contract shape
     const body = (await res.json()) as ApiErrorResponse;
     expect(body.code).toBe("INTERNAL_ERROR");
     expect(body.error).toBe("I'm a teapot");
