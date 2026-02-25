@@ -8,6 +8,29 @@ function getFormString(form: FormData, key: string): string {
   return typeof raw === "string" ? raw : "";
 }
 
+async function renameConfig(
+  request: Request,
+  cookies: { get: (name: string) => string | undefined },
+  configType: string,
+): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> {
+  const form = await request.formData();
+  const sessionToken = cookies.get("humans_session") ?? "";
+  const id = getFormString(form, "id");
+  const name = getFormString(form, "name");
+
+  const res = await fetch(`${PUBLIC_API_URL}/api/admin/account-config/${configType}/${id}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", Cookie: `humans_session=${sessionToken}` },
+    body: JSON.stringify({ name }),
+  });
+
+  if (!res.ok) {
+    const resBody: unknown = await res.json().catch(() => ({}));
+    return failFromApi(resBody, res.status, "Failed to rename");
+  }
+  return { success: true };
+}
+
 export const load = async ({ locals, cookies }: RequestEvent): Promise<{
   accountTypes: unknown[];
   humanLabels: unknown[];
@@ -354,4 +377,31 @@ export const actions = {
     }
     return { success: true };
   },
+
+  renameAccountType: async ({ request, cookies }: RequestEvent) =>
+    renameConfig(request, cookies, "account-types"),
+
+  renameHumanLabel: async ({ request, cookies }: RequestEvent) =>
+    renameConfig(request, cookies, "account-human-labels"),
+
+  renameEmailLabel: async ({ request, cookies }: RequestEvent) =>
+    renameConfig(request, cookies, "account-email-labels"),
+
+  renamePhoneLabel: async ({ request, cookies }: RequestEvent) =>
+    renameConfig(request, cookies, "account-phone-labels"),
+
+  renameHumanEmailLabel: async ({ request, cookies }: RequestEvent) =>
+    renameConfig(request, cookies, "human-email-labels"),
+
+  renameHumanPhoneLabel: async ({ request, cookies }: RequestEvent) =>
+    renameConfig(request, cookies, "human-phone-labels"),
+
+  renameOpportunityHumanRole: async ({ request, cookies }: RequestEvent) =>
+    renameConfig(request, cookies, "opportunity-human-roles"),
+
+  renameHumanRelationshipLabel: async ({ request, cookies }: RequestEvent) =>
+    renameConfig(request, cookies, "human-relationship-labels"),
+
+  renameAgreementType: async ({ request, cookies }: RequestEvent) =>
+    renameConfig(request, cookies, "agreement-types"),
 };

@@ -545,5 +545,302 @@ describe("admin/account-config +page.server", () => {
         expect(isActionFailure(result)).toBe(true);
       });
     });
+
+    describe("renameAccountType", () => {
+      it("renames an account type successfully", async () => {
+        mockFetch = createMockFetch({
+          "account-types": { body: { success: true } },
+        });
+        vi.stubGlobal("fetch", mockFetch);
+
+        const event = mockEvent({ formData: { id: "type-1", name: "Updated Name" } });
+        const result = await actions.renameAccountType(event as any);
+
+        expect(result).toEqual({ success: true });
+        expect(mockFetch).toHaveBeenCalledWith(
+          expect.stringContaining("account-types/type-1"),
+          expect.objectContaining({ method: "PATCH" }),
+        );
+      });
+
+      it("returns failure when API errors", async () => {
+        mockFetch = createMockFetch({
+          "account-types": { status: 400, body: { error: "Invalid name" } },
+        });
+        vi.stubGlobal("fetch", mockFetch);
+
+        const event = mockEvent({ formData: { id: "type-1", name: "" } });
+        const result = await actions.renameAccountType(event as any);
+
+        expect(isActionFailure(result)).toBe(true);
+        if (isActionFailure(result)) {
+          expect(result.status).toBe(400);
+        }
+      });
+    });
+
+    describe("renameHumanLabel", () => {
+      it("renames a human label successfully", async () => {
+        mockFetch = createMockFetch({
+          "account-human-labels": { body: { success: true } },
+        });
+        vi.stubGlobal("fetch", mockFetch);
+
+        const event = mockEvent({ formData: { id: "label-1", name: "Updated Name" } });
+        const result = await actions.renameHumanLabel(event as any);
+
+        expect(result).toEqual({ success: true });
+        expect(mockFetch).toHaveBeenCalledWith(
+          expect.stringContaining("account-human-labels/label-1"),
+          expect.objectContaining({ method: "PATCH" }),
+        );
+      });
+
+      it("returns failure when API errors", async () => {
+        mockFetch = createMockFetch({
+          "account-human-labels": { status: 400, body: { error: "Invalid name" } },
+        });
+        vi.stubGlobal("fetch", mockFetch);
+
+        const event = mockEvent({ formData: { id: "label-1", name: "" } });
+        const result = await actions.renameHumanLabel(event as any);
+
+        expect(isActionFailure(result)).toBe(true);
+        if (isActionFailure(result)) {
+          expect(result.status).toBe(400);
+        }
+      });
+    });
+
+    describe("renameEmailLabel", () => {
+      it("renames an email label successfully", async () => {
+        mockFetch = createMockFetch({
+          "account-email-labels": { body: { success: true } },
+        });
+        vi.stubGlobal("fetch", mockFetch);
+
+        const event = mockEvent({ formData: { id: "el-1", name: "Updated Name" } });
+        const result = await actions.renameEmailLabel(event as any);
+
+        expect(result).toEqual({ success: true });
+        expect(mockFetch).toHaveBeenCalledWith(
+          expect.stringContaining("account-email-labels/el-1"),
+          expect.objectContaining({ method: "PATCH" }),
+        );
+      });
+
+      it("returns failure when API errors", async () => {
+        mockFetch = createMockFetch({
+          "account-email-labels": { status: 400, body: { error: "Invalid name" } },
+        });
+        vi.stubGlobal("fetch", mockFetch);
+
+        const event = mockEvent({ formData: { id: "el-1", name: "" } });
+        const result = await actions.renameEmailLabel(event as any);
+
+        expect(isActionFailure(result)).toBe(true);
+        if (isActionFailure(result)) {
+          expect(result.status).toBe(400);
+        }
+      });
+    });
+
+    describe("renamePhoneLabel", () => {
+      it("renames a phone label successfully", async () => {
+        mockFetch = createMockFetch({
+          "account-phone-labels": { body: { success: true } },
+        });
+        vi.stubGlobal("fetch", mockFetch);
+
+        const event = mockEvent({ formData: { id: "pl-1", name: "Updated Name" } });
+        const result = await actions.renamePhoneLabel(event as any);
+
+        expect(result).toEqual({ success: true });
+        expect(mockFetch).toHaveBeenCalledWith(
+          expect.stringContaining("account-phone-labels/pl-1"),
+          expect.objectContaining({ method: "PATCH" }),
+        );
+      });
+
+      it("returns failure when API errors", async () => {
+        mockFetch = createMockFetch({
+          "account-phone-labels": { status: 400, body: { error: "Invalid name" } },
+        });
+        vi.stubGlobal("fetch", mockFetch);
+
+        const event = mockEvent({ formData: { id: "pl-1", name: "" } });
+        const result = await actions.renamePhoneLabel(event as any);
+
+        expect(isActionFailure(result)).toBe(true);
+        if (isActionFailure(result)) {
+          expect(result.status).toBe(400);
+        }
+      });
+    });
+
+    describe("renameHumanEmailLabel", () => {
+      it("renames a human email label successfully", async () => {
+        mockFetch = createMockFetch({
+          "human-email-labels": { body: { success: true } },
+        });
+        vi.stubGlobal("fetch", mockFetch);
+
+        const event = mockEvent({ formData: { id: "hel-1", name: "Updated Name" } });
+        const result = await actions.renameHumanEmailLabel(event as any);
+
+        expect(result).toEqual({ success: true });
+        expect(mockFetch).toHaveBeenCalledWith(
+          expect.stringContaining("human-email-labels/hel-1"),
+          expect.objectContaining({ method: "PATCH" }),
+        );
+      });
+
+      it("returns failure when API errors", async () => {
+        mockFetch = createMockFetch({
+          "human-email-labels": { status: 400, body: { error: "Invalid name" } },
+        });
+        vi.stubGlobal("fetch", mockFetch);
+
+        const event = mockEvent({ formData: { id: "hel-1", name: "" } });
+        const result = await actions.renameHumanEmailLabel(event as any);
+
+        expect(isActionFailure(result)).toBe(true);
+        if (isActionFailure(result)) {
+          expect(result.status).toBe(400);
+        }
+      });
+    });
+
+    describe("renameHumanPhoneLabel", () => {
+      it("renames a human phone label successfully", async () => {
+        mockFetch = createMockFetch({
+          "human-phone-labels": { body: { success: true } },
+        });
+        vi.stubGlobal("fetch", mockFetch);
+
+        const event = mockEvent({ formData: { id: "hpl-1", name: "Updated Name" } });
+        const result = await actions.renameHumanPhoneLabel(event as any);
+
+        expect(result).toEqual({ success: true });
+        expect(mockFetch).toHaveBeenCalledWith(
+          expect.stringContaining("human-phone-labels/hpl-1"),
+          expect.objectContaining({ method: "PATCH" }),
+        );
+      });
+
+      it("returns failure when API errors", async () => {
+        mockFetch = createMockFetch({
+          "human-phone-labels": { status: 400, body: { error: "Invalid name" } },
+        });
+        vi.stubGlobal("fetch", mockFetch);
+
+        const event = mockEvent({ formData: { id: "hpl-1", name: "" } });
+        const result = await actions.renameHumanPhoneLabel(event as any);
+
+        expect(isActionFailure(result)).toBe(true);
+        if (isActionFailure(result)) {
+          expect(result.status).toBe(400);
+        }
+      });
+    });
+
+    describe("renameOpportunityHumanRole", () => {
+      it("renames an opportunity human role successfully", async () => {
+        mockFetch = createMockFetch({
+          "opportunity-human-roles": { body: { success: true } },
+        });
+        vi.stubGlobal("fetch", mockFetch);
+
+        const event = mockEvent({ formData: { id: "role-1", name: "Updated Name" } });
+        const result = await actions.renameOpportunityHumanRole(event as any);
+
+        expect(result).toEqual({ success: true });
+        expect(mockFetch).toHaveBeenCalledWith(
+          expect.stringContaining("opportunity-human-roles/role-1"),
+          expect.objectContaining({ method: "PATCH" }),
+        );
+      });
+
+      it("returns failure when API errors", async () => {
+        mockFetch = createMockFetch({
+          "opportunity-human-roles": { status: 400, body: { error: "Invalid name" } },
+        });
+        vi.stubGlobal("fetch", mockFetch);
+
+        const event = mockEvent({ formData: { id: "role-1", name: "" } });
+        const result = await actions.renameOpportunityHumanRole(event as any);
+
+        expect(isActionFailure(result)).toBe(true);
+        if (isActionFailure(result)) {
+          expect(result.status).toBe(400);
+        }
+      });
+    });
+
+    describe("renameHumanRelationshipLabel", () => {
+      it("renames a human relationship label successfully", async () => {
+        mockFetch = createMockFetch({
+          "human-relationship-labels": { body: { success: true } },
+        });
+        vi.stubGlobal("fetch", mockFetch);
+
+        const event = mockEvent({ formData: { id: "hrl-1", name: "Updated Name" } });
+        const result = await actions.renameHumanRelationshipLabel(event as any);
+
+        expect(result).toEqual({ success: true });
+        expect(mockFetch).toHaveBeenCalledWith(
+          expect.stringContaining("human-relationship-labels/hrl-1"),
+          expect.objectContaining({ method: "PATCH" }),
+        );
+      });
+
+      it("returns failure when API errors", async () => {
+        mockFetch = createMockFetch({
+          "human-relationship-labels": { status: 400, body: { error: "Invalid name" } },
+        });
+        vi.stubGlobal("fetch", mockFetch);
+
+        const event = mockEvent({ formData: { id: "hrl-1", name: "" } });
+        const result = await actions.renameHumanRelationshipLabel(event as any);
+
+        expect(isActionFailure(result)).toBe(true);
+        if (isActionFailure(result)) {
+          expect(result.status).toBe(400);
+        }
+      });
+    });
+
+    describe("renameAgreementType", () => {
+      it("renames an agreement type successfully", async () => {
+        mockFetch = createMockFetch({
+          "agreement-types": { body: { success: true } },
+        });
+        vi.stubGlobal("fetch", mockFetch);
+
+        const event = mockEvent({ formData: { id: "at-1", name: "Updated Name" } });
+        const result = await actions.renameAgreementType(event as any);
+
+        expect(result).toEqual({ success: true });
+        expect(mockFetch).toHaveBeenCalledWith(
+          expect.stringContaining("agreement-types/at-1"),
+          expect.objectContaining({ method: "PATCH" }),
+        );
+      });
+
+      it("returns failure when API errors", async () => {
+        mockFetch = createMockFetch({
+          "agreement-types": { status: 400, body: { error: "Invalid name" } },
+        });
+        vi.stubGlobal("fetch", mockFetch);
+
+        const event = mockEvent({ formData: { id: "at-1", name: "" } });
+        const result = await actions.renameAgreementType(event as any);
+
+        expect(isActionFailure(result)).toBe(true);
+        if (isActionFailure(result)) {
+          expect(result.status).toBe(400);
+        }
+      });
+    });
   });
 });
