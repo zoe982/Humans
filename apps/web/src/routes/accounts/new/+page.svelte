@@ -39,7 +39,7 @@
       <div>
         <label class="block text-sm font-medium text-text-secondary">Types</label>
         <div class="mt-2 flex gap-4 flex-wrap">
-          {#each accountTypes as t (t.id)}
+          {#each accountTypes as t, i (i)}
             <label class="flex items-center gap-2 text-sm text-text-primary">
               <input type="checkbox" name="typeIds" value={t.id} class="rounded border-glass-border bg-glass text-accent focus:ring-accent" />
               {t.name}

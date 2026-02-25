@@ -58,7 +58,7 @@
         <p class="text-text-muted text-sm mb-4">No account types yet.</p>
       {:else}
         <div class="space-y-2 mb-4">
-          {#each accountTypes as item (item.id)}
+          {#each accountTypes as item, i (i)}
             <div class="flex items-center justify-between p-3 rounded-lg bg-glass hover:bg-glass-hover transition-colors">
               {#if editingId === item.id}
                 <form method="POST" action="?/renameAccountType" use:enhance={() => { return async ({ update }) => { cancelEdit(); await update(); }; }} class="flex items-center gap-2 flex-1 mr-2">
@@ -100,7 +100,7 @@
         <p class="text-text-muted text-sm mb-4">No role labels yet.</p>
       {:else}
         <div class="space-y-2 mb-4">
-          {#each humanLabels as item (item.id)}
+          {#each humanLabels as item, i (i)}
             <div class="flex items-center justify-between p-3 rounded-lg bg-glass hover:bg-glass-hover transition-colors">
               {#if editingId === item.id}
                 <form method="POST" action="?/renameHumanLabel" use:enhance={() => { return async ({ update }) => { cancelEdit(); await update(); }; }} class="flex items-center gap-2 flex-1 mr-2">
@@ -142,7 +142,7 @@
         <p class="text-text-muted text-sm mb-4">No email labels yet.</p>
       {:else}
         <div class="space-y-2 mb-4">
-          {#each emailLabels as item (item.id)}
+          {#each emailLabels as item, i (i)}
             <div class="flex items-center justify-between p-3 rounded-lg bg-glass hover:bg-glass-hover transition-colors">
               {#if editingId === item.id}
                 <form method="POST" action="?/renameEmailLabel" use:enhance={() => { return async ({ update }) => { cancelEdit(); await update(); }; }} class="flex items-center gap-2 flex-1 mr-2">
@@ -184,7 +184,7 @@
         <p class="text-text-muted text-sm mb-4">No phone labels yet.</p>
       {:else}
         <div class="space-y-2 mb-4">
-          {#each phoneLabels as item (item.id)}
+          {#each phoneLabels as item, i (i)}
             <div class="flex items-center justify-between p-3 rounded-lg bg-glass hover:bg-glass-hover transition-colors">
               {#if editingId === item.id}
                 <form method="POST" action="?/renamePhoneLabel" use:enhance={() => { return async ({ update }) => { cancelEdit(); await update(); }; }} class="flex items-center gap-2 flex-1 mr-2">
@@ -226,7 +226,7 @@
         <p class="text-text-muted text-sm mb-4">No human email labels yet.</p>
       {:else}
         <div class="space-y-2 mb-4">
-          {#each humanEmailLabels as item (item.id)}
+          {#each humanEmailLabels as item, i (i)}
             <div class="flex items-center justify-between p-3 rounded-lg bg-glass hover:bg-glass-hover transition-colors">
               {#if editingId === item.id}
                 <form method="POST" action="?/renameHumanEmailLabel" use:enhance={() => { return async ({ update }) => { cancelEdit(); await update(); }; }} class="flex items-center gap-2 flex-1 mr-2">
@@ -268,7 +268,7 @@
         <p class="text-text-muted text-sm mb-4">No human phone labels yet.</p>
       {:else}
         <div class="space-y-2 mb-4">
-          {#each humanPhoneLabels as item (item.id)}
+          {#each humanPhoneLabels as item, i (i)}
             <div class="flex items-center justify-between p-3 rounded-lg bg-glass hover:bg-glass-hover transition-colors">
               {#if editingId === item.id}
                 <form method="POST" action="?/renameHumanPhoneLabel" use:enhance={() => { return async ({ update }) => { cancelEdit(); await update(); }; }} class="flex items-center gap-2 flex-1 mr-2">
@@ -310,7 +310,7 @@
         <p class="text-text-muted text-sm mb-4">No opportunity human roles yet.</p>
       {:else}
         <div class="space-y-2 mb-4">
-          {#each opportunityHumanRoles as item (item.id)}
+          {#each opportunityHumanRoles as item, i (i)}
             <div class="flex items-center justify-between p-3 rounded-lg bg-glass hover:bg-glass-hover transition-colors">
               {#if editingId === item.id}
                 <form method="POST" action="?/renameOpportunityHumanRole" use:enhance={() => { return async ({ update }) => { cancelEdit(); await update(); }; }} class="flex items-center gap-2 flex-1 mr-2">
@@ -352,7 +352,7 @@
         <p class="text-text-muted text-sm mb-4">No agreement types yet.</p>
       {:else}
         <div class="space-y-2 mb-4">
-          {#each agreementTypes as item (item.id)}
+          {#each agreementTypes as item, i (i)}
             <div class="flex items-center justify-between p-3 rounded-lg bg-glass hover:bg-glass-hover transition-colors">
               {#if editingId === item.id}
                 <form method="POST" action="?/renameAgreementType" use:enhance={() => { return async ({ update }) => { cancelEdit(); await update(); }; }} class="flex items-center gap-2 flex-1 mr-2">
@@ -394,7 +394,7 @@
         <p class="text-text-muted text-sm mb-4">No relationship labels yet.</p>
       {:else}
         <div class="space-y-2 mb-4">
-          {#each humanRelationshipLabels as item (item.id)}
+          {#each humanRelationshipLabels as item, i (i)}
             <div class="flex items-center justify-between p-3 rounded-lg bg-glass hover:bg-glass-hover transition-colors">
               {#if editingId === item.id}
                 <form method="POST" action="?/renameHumanRelationshipLabel" use:enhance={() => { return async ({ update }) => { cancelEdit(); await update(); }; }} class="flex items-center gap-2 flex-1 mr-2">

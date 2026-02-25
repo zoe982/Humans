@@ -88,12 +88,12 @@
     <div class="mt-8">
       <h2 class="text-lg font-semibold text-text-primary">Accounts ({accounts.length})</h2>
       <ul class="mt-3 glass-card divide-y divide-glass-border">
-        {#each accounts as account (account.id)}
+        {#each accounts as account, i (i)}
           <li>
             <a href={resolve(`/accounts/${account.id}`)} class="block px-6 py-4 hover:bg-glass-hover transition-colors">
               <div class="flex items-center gap-2">
                 <p class="text-sm font-medium text-accent">{account.name}</p>
-                {#each account.types as t (t.id)}
+                {#each account.types as t, i (i)}
                   <span class="glass-badge badge-purple text-xs">{t.name}</span>
                 {/each}
               </div>
@@ -108,7 +108,7 @@
     <div class="mt-8">
       <h2 class="text-lg font-semibold text-text-primary">Humans ({humans.length})</h2>
       <ul class="mt-3 glass-card divide-y divide-glass-border">
-        {#each humans as human (human.id)}
+        {#each humans as human, i (i)}
           <li>
             <a href={resolve(`/humans/${human.id}`)} class="block px-6 py-4 hover:bg-glass-hover transition-colors">
               <p class="text-sm font-medium text-accent">{human.firstName} {human.lastName}</p>
@@ -126,7 +126,7 @@
     <div class="mt-8">
       <h2 class="text-lg font-semibold text-text-primary">Route Signups ({routeSignups.length})</h2>
       <ul class="mt-3 glass-card divide-y divide-glass-border">
-        {#each routeSignups as signup (signup.id)}
+        {#each routeSignups as signup, i (i)}
           <li>
             <a href={resolve(`/leads/route-signups/${signup.id}`)} class="block px-6 py-4 hover:bg-glass-hover transition-colors">
               <div class="flex items-center justify-between">
@@ -152,7 +152,7 @@
     <div class="mt-8">
       <h2 class="text-lg font-semibold text-text-primary">Activities ({activities.length})</h2>
       <ul class="mt-3 glass-card divide-y divide-glass-border">
-        {#each activities as activity (activity.id)}
+        {#each activities as activity, i (i)}
           <li class="px-6 py-4">
             <div class="flex items-center justify-between">
               <div class="flex items-center gap-2">
@@ -180,7 +180,7 @@
     <div class="mt-8">
       <h2 class="text-lg font-semibold text-text-primary">Geo-Interests ({geoInterests.length})</h2>
       <ul class="mt-3 glass-card divide-y divide-glass-border">
-        {#each geoInterests as gi (gi.id)}
+        {#each geoInterests as gi, i (i)}
           <li>
             <a href={resolve(`/geo-interests/${gi.id}`)} class="block px-6 py-4 hover:bg-glass-hover transition-colors">
               <p class="text-sm font-medium text-accent">{gi.city}, {gi.country}</p>

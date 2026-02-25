@@ -383,7 +383,7 @@
               </tr>
             </thead>
             <tbody>
-              {#each lastRunUnmatched as contact (contact.conversationId)}
+              {#each lastRunUnmatched as contact, i (i)}
                 <tr
                   class="glass-row-hover cursor-pointer"
                   onclick={() => openDebugSheet(contact)}
@@ -428,7 +428,7 @@
             </tr>
           </thead>
           <tbody>
-            {#each syncRuns as run (run.id)}
+            {#each syncRuns as run, i (i)}
               {@const runUnmatched = parseUnmatchedContacts(run.unmatchedContacts)}
               <tr class="glass-row-hover">
                 <td class="font-mono text-xs text-accent">{run.displayId}</td>
@@ -498,7 +498,7 @@
                           </tr>
                         </thead>
                         <tbody>
-                          {#each runUnmatched as contact (contact.conversationId)}
+                          {#each runUnmatched as contact, i (i)}
                             <tr
                               class="border-t border-yellow-500/10 hover:bg-yellow-500/10 cursor-pointer transition-colors"
                               onclick={() => openDebugSheet(contact)}
@@ -685,7 +685,7 @@
                 </tr>
               </thead>
               <tbody>
-                {#each unmatchedContacts as contact (contact.conversationId)}
+                {#each unmatchedContacts as contact, i (i)}
                   <tr class="border-t border-yellow-500/10">
                     <td class="py-1 pr-3 font-mono">{contact.handle}</td>
                     <td class="py-1 pr-3 text-text-secondary">{contact.name ?? "—"}</td>

@@ -57,7 +57,7 @@
     </td>
     <td>
       <div class="flex gap-1 flex-wrap">
-        {#each account.types as t (t.id)}
+        {#each account.types as t, i (i)}
           <span class="glass-badge badge-purple">
             {t.name}
           </span>
@@ -74,7 +74,7 @@
         <StatusBadge status={account.status ?? "open"} colorMap={statusColors} />
       </div>
       <div class="flex gap-1 flex-wrap">
-        {#each account.types as t (t.id)}
+        {#each account.types as t, i (i)}
           <span class="glass-badge text-xs badge-purple">{t.name}</span>
         {/each}
       </div>

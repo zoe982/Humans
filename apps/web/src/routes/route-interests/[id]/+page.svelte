@@ -355,7 +355,7 @@
           />
           {#if showHumanDropdown && filteredHumans.length > 0}
             <div class="absolute z-50 mt-1 w-full max-h-48 overflow-y-auto rounded-lg border border-glass-border bg-surface-raised shadow-lg">
-              {#each filteredHumans as h (h.id)}
+              {#each filteredHumans as h, i (i)}
                 <button
                   type="button"
                   class="block w-full px-3 py-2 text-left text-sm text-text-primary hover:bg-glass-hover transition-colors {h.id === selectedHumanId ? 'bg-accent-dim text-accent' : ''}"

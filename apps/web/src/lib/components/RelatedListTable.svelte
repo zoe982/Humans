@@ -144,7 +144,7 @@
           </tr>
         </thead>
         <tbody>
-          {#each filteredSortedItems as item, idx (`${item.id}-${idx}`)}
+          {#each filteredSortedItems as item, idx (idx)}
             <tr class="glass-row-hover">
               {@render row(item, searchQuery)}
             </tr>

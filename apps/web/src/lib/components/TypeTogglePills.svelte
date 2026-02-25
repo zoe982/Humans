@@ -48,7 +48,7 @@
 
 <div>
   <div role="group" aria-label="Types" class="flex flex-wrap gap-2">
-    {#each typeConfigs as tc (tc.value)}
+    {#each typeConfigs as tc, i (i)}
       {@const active = current.includes(tc.value)}
       <button
         type="button"
@@ -62,7 +62,7 @@
     {/each}
   </div>
 
-  {#each current as value (value)}
+  {#each current as value, i (i)}
     <input type="hidden" {name} {value} />
   {/each}
 

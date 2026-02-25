@@ -118,7 +118,7 @@
               No results found.
             </CommandPrimitive.Empty>
           {:else}
-            {#each results as result (result.id)}
+            {#each results as result, i (i)}
               {@const Icon = categoryIcons[result.category] ?? Search}
               <CommandPrimitive.Item
                 value={result.id}

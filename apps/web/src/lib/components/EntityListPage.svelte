@@ -179,7 +179,7 @@
 
   <!-- Mobile card view -->
   <div class="sm:hidden space-y-3">
-    {#each displayItems as item (item.id)}
+    {#each displayItems as item, i (i)}
       {@render mobileCard(item)}
     {:else}
       <div class="glass-card p-6 text-center text-sm text-text-muted">{emptyMessage}</div>
@@ -208,7 +208,7 @@
         </tr>
       </thead>
       <tbody>
-        {#each displayItems as item (item.id)}
+        {#each displayItems as item, i (i)}
           <tr class="glass-row-hover">
             {@render desktopRow(item)}
             {#if canDelete}

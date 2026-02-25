@@ -114,7 +114,7 @@
           </tr>
         </thead>
         <tbody>
-          {#each errors as entry (entry.id)}
+          {#each errors as entry, i (i)}
             <tr class="glass-row-hover">
               <td class="font-mono text-xs">
                 <a href={resolve(`/admin/error-log/${entry.id}`)} class="text-accent hover:text-[var(--link-hover)]">{entry.displayId}</a>

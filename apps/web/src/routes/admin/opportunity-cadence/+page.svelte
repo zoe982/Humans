@@ -40,7 +40,7 @@
   {/if}
 
   <div class="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-    {#each cadenceConfigs as config (config.id)}
+    {#each cadenceConfigs as config, i (i)}
       <form method="POST" action="?/updateCadence" class="glass-card p-5 space-y-4">
         <input type="hidden" name="id" value={config.id} />
         <h2 class="text-lg font-semibold text-text-primary">

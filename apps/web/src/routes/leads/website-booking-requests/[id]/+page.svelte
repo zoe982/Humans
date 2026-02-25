@@ -310,7 +310,7 @@
   {#if linkedHumans.length > 0}
     <div class="glass-card p-6 mb-6">
       <h2 class="text-lg font-semibold text-text-primary">Linked Human</h2>
-      {#each linkedHumans as lh (lh.id)}
+      {#each linkedHumans as lh, i (i)}
         <div class="mt-4 flex items-center justify-between">
           <div>
             <a href={resolve(`/humans/${lh.humanId}`)} class="text-sm font-medium text-accent-primary hover:underline">
@@ -345,7 +345,7 @@
           </div>
           {#if searchResults.length > 0}
             <ul class="mt-2 divide-y divide-glass-border rounded-xl border border-glass-border overflow-hidden">
-              {#each searchResults as human (human.id)}
+              {#each searchResults as human, i (i)}
                 <li class="flex items-center justify-between px-4 py-3 bg-glass hover:bg-glass-hover transition-colors">
                   <div>
                     <p class="text-sm font-medium text-text-primary">{human.firstName} {human.lastName}</p>

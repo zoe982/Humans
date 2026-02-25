@@ -223,7 +223,7 @@
           </div>
           {#if searchResults.length > 0}
             <ul class="mt-2 divide-y divide-glass-border rounded-xl border border-glass-border overflow-hidden">
-              {#each searchResults as human (human.id)}
+              {#each searchResults as human, i (i)}
                 <li class="flex items-center justify-between px-4 py-3 bg-glass hover:bg-glass-hover transition-colors">
                   <div>
                     <p class="text-sm font-medium text-text-primary">{human.firstName} {human.lastName}</p>

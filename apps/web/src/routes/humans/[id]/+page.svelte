@@ -1113,7 +1113,7 @@
             <label for="discountCodeId" class="block text-sm font-medium text-text-secondary">Discount Code</label>
             <select id="discountCodeId" name="discountCodeId" required class="glass-input mt-1 block w-full">
               <option value="">Select a discount code...</option>
-              {#each data.allDiscountCodes as dc (dc.id)}
+              {#each data.allDiscountCodes as dc, i (i)}
                 <option value={dc.id}>{dc.code} ({dc.crmDisplayId ?? dc.id})</option>
               {/each}
             </select>

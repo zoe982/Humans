@@ -30,7 +30,7 @@
 
 <div class="sticky top-16 z-30 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 bg-[rgba(15,36,64,0.85)] backdrop-blur-md border-b border-glass-border" role="tablist" aria-label="Record sections">
   <div class="flex gap-1 overflow-x-auto py-1 scrollbar-none">
-    {#each tabs as tab (tab.id)}
+    {#each tabs as tab, i (i)}
       <button
         type="button"
         role="tab"

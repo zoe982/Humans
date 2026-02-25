@@ -50,7 +50,7 @@
         </tr>
       </thead>
       <tbody>
-        {#each colleagues as colleague (colleague.id)}
+        {#each colleagues as colleague, i (i)}
           <tr class="glass-row-hover">
             <td class="font-mono text-sm whitespace-nowrap text-text-muted">{colleague.displayId}</td>
             <td>

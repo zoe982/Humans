@@ -42,7 +42,7 @@
         </tr>
       </thead>
       <tbody>
-        {#each expressions as expr (expr.id)}
+        {#each expressions as expr, i (i)}
           <tr class="glass-row-hover">
             <td class="font-mono text-sm text-text-muted">{expr.displayId}</td>
             <td class="font-medium">

@@ -367,7 +367,7 @@
   >
     {#snippet actions()}
       <div class="flex gap-1">
-        {#each account.types as t, tIdx (`${t.id}-${tIdx}`)}
+        {#each account.types as t, tIdx (tIdx)}
           <span class="glass-badge inline-flex rounded-full px-2 py-0.5 text-xs font-medium badge-purple">
             {t.name}
           </span>
@@ -405,7 +405,7 @@
       <div>
         <label class="block text-sm font-medium text-text-secondary">Types</label>
         <div class="mt-2 flex gap-4 flex-wrap">
-          {#each typeConfigs as t, tIdx (`type-${t.id}-${tIdx}`)}
+          {#each typeConfigs as t, tIdx (tIdx)}
             <label class="flex items-center gap-2 text-sm text-text-secondary">
               <input
                 type="checkbox"
@@ -845,7 +845,7 @@
             <label for="discountCodeId" class="block text-sm font-medium text-text-secondary">Discount Code</label>
             <select id="discountCodeId" name="discountCodeId" required class="glass-input mt-1 block w-full">
               <option value="">Select a discount code...</option>
-              {#each allDiscountCodes as dc, dcIdx (`dc-${dc.id}-${dcIdx}`)}
+              {#each allDiscountCodes as dc, dcIdx (dcIdx)}
                 <option value={dc.id}>{dc.code} ({dc.crmDisplayId ?? dc.id})</option>
               {/each}
             </select>

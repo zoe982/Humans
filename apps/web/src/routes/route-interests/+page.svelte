@@ -234,7 +234,7 @@
 
     <!-- Mobile card view -->
     <div class="sm:hidden space-y-3">
-      {#each filteredExpressions as expr (expr.id)}
+      {#each filteredExpressions as expr, i (i)}
         <a href={resolve(`/route-interests/expressions/${expr.id}`)} class="glass-card p-4 block hover:ring-1 hover:ring-accent/40 transition">
           <div class="flex items-center justify-between mb-1">
             <span class="font-mono text-xs text-text-muted">{expr.displayId}</span>
@@ -276,7 +276,7 @@
           </tr>
         </thead>
         <tbody>
-          {#each filteredExpressions as expr (expr.id)}
+          {#each filteredExpressions as expr, i (i)}
             <tr class="glass-row-hover">
               <td class="font-mono text-sm">
                 <a href={resolve(`/route-interests/expressions/${expr.id}`)} class="text-accent hover:text-[var(--link-hover)]">{expr.displayId}</a>

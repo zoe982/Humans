@@ -97,7 +97,7 @@
             {#if loading && results.length === 0}
               <div class="px-3 py-2 text-sm text-text-muted">Searching...</div>
             {/if}
-            {#each results as geo (geo.id)}
+            {#each results as geo, i (i)}
               <button
                 type="button"
                 class="block w-full px-3 py-2 text-left text-sm text-text-secondary hover:bg-glass-hover hover:text-text-primary transition-colors"

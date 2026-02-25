@@ -41,7 +41,7 @@
         </tr>
       </thead>
       <tbody>
-        {#each logs as log (log.id)}
+        {#each logs as log, i (i)}
           <tr class="glass-row-hover">
             <td class="text-text-muted font-mono text-xs whitespace-nowrap">
               {new Date(log.createdAt).toLocaleString()}
