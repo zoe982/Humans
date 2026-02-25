@@ -26,6 +26,7 @@ import { createId } from "@humans/db";
 import { ERROR_CODES } from "@humans/shared";
 import { computeDiff, logAuditEntry } from "../lib/audit";
 import { notFound, conflict } from "../lib/errors";
+import { assertUniqueIds } from "../lib/assert-unique-ids";
 import { nextDisplayId } from "../lib/display-id";
 import { rematchActivitiesByEmail } from "./activity-rematch";
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -200,7 +201,7 @@ export async function getHumanDetail(supabase: SupabaseClient, db: DB, humanId: 
     pets: humanPets,
     geoInterestExpressions: geoInterestExpressionsWithDetails,
     routeInterestExpressions: routeInterestExpressionsWithDetails,
-    linkedAccounts,
+    linkedAccounts: assertUniqueIds(linkedAccounts, "human-linked-accounts"),
     socialIds: socialIdsWithPlatforms,
     referralCodes: humanReferralCodes,
     discountCodes: humanDiscountCodes,

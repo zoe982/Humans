@@ -10,6 +10,7 @@ import {
   accountTypes,
   accountTypesConfig,
 } from "@humans/db/schema";
+import { assertUniqueIds } from "../lib/assert-unique-ids";
 import type { DB } from "./types";
 
 export async function searchD1(db: DB, query: string): Promise<{ matchedHumans: { emails: (typeof emails.$inferSelect)[]; id: string; displayId: string; firstName: string; lastName: string; status: string | null; createdAt: string; updatedAt: string }[]; activityResults: (typeof activities.$inferSelect)[]; geoInterestsWithCounts: { expressionCount: number; humanCount: number; id: string; displayId: string; city: string; country: string; createdAt: string }[]; matchedAccounts: { types: { id: string; name: string }[]; id: string; displayId: string; name: string; status: string; createdAt: string; updatedAt: string }[] }> {
@@ -98,5 +99,10 @@ export async function searchD1(db: DB, query: string): Promise<{ matchedHumans: 
         }),
     }));
 
-  return { matchedHumans, activityResults, geoInterestsWithCounts, matchedAccounts };
+  return {
+    matchedHumans: assertUniqueIds(matchedHumans, "search-humans"),
+    activityResults: assertUniqueIds(activityResults, "search-activities"),
+    geoInterestsWithCounts,
+    matchedAccounts: assertUniqueIds(matchedAccounts, "search-accounts"),
+  };
 }
