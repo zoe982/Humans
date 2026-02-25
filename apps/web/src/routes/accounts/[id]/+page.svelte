@@ -130,6 +130,7 @@
   let historyLoaded = $state(false);
 
   let humanAddMode = $state<'link' | 'create'>('link');
+  let agreementActivationDate = $state("");
 
   // Initialize state from loaded account data
   $effect(() => {
@@ -1103,7 +1104,7 @@
           <div class="grid gap-3 sm:grid-cols-2">
             <div>
               <label for="agrDate" class="block text-sm font-medium text-text-secondary">Activation Date</label>
-              <GlassDatePicker name="activationDate" id="agrDate" />
+              <GlassDatePicker name="activationDate" id="agrDate" value={agreementActivationDate} onchange={(v) => { agreementActivationDate = v; }} />
             </div>
             <div>
               <label for="agrFile" class="block text-sm font-medium text-text-secondary">Document (PDF)</label>

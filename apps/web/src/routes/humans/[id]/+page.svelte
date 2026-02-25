@@ -228,6 +228,7 @@
   // Opportunity creation state
   let newOppPetIds = $state<string[]>([]);
   let newOppPetSelectKey = $state(0);
+  let agreementActivationDate = $state("");
 
   const oppPetOptions = $derived(
     human.pets
@@ -1150,7 +1151,7 @@
         <td class="font-mono text-sm whitespace-nowrap">
           <a href={resolve(`/pets/${pet.id}?from=${$page.url.pathname}`)} class="text-accent hover:text-[var(--link-hover)]">{pet.displayId}</a>
         </td>
-        <td>
+        <td class="whitespace-nowrap">
           <a href={resolve(`/pets/${pet.id}?from=${$page.url.pathname}`)} class="text-sm font-medium text-accent hover:text-[var(--link-hover)]">{pet.name ?? pet.displayId}</a>
         </td>
         <td>
@@ -1570,7 +1571,7 @@
           <div class="grid gap-3 sm:grid-cols-2">
             <div>
               <label for="agrDate" class="block text-sm font-medium text-text-secondary">Activation Date</label>
-              <GlassDatePicker name="activationDate" id="agrDate" />
+              <GlassDatePicker name="activationDate" id="agrDate" value={agreementActivationDate} onchange={(v) => { agreementActivationDate = v; }} />
             </div>
             <div>
               <label for="agrFile" class="block text-sm font-medium text-text-secondary">Document (PDF)</label>
