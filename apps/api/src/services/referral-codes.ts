@@ -1,3 +1,4 @@
+import { inArray } from "drizzle-orm";
 import { humans, accounts } from "@humans/db/schema";
 import { ERROR_CODES } from "@humans/shared";
 import { notFound } from "../lib/errors";
@@ -46,10 +47,15 @@ export async function listReferralCodes(supabase: SupabaseClient, db: DB): Promi
 
   if (error != null) throw new Error(`Supabase error: ${error.message}`);
 
-  const allHumans = await db.select().from(humans);
-  const allAccounts = await db.select().from(accounts);
-
   const typedCodes: SupabaseReferralCode[] = codes;
+  const humanIds = typedCodes.filter((rc) => rc.human_id != null).map((rc) => rc.human_id as string);
+  const accountIds = typedCodes.filter((rc) => rc.account_id != null).map((rc) => rc.account_id as string);
+  const allHumans = humanIds.length > 0
+    ? await db.select().from(humans).where(inArray(humans.id, humanIds))
+    : [];
+  const allAccounts = accountIds.length > 0
+    ? await db.select().from(accounts).where(inArray(accounts.id, accountIds))
+    : [];
   const data = typedCodes.map((rc) => {
     const mapped = toApiShape(rc);
     const human = mapped.humanId != null ? allHumans.find((h) => h.id === mapped.humanId) : null;
@@ -80,8 +86,12 @@ export async function getReferralCode(supabase: SupabaseClient, db: DB, id: stri
 
   const rc = toApiShape(codes[0]!);
 
-  const allHumans = await db.select().from(humans);
-  const allAccounts = await db.select().from(accounts);
+  const allHumans = rc.humanId != null
+    ? await db.select().from(humans).where(inArray(humans.id, [rc.humanId]))
+    : [];
+  const allAccounts = rc.accountId != null
+    ? await db.select().from(accounts).where(inArray(accounts.id, [rc.accountId]))
+    : [];
 
   const human = rc.humanId != null ? allHumans.find((h) => h.id === rc.humanId) : null;
   const account = rc.accountId != null ? allAccounts.find((a) => a.id === rc.accountId) : null;

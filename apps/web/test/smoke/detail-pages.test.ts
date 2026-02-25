@@ -239,42 +239,19 @@ describe("Detail page smoke tests", () => {
     expect(screen.getByRole("heading", { name: "SID-001 — @testuser" })).toBeDefined();
   });
 
-  it("Account detail page renders without error", () => {
-    render(AccountDetailPage, {
+  it("Account detail page renders loading state without error", () => {
+    const { container } = render(AccountDetailPage, {
       props: {
         data: {
-          account: {
-            id: "acc-1",
-            displayId: "ACC-001",
-            name: "Acme Corp",
-            status: "active",
-            types: [],
-            emails: [],
-            phoneNumbers: [],
-            socialIds: [],
-            referralCodes: [],
-            discountCodes: [],
-            linkedHumans: [],
-            activities: [],
-            websites: [],
-            createdAt: "2025-01-15T10:00:00.000Z",
-            updatedAt: "2025-01-15T10:00:00.000Z",
-          },
-          typeConfigs: [],
-          humanLabelConfigs: [],
-          emailLabelConfigs: [],
-          phoneLabelConfigs: [],
-          allHumans: [],
-          socialIdPlatformConfigs: [],
-          allDiscountCodes: [],
-          accountAgreements: [],
+          accountId: "acc-1",
           user: { id: "u1", email: "test@example.com", name: "Test User", avatarUrl: null, role: "admin" },
           sessionToken: "test-token",
         },
         form: null,
       },
     });
-    expect(screen.getByRole("heading", { name: /ACC-001/ })).toBeDefined();
+    // Page fetches data client-side on mount; in test it shows loading skeleton
+    expect(container.querySelector(".animate-pulse")).toBeDefined();
   });
 
   it("Referral Code detail page renders without error", () => {

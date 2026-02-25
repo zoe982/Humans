@@ -37,7 +37,8 @@
   // Y-axis gridline values: 0, half, and max, rounded to nice numbers
   const yGridValues = $derived.by(() => {
     const step = Math.ceil(maxCumulative / 2);
-    return [0, step, step * 2 > maxCumulative ? maxCumulative : step * 2];
+    const raw = [0, step, step * 2 > maxCumulative ? maxCumulative : step * 2];
+    return [...new Set(raw)];
   });
 
   function yToSvg(value: number): number {

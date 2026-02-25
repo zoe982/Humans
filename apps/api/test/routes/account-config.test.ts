@@ -24,6 +24,7 @@ const ALL_CONFIG_TYPES = [
   "social-id-platforms",
   "opportunity-human-roles",
   "human-relationship-labels",
+  "agreement-types",
 ] as const;
 
 describe("GET /api/admin/account-config/batch", () => {

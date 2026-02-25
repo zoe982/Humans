@@ -73,8 +73,7 @@ describe("formatErrorForClipboard", () => {
     circular["self"] = circular;
     const result = formatErrorForClipboard(makeEntry({ details: circular }));
     expect(result).toContain("Details:");
-    // eslint-disable-next-line @typescript-eslint/no-base-to-string
-    expect(result).toContain(String(circular));
+    expect(result).toContain("[unstringifiable]");
   });
 
   it("does not include a Stack Trace section when stack is null", () => {

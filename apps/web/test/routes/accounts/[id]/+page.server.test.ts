@@ -1,15 +1,7 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, vi, afterEach } from "vitest";
 import { isRedirect, isActionFailure } from "@sveltejs/kit";
-import { mockEvent, createMockFetch, mockConfigItem, mockBatchConfigResponse } from "../../../helpers";
+import { mockEvent, createMockFetch } from "../../../helpers";
 import { load, actions } from "../../../../src/routes/accounts/[id]/+page.server";
-
-const sampleAccount = {
-  id: "acc-1",
-  name: "Acme Corp",
-  emails: [],
-  phoneNumbers: [],
-  humans: [],
-};
 
 function makeEvent(overrides: Parameters<typeof mockEvent>[0] = {}) {
   const event = mockEvent(overrides);
@@ -18,23 +10,6 @@ function makeEvent(overrides: Parameters<typeof mockEvent>[0] = {}) {
 }
 
 describe("accounts/[id] load", () => {
-  let mockFetch: ReturnType<typeof vi.fn>;
-
-  beforeEach(() => {
-    mockFetch = createMockFetch({
-      "account-config/batch": mockBatchConfigResponse({
-        "account-types": [mockConfigItem({ id: "t-1", name: "Vendor" })],
-        "account-human-labels": [mockConfigItem({ id: "hl-1", name: "Owner" })],
-        "account-email-labels": [mockConfigItem({ id: "el-1", name: "Billing" })],
-        "account-phone-labels": [mockConfigItem({ id: "pl-1", name: "Office" })],
-        "social-id-platforms": [],
-      }),
-      "/api/accounts/acc-1": { body: { data: sampleAccount } },
-      "/api/humans": { body: { data: [{ id: "h-1", firstName: "Jane" }] } },
-    });
-    vi.stubGlobal("fetch", mockFetch);
-  });
-
   afterEach(() => {
     vi.unstubAllGlobals();
   });
@@ -49,30 +24,10 @@ describe("accounts/[id] load", () => {
     }
   });
 
-  it("returns account and config data on success", async () => {
+  it("returns accountId from params", async () => {
     const event = makeEvent();
     const result = await load(event as any);
-    expect(result.account).toEqual(sampleAccount);
-    expect(result.typeConfigs).toEqual([expect.objectContaining({ id: "t-1", name: "Vendor" })]);
-    expect(result.humanLabelConfigs).toEqual([expect.objectContaining({ id: "hl-1", name: "Owner" })]);
-    expect(result.emailLabelConfigs).toEqual([expect.objectContaining({ id: "el-1", name: "Billing" })]);
-    expect(result.phoneLabelConfigs).toEqual([expect.objectContaining({ id: "pl-1", name: "Office" })]);
-    expect(result.allHumans).toEqual([{ id: "h-1", firstName: "Jane" }]);
-  });
-
-  it("redirects to /accounts when account API returns error", async () => {
-    mockFetch = createMockFetch({
-      "/api/accounts/acc-1": { status: 404, body: { error: "Not found" } },
-    });
-    vi.stubGlobal("fetch", mockFetch);
-
-    const event = makeEvent();
-    try {
-      await load(event as any);
-      expect.fail("should have redirected");
-    } catch (e) {
-      expect(isRedirect(e)).toBe(true);
-    }
+    expect(result.accountId).toBe("acc-1");
   });
 });
 

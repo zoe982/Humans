@@ -255,6 +255,8 @@ const MIGRATION_STATEMENTS = [
     \`front_id\` text,
     \`front_conversation_id\` text,
     \`front_contact_handle\` text,
+    \`direction\` text,
+    \`sender_name\` text,
     \`sync_run_id\` text REFERENCES \`front_sync_runs\`(\`id\`),
     \`colleague_id\` text REFERENCES \`colleagues\`(\`id\`),
     \`created_by_user_id\` text REFERENCES \`colleagues\`(\`id\`),
@@ -395,6 +397,62 @@ const MIGRATION_STATEMENTS = [
     \`created_at\` text NOT NULL
   )`,
 
+  // ── Entity Next Actions ────────────────────────────────────────
+  `CREATE TABLE IF NOT EXISTS \`entity_next_actions\` (
+    \`id\` text PRIMARY KEY NOT NULL,
+    \`entity_type\` text NOT NULL,
+    \`entity_id\` text NOT NULL,
+    \`owner_id\` text REFERENCES \`colleagues\`(\`id\`),
+    \`description\` text,
+    \`type\` text,
+    \`start_date\` text,
+    \`due_date\` text,
+    \`completed_at\` text,
+    \`cadence_note\` text,
+    \`created_at\` text DEFAULT (datetime('now')) NOT NULL,
+    \`updated_at\` text DEFAULT (datetime('now')) NOT NULL
+  )`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS \`entity_next_actions_entity_type_entity_id_unique\` ON \`entity_next_actions\` (\`entity_type\`,\`entity_id\`)`,
+
+  // ── Agreements ──────────────────────────────────────────────────
+  `CREATE TABLE IF NOT EXISTS \`agreement_types_config\` (
+    \`id\` text PRIMARY KEY NOT NULL,
+    \`name\` text NOT NULL,
+    \`created_at\` text NOT NULL
+  )`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS \`agreement_types_config_name_unique\` ON \`agreement_types_config\` (\`name\`)`,
+  `CREATE TABLE IF NOT EXISTS \`agreements\` (
+    \`id\` text PRIMARY KEY NOT NULL,
+    \`display_id\` text NOT NULL,
+    \`title\` text NOT NULL,
+    \`type_id\` text,
+    \`status\` text NOT NULL DEFAULT 'open',
+    \`activation_date\` text,
+    \`notes\` text,
+    \`human_id\` text,
+    \`account_id\` text,
+    \`created_at\` text NOT NULL,
+    \`updated_at\` text NOT NULL
+  )`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS \`agreements_display_id_unique\` ON \`agreements\` (\`display_id\`)`,
+  `CREATE INDEX IF NOT EXISTS \`agreements_human_id_idx\` ON \`agreements\` (\`human_id\`)`,
+  `CREATE INDEX IF NOT EXISTS \`agreements_account_id_idx\` ON \`agreements\` (\`account_id\`)`,
+  `CREATE TABLE IF NOT EXISTS \`documents\` (
+    \`id\` text PRIMARY KEY NOT NULL,
+    \`display_id\` text NOT NULL,
+    \`key\` text NOT NULL,
+    \`filename\` text NOT NULL,
+    \`content_type\` text NOT NULL,
+    \`size_bytes\` integer NOT NULL,
+    \`entity_type\` text NOT NULL,
+    \`entity_id\` text NOT NULL,
+    \`uploaded_by\` text,
+    \`created_at\` text NOT NULL
+  )`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS \`documents_display_id_unique\` ON \`documents\` (\`display_id\`)`,
+  `CREATE INDEX IF NOT EXISTS \`documents_entity_idx\` ON \`documents\` (\`entity_type\`, \`entity_id\`)`,
+  `CREATE INDEX IF NOT EXISTS \`documents_key_idx\` ON \`documents\` (\`key\`)`,
+
   // ── Additional label configs ────────────────────────────────────
   `CREATE TABLE IF NOT EXISTS \`account_email_labels_config\` (
     \`id\` text PRIMARY KEY NOT NULL,
@@ -447,9 +505,11 @@ const MIGRATION_STATEMENTS = [
   `CREATE INDEX IF NOT EXISTS \`error_log_created_at_idx\` ON \`error_log\` (\`created_at\`)`,
   `CREATE INDEX IF NOT EXISTS \`geo_interest_expressions_human_id_idx\` ON \`geo_interest_expressions\` (\`human_id\`)`,
   `CREATE INDEX IF NOT EXISTS \`geo_interest_expressions_geo_interest_id_idx\` ON \`geo_interest_expressions\` (\`geo_interest_id\`)`,
+  `CREATE INDEX IF NOT EXISTS \`geo_interest_expressions_activity_id_idx\` ON \`geo_interest_expressions\` (\`activity_id\`)`,
   `CREATE UNIQUE INDEX IF NOT EXISTS \`route_interests_origin_dest_unique\` ON \`route_interests\` (\`origin_city\`, \`origin_country\`, \`destination_city\`, \`destination_country\`)`,
   `CREATE INDEX IF NOT EXISTS \`route_interest_expressions_human_id_idx\` ON \`route_interest_expressions\` (\`human_id\`)`,
   `CREATE INDEX IF NOT EXISTS \`route_interest_expressions_route_interest_id_idx\` ON \`route_interest_expressions\` (\`route_interest_id\`)`,
+  `CREATE INDEX IF NOT EXISTS \`route_interest_expressions_activity_id_idx\` ON \`route_interest_expressions\` (\`activity_id\`)`,
   `CREATE INDEX IF NOT EXISTS \`social_ids_human_id_idx\` ON \`social_ids\` (\`human_id\`)`,
   `CREATE INDEX IF NOT EXISTS \`social_ids_account_id_idx\` ON \`social_ids\` (\`account_id\`)`,
   `CREATE UNIQUE INDEX IF NOT EXISTS \`error_log_display_id_idx\` ON \`error_log\` (\`display_id\`)`,
@@ -486,6 +546,9 @@ afterEach(async () => {
   await env.DB.exec("DELETE FROM opportunity_pets");
   await env.DB.exec("DELETE FROM opportunity_humans");
   await env.DB.exec("DELETE FROM activity_opportunities");
+  await env.DB.exec("DELETE FROM documents");
+  await env.DB.exec("DELETE FROM agreements");
+  await env.DB.exec("DELETE FROM agreement_types_config");
   await env.DB.exec("DELETE FROM activities");
   await env.DB.exec("DELETE FROM general_leads");
   await env.DB.exec("DELETE FROM account_humans");
@@ -512,6 +575,7 @@ afterEach(async () => {
   await env.DB.exec("DELETE FROM account_types_config");
   await env.DB.exec("DELETE FROM email_labels_config");
   await env.DB.exec("DELETE FROM phone_labels_config");
+  await env.DB.exec("DELETE FROM entity_next_actions");
   await env.DB.exec("DELETE FROM opportunities");
   await env.DB.exec("DELETE FROM opportunity_stage_cadence_config");
   await env.DB.exec("DELETE FROM opportunity_human_roles_config");

@@ -113,14 +113,14 @@ describe("listActivities", () => {
     await seedHuman(db, "h-1");
 
     await seedActivity(db, "act-1", { humanId: "h-1", type: "email" });
-    await seedActivity(db, "act-2", { humanId: "h-1", type: "call" });
+    await seedActivity(db, "act-2", { humanId: "h-1", type: "phone_call" });
     await seedActivity(db, "act-3", { humanId: null, type: "email" });
 
     const byHuman = await listActivities(db, { humanId: "h-1", page: 1, limit: 25 });
     expect(byHuman.data).toHaveLength(2);
     expect(byHuman.meta.total).toBe(2);
 
-    const byType = await listActivities(db, { type: "call", page: 1, limit: 25 });
+    const byType = await listActivities(db, { type: "phone_call", page: 1, limit: 25 });
     expect(byType.data).toHaveLength(1);
     expect(byType.data[0]!.id).toBe("act-2");
   });

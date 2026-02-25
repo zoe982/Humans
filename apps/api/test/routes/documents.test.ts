@@ -72,13 +72,13 @@ describe("POST /api/documents/upload", () => {
 
 describe("GET /api/documents/:key", () => {
   it("returns 401 when unauthenticated", async () => {
-    const res = await SELF.fetch("http://localhost/api/documents/some-key");
+    const res = await SELF.fetch("http://localhost/api/documents/download/some-key");
     expect(res.status).toBe(401);
   });
 
   it("returns 404 for non-existent document key", async () => {
     const { token } = await createUserAndSession("viewer");
-    const res = await SELF.fetch("http://localhost/api/documents/does-not-exist-key", {
+    const res = await SELF.fetch("http://localhost/api/documents/download/does-not-exist-key", {
       headers: { Cookie: sessionCookie(token) },
     });
     expect(res.status).toBe(404);
@@ -94,7 +94,7 @@ describe("GET /api/documents/:key", () => {
     });
 
     const { token } = await createUserAndSession("viewer");
-    const res = await SELF.fetch(`http://localhost/api/documents/${testKey}`, {
+    const res = await SELF.fetch(`http://localhost/api/documents/download/${testKey}`, {
       headers: { Cookie: sessionCookie(token) },
     });
     // Must consume the body to release the R2 stream before cleanup runs

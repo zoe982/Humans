@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { websites, humans, accounts } from "@humans/db/schema";
 import { createId } from "@humans/db";
 import { ERROR_CODES } from "@humans/shared";
@@ -8,8 +8,14 @@ import type { DB } from "./types";
 
 export async function listWebsites(db: DB): Promise<{ humanName: string | null; humanDisplayId: string | null; accountName: string | null; accountDisplayId: string | null; id: string; displayId: string; url: string; humanId: string | null; accountId: string | null; createdAt: string }[]> {
   const allWebsites = await db.select().from(websites);
-  const allHumans = await db.select().from(humans);
-  const allAccounts = await db.select().from(accounts);
+  const humanIds = allWebsites.filter((w) => w.humanId != null).map((w) => w.humanId as string);
+  const accountIds = allWebsites.filter((w) => w.accountId != null).map((w) => w.accountId as string);
+  const allHumans = humanIds.length > 0
+    ? await db.select().from(humans).where(inArray(humans.id, humanIds))
+    : [];
+  const allAccounts = accountIds.length > 0
+    ? await db.select().from(accounts).where(inArray(accounts.id, accountIds))
+    : [];
 
   const data = allWebsites.map((w) => {
     const human = w.humanId != null ? allHumans.find((h) => h.id === w.humanId) : null;
@@ -33,8 +39,12 @@ export async function getWebsite(db: DB, id: string): Promise<{ humanName: strin
     throw notFound(ERROR_CODES.WEBSITE_NOT_FOUND, "Website not found");
   }
 
-  const allHumans = await db.select().from(humans);
-  const allAccounts = await db.select().from(accounts);
+  const allHumans = website.humanId != null
+    ? await db.select().from(humans).where(inArray(humans.id, [website.humanId]))
+    : [];
+  const allAccounts = website.accountId != null
+    ? await db.select().from(accounts).where(inArray(accounts.id, [website.accountId]))
+    : [];
 
   const human = website.humanId != null ? allHumans.find((h) => h.id === website.humanId) : null;
   const account = website.accountId != null ? allAccounts.find((a) => a.id === website.accountId) : null;

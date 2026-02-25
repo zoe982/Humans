@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { emails, humans, accounts, humanEmailLabelsConfig, accountEmailLabelsConfig } from "@humans/db/schema";
 import { createId } from "@humans/db";
 import { ERROR_CODES } from "@humans/shared";
@@ -9,8 +9,14 @@ import type { DB } from "./types";
 
 export async function listEmails(db: DB): Promise<{ ownerName: string | null; ownerDisplayId: string | null; labelName: string | null; id: string; displayId: string; ownerType: string; ownerId: string; email: string; labelId: string | null; isPrimary: boolean; createdAt: string }[]> {
   const allEmails = await db.select().from(emails);
-  const allHumans = await db.select().from(humans);
-  const allAccounts = await db.select().from(accounts);
+  const humanOwnerIds = allEmails.filter((e) => e.ownerType === "human").map((e) => e.ownerId);
+  const accountOwnerIds = allEmails.filter((e) => e.ownerType === "account").map((e) => e.ownerId);
+  const allHumans = humanOwnerIds.length > 0
+    ? await db.select().from(humans).where(inArray(humans.id, humanOwnerIds))
+    : [];
+  const allAccounts = accountOwnerIds.length > 0
+    ? await db.select().from(accounts).where(inArray(accounts.id, accountOwnerIds))
+    : [];
   const humanLabels = await db.select().from(humanEmailLabelsConfig);
   const accountLabels = await db.select().from(accountEmailLabelsConfig);
 
@@ -46,8 +52,12 @@ export async function getEmail(db: DB, id: string): Promise<{ ownerName: string 
     throw notFound(ERROR_CODES.EMAIL_NOT_FOUND, "Email not found");
   }
 
-  const allHumans = await db.select().from(humans);
-  const allAccounts = await db.select().from(accounts);
+  const allHumans = email.ownerType === "human"
+    ? await db.select().from(humans).where(inArray(humans.id, [email.ownerId]))
+    : [];
+  const allAccounts = email.ownerType === "account"
+    ? await db.select().from(accounts).where(inArray(accounts.id, [email.ownerId]))
+    : [];
   const humanLabels = await db.select().from(humanEmailLabelsConfig);
   const accountLabels = await db.select().from(accountEmailLabelsConfig);
 

@@ -1,4 +1,4 @@
-import { like, or } from "drizzle-orm";
+import { like, or, inArray } from "drizzle-orm";
 import {
   humans,
   emails,
@@ -43,7 +43,7 @@ export async function searchD1(db: DB, query: string): Promise<{ matchedHumans: 
 
   // Fetch expressions for matched geo-interests to find linked humans
   const allExpressions = geoInterestResults.length > 0
-    ? await db.select().from(geoInterestExpressions)
+    ? await db.select().from(geoInterestExpressions).where(inArray(geoInterestExpressions.geoInterestId, geoInterestResults.map((gi) => gi.id)))
     : [];
 
   // Merge human results: collect unique human IDs from name, email, phone, geo-interest matches
@@ -58,8 +58,12 @@ export async function searchD1(db: DB, query: string): Promise<{ matchedHumans: 
     .forEach((e) => { humanIds.add(e.humanId); });
 
   // Fetch full data for matched humans
-  const allHumans = await db.select().from(humans);
-  const allEmails = await db.select().from(emails);
+  const allHumans = humanIds.size > 0
+    ? await db.select().from(humans).where(inArray(humans.id, [...humanIds]))
+    : [];
+  const allEmails = humanIds.size > 0
+    ? await db.select().from(emails).where(inArray(emails.ownerId, [...humanIds]))
+    : [];
   const matchedHumans = allHumans
     .filter((h) => humanIds.has(h.id))
     .map((h) => ({
@@ -83,8 +87,12 @@ export async function searchD1(db: DB, query: string): Promise<{ matchedHumans: 
   accountEmailResults.filter((e) => e.ownerType === "account").forEach((e) => { accountIds.add(e.ownerId); });
   accountPhoneResults.filter((p) => p.ownerType === "account").forEach((p) => { accountIds.add(p.ownerId); });
 
-  const allAccounts = accountIds.size > 0 ? await db.select().from(accounts) : [];
-  const allAccountTypes = accountIds.size > 0 ? await db.select().from(accountTypes) : [];
+  const allAccounts = accountIds.size > 0
+    ? await db.select().from(accounts).where(inArray(accounts.id, [...accountIds]))
+    : [];
+  const allAccountTypes = accountIds.size > 0
+    ? await db.select().from(accountTypes).where(inArray(accountTypes.accountId, [...accountIds]))
+    : [];
   const allTypeConfigs = accountIds.size > 0 ? await db.select().from(accountTypesConfig) : [];
 
   const matchedAccounts = allAccounts

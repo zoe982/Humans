@@ -1,4 +1,4 @@
-import { eq, like, or, and } from "drizzle-orm";
+import { eq, like, or, and, inArray } from "drizzle-orm";
 import {
   routeInterests,
   routeInterestExpressions,
@@ -44,8 +44,15 @@ export async function getRouteInterestDetail(db: DB, id: string): Promise<{ expr
     .from(routeInterestExpressions)
     .where(eq(routeInterestExpressions.routeInterestId, id));
 
-  const allHumans = await db.select().from(humans);
-  const allActivities = await db.select().from(activities);
+  const humanIds = expressions.map((e) => e.humanId);
+  const activityIds = expressions.map((e) => e.activityId).filter((id): id is string => id != null);
+
+  const allHumans = humanIds.length > 0
+    ? await db.select().from(humans).where(inArray(humans.id, humanIds))
+    : [];
+  const allActivities = activityIds.length > 0
+    ? await db.select().from(activities).where(inArray(activities.id, activityIds))
+    : [];
 
   const expressionsWithDetails = expressions.map((expr) => {
     const human = allHumans.find((h) => h.id === expr.humanId);
@@ -133,9 +140,19 @@ export async function listRouteInterestExpressions(
     expressions = await db.select().from(routeInterestExpressions);
   }
 
-  const allHumans = await db.select().from(humans);
-  const allRouteInterests = await db.select().from(routeInterests);
-  const allActivities = await db.select().from(activities);
+  const humanIds = [...new Set(expressions.map((e) => e.humanId))];
+  const routeInterestIds = [...new Set(expressions.map((e) => e.routeInterestId))];
+  const activityIds = expressions.map((e) => e.activityId).filter((id): id is string => id != null);
+
+  const allHumans = humanIds.length > 0
+    ? await db.select().from(humans).where(inArray(humans.id, humanIds))
+    : [];
+  const allRouteInterests = routeInterestIds.length > 0
+    ? await db.select().from(routeInterests).where(inArray(routeInterests.id, routeInterestIds))
+    : [];
+  const allActivities = activityIds.length > 0
+    ? await db.select().from(activities).where(inArray(activities.id, activityIds))
+    : [];
 
   return expressions.map((expr) => {
     const human = allHumans.find((h) => h.id === expr.humanId);

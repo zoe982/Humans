@@ -177,6 +177,9 @@ function makeSupabaseMock(stores: MockStores) {
       ): Promise<void> {
         return Promise.resolve(execute()).then(resolve);
       },
+      overrideTypes() {
+        return self;
+      },
     };
 
     return self;

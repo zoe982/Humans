@@ -1,4 +1,4 @@
-import { eq, like, or, and } from "drizzle-orm";
+import { eq, like, or, and, inArray } from "drizzle-orm";
 import {
   geoInterests,
   geoInterestExpressions,
@@ -55,8 +55,15 @@ export async function getGeoInterestDetail(db: DB, id: string): Promise<{ expres
     .from(geoInterestExpressions)
     .where(eq(geoInterestExpressions.geoInterestId, id));
 
-  const allHumans = await db.select().from(humans);
-  const allActivities = await db.select().from(activities);
+  const humanIds = expressions.map((e) => e.humanId);
+  const activityIds = expressions.map((e) => e.activityId).filter((id): id is string => id != null);
+
+  const allHumans = humanIds.length > 0
+    ? await db.select().from(humans).where(inArray(humans.id, humanIds))
+    : [];
+  const allActivities = activityIds.length > 0
+    ? await db.select().from(activities).where(inArray(activities.id, activityIds))
+    : [];
 
   const expressionsWithDetails = expressions.map((expr) => {
     const human = allHumans.find((h) => h.id === expr.humanId);
@@ -135,9 +142,19 @@ export async function listExpressions(
     expressions = await db.select().from(geoInterestExpressions);
   }
 
-  const allHumans = await db.select().from(humans);
-  const allGeoInterests = await db.select().from(geoInterests);
-  const allActivities = await db.select().from(activities);
+  const humanIds = [...new Set(expressions.map((e) => e.humanId))];
+  const geoInterestIds = [...new Set(expressions.map((e) => e.geoInterestId))];
+  const activityIds = expressions.map((e) => e.activityId).filter((id): id is string => id != null);
+
+  const allHumans = humanIds.length > 0
+    ? await db.select().from(humans).where(inArray(humans.id, humanIds))
+    : [];
+  const allGeoInterests = geoInterestIds.length > 0
+    ? await db.select().from(geoInterests).where(inArray(geoInterests.id, geoInterestIds))
+    : [];
+  const allActivities = activityIds.length > 0
+    ? await db.select().from(activities).where(inArray(activities.id, activityIds))
+    : [];
 
   return expressions.map((expr) => {
     const human = allHumans.find((h) => h.id === expr.humanId);

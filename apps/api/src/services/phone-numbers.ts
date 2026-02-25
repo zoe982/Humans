@@ -1,4 +1,4 @@
-import { eq, and } from "drizzle-orm";
+import { eq, and, inArray } from "drizzle-orm";
 import { phones, humans, accounts, humanPhoneLabelsConfig, accountPhoneLabelsConfig } from "@humans/db/schema";
 import { createId } from "@humans/db";
 import { ERROR_CODES } from "@humans/shared";
@@ -9,8 +9,14 @@ import type { DB } from "./types";
 
 export async function listPhoneNumbers(db: DB): Promise<{ ownerName: string | null; ownerDisplayId: string | null; labelName: string | null; id: string; displayId: string; ownerType: string; ownerId: string; phoneNumber: string; labelId: string | null; hasWhatsapp: boolean; isPrimary: boolean; createdAt: string }[]> {
   const allPhones = await db.select().from(phones);
-  const allHumans = await db.select().from(humans);
-  const allAccounts = await db.select().from(accounts);
+  const humanOwnerIds = allPhones.filter((p) => p.ownerType === "human").map((p) => p.ownerId);
+  const accountOwnerIds = allPhones.filter((p) => p.ownerType === "account").map((p) => p.ownerId);
+  const allHumans = humanOwnerIds.length > 0
+    ? await db.select().from(humans).where(inArray(humans.id, humanOwnerIds))
+    : [];
+  const allAccounts = accountOwnerIds.length > 0
+    ? await db.select().from(accounts).where(inArray(accounts.id, accountOwnerIds))
+    : [];
   const humanLabels = await db.select().from(humanPhoneLabelsConfig);
   const accountLabels = await db.select().from(accountPhoneLabelsConfig);
 
@@ -54,8 +60,14 @@ export async function getPhoneNumber(db: DB, id: string): Promise<{ ownerName: s
     throw notFound(ERROR_CODES.PHONE_NUMBER_NOT_FOUND, "Phone number not found");
   }
 
-  const allHumans = await db.select().from(humans);
-  const allAccounts = await db.select().from(accounts);
+  const humanOwnerIds = phone.ownerType === "human" ? [phone.ownerId] : [];
+  const accountOwnerIds = phone.ownerType === "account" ? [phone.ownerId] : [];
+  const allHumans = humanOwnerIds.length > 0
+    ? await db.select().from(humans).where(inArray(humans.id, humanOwnerIds))
+    : [];
+  const allAccounts = accountOwnerIds.length > 0
+    ? await db.select().from(accounts).where(inArray(accounts.id, accountOwnerIds))
+    : [];
   const humanLabels = await db.select().from(humanPhoneLabelsConfig);
   const accountLabels = await db.select().from(accountPhoneLabelsConfig);
 

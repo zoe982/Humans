@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { socialIds, socialIdPlatformsConfig, humans, accounts } from "@humans/db/schema";
 import { createId } from "@humans/db";
 import { ERROR_CODES } from "@humans/shared";
@@ -9,8 +9,14 @@ import type { DB } from "./types";
 
 export async function listSocialIds(db: DB): Promise<{ humanName: string | null; humanDisplayId: string | null; accountName: string | null; accountDisplayId: string | null; platformName: string | null; id: string; displayId: string; handle: string; platformId: string | null; humanId: string | null; accountId: string | null; createdAt: string }[]> {
   const allSocialIds = await db.select().from(socialIds);
-  const allHumans = await db.select().from(humans);
-  const allAccounts = await db.select().from(accounts);
+  const humanIds = allSocialIds.filter((s) => s.humanId != null).map((s) => s.humanId as string);
+  const accountIds = allSocialIds.filter((s) => s.accountId != null).map((s) => s.accountId as string);
+  const allHumans = humanIds.length > 0
+    ? await db.select().from(humans).where(inArray(humans.id, humanIds))
+    : [];
+  const allAccounts = accountIds.length > 0
+    ? await db.select().from(accounts).where(inArray(accounts.id, accountIds))
+    : [];
   const allPlatforms = await db.select().from(socialIdPlatformsConfig);
 
   const data = allSocialIds.map((s) => {
@@ -37,8 +43,14 @@ export async function getSocialId(db: DB, id: string): Promise<{ humanName: stri
     throw notFound(ERROR_CODES.SOCIAL_ID_NOT_FOUND, "Social ID not found");
   }
 
-  const allHumans = await db.select().from(humans);
-  const allAccounts = await db.select().from(accounts);
+  const humanIds = socialId.humanId != null ? [socialId.humanId] : [];
+  const accountIds = socialId.accountId != null ? [socialId.accountId] : [];
+  const allHumans = humanIds.length > 0
+    ? await db.select().from(humans).where(inArray(humans.id, humanIds))
+    : [];
+  const allAccounts = accountIds.length > 0
+    ? await db.select().from(accounts).where(inArray(accounts.id, accountIds))
+    : [];
   const allPlatforms = await db.select().from(socialIdPlatformsConfig);
 
   const human = socialId.humanId != null ? allHumans.find((h) => h.id === socialId.humanId) : null;

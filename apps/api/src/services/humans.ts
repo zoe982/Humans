@@ -156,8 +156,9 @@ export async function getHumanDetail(supabase: SupabaseClient, db: DB, humanId: 
 
   let linkedAccounts: { id: string; accountId: string; accountName: string; labelId: string | null; labelName: string | null }[] = [];
   if (linkedAccountRows.length > 0) {
+    const linkedAccountIds = linkedAccountRows.map((r) => r.accountId);
     const [allAccounts, allLabels] = await Promise.all([
-      db.select().from(accounts),
+      db.select().from(accounts).where(inArray(accounts.id, linkedAccountIds)),
       db.select().from(accountHumanLabelsConfig),
     ]);
     linkedAccounts = linkedAccountRows.map((row) => {

@@ -1,3 +1,4 @@
+import { inArray, eq } from "drizzle-orm";
 import { humans, accounts } from "@humans/db/schema";
 import { ERROR_CODES } from "@humans/shared";
 import { notFound } from "../lib/errors";
@@ -73,8 +74,14 @@ export async function listDiscountCodes(supabase: SupabaseClient, db: DB): Promi
   const typedCodes: SupabaseDiscountCode[] = codes;
   await ensureDiscountCodeDisplayIds(supabase, db, typedCodes);
 
-  const allHumans = await db.select().from(humans);
-  const allAccounts = await db.select().from(accounts);
+  const humanIds = typedCodes.filter((dc) => dc.human_id != null).map((dc) => dc.human_id as string);
+  const accountIds = typedCodes.filter((dc) => dc.account_id != null).map((dc) => dc.account_id as string);
+  const allHumans = humanIds.length > 0
+    ? await db.select().from(humans).where(inArray(humans.id, humanIds))
+    : [];
+  const allAccounts = accountIds.length > 0
+    ? await db.select().from(accounts).where(inArray(accounts.id, accountIds))
+    : [];
 
   const data = typedCodes.map((dc) => {
     const mapped = toApiShape(dc);
@@ -109,11 +116,14 @@ export async function getDiscountCode(supabase: SupabaseClient, db: DB, id: stri
 
   const dc = toApiShape(typedCodes[0]);
 
-  const allHumans = await db.select().from(humans);
-  const allAccounts = await db.select().from(accounts);
-
-  const human = dc.humanId != null ? allHumans.find((h) => h.id === dc.humanId) : null;
-  const account = dc.accountId != null ? allAccounts.find((a) => a.id === dc.accountId) : null;
+  const humanRows = dc.humanId != null
+    ? await db.select().from(humans).where(eq(humans.id, dc.humanId))
+    : [];
+  const accountRows = dc.accountId != null
+    ? await db.select().from(accounts).where(eq(accounts.id, dc.accountId))
+    : [];
+  const human = humanRows[0] ?? null;
+  const account = accountRows[0] ?? null;
 
   // Fetch linked flights via junction table
   const { data: flightLinks } = await supabase
@@ -206,7 +216,10 @@ export async function getDiscountCodesForFlight(supabase: SupabaseClient, db: DB
   const typedCodes: SupabaseDiscountCode[] = codes;
   await ensureDiscountCodeDisplayIds(supabase, db, typedCodes);
 
-  const allHumans = await db.select().from(humans);
+  const humanIds = typedCodes.filter((dc) => dc.human_id != null).map((dc) => dc.human_id as string);
+  const allHumans = humanIds.length > 0
+    ? await db.select().from(humans).where(inArray(humans.id, humanIds))
+    : [];
 
   return typedCodes.map((dc) => {
     const mapped = toApiShape(dc);
