@@ -7,10 +7,10 @@ function formStr(value: FormDataEntryValue | null): string {
   return typeof value === "string" ? value : "";
 }
 
-export const load = async ({ locals, params }: RequestEvent) => {
+export function load({ locals, params }: RequestEvent): { accountId: string } {
   if (locals.user == null) redirect(302, "/login");
   return { accountId: params.id ?? "" };
-};
+}
 
 export const actions = {
   addEmail: async ({ request, cookies, params }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
@@ -208,7 +208,9 @@ export const actions = {
     }
 
     const createData: unknown = await createRes.json();
-    const humanIdRaw = isObjData(createData) ? (createData.data as { id?: string }).id : undefined;
+    const humanIdRaw = isObjData(createData) && typeof createData.data["id"] === "string"
+      ? createData.data["id"]
+      : undefined;
     const humanId = humanIdRaw != null && humanIdRaw !== "" ? humanIdRaw : null;
     if (humanId == null) {
       return fail(500, { error: "Failed to get created human ID" });
@@ -478,7 +480,7 @@ export const actions = {
     // Upload file if present
     const file = form.get("file");
     if (file instanceof File && file.size > 0 && isObjData(resBody)) {
-      const agreementId = (resBody.data as { id?: string }).id;
+      const agreementId = typeof resBody.data["id"] === "string" ? resBody.data["id"] : undefined;
       if (agreementId != null && agreementId !== "") {
         const uploadForm = new FormData();
         uploadForm.append("file", file);

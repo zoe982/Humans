@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   activities,
+  activityOpportunities,
   emails,
   phones,
   colleagues,
@@ -761,7 +762,7 @@ async function processConversation(
       updatedAt: new Date().toISOString(),
     };
 
-    await db.insert(activities).values(activity);
+    await db.insert(activities).values(activity).onConflictDoNothing();
     existingFrontIds.add(message.id);
     stats.imported++;
     importedDisplayIds.push(displayId);
@@ -1325,6 +1326,11 @@ export async function revertSyncRun(db: DB, syncRunId: string): Promise<{ delete
       .set({ activityId: null })
       .where(eq(routeInterestExpressions.activityId, activity.id));
 
+    // Delete activity_opportunities junction rows
+    await db
+      .delete(activityOpportunities)
+      .where(eq(activityOpportunities.activityId, activity.id));
+
     await db.delete(activities).where(eq(activities.id, activity.id));
     deleted++;
   }
@@ -1579,4 +1585,95 @@ export async function backfillAuthorNames(
   }
 
   return { updated, checked, errors, nextCursor };
+}
+
+// --- Deduplicate activities with the same front_id ---
+
+interface DeduplicateResult {
+  duplicateGroups: number;
+  deleted: number;
+  junctionRowsDeleted: number;
+  expressionRefsNullified: number;
+}
+
+export async function deduplicateActivities(db: DB): Promise<DeduplicateResult> {
+  // Find all front_id values that appear more than once
+  const dupes = await db
+    .select({
+      frontId: activities.frontId,
+      count: sql<number>`count(*)`.as("cnt"),
+    })
+    .from(activities)
+    .where(isNotNull(activities.frontId))
+    .groupBy(activities.frontId)
+    .having(sql`count(*) > 1`);
+
+  let deleted = 0;
+  let junctionRowsDeleted = 0;
+  let expressionRefsNullified = 0;
+
+  for (const dupe of dupes) {
+    if (dupe.frontId == null) continue;
+
+    // Get all activities for this front_id, oldest first
+    const group = await db
+      .select()
+      .from(activities)
+      .where(eq(activities.frontId, dupe.frontId))
+      .orderBy(activities.createdAt);
+
+    // Keep the first (oldest), delete the rest
+    const toDelete = group.slice(1);
+
+    for (const activity of toDelete) {
+      // Count and nullify activityId on geo_interest_expressions
+      const geoRefs = await db
+        .select({ id: geoInterestExpressions.id })
+        .from(geoInterestExpressions)
+        .where(eq(geoInterestExpressions.activityId, activity.id));
+      if (geoRefs.length > 0) {
+        await db
+          .update(geoInterestExpressions)
+          .set({ activityId: null })
+          .where(eq(geoInterestExpressions.activityId, activity.id));
+        expressionRefsNullified += geoRefs.length;
+      }
+
+      // Count and nullify activityId on route_interest_expressions
+      const routeRefs = await db
+        .select({ id: routeInterestExpressions.id })
+        .from(routeInterestExpressions)
+        .where(eq(routeInterestExpressions.activityId, activity.id));
+      if (routeRefs.length > 0) {
+        await db
+          .update(routeInterestExpressions)
+          .set({ activityId: null })
+          .where(eq(routeInterestExpressions.activityId, activity.id));
+        expressionRefsNullified += routeRefs.length;
+      }
+
+      // Count and delete activity_opportunities junction rows
+      const junctions = await db
+        .select({ id: activityOpportunities.id })
+        .from(activityOpportunities)
+        .where(eq(activityOpportunities.activityId, activity.id));
+      if (junctions.length > 0) {
+        await db
+          .delete(activityOpportunities)
+          .where(eq(activityOpportunities.activityId, activity.id));
+        junctionRowsDeleted += junctions.length;
+      }
+
+      // Delete the duplicate activity
+      await db.delete(activities).where(eq(activities.id, activity.id));
+      deleted++;
+    }
+  }
+
+  return {
+    duplicateGroups: dupes.length,
+    deleted,
+    junctionRowsDeleted,
+    expressionRefsNullified,
+  };
 }

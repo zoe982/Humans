@@ -1,12 +1,12 @@
 <script lang="ts">
   import type { PageData } from "./$types";
   import ActivityConversationView from "$lib/components/ActivityConversationView.svelte";
+  import RecordManagementBar from "$lib/components/RecordManagementBar.svelte";
   import { api } from "$lib/api";
   import { ApiRequestError } from "$lib/api";
   import { toast } from "svelte-sonner";
   import { invalidateAll } from "$app/navigation";
-  import { ArrowLeft } from "lucide-svelte";
-  import { resolve } from "$app/paths";
+  import { Search } from "lucide-svelte";
 
   let { data }: { data: PageData } = $props();
 
@@ -19,13 +19,17 @@
   }>);
 
   const humanName = $derived(`${human.firstName} ${human.lastName}`);
-  const dateRange = $derived.by(() => {
-    if (activities.length === 0) return "";
+  const subtitle = $derived.by(() => {
+    if (activities.length === 0) return "Activities";
     const sorted = [...activities].sort((a, b) => a.activityDate.localeCompare(b.activityDate));
-    const first = new Date(sorted[0].activityDate).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
-    const last = new Date(sorted[sorted.length - 1].activityDate).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
-    return first === last ? first : `${first} – ${last}`;
+    const fmt = (d: string) => new Date(d).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+    const first = fmt(sorted[0].activityDate);
+    const last = fmt(sorted[sorted.length - 1].activityDate);
+    const range = first === last ? first : `${first} – ${last}`;
+    return `Activities · ${activities.length} messages · ${range}`;
   });
+
+  let searchQuery = $state("");
 
   async function deleteActivity(id: string) {
     try {
@@ -39,25 +43,34 @@
   }
 </script>
 
-<div class="flex items-center gap-3 mb-4">
-  <a
-    href={resolve(`/humans/${human.id}`)}
-    class="flex items-center gap-1.5 text-sm text-text-muted hover:text-accent transition-colors duration-150"
-  >
-    <ArrowLeft size={14} />
-    <span class="font-medium text-text-primary hover:text-accent">{humanName}</span>
-    <span class="text-text-muted text-xs">({human.displayId})</span>
-  </a>
-  <span class="text-text-muted text-xs select-none" style="opacity: 0.4;">|</span>
-  <span class="text-sm font-semibold text-text-primary">Activities</span>
-  {#if activities.length > 0}
-    <span class="text-xs text-text-muted">{activities.length} messages{dateRange ? ` · ${dateRange}` : ""}</span>
-  {/if}
-</div>
+<RecordManagementBar
+  backHref={`/humans/${human.id}`}
+  backLabel="Humans"
+  title={humanName}
+>
+  {#snippet actions()}
+    <div class="relative">
+      <Search
+        size={14}
+        class="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none"
+      />
+      <input
+        type="text"
+        placeholder="Search activities..."
+        bind:value={searchQuery}
+        class="glass-input w-56 pl-8 pr-3 py-1.5 text-sm"
+      />
+    </div>
+  {/snippet}
+</RecordManagementBar>
+
+<p class="text-xs text-text-muted mb-4 -mt-4 ml-1">{subtitle}</p>
 
 <ActivityConversationView
   {activities}
   entityType="human"
   entityId={human.id}
   onDelete={deleteActivity}
+  hideHeader={true}
+  {searchQuery}
 />

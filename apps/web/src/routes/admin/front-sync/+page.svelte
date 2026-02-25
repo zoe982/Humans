@@ -83,6 +83,16 @@
   let backfillErrors = $state<string[]>([]);
   let backfillFinished = $state(false);
 
+  // Deduplicate state
+  let showDeduplicateConfirm = $state(false);
+  let deduplicating = $state(false);
+  let deduplicateResult = $state<{
+    duplicateGroups: number;
+    deleted: number;
+    junctionRowsDeleted: number;
+    expressionRefsNullified: number;
+  } | null>(null);
+
   async function startReclassify() {
     reclassifying = true;
     reclassifyBatches = 0;
@@ -156,6 +166,23 @@
       errorMsg = err instanceof Error ? err.message : "Backfill failed";
     } finally {
       backfilling = false;
+    }
+  }
+
+  async function startDeduplicate() {
+    deduplicating = true;
+    deduplicateResult = null;
+    errorMsg = "";
+
+    try {
+      const res = (await api("/api/admin/front/sync/deduplicate", {
+        method: "POST",
+      })) as { data: { duplicateGroups: number; deleted: number; junctionRowsDeleted: number; expressionRefsNullified: number } };
+      deduplicateResult = res.data;
+    } catch (err) {
+      errorMsg = err instanceof Error ? err.message : "Deduplicate failed";
+    } finally {
+      deduplicating = false;
     }
   }
 
@@ -431,7 +458,7 @@
             {#each syncRuns as run, i (i)}
               {@const runUnmatched = parseUnmatchedContacts(run.unmatchedContacts)}
               <tr class="glass-row-hover">
-                <td class="font-mono text-xs text-accent">{run.displayId}</td>
+                <td class="font-mono text-xs text-accent whitespace-nowrap">{run.displayId}</td>
                 <td>
                   <span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium {statusColors[run.status] ?? 'bg-glass text-text-secondary'}">
                     {run.status}
@@ -535,7 +562,7 @@
       <form method="POST" action="?/sync">
         <button
           type="submit"
-          disabled={syncing || reclassifying || backfilling}
+          disabled={syncing || reclassifying || backfilling || deduplicating}
           class="inline-flex items-center gap-2 rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
           {#if syncing}
@@ -549,7 +576,7 @@
 
       <button
         type="button"
-        disabled={syncing || reclassifying || backfilling}
+        disabled={syncing || reclassifying || backfilling || deduplicating}
         onclick={startReclassify}
         class="inline-flex items-center gap-2 rounded-lg border border-glass-border bg-glass-bg px-4 py-2 text-sm font-medium text-text-primary hover:bg-glass-bg/80 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
       >
@@ -563,7 +590,7 @@
 
       <button
         type="button"
-        disabled={syncing || reclassifying || backfilling}
+        disabled={syncing || reclassifying || backfilling || deduplicating}
         onclick={startBackfill}
         class="inline-flex items-center gap-2 rounded-lg border border-glass-border bg-glass-bg px-4 py-2 text-sm font-medium text-text-primary hover:bg-glass-bg/80 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
       >
@@ -572,6 +599,20 @@
           Backfilling... ({backfillBatches})
         {:else}
           Backfill Author Names
+        {/if}
+      </button>
+
+      <button
+        type="button"
+        disabled={syncing || reclassifying || backfilling || deduplicating}
+        onclick={() => { showDeduplicateConfirm = true; }}
+        class="inline-flex items-center gap-2 rounded-lg border border-glass-border bg-glass-bg px-4 py-2 text-sm font-medium text-text-primary hover:bg-glass-bg/80 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+      >
+        {#if deduplicating}
+          <Loader2 size={16} class="animate-spin" />
+          Deduplicating...
+        {:else}
+          Deduplicate Activities
         {/if}
       </button>
     </div>
@@ -605,6 +646,17 @@
             {/each}
           </ul>
         {/if}
+      </div>
+    {/if}
+
+    {#if deduplicateResult}
+      <div class="mt-4 rounded-lg border border-green-500/30 bg-green-500/5 p-4">
+        <p class="text-sm font-medium text-[var(--badge-green-text)]">
+          Deduplication complete: {deduplicateResult.deleted} duplicate activities deleted across {deduplicateResult.duplicateGroups} groups.
+        </p>
+        <p class="text-xs text-text-muted mt-1">
+          Junction rows deleted: {deduplicateResult.junctionRowsDeleted} | Expression refs nullified: {deduplicateResult.expressionRefsNullified}
+        </p>
       </div>
     {/if}
 
@@ -728,6 +780,17 @@
     showRevertConfirm = false;
   }}
   onCancel={() => { showRevertConfirm = false; }}
+/>
+
+<!-- Deduplicate confirmation -->
+<ConfirmDialog
+  open={showDeduplicateConfirm}
+  message="Are you sure you want to deduplicate activities? This will permanently delete duplicate activities (keeping the oldest for each Front message ID) and clean up related junction rows."
+  onConfirm={() => {
+    showDeduplicateConfirm = false;
+    startDeduplicate();
+  }}
+  onCancel={() => { showDeduplicateConfirm = false; }}
 />
 
 <!-- Debug Sheet -->

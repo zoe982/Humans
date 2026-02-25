@@ -45,7 +45,7 @@ export const load = async ({ locals, cookies, params }: RequestEvent): Promise<{
     agreement,
     allHumans,
     allAccounts,
-    agreementTypes: (configs["agreement-types"] as unknown[]) ?? [],
+    agreementTypes: configs["agreement-types"] ?? [],
     documents,
   };
 };

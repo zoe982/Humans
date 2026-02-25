@@ -1,4 +1,5 @@
-import { sqliteTable, text } from "drizzle-orm/sqlite-core";
+import { sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
+import { sql } from "drizzle-orm";
 import { humans } from "./humans";
 import { accounts } from "./accounts";
 import { colleagues } from "./colleagues";
@@ -15,28 +16,36 @@ export const activityTypeValues = [
 ] as const;
 export type ActivityType = (typeof activityTypeValues)[number];
 
-export const activities = sqliteTable("activities", {
-  id: text("id").primaryKey(),
-  displayId: text("display_id").notNull().unique(),
-  type: text("type", { enum: activityTypeValues }).notNull().default("email"),
-  subject: text("subject").notNull(),
-  body: text("body"),
-  notes: text("notes"),
-  activityDate: text("activity_date").notNull(),
-  humanId: text("human_id").references(() => humans.id),
-  accountId: text("account_id").references(() => accounts.id),
-  routeSignupId: text("route_signup_id"),
-  websiteBookingRequestId: text("website_booking_request_id"),
-  opportunityId: text("opportunity_id").references(() => opportunities.id),
-  generalLeadId: text("general_lead_id").references(() => generalLeads.id),
-  gmailId: text("gmail_id"),
-  frontId: text("front_id"),
-  frontConversationId: text("front_conversation_id"),
-  frontContactHandle: text("front_contact_handle"),
-  direction: text("direction"),
-  syncRunId: text("sync_run_id").references(() => frontSyncRuns.id),
-  senderName: text("sender_name"),
-  colleagueId: text("colleague_id").references(() => colleagues.id),
-  createdAt: text("created_at").notNull(),
-  updatedAt: text("updated_at").notNull(),
-});
+export const activities = sqliteTable(
+  "activities",
+  {
+    id: text("id").primaryKey(),
+    displayId: text("display_id").notNull().unique(),
+    type: text("type", { enum: activityTypeValues }).notNull().default("email"),
+    subject: text("subject").notNull(),
+    body: text("body"),
+    notes: text("notes"),
+    activityDate: text("activity_date").notNull(),
+    humanId: text("human_id").references(() => humans.id),
+    accountId: text("account_id").references(() => accounts.id),
+    routeSignupId: text("route_signup_id"),
+    websiteBookingRequestId: text("website_booking_request_id"),
+    opportunityId: text("opportunity_id").references(() => opportunities.id),
+    generalLeadId: text("general_lead_id").references(() => generalLeads.id),
+    gmailId: text("gmail_id"),
+    frontId: text("front_id"),
+    frontConversationId: text("front_conversation_id"),
+    frontContactHandle: text("front_contact_handle"),
+    direction: text("direction"),
+    syncRunId: text("sync_run_id").references(() => frontSyncRuns.id),
+    senderName: text("sender_name"),
+    colleagueId: text("colleague_id").references(() => colleagues.id),
+    createdAt: text("created_at").notNull(),
+    updatedAt: text("updated_at").notNull(),
+  },
+  (table) => [
+    uniqueIndex("activities_front_id_unique")
+      .on(table.frontId)
+      .where(sql`${table.frontId} IS NOT NULL`),
+  ],
+);

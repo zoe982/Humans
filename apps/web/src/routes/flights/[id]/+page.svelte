@@ -198,7 +198,7 @@
       emptyMessage="No opportunities linked to this flight yet."
     >
       {#snippet row(opp, _searchQuery)}
-        <td class="font-mono text-sm">
+        <td class="font-mono text-sm whitespace-nowrap">
           <a href={resolve(`/opportunities/${opp.id}?from=${$page.url.pathname}`)} class="text-accent hover:text-[var(--link-hover)]">{opp.displayId}</a>
         </td>
         <td>
@@ -233,7 +233,7 @@
       emptyMessage="No discount codes linked to this flight."
     >
       {#snippet row(dc, _searchQuery)}
-        <td class="font-mono text-sm">
+        <td class="font-mono text-sm whitespace-nowrap">
           <a href={resolve(`/discount-codes/${dc.id}?from=${$page.url.pathname}`)} class="text-accent hover:text-[var(--link-hover)]">{dc.crmDisplayId ?? "—"}</a>
         </td>
         <td class="font-mono text-sm">{dc.code}</td>

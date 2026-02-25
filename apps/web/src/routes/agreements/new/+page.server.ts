@@ -21,7 +21,7 @@ export const load = async ({ locals, cookies }: RequestEvent): Promise<{ allHuma
   return {
     allHumans,
     allAccounts,
-    agreementTypes: (configs["agreement-types"] as unknown[]) ?? [],
+    agreementTypes: configs["agreement-types"] ?? [],
   };
 };
 

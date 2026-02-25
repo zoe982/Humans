@@ -45,7 +45,7 @@
   searchPlaceholder="Search handles, platforms, humans, accounts..."
 >
   {#snippet desktopRow(sid)}
-    <td class="font-mono text-sm"><a href={resolve(`/social-ids/${sid.id}`)} class="text-accent hover:text-[var(--link-hover)]">{sid.displayId}</a></td>
+    <td class="font-mono text-sm whitespace-nowrap"><a href={resolve(`/social-ids/${sid.id}`)} class="text-accent hover:text-[var(--link-hover)]">{sid.displayId}</a></td>
     <td class="font-medium">{sid.handle}</td>
     <td>
       {#if sid.platformName}

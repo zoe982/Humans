@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, screen } from "@testing-library/svelte";
+import { render } from "@testing-library/svelte";
 import OfflineBanner from "./OfflineBanner.svelte";
 
 vi.mock("$lib/data/online-status", () => ({

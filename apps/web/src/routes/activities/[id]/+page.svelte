@@ -415,7 +415,7 @@
     >
       {#snippet row(item, _searchQuery)}
         {@const opp = item as unknown as LinkedOpportunity}
-        <td>
+        <td class="whitespace-nowrap">
           <a href={resolve(`/opportunities/${opp.opportunityId}?from=${$page.url.pathname}`)} class="text-sm font-medium text-accent hover:text-[var(--link-hover)]">
             {opp.displayId}
           </a>

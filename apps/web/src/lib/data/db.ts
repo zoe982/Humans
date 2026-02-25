@@ -17,7 +17,7 @@ export interface EntityCacheEntry {
 let dbInstance: IDBPDatabase | null = null;
 
 export async function getDb(): Promise<IDBPDatabase> {
-  if (dbInstance) return dbInstance;
+  if (dbInstance !== null) return dbInstance;
 
   dbInstance = await openDB(DB_NAME, DB_VERSION, {
     upgrade(db) {

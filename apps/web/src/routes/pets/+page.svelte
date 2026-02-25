@@ -66,7 +66,7 @@
         <span class="text-text-muted">\u2014</span>
       {/if}
     </td>
-    <td>{pet.name ?? pet.displayId}</td>
+    <td class="whitespace-nowrap">{pet.name ?? pet.displayId}</td>
     <td>
       <span class="glass-badge {typeColors[pet.type] ?? 'bg-glass text-text-secondary'}">{pet.type === "dog" ? "Dog" : "Cat"}</span>
     </td>

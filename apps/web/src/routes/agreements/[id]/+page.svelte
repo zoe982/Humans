@@ -341,12 +341,14 @@
         <td class="text-sm text-text-muted">{formatFileSize(doc.sizeBytes)}</td>
         <td class="text-sm text-text-muted whitespace-nowrap">{formatRelativeTime(doc.createdAt)}</td>
         <td class="text-right space-x-2">
+          <!-- eslint-disable svelte/no-navigation-without-resolve -->
           <a
             href={`${PUBLIC_API_URL}/api/documents/download/${doc.key}`}
             target="_blank"
             rel="noopener noreferrer"
             class="text-sm text-accent hover:text-[var(--link-hover)]"
           >Download</a>
+          <!-- eslint-enable svelte/no-navigation-without-resolve -->
           <button
             type="button"
             class="text-sm text-red-400 hover:text-red-300"

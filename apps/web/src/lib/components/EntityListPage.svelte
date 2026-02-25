@@ -122,7 +122,7 @@
 
   // Reset client page when filtered results change
   $effect(() => {
-    filteredSorted; // subscribe to changes
+    void filteredSorted; // subscribe to changes
     clientPage = 1;
   });
 

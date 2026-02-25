@@ -26,8 +26,8 @@
 
   const agreements = $derived(data.agreements as Agreement[]);
 
-  // eslint-disable-next-line svelte/prefer-svelte-reactivity
   const statusColorMap = Object.fromEntries(
+    // eslint-disable-next-line security/detect-object-injection
     Object.entries(agreementStatusColors).map(([k, v]) => [agreementStatusLabels[k] ?? k, v])
   );
 </script>
@@ -57,9 +57,10 @@
   searchPlaceholder="Search agreements..."
 >
   {#snippet desktopRow(a)}
-    <td class="font-mono text-sm"><a href={resolve(`/agreements/${a.id}`)} class="text-accent hover:text-[var(--link-hover)]">{a.displayId}</a></td>
+    <td class="font-mono text-sm whitespace-nowrap"><a href={resolve(`/agreements/${a.id}`)} class="text-accent hover:text-[var(--link-hover)]">{a.displayId}</a></td>
     <td class="font-medium"><a href={resolve(`/agreements/${a.id}`)} class="text-accent hover:text-[var(--link-hover)]">{a.title}</a></td>
     <td class="text-sm text-text-secondary">{a.typeName ?? "\u2014"}</td>
+    <!-- eslint-disable-next-line security/detect-object-injection -->
     <td><StatusBadge status={agreementStatusLabels[a.status] ?? a.status} colorMap={statusColorMap} /></td>
     <td>
       {#if a.humanId}
@@ -81,6 +82,7 @@
     <a href={resolve(`/agreements/${a.id}`)} class="glass-card p-4 block hover:ring-1 hover:ring-accent/40 transition">
       <div class="flex items-center justify-between">
         <span class="font-mono text-xs text-text-muted">{a.displayId}</span>
+        <!-- eslint-disable-next-line security/detect-object-injection -->
         <StatusBadge status={agreementStatusLabels[a.status] ?? a.status} colorMap={statusColorMap} />
       </div>
       <div class="font-medium mt-1">{a.title}</div>

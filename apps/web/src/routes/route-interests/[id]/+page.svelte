@@ -311,7 +311,7 @@
     emptyMessage="No expressions yet."
   >
     {#snippet row(expr, _searchQuery)}
-      <td class="font-mono text-sm">
+      <td class="font-mono text-sm whitespace-nowrap">
         <a href={resolve(`/route-interests/expressions/${expr.id}?from=${$page.url.pathname}`)} class="text-accent hover:text-[var(--link-hover)]">{expr.displayId}</a>
       </td>
       <td>

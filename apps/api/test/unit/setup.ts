@@ -516,6 +516,7 @@ const MIGRATION_STATEMENTS = [
   `CREATE INDEX IF NOT EXISTS \`agreements_account_id_idx\` ON \`agreements\` (\`account_id\`)`,
   `CREATE INDEX IF NOT EXISTS \`documents_entity_type_entity_id_idx\` ON \`documents\` (\`entity_type\`, \`entity_id\`)`,
   `CREATE INDEX IF NOT EXISTS \`documents_key_idx\` ON \`documents\` (\`key\`)`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS \`activities_front_id_unique\` ON \`activities\` (\`front_id\`) WHERE \`front_id\` IS NOT NULL`,
 ];
 
 // Clean tables in FK-safe order (children first)

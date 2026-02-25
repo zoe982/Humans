@@ -110,7 +110,7 @@
     {/if}
   {/snippet}
   {#snippet desktopRow(gi)}
-    <td class="font-mono text-sm">
+    <td class="font-mono text-sm whitespace-nowrap">
       <a href={resolve(`/geo-interests/${gi.id}`)} class="text-accent hover:text-[var(--link-hover)]">{gi.displayId}</a>
     </td>
     <td class="font-medium">

@@ -45,6 +45,7 @@
     maxMessages?: number;
     showViewAll?: boolean;
     searchQuery?: string;
+    hideHeader?: boolean;
   };
 
   let {
@@ -57,6 +58,7 @@
     maxMessages,
     showViewAll = false,
     searchQuery: externalQuery,
+    hideHeader = false,
   }: Props = $props();
 
   let showForm = $state(false);
@@ -193,39 +195,41 @@
 </script>
 
 <div class="glass-card overflow-hidden">
-  <!-- Header -->
-  <div class="flex items-center justify-between px-4 pt-4 pb-3">
-    <div class="flex items-center gap-3">
-      <h2 class="text-lg font-semibold text-text-primary">Activities</h2>
-      {#if !showForm && activities.length > 0 && externalQuery === undefined}
-        <div class="relative">
-          <Search
-            size={14}
-            class="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none"
-          />
-          <input
-            type="text"
-            placeholder="Search..."
-            bind:value={internalQuery}
-            class="glass-input w-48 pl-8 pr-3 py-1.5 text-sm"
-          />
-        </div>
+  <!-- Header (hidden when parent provides its own via RecordManagementBar) -->
+  {#if !hideHeader}
+    <div class="flex items-center justify-between px-4 pt-4 pb-3">
+      <div class="flex items-center gap-3">
+        <h2 class="text-lg font-semibold text-text-primary">Activities</h2>
+        {#if !showForm && activities.length > 0 && externalQuery === undefined}
+          <div class="relative">
+            <Search
+              size={14}
+              class="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none"
+            />
+            <input
+              type="text"
+              placeholder="Search..."
+              bind:value={internalQuery}
+              class="glass-input w-48 pl-8 pr-3 py-1.5 text-sm"
+            />
+          </div>
+        {/if}
+      </div>
+      {#if addForm}
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          onclick={() => {
+            showForm = !showForm;
+            onFormToggle?.(showForm);
+          }}
+        >
+          {showForm ? "Cancel" : "+ Activity"}
+        </Button>
       {/if}
     </div>
-    {#if addForm}
-      <Button
-        type="button"
-        variant="ghost"
-        size="sm"
-        onclick={() => {
-          showForm = !showForm;
-          onFormToggle?.(showForm);
-        }}
-      >
-        {showForm ? "Cancel" : "+ Activity"}
-      </Button>
-    {/if}
-  </div>
+  {/if}
 
   <!-- Add Form -->
   {#if showForm && addForm}

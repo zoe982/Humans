@@ -44,7 +44,7 @@
       <tbody>
         {#each expressions as expr, i (i)}
           <tr class="glass-row-hover">
-            <td class="font-mono text-sm text-text-muted">{expr.displayId}</td>
+            <td class="font-mono text-sm text-text-muted whitespace-nowrap">{expr.displayId}</td>
             <td class="font-medium">
               <a href={resolve(`/humans/${expr.humanId}`)} class="text-accent hover:text-[var(--link-hover)]">{expr.humanName ?? "—"}</a>
             </td>

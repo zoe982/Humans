@@ -14,6 +14,7 @@ const ENTITY_REGISTRY: Record<string, string> = {
 export const ENTITY_TYPES = Object.keys(ENTITY_REGISTRY);
 
 export function getApiPath(entityType: string): string | null {
+  // eslint-disable-next-line security/detect-object-injection
   return ENTITY_REGISTRY[entityType] ?? null;
 }
 
@@ -28,13 +29,14 @@ export function parseRealtimePath(
   // Try two-segment entity types first (e.g., "general-leads")
   // These have hyphens in the entity name, not in the ID
   const firstSegment = segments[0];
-  if (!firstSegment) return null;
+  if (firstSegment === undefined || firstSegment === "") return null;
 
   // Check if the first segment is a known entity type
-  if (ENTITY_REGISTRY[firstSegment]) {
+  // eslint-disable-next-line security/detect-object-injection
+  if (ENTITY_REGISTRY[firstSegment] !== undefined) {
     return {
       entityType: firstSegment,
-      id: segments[1] || undefined,
+      id: segments[1] !== undefined && segments[1] !== "" ? segments[1] : undefined,
     };
   }
 

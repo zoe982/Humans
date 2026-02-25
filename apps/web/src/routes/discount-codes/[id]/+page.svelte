@@ -211,7 +211,7 @@
       emptyMessage="No flights linked to this discount code."
     >
       {#snippet row(flight, _searchQuery)}
-        <td class="font-mono text-sm">
+        <td class="font-mono text-sm whitespace-nowrap">
           <a href={resolve(`/flights/${flight.id}?from=${$page.url.pathname}`)} class="text-accent hover:text-[var(--link-hover)]">{flight.crmDisplayId ?? flight.id}</a>
         </td>
         <td class="text-sm text-text-secondary">

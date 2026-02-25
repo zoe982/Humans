@@ -32,4 +32,6 @@
   });
 </script>
 
+<!-- eslint-disable svelte/no-navigation-without-resolve -->
 <div class="whitespace-pre-line">{#each segments as seg, i (i)}{#if seg.type === "url"}<a href={seg.value} target="_blank" rel="noopener noreferrer" class="text-accent hover:underline">{seg.value}</a>{:else}<HighlightText text={seg.value} query={query} />{/if}{/each}</div>
+<!-- eslint-enable svelte/no-navigation-without-resolve -->

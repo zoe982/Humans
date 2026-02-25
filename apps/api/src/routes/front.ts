@@ -12,6 +12,7 @@ import {
   debugUnmatchedContact,
   reclassifyActivities,
   backfillAuthorNames,
+  deduplicateActivities,
 } from "../services/front-sync";
 import type { AppContext } from "../types";
 
@@ -185,6 +186,21 @@ frontRoutes.post(
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       throw internal(ERROR_CODES.FRONT_SYNC_FAILED, `Backfill failed: ${msg}`);
+    }
+  },
+);
+
+// Deduplicate activities with the same front_id (keep oldest)
+frontRoutes.post(
+  "/api/admin/front/sync/deduplicate",
+  requirePermission("manageColleagues"),
+  async (c) => {
+    try {
+      const result = await deduplicateActivities(c.get("db"));
+      return c.json({ data: result });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      throw internal(ERROR_CODES.FRONT_SYNC_FAILED, `Deduplicate failed: ${msg}`);
     }
   },
 );

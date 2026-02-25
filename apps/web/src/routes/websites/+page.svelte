@@ -41,7 +41,7 @@
   searchPlaceholder="Search URLs, humans, accounts..."
 >
   {#snippet desktopRow(w)}
-    <td class="font-mono text-sm"><a href={resolve(`/websites/${w.id}`)} class="text-accent hover:text-[var(--link-hover)]">{w.displayId}</a></td>
+    <td class="font-mono text-sm whitespace-nowrap"><a href={resolve(`/websites/${w.id}`)} class="text-accent hover:text-[var(--link-hover)]">{w.displayId}</a></td>
     <td class="font-medium">
       <!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
       <a href={w.url} target="_blank" rel="noopener noreferrer" class="text-accent hover:text-[var(--link-hover)]">{w.url}</a>

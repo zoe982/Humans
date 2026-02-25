@@ -170,7 +170,7 @@
       {/if}
     {/snippet}
     {#snippet desktopRow(ri)}
-      <td class="font-mono text-sm">
+      <td class="font-mono text-sm whitespace-nowrap">
         <a href={resolve(`/route-interests/${ri.id}`)} class="text-accent hover:text-[var(--link-hover)]">{ri.displayId}</a>
       </td>
       <td>
@@ -278,7 +278,7 @@
         <tbody>
           {#each filteredExpressions as expr, i (i)}
             <tr class="glass-row-hover">
-              <td class="font-mono text-sm">
+              <td class="font-mono text-sm whitespace-nowrap">
                 <a href={resolve(`/route-interests/expressions/${expr.id}`)} class="text-accent hover:text-[var(--link-hover)]">{expr.displayId}</a>
               </td>
               <td>

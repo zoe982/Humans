@@ -49,7 +49,7 @@
   searchPlaceholder="Search phones, owners, labels..."
 >
   {#snippet desktopRow(phone)}
-    <td class="font-mono text-sm"><a href={resolve(`/phone-numbers/${phone.id}`)} class="text-accent hover:text-[var(--link-hover)]">{phone.displayId}</a></td>
+    <td class="font-mono text-sm whitespace-nowrap"><a href={resolve(`/phone-numbers/${phone.id}`)} class="text-accent hover:text-[var(--link-hover)]">{phone.displayId}</a></td>
     <td class="font-medium">
       <!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
       <a href={ownerHref(phone)} class="text-accent hover:text-[var(--link-hover)]">{phone.ownerName ?? "\u2014"}</a>

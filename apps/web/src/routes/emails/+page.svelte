@@ -53,7 +53,7 @@
   searchPlaceholder="Search emails, owners, labels..."
 >
   {#snippet desktopRow(email)}
-    <td class="font-mono text-sm"><a href={resolve(`/emails/${email.id}`)} class="text-accent hover:text-[var(--link-hover)]">{email.displayId}</a></td>
+    <td class="font-mono text-sm whitespace-nowrap"><a href={resolve(`/emails/${email.id}`)} class="text-accent hover:text-[var(--link-hover)]">{email.displayId}</a></td>
     <td class="font-medium">
       <!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
       <a href={ownerHref(email)} class="text-accent hover:text-[var(--link-hover)]">{email.ownerName ?? "\u2014"}</a>

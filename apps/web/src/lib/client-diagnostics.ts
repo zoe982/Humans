@@ -6,7 +6,7 @@ const errors: DiagnosticError[] = [];
 let onErrorCallback: ((errors: DiagnosticError[]) => void) | null = null;
 
 // --- Auto-report to API ---
-let pendingErrors: DiagnosticError[] = [];
+const pendingErrors: DiagnosticError[] = [];
 let flushTimer: ReturnType<typeof setTimeout> | null = null;
 const FLUSH_DELAY_MS = 1500;
 const reported = new Set<string>();
@@ -32,11 +32,7 @@ function flushToApi(): void {
   if (typeof navigator.sendBeacon === "function") {
     navigator.sendBeacon("/api/client-errors", payload);
   } else {
-    void fetch("/api/client-errors", {
-      method: "POST",
-      body: payload,
-      keepalive: true,
-    }).catch(() => { /* best-effort */ });
+    void fetch("/api/client-errors", { method: "POST", body: payload, keepalive: true });
   }
 }
 

@@ -494,8 +494,8 @@ describe("EntityListPage", () => {
 
   it("renders only clientPageSize items when set", () => {
     const manyItems = Array.from({ length: 10 }, (_, i) => ({
-      id: `item-${i}`,
-      name: `Item ${i}`,
+      id: `item-${String(i)}`,
+      name: `Item ${String(i)}`,
       createdAt: "2024-01-01",
     }));
     const { container } = render(EntityListPage, {
@@ -507,8 +507,8 @@ describe("EntityListPage", () => {
 
   it("renders client-side pagination nav when clientPageSize is set", () => {
     const manyItems = Array.from({ length: 10 }, (_, i) => ({
-      id: `item-${i}`,
-      name: `Item ${i}`,
+      id: `item-${String(i)}`,
+      name: `Item ${String(i)}`,
       createdAt: "2024-01-01",
     }));
     const { container } = render(EntityListPage, {
@@ -519,16 +519,16 @@ describe("EntityListPage", () => {
 
   it("shows second page items when Next is clicked in client pagination", async () => {
     const manyItems = Array.from({ length: 10 }, (_, i) => ({
-      id: `item-${i}`,
-      name: `Item ${i}`,
+      id: `item-${String(i)}`,
+      name: `Item ${String(i)}`,
       createdAt: "2024-01-01",
     }));
     const { container } = render(EntityListPage, {
       props: baseProps({ items: manyItems, clientPageSize: 3 }),
     });
     const buttons = container.querySelectorAll("button");
-    const nextButton = Array.from(buttons).find((b) => b.textContent?.includes("Next"));
-    if (!nextButton) throw new Error("expected Next button");
+    const nextButton = Array.from(buttons).find((b) => b.textContent.includes("Next"));
+    if (nextButton === undefined) throw new Error("expected Next button");
     await fireEvent.click(nextButton);
     const cells = container.querySelectorAll("[data-testid='desktop-cell']");
     expect(cells.length).toBe(3);

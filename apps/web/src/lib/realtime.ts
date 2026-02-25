@@ -25,9 +25,9 @@ function isRealtimeMessage(raw: unknown): raw is RealtimeMessage {
     "method" in raw &&
     "path" in raw &&
     "actorId" in raw &&
-    typeof (raw as RealtimeMessage).method === "string" &&
-    typeof (raw as RealtimeMessage).path === "string" &&
-    typeof (raw as RealtimeMessage).actorId === "string"
+    typeof (raw as { method: unknown }).method === "string" &&
+    typeof (raw as { path: unknown }).path === "string" &&
+    typeof (raw as { actorId: unknown }).actorId === "string"
   );
 }
 

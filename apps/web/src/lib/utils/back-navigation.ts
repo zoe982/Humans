@@ -37,14 +37,19 @@ export function entityLabelFromPath(path: string): string | null {
 
   // Try two-segment prefix first (e.g. "leads/general-leads", "geo-interests/expressions")
   if (segments.length >= 3) {
-    const twoSegmentKey = `${segments[0]}/${segments[1]}`;
+    const seg0 = segments[0] ?? "";
+    const seg1 = segments[1] ?? "";
+    const twoSegmentKey = `${seg0}/${seg1}`;
     // eslint-disable-next-line security/detect-object-injection
-    if (ENTITY_LABELS[twoSegmentKey]) return ENTITY_LABELS[twoSegmentKey];
+    const twoSegmentLabel: string | undefined = ENTITY_LABELS[twoSegmentKey];
+    if (twoSegmentLabel !== undefined) return twoSegmentLabel;
   }
 
   // Single-segment prefix (e.g. "accounts")
+  const firstSegment = segments[0] ?? "";
   // eslint-disable-next-line security/detect-object-injection
-  if (segments.length >= 2 && ENTITY_LABELS[segments[0]]) return ENTITY_LABELS[segments[0]];
+  const singleLabel: string | undefined = ENTITY_LABELS[firstSegment];
+  if (segments.length >= 2 && singleLabel !== undefined) return singleLabel;
 
   return null;
 }

@@ -30,9 +30,10 @@ export async function initCache(sessionToken: string): Promise<void> {
   const fingerprint = await hashToken(sessionToken);
   const db = await getDb();
 
-  const storedFingerprint = await db.get(META_STORE, "sessionFingerprint");
+  const storedFingerprintRaw: unknown = await db.get(META_STORE, "sessionFingerprint");
+  const storedFingerprint = typeof storedFingerprintRaw === "string" ? storedFingerprintRaw : null;
 
-  if (storedFingerprint && storedFingerprint !== fingerprint) {
+  if (storedFingerprint !== null && storedFingerprint !== fingerprint) {
     // Session changed — wipe all data and re-derive key
     await clearAllData();
   }
@@ -41,10 +42,9 @@ export async function initCache(sessionToken: string): Promise<void> {
 
   // Derive and cache the encryption key
   // Use a stable salt per session (stored in meta)
-  let salt = (await db.get(META_STORE, "encryptionSalt")) as
-    | Uint8Array
-    | undefined;
-  if (!salt) {
+  const saltRaw: unknown = await db.get(META_STORE, "encryptionSalt");
+  let salt: Uint8Array | undefined = saltRaw instanceof Uint8Array ? saltRaw : undefined;
+  if (salt === undefined) {
     salt = generateSalt();
     await db.put(META_STORE, salt, "encryptionSalt");
   }
@@ -53,29 +53,38 @@ export async function initCache(sessionToken: string): Promise<void> {
   setCachedKey(key);
 }
 
-export async function getCached<T>(
-  entityType: string,
-): Promise<{ items: T[]; lastSync: number } | null> {
-  const key = getCachedKey();
-  if (!key) return null;
-
-  const db = await getDb();
-  const entry = (await db.get(
-    ENTITY_CACHE_STORE,
-    entityType,
-  )) as EntityCacheEntry | undefined;
-  if (!entry) return null;
-
-  const items = (await decrypt(key, entry.iv, entry.ciphertext)) as T[];
-  return { items, lastSync: entry.lastSync };
+function isEntityCacheEntry(value: unknown): value is EntityCacheEntry {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "entityType" in value &&
+    "iv" in value &&
+    "ciphertext" in value &&
+    "lastSync" in value
+  );
 }
 
-export async function setCached<T>(
+export async function getCached(
   entityType: string,
-  items: T[],
+): Promise<{ items: unknown[]; lastSync: number } | null> {
+  const key = getCachedKey();
+  if (key === null) return null;
+
+  const db = await getDb();
+  const entryRaw: unknown = await db.get(ENTITY_CACHE_STORE, entityType);
+  if (!isEntityCacheEntry(entryRaw)) return null;
+
+  const decrypted = await decrypt(key, entryRaw.iv, entryRaw.ciphertext);
+  if (!Array.isArray(decrypted)) return null;
+  return { items: decrypted, lastSync: entryRaw.lastSync };
+}
+
+export async function setCached(
+  entityType: string,
+  items: unknown[],
 ): Promise<void> {
   const key = getCachedKey();
-  if (!key) return;
+  if (key === null) return;
 
   const { iv, ciphertext } = await encrypt(key, items);
   const db = await getDb();

@@ -117,7 +117,7 @@ describe("Pagination", () => {
   describe("callback mode (onPageChange)", () => {
     it("renders buttons instead of links when onPageChange is provided", () => {
       const { container } = render(Pagination, {
-        props: { page: 2, limit: 10, total: 50, onPageChange: () => {} },
+        props: { page: 2, limit: 10, total: 50, onPageChange: () => { /* noop */ } },
       });
       const buttons = container.querySelectorAll("button");
       expect(buttons.length).toBe(2); // Prev + Next
@@ -125,7 +125,7 @@ describe("Pagination", () => {
       expect(links.length).toBe(0);
     });
 
-    it("calls onPageChange with next page when Next button is clicked", async () => {
+    it("calls onPageChange with next page when Next button is clicked", () => {
       let calledWith = 0;
       const { container } = render(Pagination, {
         props: {
@@ -136,12 +136,12 @@ describe("Pagination", () => {
         },
       });
       const buttons = container.querySelectorAll("button");
-      const nextButton = Array.from(buttons).find((b) => b.textContent?.includes("Next"));
+      const nextButton = Array.from(buttons).find((b) => b.textContent.includes("Next"));
       nextButton?.click();
       expect(calledWith).toBe(3);
     });
 
-    it("calls onPageChange with previous page when Prev button is clicked", async () => {
+    it("calls onPageChange with previous page when Prev button is clicked", () => {
       let calledWith = 0;
       const { container } = render(Pagination, {
         props: {
@@ -152,27 +152,27 @@ describe("Pagination", () => {
         },
       });
       const buttons = container.querySelectorAll("button");
-      const prevButton = Array.from(buttons).find((b) => b.textContent?.includes("Prev"));
+      const prevButton = Array.from(buttons).find((b) => b.textContent.includes("Prev"));
       prevButton?.click();
       expect(calledWith).toBe(2);
     });
 
     it("renders disabled span for Prev on first page in callback mode", () => {
       const { container } = render(Pagination, {
-        props: { page: 1, limit: 10, total: 50, onPageChange: () => {} },
+        props: { page: 1, limit: 10, total: 50, onPageChange: () => { /* noop */ } },
       });
       const buttons = container.querySelectorAll("button");
-      const prevButton = Array.from(buttons).find((b) => b.textContent?.includes("Prev"));
+      const prevButton = Array.from(buttons).find((b) => b.textContent.includes("Prev"));
       expect(prevButton).toBeUndefined();
 
       const spans = container.querySelectorAll("span");
-      const prevSpan = Array.from(spans).find((s) => s.textContent?.includes("Prev"));
+      const prevSpan = Array.from(spans).find((s) => s.textContent.includes("Prev"));
       expect(prevSpan).toBeDefined();
     });
 
     it("baseUrl is not required in callback mode", () => {
       const { container } = render(Pagination, {
-        props: { page: 1, limit: 10, total: 20, onPageChange: () => {} },
+        props: { page: 1, limit: 10, total: 20, onPageChange: () => { /* noop */ } },
       });
       expect(container.querySelector("nav")).not.toBeNull();
     });

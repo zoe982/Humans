@@ -20,7 +20,7 @@ export async function fetchEntityList(
   const url = `${PUBLIC_API_URL}${path}`;
   const headers: Record<string, string> = {};
 
-  if (!browser && sessionToken) {
+  if (!browser && sessionToken !== null) {
     headers["Cookie"] = `humans_session=${sessionToken}`;
   }
 
