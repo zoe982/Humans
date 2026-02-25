@@ -378,30 +378,30 @@ export const actions = {
     return { success: true };
   },
 
-  renameAccountType: async ({ request, cookies }: RequestEvent) =>
+  renameAccountType: async ({ request, cookies }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> =>
     renameConfig(request, cookies, "account-types"),
 
-  renameHumanLabel: async ({ request, cookies }: RequestEvent) =>
+  renameHumanLabel: async ({ request, cookies }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> =>
     renameConfig(request, cookies, "account-human-labels"),
 
-  renameEmailLabel: async ({ request, cookies }: RequestEvent) =>
+  renameEmailLabel: async ({ request, cookies }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> =>
     renameConfig(request, cookies, "account-email-labels"),
 
-  renamePhoneLabel: async ({ request, cookies }: RequestEvent) =>
+  renamePhoneLabel: async ({ request, cookies }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> =>
     renameConfig(request, cookies, "account-phone-labels"),
 
-  renameHumanEmailLabel: async ({ request, cookies }: RequestEvent) =>
+  renameHumanEmailLabel: async ({ request, cookies }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> =>
     renameConfig(request, cookies, "human-email-labels"),
 
-  renameHumanPhoneLabel: async ({ request, cookies }: RequestEvent) =>
+  renameHumanPhoneLabel: async ({ request, cookies }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> =>
     renameConfig(request, cookies, "human-phone-labels"),
 
-  renameOpportunityHumanRole: async ({ request, cookies }: RequestEvent) =>
+  renameOpportunityHumanRole: async ({ request, cookies }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> =>
     renameConfig(request, cookies, "opportunity-human-roles"),
 
-  renameHumanRelationshipLabel: async ({ request, cookies }: RequestEvent) =>
+  renameHumanRelationshipLabel: async ({ request, cookies }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> =>
     renameConfig(request, cookies, "human-relationship-labels"),
 
-  renameAgreementType: async ({ request, cookies }: RequestEvent) =>
+  renameAgreementType: async ({ request, cookies }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> =>
     renameConfig(request, cookies, "agreement-types"),
 };
