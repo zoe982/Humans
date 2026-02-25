@@ -24,6 +24,8 @@ export const DISPLAY_ID_PREFIXES = [
   "DIS",
   "WEB",
   "REL",
+  "AGR",
+  "DOC",
 ] as const;
 
 export type DisplayIdPrefix = (typeof DISPLAY_ID_PREFIXES)[number];

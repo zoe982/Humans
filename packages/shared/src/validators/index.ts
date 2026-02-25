@@ -173,6 +173,19 @@ export {
 } from "./general-leads";
 
 export {
+  agreementStatusEnum,
+  createAgreementSchema,
+  updateAgreementSchema,
+  type CreateAgreementInput,
+  type UpdateAgreementInput,
+} from "./agreements";
+
+export {
+  createDocumentSchema,
+  type CreateDocumentInput,
+} from "./documents";
+
+export {
   createAccountSchema,
   updateAccountSchema,
   updateAccountStatusSchema,

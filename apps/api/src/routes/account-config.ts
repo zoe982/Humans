@@ -10,6 +10,7 @@ import {
   socialIdPlatformsConfig,
   opportunityHumanRolesConfig,
   humanRelationshipLabelsConfig,
+  agreementTypesConfig,
 } from "@humans/db/schema";
 import { createId } from "@humans/db";
 import { createConfigItemSchema, updateConfigItemSchema } from "@humans/shared";
@@ -29,6 +30,7 @@ const configTableMap = {
   "social-id-platforms": socialIdPlatformsConfig,
   "opportunity-human-roles": opportunityHumanRolesConfig,
   "human-relationship-labels": humanRelationshipLabelsConfig,
+  "agreement-types": agreementTypesConfig,
 } as const;
 
 type ConfigType = keyof typeof configTableMap;
@@ -48,6 +50,7 @@ function getConfigTable(configType: ConfigType): (typeof configTableMap)[ConfigT
     case "social-id-platforms": return socialIdPlatformsConfig;
     case "opportunity-human-roles": return opportunityHumanRolesConfig;
     case "human-relationship-labels": return humanRelationshipLabelsConfig;
+    case "agreement-types": return agreementTypesConfig;
   }
 }
 

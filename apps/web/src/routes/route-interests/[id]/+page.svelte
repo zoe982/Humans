@@ -9,7 +9,7 @@
   import { Button } from "$lib/components/ui/button";
   import * as Select from "$lib/components/ui/select";
   import { formatRelativeTime, summarizeChanges } from "$lib/utils/format";
-  import { createChangeHistoryLoader } from "$lib/changeHistory";
+  import { createChangeHistoryLoader } from "$lib/changeHistory.svelte";
   import { resolve } from "$app/paths";
 
   const MONTH_OPTIONS = [

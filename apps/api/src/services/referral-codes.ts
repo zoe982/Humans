@@ -78,7 +78,7 @@ export async function getReferralCode(supabase: SupabaseClient, db: DB, id: stri
     throw notFound(ERROR_CODES.REFERRAL_CODE_NOT_FOUND, "Referral code not found");
   }
 
-  const rc = toApiShape(codes[0]);
+  const rc = toApiShape(codes[0]!);
 
   const allHumans = await db.select().from(humans);
   const allAccounts = await db.select().from(accounts);

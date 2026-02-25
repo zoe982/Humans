@@ -31,6 +31,7 @@ import ReferralCodeDetailPage from "../../src/routes/referral-codes/[id]/+page.s
 import DiscountCodeDetailPage from "../../src/routes/discount-codes/[id]/+page.svelte";
 import GeneralLeadDetailPage from "../../src/routes/leads/general-leads/[id]/+page.svelte";
 import WebsiteDetailPage from "../../src/routes/websites/[id]/+page.svelte";
+import AgreementDetailPage from "../../src/routes/agreements/[id]/+page.svelte";
 
 // ---------------------------------------------------------------------------
 // Smoke tests — each page gets the minimal data shape for the primary record
@@ -53,6 +54,8 @@ describe("Detail page smoke tests", () => {
             ownerDisplayId: null,
           },
           allHumans: [],
+          user: { id: "u1", email: "test@example.com", name: "Test User", avatarUrl: null, role: "admin" },
+          sessionToken: "test-token",
         },
       },
     });
@@ -80,6 +83,8 @@ describe("Detail page smoke tests", () => {
           accountEmailLabelConfigs: [],
           allHumans: [],
           allAccounts: [],
+          user: { id: "u1", email: "test@example.com", name: "Test User", avatarUrl: null, role: "admin" },
+          sessionToken: "test-token",
         },
       },
     });
@@ -108,6 +113,8 @@ describe("Detail page smoke tests", () => {
           accountPhoneLabelConfigs: [],
           allHumans: [],
           allAccounts: [],
+          user: { id: "u1", email: "test@example.com", name: "Test User", avatarUrl: null, role: "admin" },
+          sessionToken: "test-token",
         },
       },
     });
@@ -143,7 +150,12 @@ describe("Detail page smoke tests", () => {
           accounts: [],
           routeSignups: [],
           websiteBookingRequests: [],
+          colleagues: [],
+          generalLeads: [],
+          opportunitiesList: [],
           apiUrl: "http://localhost",
+          user: { id: "u1", email: "test@example.com", name: "Test User", avatarUrl: null, role: "admin" },
+          sessionToken: "test-token",
         },
         form: null,
       },
@@ -164,6 +176,8 @@ describe("Detail page smoke tests", () => {
             expressions: [],
           },
           humans: [],
+          user: { id: "u1", email: "test@example.com", name: "Test User", avatarUrl: null, role: "admin" },
+          sessionToken: "test-token",
         },
         form: null,
       },
@@ -188,6 +202,8 @@ describe("Detail page smoke tests", () => {
           },
           humans: [],
           reverseRoute: null,
+          user: { id: "u1", email: "test@example.com", name: "Test User", avatarUrl: null, role: "admin" },
+          sessionToken: "test-token",
         },
         form: null,
       },
@@ -214,6 +230,8 @@ describe("Detail page smoke tests", () => {
           platformConfigs: [],
           allHumans: [],
           allAccounts: [],
+          user: { id: "u1", email: "test@example.com", name: "Test User", avatarUrl: null, role: "admin" },
+          sessionToken: "test-token",
         },
       },
     });
@@ -249,6 +267,9 @@ describe("Detail page smoke tests", () => {
           allHumans: [],
           socialIdPlatformConfigs: [],
           allDiscountCodes: [],
+          accountAgreements: [],
+          user: { id: "u1", email: "test@example.com", name: "Test User", avatarUrl: null, role: "admin" },
+          sessionToken: "test-token",
         },
         form: null,
       },
@@ -273,6 +294,8 @@ describe("Detail page smoke tests", () => {
           },
           allHumans: [],
           allAccounts: [],
+          user: { id: "u1", email: "test@example.com", name: "Test User", avatarUrl: null, role: "admin" },
+          sessionToken: "test-token",
         },
       },
     });
@@ -303,6 +326,8 @@ describe("Detail page smoke tests", () => {
           },
           allHumans: [],
           allAccounts: [],
+          user: { id: "u1", email: "test@example.com", name: "Test User", avatarUrl: null, role: "admin" },
+          sessionToken: "test-token",
         },
       },
     });
@@ -333,7 +358,8 @@ describe("Detail page smoke tests", () => {
             updatedAt: "2025-01-15T10:00:00.000Z",
           },
           allHumans: [],
-          user: { id: "user-1", email: "test@example.com", role: "agent", name: "Test User" },
+          user: { id: "u1", email: "test@example.com", name: "Test User", avatarUrl: null, role: "admin" },
+          sessionToken: "test-token",
         },
         form: null,
       },
@@ -357,11 +383,44 @@ describe("Detail page smoke tests", () => {
           },
           allHumans: [],
           allAccounts: [],
+          user: { id: "u1", email: "test@example.com", name: "Test User", avatarUrl: null, role: "admin" },
+          sessionToken: "test-token",
         },
       },
     });
     // RecordManagementBar renders <h1>{displayId} — {url}</h1>
     expect(screen.getByRole("heading", { name: "WEB-AAA-001 — https://example.com" })).toBeDefined();
+  });
+
+  it("Agreement detail page renders without error", () => {
+    render(AgreementDetailPage, {
+      props: {
+        data: {
+          agreement: {
+            id: "agr-1",
+            displayId: "AGR-AAA-001",
+            title: "Service Agreement",
+            typeId: null,
+            typeName: null,
+            status: "open",
+            activationDate: null,
+            notes: null,
+            humanId: null,
+            humanName: null,
+            accountId: null,
+            accountName: null,
+          },
+          allHumans: [],
+          allAccounts: [],
+          agreementTypes: [],
+          documents: [],
+          user: { id: "u1", email: "test@example.com", name: "Test User", avatarUrl: null, role: "admin" },
+          sessionToken: "test-token",
+        },
+      },
+    });
+    // RecordManagementBar renders <h1>{displayId} — {title}</h1>
+    expect(screen.getByRole("heading", { name: "AGR-AAA-001 — Service Agreement" })).toBeDefined();
   });
 });
 
@@ -385,7 +444,9 @@ describe("Detail page structure enforcement", () => {
           },
           typeConfigs: [], humanLabelConfigs: [], emailLabelConfigs: [],
           phoneLabelConfigs: [], allHumans: [], socialIdPlatformConfigs: [],
-          allDiscountCodes: [],
+          allDiscountCodes: [], accountAgreements: [],
+          user: { id: "u1", email: "test@example.com", name: "Test User", avatarUrl: null, role: "admin" },
+          sessionToken: "test-token",
         },
         form: null,
       },
@@ -397,6 +458,8 @@ describe("Detail page structure enforcement", () => {
         data: {
           pet: { id: "pet-1", displayId: "PET-001", humanId: null, type: "dog", name: "Buddy", breed: null, weight: null, ownerName: null, ownerDisplayId: null },
           allHumans: [],
+          user: { id: "u1", email: "test@example.com", name: "Test User", avatarUrl: null, role: "admin" },
+          sessionToken: "test-token",
         },
       },
     },
@@ -412,7 +475,11 @@ describe("Detail page structure enforcement", () => {
             geoInterestExpressions: [], routeInterestExpressions: [],
             colleagueId: null, createdAt: "2025-01-15T10:00:00.000Z", updatedAt: "2025-01-15T10:00:00.000Z",
           },
-          humans: [], accounts: [], routeSignups: [], websiteBookingRequests: [], apiUrl: "http://localhost",
+          humans: [], accounts: [], routeSignups: [], websiteBookingRequests: [],
+          colleagues: [], generalLeads: [], opportunitiesList: [],
+          apiUrl: "http://localhost",
+          user: { id: "u1", email: "test@example.com", name: "Test User", avatarUrl: null, role: "admin" },
+          sessionToken: "test-token",
         },
         form: null,
       },

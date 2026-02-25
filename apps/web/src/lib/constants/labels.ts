@@ -86,6 +86,20 @@ export const GENERAL_LEAD_SOURCE_OPTIONS = [
   { value: "direct_referral", label: "Direct Referral" },
 ] as const;
 
+/** Agreement status display labels */
+export const agreementStatusLabels: Record<string, string> = {
+  open: "Open",
+  active: "Active",
+  closed_inactive: "Closed - Inactive",
+};
+
+/** Agreement status options for dropdowns */
+export const AGREEMENT_STATUS_OPTIONS = [
+  { value: "open", label: "Open" },
+  { value: "active", label: "Active" },
+  { value: "closed_inactive", label: "Closed - Inactive" },
+] as const;
+
 /** Opportunity stage display labels */
 export const opportunityStageLabels: Record<string, string> = {
   open: "Open",

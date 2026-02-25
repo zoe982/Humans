@@ -16,6 +16,7 @@ export const load = async ({ locals, cookies, params }: RequestEvent): Promise<{
   allHumans: unknown[];
   socialIdPlatformConfigs: unknown[];
   allDiscountCodes: unknown[];
+  accountAgreements: unknown[];
 }> => {
   if (locals.user == null) redirect(302, "/login");
 
@@ -54,10 +55,11 @@ export const load = async ({ locals, cookies, params }: RequestEvent): Promise<{
     }
 
     // Batch: all configs + humans + discount codes in one batch
-    const [configs, allHumans, allDiscountCodes] = await Promise.all([
+    const [configs, allHumans, allDiscountCodes, accountAgreements] = await Promise.all([
       fetchConfigs(sessionToken, ["account-types", "account-human-labels", "account-email-labels", "account-phone-labels", "social-id-platforms"]),
       fetchList(`${PUBLIC_API_URL}/api/humans`),
       fetchList(`${PUBLIC_API_URL}/api/discount-codes`),
+      fetchList(`${PUBLIC_API_URL}/api/agreements?accountId=${id}&limit=50`),
     ]);
     const t2 = Date.now();
 
@@ -77,6 +79,7 @@ export const load = async ({ locals, cookies, params }: RequestEvent): Promise<{
       allHumans,
       socialIdPlatformConfigs: configs["social-id-platforms"] ?? [],
       allDiscountCodes,
+      accountAgreements,
     };
   } catch (err) {
     // Re-throw redirects (SvelteKit Redirect is thrown as an exception)

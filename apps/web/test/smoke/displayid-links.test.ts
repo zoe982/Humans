@@ -64,7 +64,9 @@ const ROUTES_DIR = resolve(__dirname, "../../src/routes");
 
 function entityRouteToFilePath(entityType: string): string {
   // Build the URL with a placeholder, then convert the last segment to [id]
-  const url = ENTITY_DETAIL_ROUTES[entityType]("__ID__");
+  // Non-null assertion: callers must pass a key that exists in ENTITY_DETAIL_ROUTES
+  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+  const url = ENTITY_DETAIL_ROUTES[entityType]!("__ID__");
   const segments = url.replace(/^\//, "").split("/");
   // Replace the ID placeholder segment with SvelteKit's [id] param
   const mapped = segments.map((s) => (s === "__ID__" ? "[id]" : s));

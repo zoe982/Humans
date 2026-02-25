@@ -17,6 +17,7 @@ export const load = async ({ locals, cookies }: RequestEvent): Promise<{
   humanPhoneLabels: unknown[];
   opportunityHumanRoles: unknown[];
   humanRelationshipLabels: unknown[];
+  agreementTypes: unknown[];
 }> => {
   if (locals.user == null) redirect(302, "/login");
   if (locals.user.role !== "admin") redirect(302, "/dashboard");
@@ -34,6 +35,7 @@ export const load = async ({ locals, cookies }: RequestEvent): Promise<{
     humanPhoneLabels: configs["human-phone-labels"] ?? [],
     opportunityHumanRoles: configs["opportunity-human-roles"] ?? [],
     humanRelationshipLabels: configs["human-relationship-labels"] ?? [],
+    agreementTypes: configs["agreement-types"] ?? [],
   };
 };
 
@@ -307,6 +309,41 @@ export const actions = {
     const id = getFormString(form, "id");
 
     const res = await fetch(`${PUBLIC_API_URL}/api/admin/account-config/human-relationship-labels/${id}`, {
+      method: "DELETE",
+      headers: { Cookie: `humans_session=${sessionToken}` },
+    });
+
+    if (!res.ok) {
+      const resBody: unknown = await res.json().catch(() => ({}));
+      return failFromApi(resBody, res.status, "Failed to delete");
+    }
+    return { success: true };
+  },
+
+  createAgreementType: async ({ request, cookies }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
+    const form = await request.formData();
+    const sessionToken = cookies.get("humans_session") ?? "";
+    const name = getFormString(form, "name");
+
+    const res = await fetch(`${PUBLIC_API_URL}/api/admin/account-config/agreement-types`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Cookie: `humans_session=${sessionToken}` },
+      body: JSON.stringify({ name }),
+    });
+
+    if (!res.ok) {
+      const resBody: unknown = await res.json().catch(() => ({}));
+      return failFromApi(resBody, res.status, "Failed to create");
+    }
+    return { success: true };
+  },
+
+  deleteAgreementType: async ({ request, cookies }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
+    const form = await request.formData();
+    const sessionToken = cookies.get("humans_session") ?? "";
+    const id = getFormString(form, "id");
+
+    const res = await fetch(`${PUBLIC_API_URL}/api/admin/account-config/agreement-types/${id}`, {
       method: "DELETE",
       headers: { Cookie: `humans_session=${sessionToken}` },
     });

@@ -32,6 +32,7 @@ import { flightRoutes } from "./routes/flights";
 import { referralCodeRoutes } from "./routes/referral-codes";
 import { discountCodeRoutes } from "./routes/discount-codes";
 import { websiteRoutes } from "./routes/websites";
+import { agreementRoutes } from "./routes/agreements";
 import { opportunityCadenceRoutes } from "./routes/opportunity-cadence";
 import { clientErrorRoutes } from "./routes/client-errors";
 import { runScheduledFrontSync } from "./scheduled/front-sync";
@@ -86,6 +87,7 @@ app.route("/", discountCodeRoutes);
 app.route("/", opportunityCadenceRoutes);
 app.route("/", websiteRoutes);
 app.route("/", clientErrorRoutes);
+app.route("/", agreementRoutes);
 
 export { RealtimeHub } from "./realtime/hub";
 

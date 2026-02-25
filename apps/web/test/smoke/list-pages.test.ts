@@ -26,6 +26,7 @@ import DiscountCodesPage from "../../src/routes/discount-codes/+page.svelte";
 import GeneralLeadsPage from "../../src/routes/leads/general-leads/+page.svelte";
 import ColleaguesPage from "../../src/routes/colleagues/+page.svelte";
 import WebsitesPage from "../../src/routes/websites/+page.svelte";
+import AgreementsPage from "../../src/routes/agreements/+page.svelte";
 
 // ---------------------------------------------------------------------------
 // Smoke tests — each page gets the minimal data shape with empty collections
@@ -35,7 +36,12 @@ describe("List page smoke tests", () => {
   it("Accounts page renders without error", () => {
     render(AccountsPage, {
       props: {
-        data: { accounts: [], userRole: "agent" },
+        data: {
+          accounts: [],
+          userRole: "agent",
+          user: { id: "u1", email: "test@example.com", name: "Test User", avatarUrl: null, role: "admin" },
+          sessionToken: "test-token",
+        },
         form: null,
       },
     });
@@ -52,6 +58,8 @@ describe("List page smoke tests", () => {
           page: 1,
           limit: 50,
           total: 0,
+          user: { id: "u1", email: "test@example.com", name: "Test User", avatarUrl: null, role: "admin" },
+          sessionToken: "test-token",
         },
         form: null,
       },
@@ -71,6 +79,9 @@ describe("List page smoke tests", () => {
           page: 1,
           limit: 50,
           total: 0,
+          userRole: "agent",
+          user: { id: "u1", email: "test@example.com", name: "Test User", avatarUrl: null, role: "admin" },
+          sessionToken: "test-token",
         },
         form: null,
       },
@@ -81,7 +92,12 @@ describe("List page smoke tests", () => {
   it("Pets page renders without error", () => {
     render(PetsPage, {
       props: {
-        data: { pets: [], userRole: "agent" },
+        data: {
+          pets: [],
+          userRole: "agent",
+          user: { id: "u1", email: "test@example.com", name: "Test User", avatarUrl: null, role: "admin" },
+          sessionToken: "test-token",
+        },
         form: null,
       },
     });
@@ -91,8 +107,11 @@ describe("List page smoke tests", () => {
   it("Emails page renders without error", () => {
     render(EmailsPage, {
       props: {
-        data: { emails: [] },
-        form: null,
+        data: {
+          emails: [],
+          user: { id: "u1", email: "test@example.com", name: "Test User", avatarUrl: null, role: "admin" },
+          sessionToken: "test-token",
+        },
       },
     });
     expect(screen.getByRole("heading", { name: "Emails" })).toBeDefined();
@@ -101,8 +120,11 @@ describe("List page smoke tests", () => {
   it("Phone Numbers page renders without error", () => {
     render(PhoneNumbersPage, {
       props: {
-        data: { phoneNumbers: [] },
-        form: null,
+        data: {
+          phoneNumbers: [],
+          user: { id: "u1", email: "test@example.com", name: "Test User", avatarUrl: null, role: "admin" },
+          sessionToken: "test-token",
+        },
       },
     });
     expect(screen.getByRole("heading", { name: "Phone Numbers" })).toBeDefined();
@@ -111,7 +133,12 @@ describe("List page smoke tests", () => {
   it("Geo Interests page renders without error", () => {
     render(GeoInterestsPage, {
       props: {
-        data: { geoInterests: [], userRole: "agent" },
+        data: {
+          geoInterests: [],
+          userRole: "agent",
+          user: { id: "u1", email: "test@example.com", name: "Test User", avatarUrl: null, role: "admin" },
+          sessionToken: "test-token",
+        },
         form: null,
       },
     });
@@ -122,7 +149,13 @@ describe("List page smoke tests", () => {
   it("Route Interests page renders without error", () => {
     render(RouteInterestsPage, {
       props: {
-        data: { routeInterests: [], expressions: [], userRole: "agent" },
+        data: {
+          routeInterests: [],
+          expressions: [],
+          userRole: "agent",
+          user: { id: "u1", email: "test@example.com", name: "Test User", avatarUrl: null, role: "admin" },
+          sessionToken: "test-token",
+        },
         form: null,
       },
     });
@@ -132,7 +165,11 @@ describe("List page smoke tests", () => {
   it("Social IDs page renders without error", () => {
     render(SocialIdsPage, {
       props: {
-        data: { socialIds: [] },
+        data: {
+          socialIds: [],
+          user: { id: "u1", email: "test@example.com", name: "Test User", avatarUrl: null, role: "admin" },
+          sessionToken: "test-token",
+        },
       },
     });
     // Title is "Social Media IDs" — must match EntityListPage title prop exactly
@@ -142,7 +179,11 @@ describe("List page smoke tests", () => {
   it("Referral Codes page renders without error", () => {
     render(ReferralCodesPage, {
       props: {
-        data: { referralCodes: [] },
+        data: {
+          referralCodes: [],
+          user: { id: "u1", email: "test@example.com", name: "Test User", avatarUrl: null, role: "admin" },
+          sessionToken: "test-token",
+        },
       },
     });
     expect(screen.getByRole("heading", { name: "Referral Codes" })).toBeDefined();
@@ -151,7 +192,11 @@ describe("List page smoke tests", () => {
   it("Discount Codes page renders without error", () => {
     render(DiscountCodesPage, {
       props: {
-        data: { discountCodes: [] },
+        data: {
+          discountCodes: [],
+          user: { id: "u1", email: "test@example.com", name: "Test User", avatarUrl: null, role: "admin" },
+          sessionToken: "test-token",
+        },
       },
     });
     expect(screen.getByRole("heading", { name: "Discount Codes" })).toBeDefined();
@@ -169,6 +214,8 @@ describe("List page smoke tests", () => {
           limit: 50,
           total: 0,
           userRole: "agent",
+          user: { id: "u1", email: "test@example.com", name: "Test User", avatarUrl: null, role: "admin" },
+          sessionToken: "test-token",
         },
         form: null,
       },
@@ -179,7 +226,11 @@ describe("List page smoke tests", () => {
   it("Colleagues page renders without error", () => {
     render(ColleaguesPage, {
       props: {
-        data: { colleagues: [] },
+        data: {
+          colleagues: [],
+          user: { id: "u1", email: "test@example.com", name: "Test User", avatarUrl: null, role: "admin" },
+          sessionToken: "test-token",
+        },
       },
     });
     // Colleagues uses PageHeader (not EntityListPage) which renders an <h1>
@@ -189,9 +240,26 @@ describe("List page smoke tests", () => {
   it("Websites page renders without error", () => {
     render(WebsitesPage, {
       props: {
-        data: { websites: [] },
+        data: {
+          websites: [],
+          user: { id: "u1", email: "test@example.com", name: "Test User", avatarUrl: null, role: "admin" },
+          sessionToken: "test-token",
+        },
       },
     });
     expect(screen.getByRole("heading", { name: "Websites" })).toBeDefined();
+  });
+
+  it("Agreements page renders without error", () => {
+    render(AgreementsPage, {
+      props: {
+        data: {
+          agreements: [],
+          user: { id: "u1", email: "test@example.com", name: "Test User", avatarUrl: null, role: "admin" },
+          sessionToken: "test-token",
+        },
+      },
+    });
+    expect(screen.getByRole("heading", { name: "Agreements" })).toBeDefined();
   });
 });

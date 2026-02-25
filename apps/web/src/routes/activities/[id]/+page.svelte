@@ -14,7 +14,7 @@
   import { opportunityStageColors } from "$lib/constants/colors";
   import { displayName, formatRelativeTime, formatDateTime, summarizeChanges } from "$lib/utils/format";
   import SearchableSelect from "$lib/components/SearchableSelect.svelte";
-  import { createChangeHistoryLoader } from "$lib/changeHistory";
+  import { createChangeHistoryLoader } from "$lib/changeHistory.svelte";
   import RouteInterestPicker from "$lib/components/RouteInterestPicker.svelte";
   import ConfirmDialog from "$lib/components/ConfirmDialog.svelte";
   import { Button } from "$lib/components/ui/button";

@@ -93,13 +93,17 @@ describe("createHumanSchema", () => {
       ...validInput,
       emails: [{ email: "jane@example.com", labelId: "lbl-1", isPrimary: true }],
     });
-    expect(result.emails[0].isPrimary).toBe(true);
-    expect(result.emails[0].labelId).toBe("lbl-1");
+    const firstEmail = result.emails[0];
+    expect(firstEmail).toBeDefined();
+    expect(firstEmail?.isPrimary).toBe(true);
+    expect(firstEmail?.labelId).toBe("lbl-1");
   });
 
   it("defaults isPrimary to false on emails", () => {
     const result = createHumanSchema.parse(validInput);
-    expect(result.emails[0].isPrimary).toBe(false);
+    const firstEmail = result.emails[0];
+    expect(firstEmail).toBeDefined();
+    expect(firstEmail?.isPrimary).toBe(false);
   });
 
   it("rejects invalid type in types array", () => {
