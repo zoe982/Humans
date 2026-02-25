@@ -130,8 +130,25 @@
   let saveStatus = $state<SaveStatus>("idle");
   let initialized = $state(false);
 
-  // Change history
-  const history = createChangeHistoryLoader("activity", activity.id);
+  // Change history and auto-saver
+  let autoSaver: ReturnType<typeof createAutoSaver>;
+
+  function initServices() {
+    const _history = createChangeHistoryLoader("activity", activity.id);
+    autoSaver = createAutoSaver({
+      endpoint: `/api/activities/${activity.id}`,
+      onStatusChange: (s) => { saveStatus = s; },
+      onSaved: () => {
+        toast("Changes saved");
+        _history.resetHistory();
+      },
+      onError: (err) => {
+        toast(`Save failed: ${err}`);
+      },
+    });
+    return _history;
+  }
+  const history = initServices();
 
   $effect(() => {
     if (!history.historyLoaded) {
@@ -155,18 +172,6 @@
     generalLeadId = activity.generalLeadId ?? "";
     ownerId = activity.ownerId ?? "";
     if (!initialized) initialized = true;
-  });
-
-  const autoSaver = createAutoSaver({
-    endpoint: `/api/activities/${activity.id}`,
-    onStatusChange: (s) => { saveStatus = s; },
-    onSaved: () => {
-      toast("Changes saved");
-      history.resetHistory();
-    },
-    onError: (err) => {
-      toast(`Save failed: ${err}`);
-    },
   });
 
   onDestroy(() => autoSaver.destroy());

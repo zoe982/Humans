@@ -79,8 +79,14 @@
   }: Props = $props();
 
   let search = $state("");
-  let sortKey = $state(initialSortKey ?? "");
-  let sortDirection = $state<"asc" | "desc">(initialSortDir);
+  let sortKey = $state("");
+  let sortDirection = $state<"asc" | "desc">("asc");
+
+  function initSort() {
+    sortKey = initialSortKey ?? "";
+    sortDirection = initialSortDir;
+  }
+  initSort();
 
   function toggleSort(key: string) {
     if (sortKey === key) {

@@ -137,7 +137,7 @@
 <div class="space-y-3">
   {#if mode === "selected" && selectedRoute}
     <div>
-      <label class="block text-sm font-medium text-text-secondary mb-1">Route Interest</label>
+      <span class="block text-sm font-medium text-text-secondary mb-1">Route Interest</span>
       <input type="hidden" name={routeInterestIdName} value={selectedRoute.id} />
       <div class="flex items-center gap-2">
         <span class="inline-flex items-center gap-1 rounded-full bg-[rgba(6,182,212,0.15)] text-accent px-3 py-1 text-sm">
@@ -155,14 +155,14 @@
     </div>
   {:else}
     <div>
-      <label class="block text-sm font-medium text-text-secondary mb-1">Route Interest</label>
+      <span class="block text-sm font-medium text-text-secondary mb-1">Route Interest</span>
 
       <!-- Origin -->
       <div class="mb-2">
         <span class="text-xs font-medium text-text-muted uppercase tracking-wide">Origin</span>
         <div class="grid gap-3 sm:grid-cols-2 mt-1">
           <div class="relative">
-            <label class="block text-xs text-text-muted mb-0.5">City</label>
+            <span class="block text-xs text-text-muted mb-0.5">City</span>
             <input
               name={originCityName}
               type="text"
@@ -189,7 +189,7 @@
             {/if}
           </div>
           <div>
-            <label class="block text-xs text-text-muted mb-0.5">Country</label>
+            <span class="block text-xs text-text-muted mb-0.5">Country</span>
             <SearchableSelect
               options={COUNTRIES}
               name={originCountryName}
@@ -219,7 +219,7 @@
         <span class="text-xs font-medium text-text-muted uppercase tracking-wide">Destination</span>
         <div class="grid gap-3 sm:grid-cols-2 mt-1">
           <div class="relative">
-            <label class="block text-xs text-text-muted mb-0.5">City</label>
+            <span class="block text-xs text-text-muted mb-0.5">City</span>
             <input
               name={destinationCityName}
               type="text"
@@ -246,7 +246,7 @@
             {/if}
           </div>
           <div>
-            <label class="block text-xs text-text-muted mb-0.5">Country</label>
+            <span class="block text-xs text-text-muted mb-0.5">Country</span>
             <SearchableSelect
               options={COUNTRIES}
               name={destinationCountryName}
@@ -263,7 +263,7 @@
 
   {#if showFrequency}
     <div>
-      <label class="block text-sm font-medium text-text-secondary mb-1">Frequency</label>
+      <span class="block text-sm font-medium text-text-secondary mb-1">Frequency</span>
       <SearchableSelect
         options={[{ value: "one_time", label: "One-time" }, { value: "repeat", label: "Repeat" }]}
         name={frequencyName}
@@ -276,10 +276,10 @@
 
   {#if showTravelDate}
     <div>
-      <label class="block text-sm font-medium text-text-secondary mb-1">Travel Date (optional)</label>
+      <span class="block text-sm font-medium text-text-secondary mb-1">Travel Date (optional)</span>
       <div class="grid gap-3 grid-cols-1 sm:grid-cols-3">
         <div>
-          <label class="block text-xs text-text-muted mb-0.5">Year</label>
+          <span class="block text-xs text-text-muted mb-0.5">Year</span>
           <input
             name={travelYearName}
             type="number"
@@ -290,7 +290,7 @@
           />
         </div>
         <div>
-          <label class="block text-xs text-text-muted mb-0.5">Month</label>
+          <span class="block text-xs text-text-muted mb-0.5">Month</span>
           <SearchableSelect
             options={MONTH_OPTIONS}
             name={travelMonthName}
@@ -300,7 +300,7 @@
           />
         </div>
         <div>
-          <label class="block text-xs text-text-muted mb-0.5">Day</label>
+          <span class="block text-xs text-text-muted mb-0.5">Day</span>
           <input
             name={travelDayName}
             type="number"
@@ -316,7 +316,7 @@
 
   {#if showNotes}
     <div>
-      <label class="block text-sm font-medium text-text-secondary">Notes</label>
+      <span class="block text-sm font-medium text-text-secondary">Notes</span>
       <textarea
         name={notesName}
         rows="2"

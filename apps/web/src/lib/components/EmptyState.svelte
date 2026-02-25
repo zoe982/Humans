@@ -13,7 +13,7 @@
 <div class="flex flex-col items-center justify-center py-12 px-4 text-center">
   {#if icon}
     <div class="mb-3 text-text-muted">
-      <svelte:component this={icon} size={40} class="opacity-50" />
+      <icon size={40} class="opacity-50"></icon>
     </div>
   {/if}
   <p class="text-sm text-text-muted">{message}</p>

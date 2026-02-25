@@ -21,8 +21,13 @@
   ];
 
   // eslint-disable-next-line svelte/prefer-writable-derived
-  let current = $state<string[]>([...selected]);
+  let current = $state<string[]>([]);
   let showError = $state(false);
+
+  function initCurrent() {
+    current = [...selected];
+  }
+  initCurrent();
 
   $effect(() => {
     current = [...selected];

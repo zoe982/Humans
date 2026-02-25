@@ -41,7 +41,26 @@
   let initialized = $state(false);
 
   // Change history
-  const history = createChangeHistoryLoader("referral_code", referralCode.id);
+  let autoSaver: ReturnType<typeof createAutoSaver>;
+
+  function initServices() {
+    const _history = createChangeHistoryLoader("referral_code", referralCode.id);
+    autoSaver = createAutoSaver({
+      endpoint: `/api/referral-codes/${referralCode.id}`,
+      onStatusChange: (s) => { saveStatus = s; },
+      onSaved: () => {
+        toast("Changes saved");
+        _history.resetHistory();
+      },
+      onError: (err) => {
+        toast(`Save failed: ${err}`);
+      },
+    });
+    return _history;
+  }
+  const history = initServices();
+
+  onDestroy(() => autoSaver.destroy());
 
   $effect(() => {
     if (!history.historyLoaded) {
@@ -65,20 +84,6 @@
   const accountOptions = $derived(
     allAccounts.map((a) => ({ value: a.id, label: `${a.displayId} ${a.name}` }))
   );
-
-  const autoSaver = createAutoSaver({
-    endpoint: `/api/referral-codes/${referralCode.id}`,
-    onStatusChange: (s) => { saveStatus = s; },
-    onSaved: () => {
-      toast("Changes saved");
-      history.resetHistory();
-    },
-    onError: (err) => {
-      toast(`Save failed: ${err}`);
-    },
-  });
-
-  onDestroy(() => autoSaver.destroy());
 
   function buildPayload() {
     return {
@@ -134,7 +139,7 @@
 
     <div class="grid gap-4 sm:grid-cols-2">
       <div>
-        <label class="block text-sm font-medium text-text-secondary">Code</label>
+        <span class="block text-sm font-medium text-text-secondary">Code</span>
         <div class="mt-1 px-3 py-2 text-sm font-mono text-text-primary bg-glass/50 rounded-lg">{referralCode.code}</div>
       </div>
       <div>

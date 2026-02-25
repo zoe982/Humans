@@ -80,7 +80,7 @@
 <div class="space-y-3">
   {#if mode === "search"}
     <div>
-      <label class="block text-sm font-medium text-text-secondary mb-1">Geo-Interest</label>
+      <span class="block text-sm font-medium text-text-secondary mb-1">Geo-Interest</span>
       <div class="relative">
         <input
           type="text"
@@ -138,7 +138,7 @@
     </div>
   {:else if mode === "selected"}
     <div>
-      <label class="block text-sm font-medium text-text-secondary mb-1">Geo-Interest</label>
+      <span class="block text-sm font-medium text-text-secondary mb-1">Geo-Interest</span>
       <input type="hidden" name={geoInterestIdName} value={selectedGeo?.id ?? ""} />
       <div class="flex items-center gap-2">
         <span class="inline-flex items-center gap-1 rounded-full bg-[rgba(6,182,212,0.15)] text-accent px-3 py-1 text-sm">
@@ -157,7 +157,7 @@
   {:else}
     <div>
       <div class="flex items-center justify-between mb-1">
-        <label class="block text-sm font-medium text-text-secondary">New Geo-Interest</label>
+        <span class="block text-sm font-medium text-text-secondary">New Geo-Interest</span>
         <button
           type="button"
           class="text-xs text-accent hover:text-[var(--link-hover)]"
@@ -168,7 +168,7 @@
       </div>
       <div class="grid gap-3 sm:grid-cols-2">
         <div>
-          <label class="block text-xs text-text-muted mb-0.5">City</label>
+          <span class="block text-xs text-text-muted mb-0.5">City</span>
           <input
             name={cityName}
             type="text"
@@ -177,7 +177,7 @@
           />
         </div>
         <div>
-          <label class="block text-xs text-text-muted mb-0.5">Country</label>
+          <span class="block text-xs text-text-muted mb-0.5">Country</span>
           <SearchableSelect
             options={COUNTRIES}
             name={countryName}
@@ -191,7 +191,7 @@
 
   {#if showNotes}
     <div>
-      <label class="block text-sm font-medium text-text-secondary">Notes</label>
+      <span class="block text-sm font-medium text-text-secondary">Notes</span>
       <textarea
         name={notesName}
         rows="2"

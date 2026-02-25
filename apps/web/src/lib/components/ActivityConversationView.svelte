@@ -373,11 +373,9 @@
 
               <!-- Relative time -->
               <span
-                class="text-xs shrink-0"
+                class="text-xs shrink-0 hover:opacity-100"
                 style="color: var(--color-text-muted); opacity: 0.5; transition: opacity 0.2s;"
                 title={new Date(activity.activityDate).toLocaleString()}
-                onmouseenter={(e) => { (e.currentTarget as HTMLElement).style.opacity = "1"; }}
-                onmouseleave={(e) => { (e.currentTarget as HTMLElement).style.opacity = "0.5"; }}
               >
                 {formatTime(activity.activityDate)}
               </span>

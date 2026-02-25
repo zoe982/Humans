@@ -68,7 +68,26 @@
   let fileInput = $state<HTMLInputElement | null>(null);
 
   // Change history
-  const history = createChangeHistoryLoader("agreement", agreement.id);
+  let autoSaver: ReturnType<typeof createAutoSaver>;
+
+  function initServices() {
+    const _history = createChangeHistoryLoader("agreement", agreement.id);
+    autoSaver = createAutoSaver({
+      endpoint: `/api/agreements/${agreement.id}`,
+      onStatusChange: (s) => { saveStatus = s; },
+      onSaved: () => {
+        toast("Changes saved");
+        _history.resetHistory();
+      },
+      onError: (err) => {
+        toast(`Save failed: ${err}`);
+      },
+    });
+    return _history;
+  }
+  const history = initServices();
+
+  onDestroy(() => autoSaver.destroy());
 
   $effect(() => {
     if (!history.historyLoaded) {
@@ -98,20 +117,6 @@
   const typeOptions = $derived(
     agreementTypes.map((t) => ({ value: t.id, label: t.name }))
   );
-
-  const autoSaver = createAutoSaver({
-    endpoint: `/api/agreements/${agreement.id}`,
-    onStatusChange: (s) => { saveStatus = s; },
-    onSaved: () => {
-      toast("Changes saved");
-      history.resetHistory();
-    },
-    onError: (err) => {
-      toast(`Save failed: ${err}`);
-    },
-  });
-
-  onDestroy(() => autoSaver.destroy());
 
   function buildPayload() {
     return {

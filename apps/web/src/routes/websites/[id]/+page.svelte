@@ -38,7 +38,26 @@
   let initialized = $state(false);
 
   // Change history
-  const history = createChangeHistoryLoader("website", website.id);
+  let autoSaver: ReturnType<typeof createAutoSaver>;
+
+  function initServices() {
+    const _history = createChangeHistoryLoader("website", website.id);
+    autoSaver = createAutoSaver({
+      endpoint: `/api/websites/${website.id}`,
+      onStatusChange: (s) => { saveStatus = s; },
+      onSaved: () => {
+        toast("Changes saved");
+        _history.resetHistory();
+      },
+      onError: (err) => {
+        toast(`Save failed: ${err}`);
+      },
+    });
+    return _history;
+  }
+  const history = initServices();
+
+  onDestroy(() => autoSaver.destroy());
 
   $effect(() => {
     if (!history.historyLoaded) {
@@ -61,20 +80,6 @@
   const accountOptions = $derived(
     allAccounts.map((a) => ({ value: a.id, label: `${a.displayId} ${a.name}` }))
   );
-
-  const autoSaver = createAutoSaver({
-    endpoint: `/api/websites/${website.id}`,
-    onStatusChange: (s) => { saveStatus = s; },
-    onSaved: () => {
-      toast("Changes saved");
-      history.resetHistory();
-    },
-    onError: (err) => {
-      toast(`Save failed: ${err}`);
-    },
-  });
-
-  onDestroy(() => autoSaver.destroy());
 
   function triggerSave() {
     if (!initialized) return;

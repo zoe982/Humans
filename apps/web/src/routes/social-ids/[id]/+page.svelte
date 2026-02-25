@@ -42,8 +42,25 @@
   let saveStatus = $state<SaveStatus>("idle");
   let initialized = $state(false);
 
-  // Change history
-  const history = createChangeHistoryLoader("social_id", socialId.id);
+  // Change history and auto-saver
+  let autoSaver: ReturnType<typeof createAutoSaver>;
+
+  function initServices() {
+    const _history = createChangeHistoryLoader("social_id", socialId.id);
+    autoSaver = createAutoSaver({
+      endpoint: `/api/social-ids/${socialId.id}`,
+      onStatusChange: (s) => { saveStatus = s; },
+      onSaved: () => {
+        toast("Changes saved");
+        _history.resetHistory();
+      },
+      onError: (err) => {
+        toast(`Save failed: ${err}`);
+      },
+    });
+    return _history;
+  }
+  const history = initServices();
 
   $effect(() => {
     if (!history.historyLoaded) {
@@ -71,18 +88,6 @@
   const accountOptions = $derived(
     allAccounts.map((a) => ({ value: a.id, label: `${a.displayId} ${a.name}` }))
   );
-
-  const autoSaver = createAutoSaver({
-    endpoint: `/api/social-ids/${socialId.id}`,
-    onStatusChange: (s) => { saveStatus = s; },
-    onSaved: () => {
-      toast("Changes saved");
-      history.resetHistory();
-    },
-    onError: (err) => {
-      toast(`Save failed: ${err}`);
-    },
-  });
 
   onDestroy(() => autoSaver.destroy());
 

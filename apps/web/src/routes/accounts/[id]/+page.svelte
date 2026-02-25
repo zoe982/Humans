@@ -23,7 +23,9 @@
   import { page } from "$app/stores";
 
   let { data }: { data: PageData } = $props();
-  const accountId = data.accountId;
+
+  function getAccountId() { return data.accountId as string; }
+  const accountId = getAccountId();
 
   type ConfigItem = { id: string; name: string };
   type AccountType = { id: string; name: string };
@@ -405,7 +407,7 @@
 
     {#if typeConfigs.length > 0}
       <div>
-        <label class="block text-sm font-medium text-text-secondary">Types</label>
+        <span class="block text-sm font-medium text-text-secondary">Types</span>
         <div class="mt-2 flex gap-4 flex-wrap">
           {#each typeConfigs as t, tIdx (tIdx)}
             <label class="flex items-center gap-2 text-sm text-text-secondary">

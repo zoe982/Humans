@@ -106,7 +106,10 @@
   ];
 
   // Change history
-  const history = createChangeHistoryLoader("geo_interest", geoInterest.id);
+  function initHistory() {
+    return createChangeHistoryLoader("geo_interest", geoInterest.id);
+  }
+  const history = initHistory();
 
   $effect(() => {
     if (!history.historyLoaded) {

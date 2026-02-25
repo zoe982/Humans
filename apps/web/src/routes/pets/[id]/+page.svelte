@@ -43,8 +43,24 @@
   let initialized = $state(false);
   let breedDropdownOpen = $state(false);
 
-  // Change history
-  const history = createChangeHistoryLoader("pet", pet.id);
+  let autoSaver: ReturnType<typeof createAutoSaver>;
+
+  function initServices() {
+    const _history = createChangeHistoryLoader("pet", pet.id);
+    autoSaver = createAutoSaver({
+      endpoint: `/api/pets/${pet.id}`,
+      onStatusChange: (s) => { saveStatus = s; },
+      onSaved: () => {
+        toast("Changes saved");
+        _history.resetHistory();
+      },
+      onError: (err) => {
+        toast(`Save failed: ${err}`);
+      },
+    });
+    return _history;
+  }
+  const history = initServices();
 
   $effect(() => {
     if (!history.historyLoaded) {
@@ -66,18 +82,6 @@
   const humanOptions = $derived(
     allHumans.map((h) => ({ value: h.id, label: `${h.displayId} ${h.firstName} ${h.lastName}` }))
   );
-
-  const autoSaver = createAutoSaver({
-    endpoint: `/api/pets/${pet.id}`,
-    onStatusChange: (s) => { saveStatus = s; },
-    onSaved: () => {
-      toast("Changes saved");
-      history.resetHistory();
-    },
-    onError: (err) => {
-      toast(`Save failed: ${err}`);
-    },
-  });
 
   onDestroy(() => autoSaver.destroy());
 
@@ -150,7 +154,7 @@
         />
       </div>
       <div>
-        <label class="block text-sm font-medium text-text-secondary mb-2">Type</label>
+        <span class="block text-sm font-medium text-text-secondary mb-2">Type</span>
         <div class="flex gap-2">
           <button
             type="button"

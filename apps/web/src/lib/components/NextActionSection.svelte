@@ -66,7 +66,8 @@
     (!cadenceWarning() || Boolean(naCadenceNote.trim()))
   );
 
-  // Initialize from props
+  let naAutoSaver: ReturnType<typeof createAutoSaver>;
+
   function init() {
     const na = nextAction;
     naOwnerId = na?.ownerId ?? currentColleagueId ?? "";
@@ -75,19 +76,19 @@
     naDueDate = na?.dueDate ?? "";
     naCadenceNote = na?.cadenceNote ?? "";
     naLocked = Boolean(na?.description && na?.dueDate);
+
+    naAutoSaver = createAutoSaver({
+      endpoint: apiEndpoint,
+      onStatusChange: (s) => { naSaveStatus = s; },
+      onSaved: () => {
+        toast("Next action saved");
+        naLocked = true;
+      },
+      onError: (err) => { toast(`Next action save failed: ${err}`); },
+    });
   }
 
   init();
-
-  const naAutoSaver = createAutoSaver({
-    endpoint: apiEndpoint,
-    onStatusChange: (s) => { naSaveStatus = s; },
-    onSaved: () => {
-      toast("Next action saved");
-      naLocked = true;
-    },
-    onError: (err) => { toast(`Next action save failed: ${err}`); },
-  });
 
   onDestroy(() => { naAutoSaver.destroy(); });
 

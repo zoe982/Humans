@@ -19,20 +19,23 @@
   let highlightIndex = $state(-1);
 
   // Parse initial value like "+1 5551234567"
-  if (value) {
-    const match = value.match(/^(\+[\d-]+)\s*(.*)$/);
-    if (match) {
-      const foundCode = COUNTRY_PHONE_CODES.find((c) => c.dialCode === match[1]);
-      if (foundCode) {
-        selectedCode = foundCode;
-        digits = match[2];
+  function parseInitialValue() {
+    if (value) {
+      const match = value.match(/^(\+[\d-]+)\s*(.*)$/);
+      if (match) {
+        const foundCode = COUNTRY_PHONE_CODES.find((c) => c.dialCode === match[1]);
+        if (foundCode) {
+          selectedCode = foundCode;
+          digits = match[2];
+        } else {
+          digits = value;
+        }
       } else {
         digits = value;
       }
-    } else {
-      digits = value;
     }
   }
+  parseInitialValue();
 
   const combinedValue = $derived(
     digits.trim() ? `${selectedCode.dialCode} ${digits.trim()}` : ""

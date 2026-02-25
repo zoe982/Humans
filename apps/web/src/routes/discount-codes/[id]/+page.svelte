@@ -64,12 +64,17 @@
     allAccounts.map((a) => ({ value: a.id, label: `${a.name} (${a.displayId})` }))
   );
 
-  const autoSaver = createAutoSaver({
-    endpoint: `/api/discount-codes/${discountCode.id}`,
-    onStatusChange: (s) => { saveStatus = s; },
-    onSaved: () => { toast("Changes saved"); },
-    onError: (err) => { toast(`Save failed: ${err}`); },
-  });
+  let autoSaver: ReturnType<typeof createAutoSaver>;
+
+  function initServices() {
+    autoSaver = createAutoSaver({
+      endpoint: `/api/discount-codes/${discountCode.id}`,
+      onStatusChange: (s) => { saveStatus = s; },
+      onSaved: () => { toast("Changes saved"); },
+      onError: (err) => { toast(`Save failed: ${err}`); },
+    });
+  }
+  initServices();
 
   onDestroy(() => autoSaver.destroy());
 
@@ -113,15 +118,15 @@
 
     <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
       <div>
-        <label class="block text-sm font-medium text-text-secondary">Code</label>
+        <span class="block text-sm font-medium text-text-secondary">Code</span>
         <div class="mt-1 px-3 py-2 text-sm font-mono text-text-primary bg-glass/50 rounded-lg">{discountCode.code}</div>
       </div>
       <div>
-        <label class="block text-sm font-medium text-text-secondary">% Off</label>
+        <span class="block text-sm font-medium text-text-secondary">% Off</span>
         <div class="mt-1 px-3 py-2 text-sm text-text-primary bg-glass/50 rounded-lg">{discountCode.percentOff}%</div>
       </div>
       <div>
-        <label class="block text-sm font-medium text-text-secondary">Active</label>
+        <span class="block text-sm font-medium text-text-secondary">Active</span>
         <div class="mt-1">
           {#if discountCode.isActive}
             <span class="glass-badge inline-flex rounded-full px-2 py-0.5 text-xs font-medium badge-green">Active</span>
@@ -131,15 +136,15 @@
         </div>
       </div>
       <div>
-        <label class="block text-sm font-medium text-text-secondary">Max Uses</label>
+        <span class="block text-sm font-medium text-text-secondary">Max Uses</span>
         <div class="mt-1 px-3 py-2 text-sm text-text-primary bg-glass/50 rounded-lg">{discountCode.maxUses ?? "\u2014"}</div>
       </div>
       <div>
-        <label class="block text-sm font-medium text-text-secondary">Times Used</label>
+        <span class="block text-sm font-medium text-text-secondary">Times Used</span>
         <div class="mt-1 px-3 py-2 text-sm text-text-primary bg-glass/50 rounded-lg">{discountCode.timesUsed}</div>
       </div>
       <div>
-        <label class="block text-sm font-medium text-text-secondary">Expires At</label>
+        <span class="block text-sm font-medium text-text-secondary">Expires At</span>
         <div class="mt-1 px-3 py-2 text-sm text-text-primary bg-glass/50 rounded-lg">
           {discountCode.expiresAt ? new Date(discountCode.expiresAt).toLocaleDateString() : "\u2014"}
         </div>
@@ -148,7 +153,7 @@
 
     {#if discountCode.description}
       <div>
-        <label class="block text-sm font-medium text-text-secondary">Description</label>
+        <span class="block text-sm font-medium text-text-secondary">Description</span>
         <div class="mt-1 px-3 py-2 text-sm text-text-primary bg-glass/50 rounded-lg">{discountCode.description}</div>
       </div>
     {/if}

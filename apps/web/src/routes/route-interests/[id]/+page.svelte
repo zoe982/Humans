@@ -171,7 +171,10 @@
   ];
 
   // Change history
-  const history = createChangeHistoryLoader("route_interest", routeInterest.id);
+  function initHistory() {
+    return createChangeHistoryLoader("route_interest", routeInterest.id);
+  }
+  const history = initHistory();
 
   $effect(() => {
     if (!history.historyLoaded) {
@@ -391,7 +394,7 @@
           </Select.Root>
         </div>
         <div>
-          <label class="block text-sm font-medium text-text-secondary mb-1">Travel Date (optional)</label>
+          <span class="block text-sm font-medium text-text-secondary mb-1">Travel Date (optional)</span>
           <div class="grid gap-3 grid-cols-3">
             <input name="travelYear" type="number" min="2020" max="2100" placeholder="Year" class="glass-input block w-full px-3 py-2 text-sm" />
             <SearchableSelect

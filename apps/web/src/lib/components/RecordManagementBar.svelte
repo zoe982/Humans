@@ -46,7 +46,12 @@
       : backLabel
   );
 
-  let selectedStatus = $state(status ?? "");
+  let selectedStatus = $state("");
+
+  function initStatus() {
+    selectedStatus = status ?? "";
+  }
+  initStatus();
 
   // When statusLabels is provided, remap colorMap keys from raw values to display labels
   // so StatusBadge can look up colors by the display label it renders

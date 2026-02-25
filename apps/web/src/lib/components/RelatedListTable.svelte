@@ -44,8 +44,14 @@
 
   let showForm = $state(false);
   let searchQuery = $state("");
-  let sortKey = $state(defaultSortKey ?? "");
-  let sortDirection = $state<"asc" | "desc">(defaultSortDirection);
+  let sortKey = $state("");
+  let sortDirection = $state<"asc" | "desc">("asc");
+
+  function initSort() {
+    sortKey = defaultSortKey ?? "";
+    sortDirection = defaultSortDirection;
+  }
+  initSort();
 
   function toggleSort(key: string) {
     if (sortKey === key) {

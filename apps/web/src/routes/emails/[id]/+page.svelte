@@ -45,8 +45,24 @@
   let saveStatus = $state<SaveStatus>("idle");
   let initialized = $state(false);
 
-  // Change history
-  const history = createChangeHistoryLoader("email", email.id);
+  let autoSaver: ReturnType<typeof createAutoSaver>;
+
+  function initServices() {
+    const _history = createChangeHistoryLoader("email", email.id);
+    autoSaver = createAutoSaver({
+      endpoint: `/api/emails/${email.id}`,
+      onStatusChange: (s) => { saveStatus = s; },
+      onSaved: () => {
+        toast("Changes saved");
+        _history.resetHistory();
+      },
+      onError: (err) => {
+        toast(`Save failed: ${err}`);
+      },
+    });
+    return _history;
+  }
+  const history = initServices();
 
   $effect(() => {
     if (!history.historyLoaded) {
@@ -81,18 +97,6 @@
   const ownerHref = $derived(
     ownerType === "human" ? resolve(`/humans/${ownerId}?from=${$page.url.pathname}`) : resolve(`/accounts/${ownerId}?from=${$page.url.pathname}`)
   );
-
-  const autoSaver = createAutoSaver({
-    endpoint: `/api/emails/${email.id}`,
-    onStatusChange: (s) => { saveStatus = s; },
-    onSaved: () => {
-      toast("Changes saved");
-      history.resetHistory();
-    },
-    onError: (err) => {
-      toast(`Save failed: ${err}`);
-    },
-  });
 
   onDestroy(() => autoSaver.destroy());
 
