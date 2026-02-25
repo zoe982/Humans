@@ -1,7 +1,7 @@
 <script lang="ts">
   import { browser } from "$app/environment";
   import { onMount } from "svelte";
-  import { getCapturedErrors, buildDiagnosticReport } from "$lib/client-diagnostics";
+  import { buildDiagnosticReport, recordError } from "$lib/client-diagnostics";
 
   type Props = {
     contentSelector?: string;
@@ -33,9 +33,10 @@
       // The layout always renders <main> but the page content goes inside it.
       // If the page component failed to render, main will have 0 children.
       if (childCount === 0 || text.length < 10) {
-        diagnostics = buildDiagnosticReport(
-          `Content area appears empty (children: ${String(childCount)}, text length: ${String(text.length)})`
-        );
+        const reason = `Content area appears empty (children: ${String(childCount)}, text length: ${String(text.length)})`;
+        diagnostics = buildDiagnosticReport(reason);
+        // Also report to API error log
+        recordError(`Blank page detected: ${reason}`, undefined, "BlankPageDetector");
       }
     }, delayMs);
 

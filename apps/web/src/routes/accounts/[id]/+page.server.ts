@@ -1,98 +1,15 @@
 import { redirect, fail } from "@sveltejs/kit";
 import type { RequestEvent, ActionFailure } from "@sveltejs/kit";
 import { PUBLIC_API_URL } from "$env/static/public";
-import { isObjData, isListData, failFromApi, fetchConfigs, authHeaders } from "$lib/server/api";
+import { isObjData, failFromApi } from "$lib/server/api";
 
 function formStr(value: FormDataEntryValue | null): string {
   return typeof value === "string" ? value : "";
 }
 
-export const load = async ({ locals, cookies, params }: RequestEvent): Promise<{
-  account: Record<string, unknown>;
-  typeConfigs: unknown[];
-  humanLabelConfigs: unknown[];
-  emailLabelConfigs: unknown[];
-  phoneLabelConfigs: unknown[];
-  allHumans: unknown[];
-  socialIdPlatformConfigs: unknown[];
-  allDiscountCodes: unknown[];
-  accountAgreements: unknown[];
-}> => {
+export const load = async ({ locals, params }: RequestEvent) => {
   if (locals.user == null) redirect(302, "/login");
-
-  const sessionToken = cookies.get("humans_session") ?? "";
-  const id = params.id ?? "";
-
-  // SSR diagnostic: report timing to error endpoint
-  const t0 = Date.now();
-  let phase = "account-fetch";
-  try {
-    // Fetch account detail
-    const accountRes = await fetch(`${PUBLIC_API_URL}/api/accounts/${id}`, {
-      headers: { Cookie: `humans_session=${sessionToken}` },
-    });
-    const t1 = Date.now();
-
-    if (!accountRes.ok) {
-      void fetch(`${PUBLIC_API_URL}/api/client-errors`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: `SSR account-load: API ${String(accountRes.status)}`, url: `/accounts/${id}`, errors: [{ type: "ssr", message: `status=${String(accountRes.status)} elapsed=${String(t1 - t0)}ms` }] }),
-      }).catch(() => { /* noop */ });
-      redirect(302, "/accounts");
-    }
-    const accountRaw: unknown = await accountRes.json();
-    const account = isObjData(accountRaw) ? accountRaw.data : null;
-    if (account == null) redirect(302, "/accounts");
-
-    phase = "parallel-fetch";
-    const headers = authHeaders(sessionToken);
-    async function fetchList(url: string): Promise<unknown[]> {
-      const res = await fetch(url, { headers });
-      if (!res.ok) return [];
-      const raw: unknown = await res.json();
-      return isListData(raw) ? raw.data : [];
-    }
-
-    // Batch: all configs + humans + discount codes in one batch
-    const [configs, allHumans, allDiscountCodes, accountAgreements] = await Promise.all([
-      fetchConfigs(sessionToken, ["account-types", "account-human-labels", "account-email-labels", "account-phone-labels", "social-id-platforms"]),
-      fetchList(`${PUBLIC_API_URL}/api/humans`),
-      fetchList(`${PUBLIC_API_URL}/api/discount-codes`),
-      fetchList(`${PUBLIC_API_URL}/api/agreements?accountId=${id}&limit=50`),
-    ]);
-    const t2 = Date.now();
-
-    // Log success timing
-    void fetch(`${PUBLIC_API_URL}/api/client-errors`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ message: `SSR account-load OK`, url: `/accounts/${id}`, errors: [{ type: "ssr-timing", message: `account=${String(t1 - t0)}ms parallel=${String(t2 - t1)}ms total=${String(t2 - t0)}ms` }] }),
-    }).catch(() => { /* noop */ });
-
-    return {
-      account,
-      typeConfigs: configs["account-types"] ?? [],
-      humanLabelConfigs: configs["account-human-labels"] ?? [],
-      emailLabelConfigs: configs["account-email-labels"] ?? [],
-      phoneLabelConfigs: configs["account-phone-labels"] ?? [],
-      allHumans,
-      socialIdPlatformConfigs: configs["social-id-platforms"] ?? [],
-      allDiscountCodes,
-      accountAgreements,
-    };
-  } catch (err) {
-    // Re-throw redirects (SvelteKit Redirect is thrown as an exception)
-    if (err != null && typeof err === "object" && "status" in err && "location" in err) throw err;
-
-    const elapsed = Date.now() - t0;
-    void fetch(`${PUBLIC_API_URL}/api/client-errors`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ message: `SSR account-load CRASH at ${phase}`, url: `/accounts/${id}`, errors: [{ type: "ssr-error", message: `${err instanceof Error ? err.message : String(err)} elapsed=${String(elapsed)}ms`, stack: err instanceof Error ? err.stack ?? "" : "" }] }),
-    }).catch(() => { /* noop */ });
-    throw err;
-  }
+  return { accountId: params.id ?? "" };
 };
 
 export const actions = {
@@ -522,6 +439,58 @@ export const actions = {
     if (!res.ok) {
       const resBody: unknown = await res.json().catch(() => ({}));
       return failFromApi(resBody, res.status, "Failed to create activity");
+    }
+
+    return { success: true };
+  },
+
+  addAgreement: async ({ request, cookies, params }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
+    const form = await request.formData();
+    const sessionToken = cookies.get("humans_session") ?? "";
+
+    const typeIdVal = formStr(form.get("typeId"));
+    const activationDateVal = formStr(form.get("activationDate"));
+    const notesVal = formStr(form.get("notes"));
+
+    const payload = {
+      title: form.get("title"),
+      typeId: typeIdVal !== "" ? typeIdVal : undefined,
+      accountId: params.id,
+      activationDate: activationDateVal !== "" ? activationDateVal : undefined,
+      notes: notesVal !== "" ? notesVal : undefined,
+    };
+
+    const res = await fetch(`${PUBLIC_API_URL}/api/agreements`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Cookie: `humans_session=${sessionToken}`,
+      },
+      body: JSON.stringify(payload),
+    });
+
+    const resBody: unknown = await res.json().catch(() => ({}));
+
+    if (!res.ok) {
+      return failFromApi(resBody, res.status, "Failed to create agreement");
+    }
+
+    // Upload file if present
+    const file = form.get("file");
+    if (file instanceof File && file.size > 0 && isObjData(resBody)) {
+      const agreementId = (resBody.data as { id?: string }).id;
+      if (agreementId != null && agreementId !== "") {
+        const uploadForm = new FormData();
+        uploadForm.append("file", file);
+        uploadForm.append("entityType", "agreement");
+        uploadForm.append("entityId", agreementId);
+
+        await fetch(`${PUBLIC_API_URL}/api/documents/upload`, {
+          method: "POST",
+          headers: { Cookie: `humans_session=${sessionToken}` },
+          body: uploadForm,
+        });
+      }
     }
 
     return { success: true };

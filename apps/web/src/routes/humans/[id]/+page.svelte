@@ -15,6 +15,7 @@
   import * as Select from "$lib/components/ui/select";
   import * as Dialog from "$lib/components/ui/dialog";
   import GlassDateTimePicker from "$lib/components/GlassDateTimePicker.svelte";
+  import GlassDatePicker from "$lib/components/GlassDatePicker.svelte";
   import HighlightText from "$lib/components/HighlightText.svelte";
   import TypeTogglePills from "$lib/components/TypeTogglePills.svelte";
   import { createAutoSaver, type SaveStatus } from "$lib/autosave";
@@ -166,6 +167,10 @@
   const generalLeads = $derived(data.generalLeads as GeneralLead[]);
   const humanOpportunities = $derived(data.humanOpportunities as HumanOpportunity[]);
   const humanAgreements = $derived(data.humanAgreements as HumanAgreement[]);
+  const agreementTypes = $derived(data.agreementTypes as ConfigItem[]);
+  const agreementTypeOptions = $derived(
+    agreementTypes.map((t) => ({ value: t.id, label: t.name }))
+  );
 
   const emailLabelOptions = $derived(emailLabelConfigs.map((l) => ({ value: l.id, label: l.name })));
   const phoneLabelOptions = $derived(phoneLabelConfigs.map((l) => ({ value: l.id, label: l.name })));
@@ -1533,6 +1538,7 @@
       defaultSortDirection="asc"
       searchFilter={(a, q) => a.title.toLowerCase().includes(q) || a.displayId.toLowerCase().includes(q) || (a.typeName ?? "").toLowerCase().includes(q)}
       emptyMessage="No linked agreements."
+      addLabel="Agreement"
     >
       {#snippet row(agr, _searchQuery)}
         <td class="font-mono text-sm whitespace-nowrap">
@@ -1547,6 +1553,35 @@
           </span>
         </td>
         <td class="text-sm text-text-muted">{agr.activationDate ?? "\u2014"}</td>
+      {/snippet}
+      {#snippet addForm()}
+        <form method="POST" action="?/addAgreement" enctype="multipart/form-data" class="space-y-3">
+          <div class="grid gap-3 sm:grid-cols-2">
+            <div>
+              <label for="agrTitle" class="block text-sm font-medium text-text-secondary">Title <span class="text-red-400">*</span></label>
+              <input id="agrTitle" name="title" type="text" required class="glass-input mt-1 block w-full" placeholder="Agreement title" />
+            </div>
+            <div>
+              <label for="agrType" class="block text-sm font-medium text-text-secondary">Type</label>
+              <SearchableSelect options={agreementTypeOptions} name="typeId" id="agrType" emptyOption="None" placeholder="Select type..." />
+            </div>
+          </div>
+          <div class="grid gap-3 sm:grid-cols-2">
+            <div>
+              <label for="agrDate" class="block text-sm font-medium text-text-secondary">Activation Date</label>
+              <GlassDatePicker name="activationDate" id="agrDate" />
+            </div>
+            <div>
+              <label for="agrFile" class="block text-sm font-medium text-text-secondary">Document (PDF)</label>
+              <input type="file" id="agrFile" name="file" accept=".pdf,application/pdf" class="text-sm text-text-secondary file:mr-2 file:rounded file:border-0 file:bg-glass file:px-3 file:py-1 file:text-sm file:text-text-primary mt-1" />
+            </div>
+          </div>
+          <div>
+            <label for="agrNotes" class="block text-sm font-medium text-text-secondary">Notes</label>
+            <textarea id="agrNotes" name="notes" rows={2} class="glass-input mt-1 block w-full" placeholder="Optional notes..."></textarea>
+          </div>
+          <Button type="submit" size="sm">Create Agreement</Button>
+        </form>
       {/snippet}
     </RelatedListTable>
   </div>

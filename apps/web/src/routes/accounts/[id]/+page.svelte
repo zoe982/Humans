@@ -1,31 +1,28 @@
 <script lang="ts">
-  import { invalidateAll } from "$app/navigation";
-  import type { PageData, ActionData } from "./$types";
+  import { enhance } from "$app/forms";
+  import type { SubmitFunction } from "@sveltejs/kit";
+  import type { PageData } from "./$types";
   import RecordManagementBar from "$lib/components/RecordManagementBar.svelte";
   import RelatedListTable from "$lib/components/RelatedListTable.svelte";
   import ActivityConversationView from "$lib/components/ActivityConversationView.svelte";
   import AlertBanner from "$lib/components/AlertBanner.svelte";
   import PhoneInput from "$lib/components/PhoneInput.svelte";
   import SaveIndicator from "$lib/components/SaveIndicator.svelte";
-  import HighlightText from "$lib/components/HighlightText.svelte";
   import { toast } from "svelte-sonner";
   import { Trash2 } from "lucide-svelte";
   import { createAutoSaver, type SaveStatus } from "$lib/autosave";
   import { api } from "$lib/api";
-  import { onDestroy } from "svelte";
-  import { statusColors as statusColorMap, activityTypeColors, agreementStatusColors } from "$lib/constants/colors";
-  import { activityTypeLabels, ACTIVITY_TYPE_OPTIONS, agreementStatusLabels } from "$lib/constants/labels";
+  import { onMount, onDestroy } from "svelte";
+  import { statusColors as statusColorMap, agreementStatusColors } from "$lib/constants/colors";
+  import { ACTIVITY_TYPE_OPTIONS, agreementStatusLabels } from "$lib/constants/labels";
   import SearchableSelect from "$lib/components/SearchableSelect.svelte";
-  import { formatRelativeTime, formatDateTime, summarizeChanges } from "$lib/utils/format";
+  import GlassDatePicker from "$lib/components/GlassDatePicker.svelte";
+  import { formatRelativeTime, summarizeChanges } from "$lib/utils/format";
   import { Button } from "$lib/components/ui/button";
   import { resolve } from "$app/paths";
 
-  let { data, form }: { data: PageData; form: ActionData } = $props();
-
-  function truncateText(s: string | null, len: number): string {
-    if (!s) return "\u2014";
-    return s.length > len ? s.slice(0, len) + "..." : s;
-  }
+  let { data }: { data: PageData } = $props();
+  const accountId = data.accountId;
 
   type ConfigItem = { id: string; name: string };
   type AccountType = { id: string; name: string };
@@ -68,6 +65,7 @@
   type HumanListItem = { id: string; firstName: string; lastName: string };
   type Account = {
     id: string;
+    displayId: string;
     name: string;
     status: string;
     types: AccountType[];
@@ -91,23 +89,33 @@
     createdAt: string;
     colleagueName: string | null;
   };
-
-  const account = $derived(data.account as Account);
-  const typeConfigs = $derived(data.typeConfigs as ConfigItem[]);
-  const humanLabelConfigs = $derived(data.humanLabelConfigs as ConfigItem[]);
-  const emailLabelConfigs = $derived(data.emailLabelConfigs as ConfigItem[]);
-  const phoneLabelConfigs = $derived(data.phoneLabelConfigs as ConfigItem[]);
-  const allHumans = $derived(data.allHumans as HumanListItem[]);
-  const socialIdPlatformConfigs = $derived(data.socialIdPlatformConfigs as ConfigItem[]);
-
   type AccountAgreement = { id: string; displayId: string; title: string; typeName: string | null; status: string; activationDate: string | null };
-  const accountAgreements = $derived(data.accountAgreements as AccountAgreement[]);
+  type AllDiscountCodeOption = { id: string; code: string; crmDisplayId: string | null };
+
+  // Client-side data state
+  let account = $state<Account | null>(null);
+  let typeConfigs = $state<ConfigItem[]>([]);
+  let humanLabelConfigs = $state<ConfigItem[]>([]);
+  let emailLabelConfigs = $state<ConfigItem[]>([]);
+  let phoneLabelConfigs = $state<ConfigItem[]>([]);
+  let allHumans = $state<HumanListItem[]>([]);
+  let socialIdPlatformConfigs = $state<ConfigItem[]>([]);
+  let allDiscountCodes = $state<AllDiscountCodeOption[]>([]);
+  let accountAgreements = $state<AccountAgreement[]>([]);
+  let agreementTypeConfigs = $state<ConfigItem[]>([]);
+  let loading = $state(true);
+  let loadError = $state<string | null>(null);
+  let loadErrorDetail = $state<string | null>(null);
+  let formError = $state<string | null>(null);
 
   const humanOptions = $derived(allHumans.map((h) => ({ value: h.id, label: `${h.firstName} ${h.lastName}` })));
   const emailLabelOptions = $derived(emailLabelConfigs.map((l) => ({ value: l.id, label: l.name })));
   const phoneLabelOptions = $derived(phoneLabelConfigs.map((l) => ({ value: l.id, label: l.name })));
   const humanLabelOptions = $derived(humanLabelConfigs.map((l) => ({ value: l.id, label: l.name })));
   const socialIdPlatformOptions = $derived(socialIdPlatformConfigs.map((p) => ({ value: p.id, label: p.name })));
+  const agreementTypeOptions = $derived(
+    agreementTypeConfigs.map((t) => ({ value: t.id, label: t.name }))
+  );
 
   // Auto-save state
   let accountName = $state("");
@@ -122,15 +130,17 @@
 
   let humanAddMode = $state<'link' | 'create'>('link');
 
-  // Initialize state from data
+  // Initialize state from loaded account data
   $effect(() => {
-    accountName = account.name;
-    typeIds = account.types.map((t) => t.id);
-    if (!initialized) initialized = true;
+    if (account) {
+      accountName = account.name;
+      typeIds = account.types.map((t) => t.id);
+      if (!initialized) initialized = true;
+    }
   });
 
   const autoSaver = createAutoSaver({
-    endpoint: `/api/accounts/${account.id}`,
+    endpoint: `/api/accounts/${accountId}`,
     onStatusChange: (s) => { saveStatus = s; },
     onSaved: (result) => {
       if (result.auditEntryId) {
@@ -147,6 +157,99 @@
   });
 
   onDestroy(() => autoSaver.destroy());
+
+  // Client-side data loading (silent refresh when account already loaded)
+  async function loadData() {
+    const isFirstLoad = account == null;
+    if (isFirstLoad) {
+      loading = true;
+    }
+    loadError = null;
+    loadErrorDetail = null;
+
+    try {
+      let accountResult: { data: Record<string, unknown> };
+      try {
+        accountResult = await api(`/api/accounts/${accountId}`) as { data: Record<string, unknown> };
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        loadError = `Account fetch failed: ${msg}`;
+        loadErrorDetail = `URL: /api/accounts/${accountId}\n${err instanceof Error && err.stack ? err.stack : ""}`;
+        loading = false;
+        return;
+      }
+
+      const raw = accountResult.data as Account;
+      raw.types = raw.types ?? [];
+      raw.emails = raw.emails ?? [];
+      raw.phoneNumbers = raw.phoneNumbers ?? [];
+      raw.linkedHumans = raw.linkedHumans ?? [];
+      raw.activities = raw.activities ?? [];
+      raw.socialIds = raw.socialIds ?? [];
+      raw.websites = raw.websites ?? [];
+      raw.referralCodes = raw.referralCodes ?? [];
+      raw.discountCodes = raw.discountCodes ?? [];
+      account = raw;
+
+      const fetchErrors: string[] = [];
+
+      const results = await Promise.allSettled([
+        api(`/api/admin/account-config/batch?types=account-types,account-human-labels,account-email-labels,account-phone-labels,social-id-platforms,agreement-types`),
+        api(`/api/humans`),
+        api(`/api/discount-codes`),
+        api(`/api/agreements?accountId=${accountId}&limit=50`),
+      ]);
+
+      if (results[0].status === "fulfilled") {
+        const configs = (results[0].value as { data: Record<string, unknown[]> }).data;
+        typeConfigs = (configs["account-types"] ?? []) as ConfigItem[];
+        humanLabelConfigs = (configs["account-human-labels"] ?? []) as ConfigItem[];
+        emailLabelConfigs = (configs["account-email-labels"] ?? []) as ConfigItem[];
+        phoneLabelConfigs = (configs["account-phone-labels"] ?? []) as ConfigItem[];
+        socialIdPlatformConfigs = (configs["social-id-platforms"] ?? []) as ConfigItem[];
+        agreementTypeConfigs = (configs["agreement-types"] ?? []) as ConfigItem[];
+      } else { fetchErrors.push(`configs: ${results[0].reason}`); }
+
+      if (results[1].status === "fulfilled") {
+        allHumans = (results[1].value as { data: HumanListItem[] }).data;
+      } else { fetchErrors.push(`humans: ${results[1].reason}`); }
+
+      if (results[2].status === "fulfilled") {
+        allDiscountCodes = (results[2].value as { data: AllDiscountCodeOption[] }).data;
+      } else { fetchErrors.push(`discount-codes: ${results[2].reason}`); }
+
+      if (results[3].status === "fulfilled") {
+        accountAgreements = (results[3].value as { data: AccountAgreement[] }).data;
+      } else { fetchErrors.push(`agreements: ${results[3].reason}`); }
+
+      if (fetchErrors.length > 0) {
+        loadErrorDetail = `Partial load failures:\n${fetchErrors.join("\n")}`;
+      }
+
+      loading = false;
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      loadError = `Unexpected error: ${msg}`;
+      loadErrorDetail = err instanceof Error && err.stack ? err.stack : null;
+      loading = false;
+    }
+  }
+
+  onMount(() => {
+    void loadData();
+  });
+
+  // Form enhance handler — prevents default SSR invalidation, refreshes client-side instead
+  const formEnhance: SubmitFunction = () => {
+    formError = null;
+    return async ({ result }) => {
+      if (result.type === "success") {
+        await loadData();
+      } else if (result.type === "failure") {
+        formError = (result.data as { error?: string } | null)?.error ?? "An error occurred";
+      }
+    };
+  };
 
   function triggerSave() {
     if (!initialized) return;
@@ -170,14 +273,14 @@
   async function handleStatusChange(newStatus: string) {
     saveStatus = "saving";
     try {
-      await api(`/api/accounts/${account.id}/status`, {
+      await api(`/api/accounts/${accountId}/status`, {
         method: "PATCH",
         body: JSON.stringify({ status: newStatus }),
       });
       saveStatus = "saved";
       toast("Status updated");
       historyLoaded = false;
-      await invalidateAll();
+      await loadData();
     } catch {
       saveStatus = "error";
     }
@@ -189,14 +292,14 @@
       await api(`/api/audit-log/${lastAuditEntryId}/undo`, { method: "POST" });
       lastAuditEntryId = null;
       historyLoaded = false;
-      await invalidateAll();
+      await loadData();
     } catch {
       toast("Undo failed");
     }
   }
 
   async function loadHistory() {
-    if (historyLoaded) return;
+    if (historyLoaded || !account) return;
     try {
       const result = await api(`/api/audit-log`, {
         params: { entityType: "account", entityId: account.id },
@@ -209,7 +312,7 @@
   }
 
   $effect(() => {
-    if (!historyLoaded) {
+    if (!historyLoaded && account) {
       void loadHistory();
     }
   });
@@ -217,14 +320,39 @@
   async function deleteActivity(id: string) {
     await api(`/api/activities/${id}`, { method: "DELETE" });
     toast("Activity deleted");
-    await invalidateAll();
+    await loadData();
   }
 
 </script>
 
 <svelte:head>
-  <title>{account.displayId} — {account.name} - Humans</title>
+  <title>{account ? `${account.displayId} — ${account.name}` : "Account"} - Humans</title>
 </svelte:head>
+
+{#if loading}
+  <div class="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
+    <div class="glass-card p-6">
+      <div class="animate-pulse space-y-4">
+        <div class="h-8 bg-glass rounded w-1/3"></div>
+        <div class="h-4 bg-glass rounded w-2/3"></div>
+        <div class="h-4 bg-glass rounded w-1/2"></div>
+        <div class="h-32 bg-glass rounded w-full mt-4"></div>
+      </div>
+    </div>
+  </div>
+{:else if loadError}
+  <div class="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
+    <div class="glass-card p-6 space-y-4 border border-red-500/30">
+      <h2 class="text-lg font-semibold text-red-400">Failed to load account</h2>
+      <p class="text-sm text-text-primary">{loadError}</p>
+      {#if loadErrorDetail}
+        <pre class="text-xs text-text-muted bg-glass p-3 rounded overflow-auto max-h-48 whitespace-pre-wrap">{loadErrorDetail}</pre>
+      {/if}
+      <p class="text-xs text-text-muted">Account ID: {accountId}</p>
+      <Button size="sm" onclick={() => { void loadData(); }}>Retry</Button>
+    </div>
+  </div>
+{:else if account}
 
 <div class="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
   <!-- Record Management Bar -->
@@ -239,7 +367,7 @@
   >
     {#snippet actions()}
       <div class="flex gap-1">
-        {#each account.types as t (t.id)}
+        {#each account.types as t, tIdx (`${t.id}-${tIdx}`)}
           <span class="glass-badge inline-flex rounded-full px-2 py-0.5 text-xs font-medium badge-purple">
             {t.name}
           </span>
@@ -249,8 +377,11 @@
   </RecordManagementBar>
 
   <!-- Alerts -->
-  {#if form?.error}
-    <AlertBanner type="error" message={form.error} />
+  {#if loadErrorDetail}
+    <AlertBanner type="error" message={loadErrorDetail} />
+  {/if}
+  {#if formError}
+    <AlertBanner type="error" message={formError} />
   {/if}
 
   <!-- Details (auto-save, no form submission) -->
@@ -274,7 +405,7 @@
       <div>
         <label class="block text-sm font-medium text-text-secondary">Types</label>
         <div class="mt-2 flex gap-4 flex-wrap">
-          {#each typeConfigs as t (t.id)}
+          {#each typeConfigs as t, tIdx (`type-${t.id}-${tIdx}`)}
             <label class="flex items-center gap-2 text-sm text-text-secondary">
               <input
                 type="checkbox"
@@ -329,7 +460,7 @@
                     method: "PATCH",
                     body: JSON.stringify({ labelId: value || null }),
                   });
-                  await invalidateAll();
+                  await loadData();
                 } catch { toast("Failed to update label"); }
               }}
             />
@@ -341,7 +472,7 @@
           {/if}
         </td>
         <td>
-          <form method="POST" action="?/deleteEmail">
+          <form method="POST" action="?/deleteEmail" use:enhance={formEnhance}>
             <input type="hidden" name="id" value={email.id} />
             <button type="submit" class="flex items-center justify-center w-7 h-7 rounded-lg text-text-muted hover:text-destructive-foreground hover:bg-destructive transition-colors duration-150" aria-label="Delete email">
               <Trash2 size={14} />
@@ -350,7 +481,7 @@
         </td>
       {/snippet}
       {#snippet addForm()}
-        <form method="POST" action="?/addEmail" class="space-y-3">
+        <form method="POST" action="?/addEmail" use:enhance={formEnhance} class="space-y-3">
           <div class="grid gap-3 sm:grid-cols-2">
             <div>
               <label for="emailAddress" class="block text-sm font-medium text-text-secondary">Email</label>
@@ -422,7 +553,7 @@
                     method: "PATCH",
                     body: JSON.stringify({ labelId: value || null }),
                   });
-                  await invalidateAll();
+                  await loadData();
                 } catch { toast("Failed to update label"); }
               }}
             />
@@ -439,7 +570,7 @@
           </div>
         </td>
         <td>
-          <form method="POST" action="?/deletePhoneNumber">
+          <form method="POST" action="?/deletePhoneNumber" use:enhance={formEnhance}>
             <input type="hidden" name="id" value={phone.id} />
             <button type="submit" class="flex items-center justify-center w-7 h-7 rounded-lg text-text-muted hover:text-destructive-foreground hover:bg-destructive transition-colors duration-150" aria-label="Delete phone number">
               <Trash2 size={14} />
@@ -448,7 +579,7 @@
         </td>
       {/snippet}
       {#snippet addForm()}
-        <form method="POST" action="?/addPhoneNumber" class="space-y-3">
+        <form method="POST" action="?/addPhoneNumber" use:enhance={formEnhance} class="space-y-3">
           <div class="grid gap-3 sm:grid-cols-2">
             <div>
               <label for="phoneNumber" class="block text-sm font-medium text-text-secondary">Phone Number</label>
@@ -512,7 +643,7 @@
           {/if}
         </td>
         <td>
-          <form method="POST" action="?/deleteSocialId">
+          <form method="POST" action="?/deleteSocialId" use:enhance={formEnhance}>
             <input type="hidden" name="id" value={sid.id} />
             <button type="submit" class="flex items-center justify-center w-7 h-7 rounded-lg text-text-muted hover:text-destructive-foreground hover:bg-destructive transition-colors duration-150" aria-label="Delete social ID">
               <Trash2 size={14} />
@@ -521,7 +652,7 @@
         </td>
       {/snippet}
       {#snippet addForm()}
-        <form method="POST" action="?/addSocialId" class="space-y-3">
+        <form method="POST" action="?/addSocialId" use:enhance={formEnhance} class="space-y-3">
           <div class="grid gap-3 sm:grid-cols-2">
             <div>
               <label for="socialHandle" class="block text-sm font-medium text-text-secondary">Handle</label>
@@ -573,7 +704,7 @@
           <a href={w.url} target="_blank" rel="noopener noreferrer" class="text-sm font-medium text-accent hover:text-[var(--link-hover)]">{w.url}</a>
         </td>
         <td>
-          <form method="POST" action="?/deleteWebsite">
+          <form method="POST" action="?/deleteWebsite" use:enhance={formEnhance}>
             <input type="hidden" name="id" value={w.id} />
             <button type="submit" class="flex items-center justify-center w-7 h-7 rounded-lg text-text-muted hover:text-destructive-foreground hover:bg-destructive transition-colors duration-150" aria-label="Delete website">
               <Trash2 size={14} />
@@ -582,7 +713,7 @@
         </td>
       {/snippet}
       {#snippet addForm()}
-        <form method="POST" action="?/addWebsite" class="space-y-3">
+        <form method="POST" action="?/addWebsite" use:enhance={formEnhance} class="space-y-3">
           <div>
             <label for="websiteUrl" class="block text-sm font-medium text-text-secondary">URL</label>
             <input
@@ -631,7 +762,7 @@
           {/if}
         </td>
         <td>
-          <form method="POST" action="?/deleteReferralCode">
+          <form method="POST" action="?/deleteReferralCode" use:enhance={formEnhance}>
             <input type="hidden" name="id" value={rc.id} />
             <button type="submit" class="flex items-center justify-center w-7 h-7 rounded-lg text-text-muted hover:text-destructive-foreground hover:bg-destructive transition-colors duration-150" aria-label="Delete referral code">
               <Trash2 size={14} />
@@ -640,7 +771,7 @@
         </td>
       {/snippet}
       {#snippet addForm()}
-        <form method="POST" action="?/addReferralCode" class="space-y-3">
+        <form method="POST" action="?/addReferralCode" use:enhance={formEnhance} class="space-y-3">
           <div class="grid gap-3 sm:grid-cols-2">
             <div>
               <label for="referralCode" class="block text-sm font-medium text-text-secondary">Code</label>
@@ -700,7 +831,7 @@
           {/if}
         </td>
         <td>
-          <form method="POST" action="?/unlinkDiscountCode">
+          <form method="POST" action="?/unlinkDiscountCode" use:enhance={formEnhance}>
             <input type="hidden" name="id" value={dc.id} />
             <button type="submit" class="flex items-center justify-center w-7 h-7 rounded-lg text-text-muted hover:text-destructive-foreground hover:bg-destructive transition-colors duration-150" aria-label="Unlink discount code">
               <Trash2 size={14} />
@@ -709,12 +840,12 @@
         </td>
       {/snippet}
       {#snippet addForm()}
-        <form method="POST" action="?/linkDiscountCode" class="space-y-3">
+        <form method="POST" action="?/linkDiscountCode" use:enhance={formEnhance} class="space-y-3">
           <div>
             <label for="discountCodeId" class="block text-sm font-medium text-text-secondary">Discount Code</label>
             <select id="discountCodeId" name="discountCodeId" required class="glass-input mt-1 block w-full">
               <option value="">Select a discount code...</option>
-              {#each data.allDiscountCodes as dc (dc.id)}
+              {#each allDiscountCodes as dc, dcIdx (`dc-${dc.id}-${dcIdx}`)}
                 <option value={dc.id}>{dc.code} ({dc.crmDisplayId ?? dc.id})</option>
               {/each}
             </select>
@@ -767,21 +898,21 @@
           {/if}
         </td>
         <td class="text-xs text-text-muted">
-          {#each link.emails as e, i (e.id)}
+          {#each link.emails as e, i (i)}
             {#if i > 0}, {/if}{e.email}
           {:else}
             &mdash;
           {/each}
         </td>
         <td class="text-xs text-text-muted">
-          {#each link.phoneNumbers as p, i (p.id)}
+          {#each link.phoneNumbers as p, i (i)}
             {#if i > 0}, {/if}{p.phoneNumber}
           {:else}
             &mdash;
           {/each}
         </td>
         <td>
-          <form method="POST" action="?/unlinkHuman">
+          <form method="POST" action="?/unlinkHuman" use:enhance={formEnhance}>
             <input type="hidden" name="id" value={link.id} />
             <button type="submit" class="flex items-center justify-center w-7 h-7 rounded-lg text-text-muted hover:text-destructive-foreground hover:bg-destructive transition-colors duration-150" aria-label="Unlink human">
               <Trash2 size={14} />
@@ -810,7 +941,7 @@
         </div>
 
         {#if humanAddMode === 'link'}
-          <form method="POST" action="?/linkHuman" class="space-y-3">
+          <form method="POST" action="?/linkHuman" use:enhance={formEnhance} class="space-y-3">
             <div class="grid gap-3 sm:grid-cols-2">
               <div>
                 <label for="humanSelect" class="block text-sm font-medium text-text-secondary">Human</label>
@@ -837,7 +968,7 @@
             <Button type="submit" size="sm">Link Human</Button>
           </form>
         {:else}
-          <form method="POST" action="?/createAndLinkHuman" class="space-y-3">
+          <form method="POST" action="?/createAndLinkHuman" use:enhance={formEnhance} class="space-y-3">
             <div class="grid gap-3 sm:grid-cols-2">
               <div>
                 <label for="newHumanFirst" class="block text-sm font-medium text-text-secondary">First Name</label>
@@ -884,7 +1015,7 @@
       onDelete={deleteActivity}
     >
       {#snippet addForm()}
-        <form method="POST" action="?/addActivity" class="space-y-3">
+        <form method="POST" action="?/addActivity" use:enhance={formEnhance} class="space-y-3">
           <div>
             <label for="activityType" class="block text-sm font-medium text-text-secondary">Type</label>
             <SearchableSelect
@@ -940,6 +1071,7 @@
       defaultSortDirection="asc"
       searchFilter={(a, q) => a.title.toLowerCase().includes(q) || a.displayId.toLowerCase().includes(q) || (a.typeName ?? "").toLowerCase().includes(q)}
       emptyMessage="No linked agreements."
+      addLabel="Agreement"
     >
       {#snippet row(agr, _searchQuery)}
         <td class="font-mono text-sm whitespace-nowrap">
@@ -954,6 +1086,35 @@
           </span>
         </td>
         <td class="text-sm text-text-muted">{agr.activationDate ?? "\u2014"}</td>
+      {/snippet}
+      {#snippet addForm()}
+        <form method="POST" action="?/addAgreement" enctype="multipart/form-data" use:enhance={formEnhance} class="space-y-3">
+          <div class="grid gap-3 sm:grid-cols-2">
+            <div>
+              <label for="agrTitle" class="block text-sm font-medium text-text-secondary">Title <span class="text-red-400">*</span></label>
+              <input id="agrTitle" name="title" type="text" required class="glass-input mt-1 block w-full" placeholder="Agreement title" />
+            </div>
+            <div>
+              <label for="agrType" class="block text-sm font-medium text-text-secondary">Type</label>
+              <SearchableSelect options={agreementTypeOptions} name="typeId" id="agrType" emptyOption="None" placeholder="Select type..." />
+            </div>
+          </div>
+          <div class="grid gap-3 sm:grid-cols-2">
+            <div>
+              <label for="agrDate" class="block text-sm font-medium text-text-secondary">Activation Date</label>
+              <GlassDatePicker name="activationDate" id="agrDate" />
+            </div>
+            <div>
+              <label for="agrFile" class="block text-sm font-medium text-text-secondary">Document (PDF)</label>
+              <input type="file" id="agrFile" name="file" accept=".pdf,application/pdf" class="text-sm text-text-secondary file:mr-2 file:rounded file:border-0 file:bg-glass file:px-3 file:py-1 file:text-sm file:text-text-primary mt-1" />
+            </div>
+          </div>
+          <div>
+            <label for="agrNotes" class="block text-sm font-medium text-text-secondary">Notes</label>
+            <textarea id="agrNotes" name="notes" rows={2} class="glass-input mt-1 block w-full" placeholder="Optional notes..."></textarea>
+          </div>
+          <Button type="submit" size="sm">Create Agreement</Button>
+        </form>
       {/snippet}
     </RelatedListTable>
   </div>
@@ -992,3 +1153,6 @@
   </div>
 
 </div>
+
+{/if}
+

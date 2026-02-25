@@ -16,32 +16,37 @@
   let selectedDate = $state<DateValue | undefined>(undefined);
   let popoverOpen = $state(false);
 
-  // Track whether we caused the last value change (to avoid re-parsing our own output)
-  let selfUpdate = false;
+  // Plain variable (NOT $state) — we do NOT want this to trigger effect re-runs.
+  // It's only read inside the effect to guard against re-parsing our own output.
+  let lastEmitted = "";
 
-  // Parse external value prop into internal state
+  // Sync external value prop into internal selectedDate.
+  // Only tracks `value` (reactive prop). Does NOT track `lastEmitted` (plain let).
   $effect(() => {
-    if (selfUpdate) return;
-    if (value) {
-      // Accept both YYYY-MM-DD and full ISO strings
-      const parts = value.split("T")[0].split("-");
+    const v = value ?? "";
+    if (v === lastEmitted) return;
+    if (v) {
+      const parts = v.split("T")[0].split("-");
       if (parts.length === 3) {
         selectedDate = new CalendarDate(Number(parts[0]), Number(parts[1]), Number(parts[2]));
       }
-    } else {
+    } else if (lastEmitted === "") {
+      // Only clear selectedDate if we haven't emitted anything yet.
+      // If lastEmitted is set but value is empty, it means there's no external binding —
+      // don't clear the user's selection.
       selectedDate = undefined;
     }
   });
 
-  function buildIso(): string {
-    if (!selectedDate) return "";
-    const y = selectedDate.year;
-    const m = String(selectedDate.month).padStart(2, "0");
-    const d = String(selectedDate.day).padStart(2, "0");
+  function buildIso(date: DateValue | undefined): string {
+    if (!date) return "";
+    const y = date.year;
+    const m = String(date.month).padStart(2, "0");
+    const d = String(date.day).padStart(2, "0");
     return `${y}-${m}-${d}`;
   }
 
-  const isoString = $derived(buildIso());
+  const isoString = $derived(buildIso(selectedDate));
 
   const displayText = $derived.by(() => {
     if (!selectedDate) return "";
@@ -53,18 +58,14 @@
     });
   });
 
-  function emitChange() {
-    const iso = buildIso();
-    if (iso && iso !== value) {
-      selfUpdate = true;
-      onchange?.(iso);
-      queueMicrotask(() => { selfUpdate = false; });
-    }
-  }
-
   function handleDateSelect(newDate: DateValue | undefined) {
     selectedDate = newDate;
-    emitChange();
+    const iso = buildIso(newDate);
+    if (iso !== (value ?? "")) {
+      lastEmitted = iso;
+      onchange?.(iso);
+    }
+    popoverOpen = false;
   }
 </script>
 

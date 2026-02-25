@@ -132,7 +132,7 @@
       <table class="min-w-full">
         <thead class="glass-thead">
           <tr>
-            {#each columns as col (col.key)}
+            {#each columns as col, colIdx (`${col.key}-${colIdx}`)}
               <th scope="col" class={col.headerClass ?? ""} aria-sort={col.sortable ? ariaSort(col.key) : undefined}>
                 {#if col.sortable}
                   <button type="button" class="cursor-pointer select-none" onclick={() => toggleSort(col.key)}>{col.label}<span aria-hidden="true">{sortArrow(col.key)}</span></button>
@@ -144,7 +144,7 @@
           </tr>
         </thead>
         <tbody>
-          {#each filteredSortedItems as item (item.id)}
+          {#each filteredSortedItems as item, idx (`${item.id}-${idx}`)}
             <tr class="glass-row-hover">
               {@render row(item, searchQuery)}
             </tr>

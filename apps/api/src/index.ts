@@ -37,6 +37,7 @@ import { opportunityCadenceRoutes } from "./routes/opportunity-cadence";
 import { clientErrorRoutes } from "./routes/client-errors";
 import { runScheduledFrontSync } from "./scheduled/front-sync";
 import { realtimeMiddleware } from "./middleware/realtime";
+import { timingMiddleware } from "./middleware/timing";
 import type { AppContext, Env } from "./types";
 
 const app = new Hono<AppContext>();
@@ -50,6 +51,7 @@ app.use("/*", cors({
 }));
 app.use("/*", logger());
 app.use("/*", requestIdMiddleware);
+app.use("/*", timingMiddleware);
 app.use("/*", dbMiddleware);
 app.use("/*", realtimeMiddleware);
 

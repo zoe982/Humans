@@ -210,6 +210,106 @@ describe("getAccountDetail", () => {
     expect(humanActivity!.viaHumanName).toBe("Jane Smith");
   });
 
+  it("deduplicates activities that have both accountId and humanId of a linked human", async () => {
+    const db = getTestDb();
+    const ts = now();
+
+    await seedColleague(db);
+    await seedAccount(db, "acc-1", "Dedup Corp");
+    await seedHuman(db, "h-1", "Jane", "Smith");
+
+    // Link human to account
+    await db.insert(schema.accountHumans).values({
+      id: "ah-1", accountId: "acc-1", humanId: "h-1", createdAt: ts,
+    });
+
+    // Activity with BOTH accountId and humanId — this is the duplicate scenario
+    await db.insert(schema.activities).values({
+      id: "act-shared", displayId: nextDisplayId("ACT"), type: "email",
+      subject: "Shared Activity", activityDate: ts,
+      accountId: "acc-1", humanId: "h-1",
+      colleagueId: "col-1", createdAt: ts, updatedAt: ts,
+    });
+
+    // Activity with only accountId (direct)
+    await db.insert(schema.activities).values({
+      id: "act-direct", displayId: nextDisplayId("ACT"), type: "call",
+      subject: "Direct Only", activityDate: ts,
+      accountId: "acc-1",
+      colleagueId: "col-1", createdAt: ts, updatedAt: ts,
+    });
+
+    // Activity with only humanId (via human)
+    await db.insert(schema.activities).values({
+      id: "act-human", displayId: nextDisplayId("ACT"), type: "note",
+      subject: "Human Only", activityDate: ts,
+      humanId: "h-1",
+      colleagueId: "col-1", createdAt: ts, updatedAt: ts,
+    });
+
+    const result = await getAccountDetail(mockSupabase(), db, "acc-1");
+
+    // Should have exactly 3 unique activities, NOT 4 (shared should not appear twice)
+    expect(result.activities).toHaveLength(3);
+
+    const ids = result.activities.map((a) => a.id);
+    const uniqueIds = new Set(ids);
+    expect(uniqueIds.size).toBe(ids.length);
+
+    // Verify each activity appears exactly once
+    expect(ids).toContain("act-shared");
+    expect(ids).toContain("act-direct");
+    expect(ids).toContain("act-human");
+
+    // The shared activity should come from directActivities (viaHumanName = null)
+    const shared = result.activities.find((a) => a.id === "act-shared");
+    expect(shared!.viaHumanName).toBeNull();
+
+    // The human-only activity should have viaHumanName set
+    const humanOnly = result.activities.find((a) => a.id === "act-human");
+    expect(humanOnly!.viaHumanName).toBe("Jane Smith");
+  });
+
+  it("returns no duplicate IDs in any entity array", async () => {
+    const db = getTestDb();
+    const ts = now();
+
+    await seedColleague(db);
+    await seedAccount(db, "acc-1", "Full Corp");
+    await seedHuman(db, "h-1", "Jane", "Smith");
+
+    // Link human to account
+    await db.insert(schema.accountHumans).values({
+      id: "ah-1", accountId: "acc-1", humanId: "h-1", createdAt: ts,
+    });
+
+    // Create activities with overlapping accountId + humanId
+    await db.insert(schema.activities).values({
+      id: "act-overlap", displayId: nextDisplayId("ACT"), type: "email",
+      subject: "Overlap", activityDate: ts,
+      accountId: "acc-1", humanId: "h-1",
+      colleagueId: "col-1", createdAt: ts, updatedAt: ts,
+    });
+
+    const result = await getAccountDetail(mockSupabase(), db, "acc-1");
+
+    // Check ALL entity arrays for duplicate IDs
+    const entityArrays: { name: string; items: { id: string }[] }[] = [
+      { name: "activities", items: result.activities },
+      { name: "emails", items: result.emails },
+      { name: "phoneNumbers", items: result.phoneNumbers },
+      { name: "linkedHumans", items: result.linkedHumans },
+      { name: "socialIds", items: result.socialIds },
+      { name: "websites", items: result.websites },
+    ];
+
+    for (const { name, items } of entityArrays) {
+      const ids = items.map((item) => item.id);
+      const uniqueIds = new Set(ids);
+      expect(uniqueIds.size, `Duplicate IDs found in ${name}: ${JSON.stringify(ids)}`).toBe(ids.length);
+    }
+  });
+
   it("returns account with social IDs enriched with platform names", async () => {
     const db = getTestDb();
     const ts = now();

@@ -64,6 +64,23 @@ export const actions = {
       return fail(500, { error: "Unexpected response" });
     }
 
+    // Upload file if present
+    const file = form.get("file");
+    if (file instanceof File && file.size > 0) {
+      const uploadForm = new FormData();
+      uploadForm.append("file", file);
+      uploadForm.append("entityType", "agreement");
+      uploadForm.append("entityId", created.data.id);
+
+      await fetch(`${PUBLIC_API_URL}/api/documents/upload`, {
+        method: "POST",
+        headers: {
+          Cookie: `humans_session=${sessionToken ?? ""}`,
+        },
+        body: uploadForm,
+      });
+    }
+
     redirect(302, `/agreements/${created.data.id}`);
   },
 };

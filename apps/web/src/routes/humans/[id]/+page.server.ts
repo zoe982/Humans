@@ -31,6 +31,7 @@ export const load = async ({ locals, cookies, params }: RequestEvent): Promise<{
   humanRelationshipLabelConfigs: unknown[];
   allHumans: unknown[];
   humanAgreements: unknown[];
+  agreementTypes: unknown[];
 }> => {
   if (locals.user == null) redirect(302, "/login");
 
@@ -60,7 +61,7 @@ export const load = async ({ locals, cookies, params }: RequestEvent): Promise<{
 
   // Batch 1: all configs in one call + activities + route signups
   const [configs, activities, allRouteSignups, allBookingRequests, allAccounts] = await Promise.all([
-    fetchConfigs(token, ["human-email-labels", "human-phone-labels", "social-id-platforms", "account-human-labels", "human-relationship-labels"]),
+    fetchConfigs(token, ["human-email-labels", "human-phone-labels", "social-id-platforms", "account-human-labels", "human-relationship-labels", "agreement-types"]),
     fetchList(`${PUBLIC_API_URL}/api/activities?humanId=${id}&include=linkedEntities`),
     fetchList(`${PUBLIC_API_URL}/api/route-signups?limit=100`),
     fetchList(`${PUBLIC_API_URL}/api/website-booking-requests?limit=100`),
@@ -72,6 +73,7 @@ export const load = async ({ locals, cookies, params }: RequestEvent): Promise<{
   const socialIdPlatformConfigs = configs["social-id-platforms"] ?? [];
   const accountHumanLabelConfigs = configs["account-human-labels"] ?? [];
   const humanRelationshipLabelConfigs = configs["human-relationship-labels"] ?? [];
+  const agreementTypes = configs["agreement-types"] ?? [];
 
   // Batch 2: remaining data fetches
   const [generalLeads, humanOpportunities, allDiscountCodes, humanRelationships, allHumans, humanAgreements] = await Promise.all([
@@ -152,6 +154,7 @@ export const load = async ({ locals, cookies, params }: RequestEvent): Promise<{
     humanRelationshipLabelConfigs,
     allHumans,
     humanAgreements,
+    agreementTypes,
   };
 };
 
@@ -1013,6 +1016,58 @@ export const actions = {
     if (!res.ok) {
       const resBody: unknown = await res.json();
       return failFromApi(resBody, res.status, "Failed to unlink account");
+    }
+
+    return { success: true };
+  },
+
+  addAgreement: async ({ request, cookies, params }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
+    const form = await request.formData();
+    const sessionToken = cookies.get("humans_session");
+
+    const typeIdVal = formStr(form.get("typeId"));
+    const activationDateVal = formStr(form.get("activationDate"));
+    const notesVal = formStr(form.get("notes"));
+
+    const payload = {
+      title: form.get("title"),
+      typeId: typeIdVal !== "" ? typeIdVal : undefined,
+      humanId: params.id,
+      activationDate: activationDateVal !== "" ? activationDateVal : undefined,
+      notes: notesVal !== "" ? notesVal : undefined,
+    };
+
+    const res = await fetch(`${PUBLIC_API_URL}/api/agreements`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Cookie: `humans_session=${sessionToken ?? ""}`,
+      },
+      body: JSON.stringify(payload),
+    });
+
+    const resBody: unknown = await res.json();
+
+    if (!res.ok) {
+      return failFromApi(resBody, res.status, "Failed to create agreement");
+    }
+
+    // Upload file if present
+    const file = form.get("file");
+    if (file instanceof File && file.size > 0 && isObjData(resBody)) {
+      const agreementId = (resBody.data as { id?: string }).id;
+      if (agreementId != null && agreementId !== "") {
+        const uploadForm = new FormData();
+        uploadForm.append("file", file);
+        uploadForm.append("entityType", "agreement");
+        uploadForm.append("entityId", agreementId);
+
+        await fetch(`${PUBLIC_API_URL}/api/documents/upload`, {
+          method: "POST",
+          headers: { Cookie: `humans_session=${sessionToken ?? ""}` },
+          body: uploadForm,
+        });
+      }
     }
 
     return { success: true };

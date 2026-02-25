@@ -26,22 +26,59 @@ interface AgreementRow {
   accountDisplayId: string | null;
 }
 
-function resolveRow(
-  row: typeof agreements.$inferSelect,
-  types: (typeof agreementTypesConfig.$inferSelect)[],
-  allHumans: { id: string; displayId: string; firstName: string; lastName: string }[],
-  allAccounts: { id: string; displayId: string; name: string }[],
-): AgreementRow {
-  const type = row.typeId != null ? types.find((t) => t.id === row.typeId) : null;
-  const human = row.humanId != null ? allHumans.find((h) => h.id === row.humanId) : null;
-  const account = row.accountId != null ? allAccounts.find((a) => a.id === row.accountId) : null;
+/** Single-query select with JOINs — no full table scans. */
+function agreementSelectWithJoins(db: DB) {
+  return db
+    .select({
+      id: agreements.id,
+      displayId: agreements.displayId,
+      title: agreements.title,
+      typeId: agreements.typeId,
+      status: agreements.status,
+      activationDate: agreements.activationDate,
+      notes: agreements.notes,
+      humanId: agreements.humanId,
+      accountId: agreements.accountId,
+      createdAt: agreements.createdAt,
+      updatedAt: agreements.updatedAt,
+      typeName: agreementTypesConfig.name,
+      humanFirstName: humans.firstName,
+      humanLastName: humans.lastName,
+      humanDisplayId: humans.displayId,
+      accountName: accounts.name,
+      accountDisplayId: accounts.displayId,
+    })
+    .from(agreements)
+    .leftJoin(agreementTypesConfig, eq(agreements.typeId, agreementTypesConfig.id))
+    .leftJoin(humans, eq(agreements.humanId, humans.id))
+    .leftJoin(accounts, eq(agreements.accountId, accounts.id));
+}
+
+function toAgreementRow(r: {
+  id: string; displayId: string; title: string; typeId: string | null;
+  status: string; activationDate: string | null; notes: string | null;
+  humanId: string | null; accountId: string | null;
+  createdAt: string; updatedAt: string;
+  typeName: string | null; humanFirstName: string | null; humanLastName: string | null;
+  humanDisplayId: string | null; accountName: string | null; accountDisplayId: string | null;
+}): AgreementRow {
   return {
-    ...row,
-    typeName: type?.name ?? null,
-    humanName: human != null ? `${human.firstName} ${human.lastName}` : null,
-    humanDisplayId: human?.displayId ?? null,
-    accountName: account?.name ?? null,
-    accountDisplayId: account?.displayId ?? null,
+    id: r.id,
+    displayId: r.displayId,
+    title: r.title,
+    typeId: r.typeId,
+    status: r.status,
+    activationDate: r.activationDate,
+    notes: r.notes,
+    humanId: r.humanId,
+    accountId: r.accountId,
+    createdAt: r.createdAt,
+    updatedAt: r.updatedAt,
+    typeName: r.typeName ?? null,
+    humanName: r.humanFirstName != null ? `${r.humanFirstName} ${r.humanLastName ?? ""}`.trim() : null,
+    humanDisplayId: r.humanDisplayId ?? null,
+    accountName: r.accountName ?? null,
+    accountDisplayId: r.accountDisplayId ?? null,
   };
 }
 
@@ -63,35 +100,25 @@ export async function listAgreements(
   const countResult = await db.select({ total: sql<number>`count(*)` }).from(agreements).where(whereClause);
   const total = countResult[0]?.total ?? 0;
 
-  const rows = await db
-    .select()
-    .from(agreements)
+  const rows = await agreementSelectWithJoins(db)
     .where(whereClause)
     .orderBy(sql`${agreements.createdAt} DESC`)
     .limit(limit)
     .offset(offset);
 
-  const types = await db.select().from(agreementTypesConfig);
-  const allHumans = await db.select({ id: humans.id, displayId: humans.displayId, firstName: humans.firstName, lastName: humans.lastName }).from(humans);
-  const allAccounts = await db.select({ id: accounts.id, displayId: accounts.displayId, name: accounts.name }).from(accounts);
-
-  const data = rows.map((r) => resolveRow(r, types, allHumans, allAccounts));
-
-  return { data, meta: { page, limit, total } };
+  return { data: rows.map(toAgreementRow), meta: { page, limit, total } };
 }
 
 export async function getAgreement(db: DB, id: string): Promise<AgreementRow> {
-  const result = await db.select().from(agreements).where(eq(agreements.id, id));
-  const row = result[0];
-  if (row == null) {
+  const rows = await agreementSelectWithJoins(db)
+    .where(eq(agreements.id, id));
+
+  const r = rows[0];
+  if (r == null) {
     throw notFound(ERROR_CODES.AGREEMENT_NOT_FOUND, "Agreement not found");
   }
 
-  const types = await db.select().from(agreementTypesConfig);
-  const allHumans = await db.select({ id: humans.id, displayId: humans.displayId, firstName: humans.firstName, lastName: humans.lastName }).from(humans);
-  const allAccounts = await db.select({ id: accounts.id, displayId: accounts.displayId, name: accounts.name }).from(accounts);
-
-  return resolveRow(row, types, allHumans, allAccounts);
+  return toAgreementRow(r);
 }
 
 export async function createAgreement(
@@ -135,11 +162,7 @@ export async function createAgreement(
     changes: { created: { old: null, new: record.title } },
   });
 
-  const types = await db.select().from(agreementTypesConfig);
-  const allHumans = await db.select({ id: humans.id, displayId: humans.displayId, firstName: humans.firstName, lastName: humans.lastName }).from(humans);
-  const allAccounts = await db.select({ id: accounts.id, displayId: accounts.displayId, name: accounts.name }).from(accounts);
-
-  return resolveRow(record, types, allHumans, allAccounts);
+  return getAgreement(db, record.id);
 }
 
 export async function updateAgreement(

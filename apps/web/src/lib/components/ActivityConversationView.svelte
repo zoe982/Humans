@@ -247,7 +247,7 @@
 
     <!-- Message Feed -->
     <div class="px-4 py-3 flex flex-col gap-1">
-      {#each visibleActivities as activity, i (activity.id)}
+      {#each visibleActivities as activity, i (i)}
         {@const parsed = parseActivityContent(activity)}
         {@const isOutbound = parsed.direction === "outbound"}
         {@const showDay = shouldShowDaySeparator(i)}
@@ -311,17 +311,17 @@
           <!-- Linked Entity Tags -->
           {#if hasLinkedEntities(activity)}
             <div class="flex flex-wrap gap-1.5 mb-2">
-              {#each activity.geoInterestExpressions ?? [] as geo (geo.city ?? geo.country)}
+              {#each activity.geoInterestExpressions ?? [] as geo, geoIdx (geoIdx)}
                 <span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs" style="background: rgba(6,182,212,0.15); color: var(--color-accent);">
                   {geo.city ?? "?"}{geo.country ? `, ${geo.country}` : ""}
                 </span>
               {/each}
-              {#each activity.routeInterestExpressions ?? [] as route (`${route.originCity}-${route.destinationCity}`)}
+              {#each activity.routeInterestExpressions ?? [] as route, routeIdx (routeIdx)}
                 <span class="inline-flex items-center rounded-full badge-purple px-2 py-0.5 text-xs">
                   {route.originCity ?? "?"} &rarr; {route.destinationCity ?? "?"}
                 </span>
               {/each}
-              {#each activity.linkedOpportunities ?? [] as opp (opp.opportunityId ?? opp.displayId)}
+              {#each activity.linkedOpportunities ?? [] as opp, oppIdx (oppIdx)}
                 <span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs" style="background: rgba(245,158,11,0.15); color: rgb(245,158,11);">
                   {opp.displayId ?? "OPP"}{opp.stage ? ` · ${opp.stage}` : ""}
                 </span>

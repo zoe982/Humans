@@ -186,10 +186,13 @@ export async function getAccountDetail(supabase: SupabaseClient, db: DB, id: str
     linkedHumans: linkedHumansWithDetails,
     emails: emailsWithLabels,
     phoneNumbers: phonesWithLabels,
-    activities: [
-      ...directActivities.map((a) => ({ ...a, viaHumanName: null })),
-      ...humanActivitiesWithNames,
-    ],
+    activities: (() => {
+      const directIds = new Set(directActivities.map((a) => a.id));
+      return [
+        ...directActivities.map((a) => ({ ...a, viaHumanName: null })),
+        ...humanActivitiesWithNames.filter((a) => !directIds.has(a.id)),
+      ];
+    })(),
     socialIds: socialIdsWithPlatforms,
     referralCodes: accountReferralCodes,
     discountCodes: accountDiscountCodes,

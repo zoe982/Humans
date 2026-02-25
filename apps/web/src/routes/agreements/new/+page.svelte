@@ -46,7 +46,7 @@
     <AlertBanner type="error" message={form.error} />
   {/if}
 
-  <form method="POST" action="?/create" class="space-y-6 glass-card p-6">
+  <form method="POST" action="?/create" enctype="multipart/form-data" class="space-y-6 glass-card p-6">
     <div>
       <label for="title" class="block text-sm font-medium text-text-secondary mb-1">Title <span class="text-red-400">*</span></label>
       <input
@@ -101,6 +101,17 @@
         class="glass-input block w-full px-3 py-2 text-sm"
         placeholder="Optional notes..."
       ></textarea>
+    </div>
+
+    <div>
+      <label for="file" class="block text-sm font-medium text-text-secondary mb-1">Document (PDF)</label>
+      <input
+        type="file"
+        id="file"
+        name="file"
+        accept=".pdf,application/pdf"
+        class="text-sm text-text-secondary file:mr-2 file:rounded file:border-0 file:bg-glass file:px-3 file:py-1 file:text-sm file:text-text-primary"
+      />
     </div>
 
     <p class="text-xs text-text-muted">At least one of Human or Account is required.</p>
