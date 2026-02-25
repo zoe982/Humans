@@ -1,4 +1,5 @@
 import { browser } from "$app/environment";
+import { PUBLIC_API_URL } from "$env/static/public";
 
 interface DiagnosticError { time: string; message: string; stack?: string; source?: string }
 
@@ -28,11 +29,13 @@ function flushToApi(): void {
     })),
   });
 
+  const endpoint = `${PUBLIC_API_URL}/api/client-errors`;
+
   // sendBeacon is fire-and-forget, works even during page unload
   if (typeof navigator.sendBeacon === "function") {
-    navigator.sendBeacon("/api/client-errors", payload);
+    navigator.sendBeacon(endpoint, payload);
   } else {
-    void fetch("/api/client-errors", { method: "POST", body: payload, keepalive: true });
+    void fetch(endpoint, { method: "POST", body: payload, keepalive: true });
   }
 }
 

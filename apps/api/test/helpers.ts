@@ -18,7 +18,7 @@ export async function createUserAndSession(role: Role = "agent") {
   const token = crypto.randomUUID();
   await env.SESSIONS.put(
     `session:${token}`,
-    JSON.stringify({ colleagueId: user.id, email: user.email, role: user.role }),
+    JSON.stringify({ colleagueId: user.id, email: user.email, role: user.role, refreshedAt: Date.now() }),
     { expirationTtl: SESSION_TTL_SECONDS },
   );
 

@@ -1,5 +1,4 @@
 <script lang="ts">
-  import * as Popover from "$lib/components/ui/popover";
   import { Calendar } from "$lib/components/ui/calendar";
   import { CalendarDate, type DateValue, today, getLocalTimeZone } from "@internationalized/date";
   import CalendarDays from "lucide-svelte/icons/calendar-days";
@@ -14,7 +13,7 @@
   let { name, id, value, onchange }: Props = $props();
 
   let selectedDate = $state<DateValue | undefined>(undefined);
-  let popoverOpen = $state(false);
+  let open = $state(false);
 
   // Plain variable (NOT $state) — we do NOT want this to trigger effect re-runs.
   // It's only read inside the effect to guard against re-parsing our own output.
@@ -31,9 +30,6 @@
         selectedDate = new CalendarDate(Number(parts[0]), Number(parts[1]), Number(parts[2]));
       }
     } else if (lastEmitted === "") {
-      // Only clear selectedDate if we haven't emitted anything yet.
-      // If lastEmitted is set but value is empty, it means there's no external binding —
-      // don't clear the user's selection.
       selectedDate = undefined;
     }
   });
@@ -65,27 +61,48 @@
       lastEmitted = iso;
       onchange?.(iso);
     }
-    popoverOpen = false;
+    open = false;
   }
+
+  function handleTriggerClick() {
+    open = !open;
+  }
+
+  // Close when clicking outside
+  function handleWindowClick(e: MouseEvent) {
+    const target = e.target;
+    if (target instanceof Node && containerEl && !containerEl.contains(target)) {
+      open = false;
+    }
+  }
+
+  let containerEl: HTMLDivElement | undefined = $state(undefined);
 </script>
+
+<svelte:window onclick={handleWindowClick} />
 
 <input type="hidden" {name} {id} value={isoString} />
 
-<Popover.Root bind:open={popoverOpen}>
-  <Popover.Trigger
+<div class="relative" bind:this={containerEl}>
+  <button
+    type="button"
     class="glass-input flex h-10 w-full items-center gap-2 px-3 py-2 text-sm"
+    data-state={open ? "open" : "closed"}
+    onclick={handleTriggerClick}
   >
     <CalendarDays class="h-4 w-4 text-text-muted shrink-0" />
     <span class={selectedDate ? "text-text-primary" : "text-text-muted"}>
       {displayText || "Pick date..."}
     </span>
-  </Popover.Trigger>
-  <Popover.Content class="w-auto p-0" align="start">
-    <Calendar
-      type="single"
-      value={selectedDate}
-      onValueChange={handleDateSelect}
-      placeholder={selectedDate ?? today(getLocalTimeZone())}
-    />
-  </Popover.Content>
-</Popover.Root>
+  </button>
+  {#if open}
+    <div class="glass-popover absolute left-0 top-full z-50 mt-1 w-auto p-0">
+      <Calendar
+        type="single"
+        value={selectedDate}
+        onValueChange={handleDateSelect}
+        placeholder={selectedDate ?? today(getLocalTimeZone())}
+      />
+    </div>
+  {/if}
+</div>

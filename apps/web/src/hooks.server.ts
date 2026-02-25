@@ -36,6 +36,8 @@ export const handle: Handle = async ({ event, resolve }) => {
         event.locals.user = isUserResponse(data) ? data.user : null;
       } else {
         event.locals.user = null;
+        // Clear stale cookie so subsequent page loads skip the dead session
+        event.cookies.delete("humans_session", { path: "/" });
       }
     } catch (err) {
       console.error("[hooks.server] Auth fetch failed:", err instanceof Error ? err.message : String(err));
@@ -53,10 +55,6 @@ export const handle: Handle = async ({ event, resolve }) => {
   response.headers.set("X-Content-Type-Options", "nosniff");
   response.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
   response.headers.set("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
-  response.headers.set(
-    "Content-Security-Policy",
-    "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https://api.humans.pavinfo.app; frame-ancestors 'none'"
-  );
   return response;
 };
 

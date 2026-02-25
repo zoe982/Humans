@@ -195,7 +195,7 @@ ok "Web built"
 
 # Deploy web
 log "Deploying web to Cloudflare Pages..."
-npx wrangler pages deploy apps/web/.svelte-kit/cloudflare --project-name humans --commit-dirty=true
+(cd apps/web && npx wrangler pages deploy --commit-dirty=true --branch=main)
 WEB_DEPLOYED="yes"
 ok "Web deployed"
 

@@ -21,6 +21,7 @@ export interface SessionData {
   colleagueId: string;
   email: string;
   role: string;
+  refreshedAt?: number;
 }
 
 export interface AppContext {

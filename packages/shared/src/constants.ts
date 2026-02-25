@@ -1,5 +1,6 @@
 export const SESSION_COOKIE_NAME = "humans_session";
 export const SESSION_TTL_SECONDS = 86400; // 24 hours
+export const SESSION_REFRESH_THRESHOLD_SECONDS = 3600; // 1 hour — only refresh KV TTL if older
 export const OAUTH_STATE_TTL_SECONDS = 600; // 10 minutes
 
 export const ROLES = ["admin", "manager", "agent", "viewer"] as const;

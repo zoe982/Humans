@@ -1,4 +1,13 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, afterEach } from "vitest";
+
+const { browserRef } = vi.hoisted(() => ({ browserRef: { value: false } }));
+vi.mock("$app/environment", () => ({
+  get browser() { return browserRef.value; },
+  building: false,
+  dev: true,
+  version: "test",
+}));
+
 import { ApiRequestError, extractApiError, extractApiErrorInfo, api } from "./api";
 
 describe("ApiRequestError", () => {
@@ -64,6 +73,10 @@ describe("extractApiErrorInfo", () => {
 });
 
 describe("api", () => {
+  afterEach(() => {
+    browserRef.value = false;
+  });
+
   it("makes GET request and returns JSON", async () => {
     const mockFetch = vi.fn().mockResolvedValue({
       ok: true,
@@ -191,5 +204,48 @@ describe("api", () => {
         headers: expect.objectContaining({ "X-Arr": "val" }),
       }),
     );
+  });
+
+  describe("401 browser redirect", () => {
+    it("redirects to /login on 401 in browser context", async () => {
+      browserRef.value = true;
+
+      let hrefSet = "";
+      const origLocation = window.location;
+      Object.defineProperty(window, "location", {
+        value: { ...origLocation, get href() { return hrefSet; }, set href(v: string) { hrefSet = v; } },
+        writable: true,
+        configurable: true,
+      });
+
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: false,
+        status: 401,
+        json: vi.fn().mockResolvedValue({ error: "Invalid session", code: "AUTH_INVALID_SESSION" }),
+      });
+
+      // The promise should never resolve (navigation takes over)
+      void api("/api/pets", {}, mockFetch);
+
+      // Give the microtask queue a tick
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
+      expect(hrefSet).toBe("/login");
+
+      // Restore
+      Object.defineProperty(window, "location", { value: origLocation, writable: true, configurable: true });
+    });
+
+    it("throws ApiRequestError on 401 in SSR context (browser=false)", async () => {
+      browserRef.value = false;
+
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: false,
+        status: 401,
+        json: vi.fn().mockResolvedValue({ error: "Invalid session", code: "AUTH_INVALID_SESSION" }),
+      });
+
+      await expect(api("/api/pets", {}, mockFetch)).rejects.toThrowError(ApiRequestError);
+    });
   });
 });

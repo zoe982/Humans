@@ -1,4 +1,5 @@
 import { PUBLIC_API_URL } from "$env/static/public";
+import { browser } from "$app/environment";
 
 const API_BASE = PUBLIC_API_URL !== "" ? PUBLIC_API_URL : "http://localhost:8787";
 
@@ -84,6 +85,13 @@ export async function api(
   if (!res.ok) {
     const raw: unknown = await res.json().catch(() => ({ error: "Request failed" }));
     const info = extractApiErrorInfo(raw, `HTTP ${String(res.status)}`);
+
+    // Browser 401 → redirect to login instead of throwing
+    if (res.status === 401 && browser) {
+      window.location.href = "/login";
+      return new Promise<never>(() => {});
+    }
+
     throw new ApiRequestError(info.message, info.code, info.requestId, info.details, res.status);
   }
 

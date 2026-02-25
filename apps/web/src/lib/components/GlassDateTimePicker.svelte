@@ -1,5 +1,4 @@
 <script lang="ts">
-  import * as Popover from "$lib/components/ui/popover";
   import { Calendar } from "$lib/components/ui/calendar";
   import { CalendarDate, type DateValue, today, getLocalTimeZone } from "@internationalized/date";
   import CalendarDays from "lucide-svelte/icons/calendar-days";
@@ -16,7 +15,7 @@
   let selectedDate = $state<DateValue | undefined>(undefined);
   let hour = $state(12);
   let minute = $state(0);
-  let popoverOpen = $state(false);
+  let open = $state(false);
 
   // Track whether we caused the last value change (to avoid re-parsing our own output)
   let selfUpdate = false;
@@ -74,45 +73,66 @@
     selectedDate = newDate;
     emitChange();
   }
+
+  function handleTriggerClick() {
+    open = !open;
+  }
+
+  // Close when clicking outside
+  function handleWindowClick(e: MouseEvent) {
+    const target = e.target;
+    if (target instanceof Node && containerEl && !containerEl.contains(target)) {
+      open = false;
+    }
+  }
+
+  let containerEl: HTMLDivElement | undefined = $state(undefined);
 </script>
+
+<svelte:window onclick={handleWindowClick} />
 
 <input type="hidden" {name} {id} value={isoString} />
 
-<Popover.Root bind:open={popoverOpen}>
-  <Popover.Trigger
+<div class="relative" bind:this={containerEl}>
+  <button
+    type="button"
     class="glass-input flex h-10 w-full items-center gap-2 px-3 py-2 text-sm"
+    data-state={open ? "open" : "closed"}
+    onclick={handleTriggerClick}
   >
     <CalendarDays class="h-4 w-4 text-text-muted shrink-0" />
     <span class={selectedDate ? "text-text-primary" : "text-text-muted"}>
       {displayText || "Pick date & time..."}
     </span>
-  </Popover.Trigger>
-  <Popover.Content class="w-auto p-0" align="start">
-    <Calendar
-      type="single"
-      value={selectedDate}
-      onValueChange={handleDateSelect}
-      placeholder={selectedDate ?? today(getLocalTimeZone())}
-    />
-    <div class="flex items-center gap-2 px-4 pb-4 pt-1">
-      <span class="text-xs text-text-muted">Time:</span>
-      <input
-        type="number"
-        min="0"
-        max="23"
-        bind:value={hour}
-        oninput={() => emitChange()}
-        class="glass-input w-14 px-2 py-1 text-sm text-center"
+  </button>
+  {#if open}
+    <div class="glass-popover absolute left-0 top-full z-50 mt-1 w-auto p-0">
+      <Calendar
+        type="single"
+        value={selectedDate}
+        onValueChange={handleDateSelect}
+        placeholder={selectedDate ?? today(getLocalTimeZone())}
       />
-      <span class="text-text-muted">:</span>
-      <input
-        type="number"
-        min="0"
-        max="59"
-        bind:value={minute}
-        oninput={() => emitChange()}
-        class="glass-input w-14 px-2 py-1 text-sm text-center"
-      />
+      <div class="flex items-center gap-2 px-4 pb-4 pt-1">
+        <span class="text-xs text-text-muted">Time:</span>
+        <input
+          type="number"
+          min="0"
+          max="23"
+          bind:value={hour}
+          oninput={() => emitChange()}
+          class="glass-input w-14 px-2 py-1 text-sm text-center"
+        />
+        <span class="text-text-muted">:</span>
+        <input
+          type="number"
+          min="0"
+          max="59"
+          bind:value={minute}
+          oninput={() => emitChange()}
+          class="glass-input w-14 px-2 py-1 text-sm text-center"
+        />
+      </div>
     </div>
-  </Popover.Content>
-</Popover.Root>
+  {/if}
+</div>

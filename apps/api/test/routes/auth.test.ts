@@ -27,33 +27,46 @@ describe("GET /auth/google/login", () => {
     const stored = await env.SESSIONS.get(`oauth_state:${state}`);
     expect(stored).toBe("1");
   });
+
+  it("does not include prompt=select_account", async () => {
+    const res = await SELF.fetch("http://localhost/auth/google/login", {
+      redirect: "manual",
+    });
+    const location = res.headers.get("location") ?? "";
+    expect(location).not.toContain("prompt=select_account");
+  });
 });
 
 describe("GET /auth/google/callback", () => {
-  it("returns 400 when code is missing", async () => {
-    const res = await SELF.fetch("http://localhost/auth/google/callback?state=abc");
-    expect(res.status).toBe(400);
-    const body = (await res.json()) as { error: string };
-    expect(body.error).toContain("Missing code or state");
+  it("redirects to login with AUTH_OAUTH_MISSING_PARAMS when code is missing", async () => {
+    const res = await SELF.fetch("http://localhost/auth/google/callback?state=abc", {
+      redirect: "manual",
+    });
+    expect(res.status).toBe(302);
+    const location = res.headers.get("location") ?? "";
+    expect(location).toContain("/login?error=AUTH_OAUTH_MISSING_PARAMS");
   });
 
-  it("returns 400 when state is missing", async () => {
-    const res = await SELF.fetch("http://localhost/auth/google/callback?code=abc");
-    expect(res.status).toBe(400);
-    const body = (await res.json()) as { error: string };
-    expect(body.error).toContain("Missing code or state");
+  it("redirects to login with AUTH_OAUTH_MISSING_PARAMS when state is missing", async () => {
+    const res = await SELF.fetch("http://localhost/auth/google/callback?code=abc", {
+      redirect: "manual",
+    });
+    expect(res.status).toBe(302);
+    const location = res.headers.get("location") ?? "";
+    expect(location).toContain("/login?error=AUTH_OAUTH_MISSING_PARAMS");
   });
 
-  it("returns 400 when state is invalid or expired", async () => {
+  it("redirects to login with AUTH_OAUTH_INVALID_STATE when state is invalid", async () => {
     const res = await SELF.fetch(
       "http://localhost/auth/google/callback?code=abc&state=nonexistent-state",
+      { redirect: "manual" },
     );
-    expect(res.status).toBe(400);
-    const body = (await res.json()) as { error: string };
-    expect(body.error).toContain("Invalid or expired state");
+    expect(res.status).toBe(302);
+    const location = res.headers.get("location") ?? "";
+    expect(location).toContain("/login?error=AUTH_OAUTH_INVALID_STATE");
   });
 
-  it("returns 400 when token exchange fails", async () => {
+  it("redirects to login with AUTH_OAUTH_TOKEN_FAILED when token exchange fails", async () => {
     await env.SESSIONS.put("oauth_state:test-state", "1", { expirationTtl: 600 });
 
     const originalFetch = globalThis.fetch;
@@ -72,15 +85,16 @@ describe("GET /auth/google/callback", () => {
 
     const res = await SELF.fetch(
       "http://localhost/auth/google/callback?code=bad-code&state=test-state",
+      { redirect: "manual" },
     );
-    expect(res.status).toBe(400);
-    const body = (await res.json()) as { error: string };
-    expect(body.error).toContain("Token exchange failed");
+    expect(res.status).toBe(302);
+    const location = res.headers.get("location") ?? "";
+    expect(location).toContain("/login?error=AUTH_OAUTH_TOKEN_FAILED");
 
     vi.unstubAllGlobals();
   });
 
-  it("returns 403 when user email is not in the system", async () => {
+  it("redirects to login with AUTH_ACCESS_DENIED when user email is not in the system", async () => {
     await env.SESSIONS.put("oauth_state:test-state", "1", { expirationTtl: 600 });
 
     const originalFetch = globalThis.fetch;
@@ -111,15 +125,16 @@ describe("GET /auth/google/callback", () => {
 
     const res = await SELF.fetch(
       "http://localhost/auth/google/callback?code=valid-code&state=test-state",
+      { redirect: "manual" },
     );
-    expect(res.status).toBe(403);
-    const body = (await res.json()) as { error: string };
-    expect(body.error).toContain("Access denied");
+    expect(res.status).toBe(302);
+    const location = res.headers.get("location") ?? "";
+    expect(location).toContain("/login?error=AUTH_ACCESS_DENIED");
 
     vi.unstubAllGlobals();
   });
 
-  it("returns 403 when user account is deactivated", async () => {
+  it("redirects to login with AUTH_ACCOUNT_DEACTIVATED when user is inactive", async () => {
     const db = getDb();
     const user = buildColleague({ email: "inactive@test.com", isActive: false });
     await db.insert(schema.colleagues).values(user);
@@ -154,12 +169,33 @@ describe("GET /auth/google/callback", () => {
 
     const res = await SELF.fetch(
       "http://localhost/auth/google/callback?code=valid-code&state=test-state",
+      { redirect: "manual" },
     );
-    expect(res.status).toBe(403);
-    const body = (await res.json()) as { error: string };
-    expect(body.error).toContain("deactivated");
+    expect(res.status).toBe(302);
+    const location = res.headers.get("location") ?? "";
+    expect(location).toContain("/login?error=AUTH_ACCOUNT_DEACTIVATED");
 
     vi.unstubAllGlobals();
+  });
+
+  it("redirects to login with AUTH_OAUTH_CANCELLED when Google sends error=access_denied", async () => {
+    const res = await SELF.fetch(
+      "http://localhost/auth/google/callback?error=access_denied",
+      { redirect: "manual" },
+    );
+    expect(res.status).toBe(302);
+    const location = res.headers.get("location") ?? "";
+    expect(location).toContain("/login?error=AUTH_OAUTH_CANCELLED");
+  });
+
+  it("redirects to login with AUTH_OAUTH_TOKEN_FAILED for unknown Google errors", async () => {
+    const res = await SELF.fetch(
+      "http://localhost/auth/google/callback?error=server_error",
+      { redirect: "manual" },
+    );
+    expect(res.status).toBe(302);
+    const location = res.headers.get("location") ?? "";
+    expect(location).toContain("/login?error=AUTH_OAUTH_TOKEN_FAILED");
   });
 
   it("creates session and redirects on successful login", async () => {

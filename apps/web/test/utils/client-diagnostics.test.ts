@@ -47,7 +47,7 @@ describe("client-diagnostics", () => {
     expect(getCapturedErrors()).toHaveLength(20);
   });
 
-  it("sends errors to /api/client-errors via sendBeacon after flush delay", () => {
+  it("sends errors to absolute API URL via sendBeacon after flush delay", () => {
     vi.useFakeTimers();
 
     recordError("Crash happened", "Error\n  at page.svelte:42", "window.onerror");
@@ -60,7 +60,7 @@ describe("client-diagnostics", () => {
 
     expect(sendBeaconSpy).toHaveBeenCalledOnce();
     const [url, payload] = sendBeaconSpy.mock.calls[0] as [string, string];
-    expect(url).toBe("/api/client-errors");
+    expect(url).toBe("http://localhost:8787/api/client-errors");
 
     const body = JSON.parse(payload) as { message: string; url: string; errors: { type: string; message: string; stack: string }[] };
     expect(body.message).toContain("Crash happened");
@@ -115,7 +115,7 @@ describe("client-diagnostics", () => {
     vi.advanceTimersByTime(2000);
 
     expect(fetchSpy).toHaveBeenCalledOnce();
-    expect(fetchSpy.mock.calls[0]![0]).toBe("/api/client-errors");
+    expect(fetchSpy.mock.calls[0]![0]).toBe("http://localhost:8787/api/client-errors");
   });
 
   it("strips query params from reported URL", async () => {

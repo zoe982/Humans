@@ -1,11 +1,12 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { handle } from "../src/hooks.server";
 
-function makeEvent(overrides: { cookies?: { get: (name: string) => string | undefined } } = {}) {
+function makeEvent(overrides: { cookies?: { get: (name: string) => string | undefined; delete?: ReturnType<typeof vi.fn> } } = {}) {
   return {
     locals: {} as Record<string, unknown>,
-    cookies: overrides.cookies ?? {
-      get: vi.fn((_name: string) => undefined),
+    cookies: {
+      get: overrides.cookies?.get ?? vi.fn((_name: string) => undefined),
+      delete: overrides.cookies?.delete ?? vi.fn(),
     },
     url: new URL("http://localhost/"),
     request: new Request("http://localhost/"),
@@ -63,15 +64,6 @@ describe("hooks.server handle", () => {
       expect(response.headers.get("Permissions-Policy")).toBe("camera=(), microphone=(), geolocation=()");
     });
 
-    it("sets Content-Security-Policy with correct directives", async () => {
-      const event = makeEvent();
-      const resolve = makeResolve();
-      const response = await handle({ event: event as never, resolve });
-      expect(response.headers.get("Content-Security-Policy")).toBe(
-        "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https://api.humans.pavinfo.app; frame-ancestors 'none'"
-      );
-    });
-
     it("sets Cache-Control to no-store", async () => {
       const event = makeEvent();
       const resolve = makeResolve();
@@ -122,6 +114,35 @@ describe("hooks.server handle", () => {
       const resolve = makeResolve();
       await handle({ event: event as never, resolve });
       expect(event.locals.user).toBeNull();
+    });
+
+    it("deletes session cookie when /auth/me returns non-ok", async () => {
+      vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
+        new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 })
+      );
+      const deleteFn = vi.fn();
+      const event = makeEvent({
+        cookies: { get: vi.fn((_name: string) => "expired-token"), delete: deleteFn },
+      });
+      const resolve = makeResolve();
+      await handle({ event: event as never, resolve });
+      expect(event.locals.user).toBeNull();
+      expect(deleteFn).toHaveBeenCalledWith("humans_session", { path: "/" });
+    });
+
+    it("does not delete cookie on successful auth", async () => {
+      const mockUser = { id: "u1", email: "a@b.com", role: "agent", name: "A", avatarUrl: null };
+      vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
+        new Response(JSON.stringify({ user: mockUser }), { status: 200 })
+      );
+      const deleteFn = vi.fn();
+      const event = makeEvent({
+        cookies: { get: vi.fn((_name: string) => "valid-token"), delete: deleteFn },
+      });
+      const resolve = makeResolve();
+      await handle({ event: event as never, resolve });
+      expect(event.locals.user).toEqual(mockUser);
+      expect(deleteFn).not.toHaveBeenCalled();
     });
   });
 });
