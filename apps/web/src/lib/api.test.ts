@@ -211,10 +211,13 @@ describe("api", () => {
       browserRef.value = true;
 
       let hrefSet = "";
-      const origLocation = window.location;
-      Object.defineProperty(window, "location", {
-        value: { ...origLocation, get href() { return hrefSet; }, set href(v: string) { hrefSet = v; } },
-        writable: true,
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- Object.getPrototypeOf returns any
+      const locationProto = Object.getPrototypeOf(window.location);
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument -- locationProto typed as any from getPrototypeOf
+      const origHrefDescriptor = Object.getOwnPropertyDescriptor(locationProto, "href");
+      Object.defineProperty(window.location, "href", {
+        get() { return hrefSet; },
+        set(v: string) { hrefSet = v; },
         configurable: true,
       });
 
@@ -228,12 +231,14 @@ describe("api", () => {
       void api("/api/pets", {}, mockFetch);
 
       // Give the microtask queue a tick
-      await new Promise((resolve) => setTimeout(resolve, 10));
+      await new Promise<void>((resolve) => { setTimeout(resolve, 10); });
 
       expect(hrefSet).toBe("/login");
 
       // Restore
-      Object.defineProperty(window, "location", { value: origLocation, writable: true, configurable: true });
+      if (origHrefDescriptor != null) {
+        Object.defineProperty(window.location, "href", origHrefDescriptor);
+      }
     });
 
     it("throws ApiRequestError on 401 in SSR context (browser=false)", async () => {

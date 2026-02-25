@@ -125,7 +125,7 @@ export async function deleteGeoInterest(db: DB, id: string): Promise<void> {
 
 export async function listExpressions(
   db: DB,
-  filters: { humanId?: string; geoInterestId?: string; activityId?: string },
+  filters: { humanId?: string | undefined; geoInterestId?: string | undefined; activityId?: string | undefined },
 ): Promise<{ humanName: string | null; city: string | null; country: string | null; activitySubject: string | null; id: string; displayId: string; humanId: string; geoInterestId: string; activityId: string | null; notes: string | null; createdAt: string }[]> {
   const conditions = [];
   if (filters.humanId != null) conditions.push(eq(geoInterestExpressions.humanId, filters.humanId));
@@ -174,11 +174,11 @@ export async function createExpression(
   db: DB,
   data: {
     humanId: string;
-    geoInterestId?: string | null;
-    city?: string | null;
-    country?: string | null;
-    activityId?: string | null;
-    notes?: string | null;
+    geoInterestId?: string | null | undefined;
+    city?: string | null | undefined;
+    country?: string | null | undefined;
+    activityId?: string | null | undefined;
+    notes?: string | null | undefined;
   },
 ): Promise<{ id: string; displayId: string; humanId: string; geoInterestId: string; activityId: string | null; notes: string | null; createdAt: string }> {
   const now = new Date().toISOString();

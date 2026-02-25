@@ -7,18 +7,18 @@ import { nextDisplayId } from "../lib/display-id";
 import type { DB } from "./types";
 
 interface ActivityFilters {
-  humanId?: string;
-  accountId?: string;
-  routeSignupId?: string;
-  websiteBookingRequestId?: string;
-  generalLeadId?: string;
-  type?: string;
-  dateFrom?: string;
-  dateTo?: string;
-  q?: string;
+  humanId?: string | undefined;
+  accountId?: string | undefined;
+  routeSignupId?: string | undefined;
+  websiteBookingRequestId?: string | undefined;
+  generalLeadId?: string | undefined;
+  type?: string | undefined;
+  dateFrom?: string | undefined;
+  dateTo?: string | undefined;
+  q?: string | undefined;
   page: number;
   limit: number;
-  includeLinkedEntities?: boolean;
+  includeLinkedEntities?: boolean | undefined;
 }
 
 export async function listActivities(db: DB, filters: ActivityFilters): Promise<{ data: ({ humanName: string | null; accountName: string | null; ownerId: string | null; ownerName: string | null; ownerDisplayId: string | null; geoInterestExpressions?: unknown[]; routeInterestExpressions?: unknown[]; linkedOpportunities?: unknown[] } & typeof activities.$inferSelect)[]; meta: { page: number; limit: number; total: number } }> {
@@ -35,6 +35,7 @@ export async function listActivities(db: DB, filters: ActivityFilters): Promise<
     const validTypes = ["email", "whatsapp_message", "online_meeting", "phone_call", "social_message"] as const;
     type ValidType = typeof validTypes[number];
     const t = filters.type;
+     
     const isValidType = (v: string): v is ValidType => (validTypes as readonly string[]).includes(v);
     if (isValidType(t)) {
       conditions.push(eq(activities.type, t));
@@ -256,21 +257,21 @@ export async function getActivityDetail(db: DB, id: string): Promise<typeof acti
 export async function createActivity(
   db: DB,
   data: {
-    type?: string;
-    subject?: string;
-    notes?: string | null;
+    type?: string | undefined;
+    subject?: string | undefined;
+    notes?: string | null | undefined;
     activityDate: string;
-    humanId?: string | null;
-    accountId?: string | null;
-    routeSignupId?: string | null;
-    websiteBookingRequestId?: string | null;
-    generalLeadId?: string | null;
-    opportunityId?: string | null;
-    gmailId?: string | null;
-    frontId?: string | null;
-    frontConversationId?: string | null;
-    direction?: string | null;
-    syncRunId?: string | null;
+    humanId?: string | null | undefined;
+    accountId?: string | null | undefined;
+    routeSignupId?: string | null | undefined;
+    websiteBookingRequestId?: string | null | undefined;
+    generalLeadId?: string | null | undefined;
+    opportunityId?: string | null | undefined;
+    gmailId?: string | null | undefined;
+    frontId?: string | null | undefined;
+    frontConversationId?: string | null | undefined;
+    direction?: string | null | undefined;
+    syncRunId?: string | null | undefined;
   },
   colleagueId: string,
 ): Promise<{ id: string; displayId: string; type: string; subject: string; body: string | null; notes: string | null; activityDate: string; humanId: string | null; accountId: string | null; routeSignupId: string | null; websiteBookingRequestId: string | null; generalLeadId: string | null; opportunityId: string | null; gmailId: string | null; frontId: string | null; frontConversationId: string | null; direction: string | null; syncRunId: string | null; colleagueId: string; createdAt: string; updatedAt: string }> {
@@ -280,7 +281,7 @@ export async function createActivity(
   const activity = {
     id: createId(),
     displayId,
-    type: data.type ?? "email",
+    type: (data.type ?? "email") as typeof activities.$inferInsert.type,
     subject: data.subject ?? "",
     body: data.notes ?? null,
     notes: data.notes ?? null,
@@ -302,28 +303,28 @@ export async function createActivity(
   };
 
   await db.insert(activities).values(activity);
-  return activity;
+  return { ...activity, type: activity.type as string };
 }
 
 export async function updateActivity(
   db: DB,
   id: string,
   data: {
-    type?: string;
-    subject?: string;
-    notes?: string;
-    activityDate?: string;
-    humanId?: string | null;
-    accountId?: string | null;
-    routeSignupId?: string | null;
-    websiteBookingRequestId?: string | null;
-    generalLeadId?: string | null;
-    gmailId?: string | null;
-    frontId?: string | null;
-    frontConversationId?: string | null;
-    direction?: string | null;
-    syncRunId?: string | null;
-    colleagueId?: string | null;
+    type?: string | undefined;
+    subject?: string | undefined;
+    notes?: string | null | undefined;
+    activityDate?: string | undefined;
+    humanId?: string | null | undefined;
+    accountId?: string | null | undefined;
+    routeSignupId?: string | null | undefined;
+    websiteBookingRequestId?: string | null | undefined;
+    generalLeadId?: string | null | undefined;
+    gmailId?: string | null | undefined;
+    frontId?: string | null | undefined;
+    frontConversationId?: string | null | undefined;
+    direction?: string | null | undefined;
+    syncRunId?: string | null | undefined;
+    colleagueId?: string | null | undefined;
   },
 ): Promise<typeof activities.$inferSelect | undefined> {
   const existing = await db.query.activities.findFirst({

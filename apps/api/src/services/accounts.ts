@@ -189,6 +189,7 @@ export async function getAccountDetail(supabase: SupabaseClient, db: DB, id: str
     phoneNumbers: phonesWithLabels,
     activities: assertUniqueIds(
       [
+         
         ...directActivities.map((a) => ({ ...a, viaHumanName: null as string | null })),
         ...humanActivitiesWithNames,
       ],
@@ -203,7 +204,7 @@ export async function getAccountDetail(supabase: SupabaseClient, db: DB, id: str
 
 export async function createAccount(
   db: DB,
-  data: { name: string; status?: string; typeIds?: string[] },
+  data: { name: string; status?: string | undefined; typeIds?: string[] | undefined },
 ): Promise<{ id: string; displayId: string }> {
   const now = new Date().toISOString();
   const accountId = createId();
@@ -213,7 +214,7 @@ export async function createAccount(
     id: accountId,
     displayId,
     name: data.name,
-    status: data.status ?? "open",
+    status: (data.status ?? "open") as typeof accounts.$inferInsert.status,
     createdAt: now,
     updatedAt: now,
   });
@@ -235,7 +236,7 @@ export async function createAccount(
 export async function updateAccount(
   db: DB,
   id: string,
-  data: { name?: string; typeIds?: string[] },
+  data: { name?: string | undefined; typeIds?: string[] | undefined },
   colleagueId: string,
 ): Promise<{ data: typeof accounts.$inferSelect | undefined; auditEntryId: string | undefined }> {
   const now = new Date().toISOString();
@@ -314,7 +315,7 @@ export async function updateAccountStatus(
   const oldStatus = existing.status;
   await db
     .update(accounts)
-    .set({ status, updatedAt: new Date().toISOString() })
+    .set({ status: status as typeof accounts.$inferInsert.status, updatedAt: new Date().toISOString() })
     .where(eq(accounts.id, id));
 
   // Audit log
@@ -358,7 +359,7 @@ export async function deleteAccount(supabase: SupabaseClient, db: DB, id: string
 export async function addAccountEmail(
   db: DB,
   accountId: string,
-  data: { email: string; labelId?: string | null; isPrimary?: boolean },
+  data: { email: string; labelId?: string | null | undefined; isPrimary?: boolean | undefined },
 ): Promise<{ id: string; displayId: string; ownerType: "account"; ownerId: string; email: string; labelId: string | null; isPrimary: boolean; createdAt: string }> {
   const now = new Date().toISOString();
   const displayId = await nextDisplayId(db, "EML");
@@ -385,7 +386,7 @@ export async function deleteAccountEmail(db: DB, emailId: string): Promise<void>
 export async function addAccountPhone(
   db: DB,
   accountId: string,
-  data: { phoneNumber: string; labelId?: string | null; hasWhatsapp?: boolean; isPrimary?: boolean },
+  data: { phoneNumber: string; labelId?: string | null | undefined; hasWhatsapp?: boolean | undefined; isPrimary?: boolean | undefined },
 ): Promise<{ id: string; displayId: string; ownerType: "account"; ownerId: string; phoneNumber: string; labelId: string | null; hasWhatsapp: boolean; isPrimary: boolean; createdAt: string }> {
   const now = new Date().toISOString();
   const displayId = await nextDisplayId(db, "FON");
@@ -413,7 +414,7 @@ export async function deleteAccountPhone(db: DB, phoneId: string): Promise<void>
 export async function linkAccountHuman(
   db: DB,
   accountId: string,
-  data: { humanId: string; labelId?: string | null },
+  data: { humanId: string; labelId?: string | null | undefined },
 ): Promise<{ id: string; accountId: string; humanId: string; labelId: string | null; createdAt: string }> {
   const now = new Date().toISOString();
 

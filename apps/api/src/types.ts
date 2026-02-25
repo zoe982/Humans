@@ -21,7 +21,8 @@ export interface SessionData {
   colleagueId: string;
   email: string;
   role: string;
-  refreshedAt?: number;
+  ip?: string | undefined;
+  refreshedAt?: number | undefined;
 }
 
 export interface AppContext {

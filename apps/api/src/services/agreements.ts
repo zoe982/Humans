@@ -27,6 +27,7 @@ interface AgreementRow {
 }
 
 /** Single-query select with JOINs — no full table scans. */
+// eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- Drizzle inferred return type is complex
 function agreementSelectWithJoins(db: DB) {
   return db
     .select({
@@ -142,6 +143,7 @@ export async function createAgreement(
     displayId,
     title: data.title,
     typeId: data.typeId ?? null,
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- Zod-validated at route layer
     status: (data.status ?? "open") as AgreementStatus,
     activationDate: data.activationDate ?? null,
     notes: data.notes ?? null,
@@ -180,6 +182,7 @@ export async function updateAgreement(
   const now = new Date().toISOString();
   const updateData = { ...data, updatedAt: now };
 
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- Zod-validated at route layer
   const diff = computeDiff(row as unknown as Record<string, unknown>, updateData);
   await db.update(agreements).set(updateData).where(eq(agreements.id, id));
 

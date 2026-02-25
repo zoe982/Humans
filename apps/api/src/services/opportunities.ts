@@ -27,7 +27,7 @@ export async function listOpportunities(
   db: DB,
   page: number,
   limit: number,
-  filters: { q?: string; stage?: string; ownerId?: string; dealOwnerId?: string; overdueOnly?: boolean; humanId?: string },
+  filters: { q?: string | undefined; stage?: string | undefined; ownerId?: string | undefined; dealOwnerId?: string | undefined; overdueOnly?: boolean | undefined; humanId?: string | undefined },
 ): Promise<{ data: { primaryHuman: { id: string; displayId: string; firstName: string; lastName: string } | null; primaryHumanName: string | null; nextActionOwnerName: string | null; ownerName: string | null; ownerDisplayId: string | null; isOverdue: boolean; id: string; displayId: string; stage: string; seatsRequested: number; passengerSeats: number; petSeats: number; lossReason: string | null; ownerId: string | null; nextActionOwnerId: string | null; nextActionDescription: string | null; nextActionType: string | null; nextActionStartDate: string | null; nextActionDueDate: string | null; nextActionCompletedAt: string | null; nextActionCadenceNote: string | null; flightId: string | null; notes: string | null; createdAt: string; updatedAt: string }[]; meta: { page: number; limit: number; total: number } }> {
   const offset = (page - 1) * limit;
   const conditions: ReturnType<typeof eq>[] = [];
@@ -232,7 +232,7 @@ export async function getOpportunityDetail(db: DB, id: string): Promise<{ linked
 
 export async function createOpportunity(
   db: DB,
-  data: { stage?: string; seatsRequested?: number; passengerSeats?: number; petSeats?: number; lossReason?: string },
+  data: { stage?: string | undefined; seatsRequested?: number | undefined; passengerSeats?: number | undefined; petSeats?: number | undefined; lossReason?: string | undefined },
   colleagueId: string,
 ): Promise<{ id: string; displayId: string }> {
   const now = new Date().toISOString();
@@ -242,6 +242,7 @@ export async function createOpportunity(
   await db.insert(opportunities).values({
     id,
     displayId,
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- Zod-validated at route layer
     stage: (data.stage ?? "open") as OpportunityStage,
     seatsRequested: data.seatsRequested ?? 1,
     passengerSeats: data.passengerSeats ?? 1,
@@ -270,7 +271,7 @@ export async function createOpportunity(
 export async function updateOpportunity(
   db: DB,
   id: string,
-  data: { seatsRequested?: number; passengerSeats?: number; petSeats?: number; notes?: string | null; lossReason?: string | null; flightId?: string | null; ownerId?: string | null },
+  data: { seatsRequested?: number | undefined; passengerSeats?: number | undefined; petSeats?: number | undefined; notes?: string | null | undefined; lossReason?: string | null | undefined; flightId?: string | null | undefined; ownerId?: string | null | undefined },
   colleagueId: string,
 ): Promise<{ data: typeof opportunities.$inferSelect | undefined; auditEntryId: string | undefined }> {
   const existing = await db.query.opportunities.findFirst({
@@ -363,7 +364,7 @@ export async function deleteOpportunity(db: DB, id: string): Promise<void> {
 export async function updateOpportunityStage(
   db: DB,
   id: string,
-  data: { stage: string; lossReason?: string },
+  data: { stage: string; lossReason?: string | undefined },
   colleagueId: string,
 ): Promise<{ data: typeof opportunities.$inferSelect | undefined; auditEntryId: string | undefined }> {
   const existing = await db.query.opportunities.findFirst({
@@ -404,6 +405,7 @@ export async function updateOpportunityStage(
           const validActivityTypes = ["email", "whatsapp_message", "online_meeting", "phone_call", "social_message"] as const;
           type ValidActivityType = typeof validActivityTypes[number];
           const t = existing.nextActionType;
+           
           const isValid = (v: string | null): v is ValidActivityType =>
             v != null && (validActivityTypes as readonly string[]).includes(v);
           return isValid(t) ? t : "email";
@@ -452,7 +454,7 @@ export async function updateOpportunityStage(
 export async function linkOpportunityHuman(
   db: DB,
   oppId: string,
-  data: { humanId: string; roleId?: string },
+  data: { humanId: string; roleId?: string | undefined },
 ): Promise<{ id: string; opportunityId: string; humanId: string; roleId: string | null; createdAt: string }> {
   const opp = await db.query.opportunities.findFirst({
     where: eq(opportunities.id, oppId),
@@ -610,7 +612,7 @@ export async function unlinkOpportunityPet(db: DB, linkId: string): Promise<void
 export async function updateNextAction(
   db: DB,
   id: string,
-  data: { ownerId: string; description: string; type: string; dueDate: string; cadenceNote?: string | null },
+  data: { ownerId: string; description: string; type: string; dueDate: string; cadenceNote?: string | null | undefined },
   colleagueId: string,
 ): Promise<{ data: typeof opportunities.$inferSelect | undefined; auditEntryId: string | undefined }> {
   const existing = await db.query.opportunities.findFirst({

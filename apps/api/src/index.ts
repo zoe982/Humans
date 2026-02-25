@@ -113,7 +113,7 @@ function routePartyRequest(req: Request, env: Env): Promise<Response> | null {
     return Promise.resolve(new Response("Unknown party namespace", { status: 404 }));
   }
 
-  const roomName = parts[2];
+  const roomName = parts[2] ?? "";
   const id = env.RealtimeHub.idFromName(roomName);
   const stub = env.RealtimeHub.get(id);
   const result = stub.fetch(req);

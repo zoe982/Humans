@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { isRedirect, isActionFailure, Redirect } from "@sveltejs/kit";
+import { isRedirect, isActionFailure, Redirect, type ActionFailure } from "@sveltejs/kit";
 import { mockEvent, createMockFetch } from "../../../helpers";
 import { load, actions } from "../../../../src/routes/opportunities/new/+page.server";
 
@@ -98,9 +98,10 @@ describe("opportunities/new actions.create", () => {
     const result = await actions.create(event as any);
 
     expect(isActionFailure(result)).toBe(true);
-    expect((result as any).status).toBe(403);
-    expect((result as any).data.error).toBe("Forbidden");
-    expect((result as any).data.code).toBe("AUTH_INSUFFICIENT_PERMS");
+    const failure = result as ActionFailure<{ error: string; code?: string; requestId?: string }>;
+    expect(failure.status).toBe(403);
+    expect(failure.data.error).toBe("Forbidden");
+    expect(failure.data.code).toBe("AUTH_INSUFFICIENT_PERMS");
   });
 
   it("returns failure when API returns unexpected response shape", async () => {
@@ -113,8 +114,9 @@ describe("opportunities/new actions.create", () => {
     const result = await actions.create(event as any);
 
     expect(isActionFailure(result)).toBe(true);
-    expect((result as any).status).toBe(500);
-    expect((result as any).data.error).toBe("Unexpected response");
+    const failure = result as ActionFailure<{ error: string; code?: string; requestId?: string }>;
+    expect(failure.status).toBe(500);
+    expect(failure.data.error).toBe("Unexpected response");
   });
 
   it("defaults passengerSeats to 1 and petSeats to 0 when form values are absent", async () => {

@@ -98,9 +98,9 @@ export async function createPhoneNumber(
   data: {
     humanId: string;
     phoneNumber: string;
-    labelId?: string | null;
-    hasWhatsapp?: boolean;
-    isPrimary?: boolean;
+    labelId?: string | null | undefined;
+    hasWhatsapp?: boolean | undefined;
+    isPrimary?: boolean | undefined;
   },
 ): Promise<{ id: string; displayId: string; ownerType: "human"; ownerId: string; phoneNumber: string; labelId: string | null; hasWhatsapp: boolean; isPrimary: boolean; createdAt: string }> {
   const now = new Date().toISOString();

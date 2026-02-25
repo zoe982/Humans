@@ -38,23 +38,27 @@ export const rateLimitMiddleware = createMiddleware<AppContext>(async (c, next) 
   const minute = Math.floor(Date.now() / (config.windowSeconds * 1000));
   const key = `rl:${ip}:${bucket}:${String(minute)}`;
 
-  const current = await c.env.SESSIONS.get(key);
-  const count = current != null ? parseInt(current, 10) : 0;
+  try {
+    const current = await c.env.SESSIONS.get(key);
+    const count = current != null ? parseInt(current, 10) : 0;
 
-  if (count >= config.limit) {
-    c.res = new Response(JSON.stringify({ error: "Too many requests" }), {
-      status: 429,
-      headers: {
-        "Content-Type": "application/json",
-        "Retry-After": String(config.windowSeconds),
-      },
+    if (count >= config.limit) {
+      c.res = new Response(JSON.stringify({ error: "Too many requests" }), {
+        status: 429,
+        headers: {
+          "Content-Type": "application/json",
+          "Retry-After": String(config.windowSeconds),
+        },
+      });
+      return;
+    }
+
+    await c.env.SESSIONS.put(key, String(count + 1), {
+      expirationTtl: config.windowSeconds * 2,
     });
-    return;
+  } catch {
+    // KV failure (e.g. daily write limit exceeded) — degrade gracefully
   }
-
-  await c.env.SESSIONS.put(key, String(count + 1), {
-    expirationTtl: config.windowSeconds * 2,
-  });
 
   await next();
 });

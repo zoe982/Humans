@@ -178,7 +178,9 @@ async function preloadReferenceData(db: DB, supabase: SupabaseClient): Promise<C
     allColleagues: colleagueRows,
     allLeads: leadRows,
     allAccountHumans: accountHumanRows,
+     
     allSignups: (signupsResult.data ?? []) as CachedReferenceData["allSignups"],
+     
     allBookings: (bookingsResult.data ?? []) as CachedReferenceData["allBookings"],
     allSocialIds: socialIdRows,
     humanNames,
@@ -1021,7 +1023,7 @@ export interface MatchAttempt {
   source: string;
   searchedFor: string;
   found: boolean;
-  detail?: string;
+  detail: string | undefined;
 }
 
 function debugMatchByEmail(cache: CachedReferenceData, emailHandle: string): MatchAttempt[] {
@@ -1201,10 +1203,13 @@ export function debugMatchContact(
   // Always append social ID debug step
   const socialAttempts = debugMatchBySocialId(cache, handle);
   if (matched) {
-    attempts.push({
-      ...socialAttempts[0],
-      detail: `${socialAttempts[0].detail ?? "Not checked"} (skipped — already matched above)`,
-    });
+    const socialFirst = socialAttempts[0];
+    if (socialFirst != null) {
+      attempts.push({
+        ...socialFirst,
+        detail: `${socialFirst.detail ?? "Not checked"} (skipped — already matched above)`,
+      });
+    }
   } else {
     attempts.push(...socialAttempts);
   }
@@ -1495,7 +1500,7 @@ export async function backfillAuthorNames(
   for (let i = startIdx; i < conversationIds.length; i++) {
     if (processed >= BATCH_SIZE) {
       // eslint-disable-next-line security/detect-object-injection
-      nextCursor = conversationIds[i];
+      nextCursor = conversationIds[i] ?? null;
       break;
     }
 

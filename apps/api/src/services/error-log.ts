@@ -7,11 +7,11 @@ import type { DB } from "./types";
 interface ErrorLogFilters {
   limit: number;
   offset: number;
-  code?: string;
-  path?: string;
-  dateFrom?: string;
-  dateTo?: string;
-  resolutionStatus?: string;
+  code?: string | undefined;
+  path?: string | undefined;
+  dateFrom?: string | undefined;
+  dateTo?: string | undefined;
+  resolutionStatus?: string | undefined;
 }
 
 export async function listErrorLogEntries(db: DB, filters: ErrorLogFilters): Promise<(typeof errorLog.$inferSelect)[]> {
@@ -22,7 +22,7 @@ export async function listErrorLogEntries(db: DB, filters: ErrorLogFilters): Pro
   if (filters.path != null) conditions.push(eq(errorLog.path, filters.path));
   if (filters.dateFrom != null) conditions.push(gte(errorLog.createdAt, filters.dateFrom));
   if (filters.dateTo != null) conditions.push(lte(errorLog.createdAt, filters.dateTo));
-  if (filters.resolutionStatus != null) conditions.push(eq(errorLog.resolutionStatus, filters.resolutionStatus));
+  if (filters.resolutionStatus != null) conditions.push(eq(errorLog.resolutionStatus, filters.resolutionStatus as typeof errorLog.$inferSelect.resolutionStatus));
 
   let results;
   if (conditions.length > 0) {
@@ -57,7 +57,7 @@ export async function getErrorLogEntry(db: DB, id: string): Promise<typeof error
   return entry;
 }
 
-export async function updateErrorLogResolution(db: DB, id: string, resolutionStatus: string): Promise<typeof errorLog.$inferSelect & { resolutionStatus: string }> {
+export async function updateErrorLogResolution(db: DB, id: string, resolutionStatus: string): Promise<typeof errorLog.$inferSelect> {
   const entry = await db.query.errorLog.findFirst({
     where: eq(errorLog.id, id),
   });
@@ -66,9 +66,10 @@ export async function updateErrorLogResolution(db: DB, id: string, resolutionSta
     throw notFound(ERROR_CODES.ERROR_LOG_NOT_FOUND, "Error log entry not found");
   }
 
-  await db.update(errorLog).set({ resolutionStatus }).where(eq(errorLog.id, id));
+  const typedStatus = resolutionStatus as typeof errorLog.$inferSelect.resolutionStatus;
+  await db.update(errorLog).set({ resolutionStatus: typedStatus }).where(eq(errorLog.id, id));
 
-  return { ...entry, resolutionStatus };
+  return { ...entry, resolutionStatus: typedStatus };
 }
 
 export async function cleanupErrorLog(db: DB): Promise<void> {

@@ -123,7 +123,7 @@ export async function deleteRouteInterest(db: DB, id: string): Promise<void> {
 
 export async function listRouteInterestExpressions(
   db: DB,
-  filters: { humanId?: string; routeInterestId?: string; activityId?: string },
+  filters: { humanId?: string | undefined; routeInterestId?: string | undefined; activityId?: string | undefined },
 ): Promise<{ humanName: string | null; originCity: string | null; originCountry: string | null; destinationCity: string | null; destinationCountry: string | null; activitySubject: string | null; id: string; displayId: string; humanId: string; routeInterestId: string; activityId: string | null; frequency: string; travelYear: number | null; travelMonth: number | null; travelDay: number | null; notes: string | null; createdAt: string }[]> {
   const conditions = [];
   if (filters.humanId != null) conditions.push(eq(routeInterestExpressions.humanId, filters.humanId));
@@ -174,17 +174,17 @@ export async function createRouteInterestExpression(
   db: DB,
   data: {
     humanId: string;
-    routeInterestId?: string | null;
-    originCity?: string | null;
-    originCountry?: string | null;
-    destinationCity?: string | null;
-    destinationCountry?: string | null;
-    activityId?: string | null;
-    frequency?: string;
-    travelYear?: number | null;
-    travelMonth?: number | null;
-    travelDay?: number | null;
-    notes?: string | null;
+    routeInterestId?: string | null | undefined;
+    originCity?: string | null | undefined;
+    originCountry?: string | null | undefined;
+    destinationCity?: string | null | undefined;
+    destinationCountry?: string | null | undefined;
+    activityId?: string | null | undefined;
+    frequency?: string | undefined;
+    travelYear?: number | null | undefined;
+    travelMonth?: number | null | undefined;
+    travelDay?: number | null | undefined;
+    notes?: string | null | undefined;
   },
 ): Promise<{ id: string; displayId: string; humanId: string; routeInterestId: string; activityId: string | null; frequency: string; travelYear: number | null; travelMonth: number | null; travelDay: number | null; notes: string | null; createdAt: string }> {
   const now = new Date().toISOString();
@@ -291,12 +291,12 @@ export async function updateRouteInterestExpression(
   db: DB,
   id: string,
   data: {
-    frequency?: string;
-    travelYear?: number | null;
-    travelMonth?: number | null;
-    travelDay?: number | null;
-    notes?: string | null;
-    activityId?: string | null;
+    frequency?: string | undefined;
+    travelYear?: number | null | undefined;
+    travelMonth?: number | null | undefined;
+    travelDay?: number | null | undefined;
+    notes?: string | null | undefined;
+    activityId?: string | null | undefined;
   },
 ): Promise<typeof routeInterestExpressions.$inferSelect | undefined> {
   const existing = await db.query.routeInterestExpressions.findFirst({

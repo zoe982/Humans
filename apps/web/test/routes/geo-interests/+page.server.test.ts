@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { isRedirect, isActionFailure, Redirect } from "@sveltejs/kit";
+import { isRedirect, isActionFailure, type ActionFailure, Redirect } from "@sveltejs/kit";
 import { mockEvent, createMockFetch } from "../../helpers";
 import { load, actions } from "../../../src/routes/geo-interests/+page.server";
 
@@ -65,8 +65,9 @@ describe("geo-interests +page.server", () => {
       const result = await actions.create(event as any);
 
       expect(isActionFailure(result)).toBe(true);
-      expect((result as any).status).toBe(400);
-      expect((result as any).data.error).toBe("City and country are required.");
+      const failureCity = result as ActionFailure<{ error: string }>;
+      expect(failureCity.status).toBe(400);
+      expect(failureCity.data.error).toBe("City and country are required.");
     });
 
     it("returns validation failure when country is missing", async () => {
@@ -74,8 +75,9 @@ describe("geo-interests +page.server", () => {
       const result = await actions.create(event as any);
 
       expect(isActionFailure(result)).toBe(true);
-      expect((result as any).status).toBe(400);
-      expect((result as any).data.error).toBe("City and country are required.");
+      const failureCountry = result as ActionFailure<{ error: string }>;
+      expect(failureCountry.status).toBe(400);
+      expect(failureCountry.data.error).toBe("City and country are required.");
     });
 
     it("returns failure when API returns error", async () => {
@@ -88,9 +90,10 @@ describe("geo-interests +page.server", () => {
       const result = await actions.create(event as any);
 
       expect(isActionFailure(result)).toBe(true);
-      expect((result as any).status).toBe(422);
-      expect((result as any).data.error).toBe("Duplicate entry");
-      expect((result as any).data.code).toBe("DUPLICATE");
+      const failure = result as ActionFailure<{ error: string; code?: string }>;
+      expect(failure.status).toBe(422);
+      expect(failure.data.error).toBe("Duplicate entry");
+      expect(failure.data.code).toBe("DUPLICATE");
     });
   });
 
@@ -117,10 +120,11 @@ describe("geo-interests +page.server", () => {
       const result = await actions.delete(event as any);
 
       expect(isActionFailure(result)).toBe(true);
-      expect((result as any).status).toBe(404);
-      expect((result as any).data.error).toBe("Geo-interest not found");
-      expect((result as any).data.code).toBe("NOT_FOUND");
-      expect((result as any).data.requestId).toBe("req-1");
+      const failureDelete = result as ActionFailure<{ error: string; code?: string; requestId?: string }>;
+      expect(failureDelete.status).toBe(404);
+      expect(failureDelete.data.error).toBe("Geo-interest not found");
+      expect(failureDelete.data.code).toBe("NOT_FOUND");
+      expect(failureDelete.data.requestId).toBe("req-1");
     });
 
     it("uses fallback message when API returns no error field", async () => {
@@ -133,8 +137,9 @@ describe("geo-interests +page.server", () => {
       const result = await actions.delete(event as any);
 
       expect(isActionFailure(result)).toBe(true);
-      expect((result as any).status).toBe(500);
-      expect((result as any).data.error).toBe("Failed to delete geo-interest");
+      const failureFallback = result as ActionFailure<{ error: string }>;
+      expect(failureFallback.status).toBe(500);
+      expect(failureFallback.data.error).toBe("Failed to delete geo-interest");
     });
   });
 });

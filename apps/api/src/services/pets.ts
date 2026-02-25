@@ -111,7 +111,7 @@ export async function createPet(
   data: {
     humanId: string;
     type?: string | undefined;
-    name: string;
+    name?: string | null | undefined;
     breed?: string | null | undefined;
     weight?: number | null | undefined;
     notes?: string | null | undefined;
@@ -125,7 +125,7 @@ export async function createPet(
     displayId,
     humanId: data.humanId,
     type: data.type ?? "dog",
-    name: data.name,
+    name: data.name ?? "",
     breed: data.breed ?? null,
     weight: data.weight ?? null,
     notes: data.notes ?? null,

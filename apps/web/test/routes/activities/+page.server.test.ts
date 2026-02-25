@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { isRedirect, isActionFailure, Redirect } from "@sveltejs/kit";
+import { isRedirect, isActionFailure, type ActionFailure, Redirect } from "@sveltejs/kit";
 import { mockEvent, createMockFetch } from "../../helpers";
 
 // Mock stores module to prevent $state compilation issues in test context
@@ -127,7 +127,8 @@ describe("activities actions.delete", () => {
     const result = await actions.delete(event as any);
 
     expect(isActionFailure(result)).toBe(true);
-    expect((result as any).status).toBe(404);
-    expect((result as any).data.error).toBe("Not found");
+    const failure = result as ActionFailure<{ error: string }>;
+    expect(failure.status).toBe(404);
+    expect(failure.data.error).toBe("Not found");
   });
 });

@@ -111,8 +111,8 @@ export async function createEmail(
   data: {
     humanId: string;
     email: string;
-    labelId?: string | null;
-    isPrimary?: boolean;
+    labelId?: string | null | undefined;
+    isPrimary?: boolean | undefined;
   },
 ): Promise<{ id: string; displayId: string; ownerType: "human"; ownerId: string; email: string; labelId: string | null; isPrimary: boolean; createdAt: string }> {
   const now = new Date().toISOString();

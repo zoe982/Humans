@@ -8,7 +8,9 @@ import type { DB } from "./types";
 
 export async function listWebsites(db: DB): Promise<{ humanName: string | null; humanDisplayId: string | null; accountName: string | null; accountDisplayId: string | null; id: string; displayId: string; url: string; humanId: string | null; accountId: string | null; createdAt: string }[]> {
   const allWebsites = await db.select().from(websites);
+  // eslint-disable-next-line @typescript-eslint/non-nullable-type-assertion-style, @typescript-eslint/no-unsafe-type-assertion -- filter guarantees non-null
   const humanIds = allWebsites.filter((w) => w.humanId != null).map((w) => w.humanId as string);
+  // eslint-disable-next-line @typescript-eslint/non-nullable-type-assertion-style, @typescript-eslint/no-unsafe-type-assertion -- filter guarantees non-null
   const accountIds = allWebsites.filter((w) => w.accountId != null).map((w) => w.accountId as string);
   const allHumans = humanIds.length > 0
     ? await db.select().from(humans).where(inArray(humans.id, humanIds))
@@ -62,8 +64,8 @@ export async function createWebsite(
   db: DB,
   data: {
     url: string;
-    humanId?: string | null;
-    accountId?: string | null;
+    humanId?: string | null | undefined;
+    accountId?: string | null | undefined;
   },
 ): Promise<{ id: string; displayId: string; url: string; humanId: string | null; accountId: string | null; createdAt: string }> {
   const now = new Date().toISOString();

@@ -48,7 +48,9 @@ export async function listReferralCodes(supabase: SupabaseClient, db: DB): Promi
   if (error != null) throw new Error(`Supabase error: ${error.message}`);
 
   const typedCodes: SupabaseReferralCode[] = codes;
+  // eslint-disable-next-line @typescript-eslint/non-nullable-type-assertion-style, @typescript-eslint/no-unsafe-type-assertion -- filter guarantees non-null
   const humanIds = typedCodes.filter((rc) => rc.human_id != null).map((rc) => rc.human_id as string);
+  // eslint-disable-next-line @typescript-eslint/non-nullable-type-assertion-style, @typescript-eslint/no-unsafe-type-assertion -- filter guarantees non-null
   const accountIds = typedCodes.filter((rc) => rc.account_id != null).map((rc) => rc.account_id as string);
   const allHumans = humanIds.length > 0
     ? await db.select().from(humans).where(inArray(humans.id, humanIds))
@@ -84,6 +86,7 @@ export async function getReferralCode(supabase: SupabaseClient, db: DB, id: stri
     throw notFound(ERROR_CODES.REFERRAL_CODE_NOT_FOUND, "Referral code not found");
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- array length checked above
   const rc = toApiShape(codes[0]!);
 
   const allHumans = rc.humanId != null
@@ -110,10 +113,10 @@ export async function createReferralCode(
   db: DB,
   data: {
     code: string;
-    description?: string | null;
-    isActive?: boolean;
-    humanId?: string | null;
-    accountId?: string | null;
+    description?: string | null | undefined;
+    isActive?: boolean | undefined;
+    humanId?: string | null | undefined;
+    accountId?: string | null | undefined;
   },
 ): Promise<ReturnType<typeof toApiShape>> {
   const displayId = await nextDisplayId(db, "REF");
@@ -140,10 +143,10 @@ export async function updateReferralCode(
   supabase: SupabaseClient,
   id: string,
   data: {
-    description?: string | null;
-    isActive?: boolean;
-    humanId?: string | null;
-    accountId?: string | null;
+    description?: string | null | undefined;
+    isActive?: boolean | undefined;
+    humanId?: string | null | undefined;
+    accountId?: string | null | undefined;
   },
 ): Promise<ReturnType<typeof toApiShape>> {
   // Check existence

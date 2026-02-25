@@ -11,7 +11,7 @@ export const timingMiddleware = createMiddleware<AppContext>(async (c, next) => 
   await next();
   const durationMs = Math.round(performance.now() - start);
 
-  c.header("X-Response-Time", `${durationMs}ms`);
+  c.header("X-Response-Time", `${String(durationMs)}ms`);
 
   if (durationMs >= WARN_THRESHOLD_MS) {
     const requestId = c.get("requestId");
@@ -24,7 +24,7 @@ export const timingMiddleware = createMiddleware<AppContext>(async (c, next) => 
       persistError(c, {
         requestId,
         code: "SLOW_REQUEST",
-        message: `Request took ${durationMs}ms`,
+        message: `Request took ${String(durationMs)}ms`,
         status: c.res.status,
         method,
         path,

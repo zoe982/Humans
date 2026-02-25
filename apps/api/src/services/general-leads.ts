@@ -16,13 +16,13 @@ export async function listGeneralLeads(
   db: DB,
   page: number,
   limit: number,
-  filters: { q?: string; status?: string; source?: string; convertedHumanId?: string },
+  filters: { q?: string | undefined; status?: string | undefined; source?: string | undefined; convertedHumanId?: string | undefined },
 ): Promise<{ data: { convertedHumanDisplayId: string | null; convertedHumanName: string | null; id: string; displayId: string; status: string; source: string; notes: string | null; email: string | null; phone: string | null; rejectReason: string | null; convertedHumanId: string | null; ownerId: string | null; createdAt: string; updatedAt: string; ownerName: string | null }[]; meta: { page: number; limit: number; total: number } }> {
   const offset = (page - 1) * limit;
   const conditions: ReturnType<typeof eq>[] = [];
 
-  if (filters.status != null) conditions.push(eq(generalLeads.status, filters.status));
-  if (filters.source != null) conditions.push(eq(generalLeads.source, filters.source));
+  if (filters.status != null) conditions.push(eq(generalLeads.status, filters.status as typeof generalLeads.$inferSelect.status));
+  if (filters.source != null) conditions.push(eq(generalLeads.source, filters.source as typeof generalLeads.$inferSelect.source));
   if (filters.convertedHumanId != null) conditions.push(eq(generalLeads.convertedHumanId, filters.convertedHumanId));
   if (filters.q != null) {
     const orCondition = or(
@@ -143,7 +143,7 @@ export async function getGeneralLead(db: DB, id: string): Promise<{ convertedHum
 
 export async function createGeneralLead(
   db: DB,
-  data: { source: string; notes?: string; email?: string | null; phone?: string | null; ownerId?: string },
+  data: { source: string; notes?: string | undefined; email?: string | null | undefined; phone?: string | null | undefined; ownerId?: string | undefined },
   colleagueId: string,
 ): Promise<{ id: string; displayId: string }> {
   const now = new Date().toISOString();
@@ -154,7 +154,7 @@ export async function createGeneralLead(
     id,
     displayId,
     status: "open",
-    source: data.source,
+    source: data.source as typeof generalLeads.$inferInsert.source,
     notes: data.notes ?? null,
     email: data.email ?? null,
     phone: data.phone ?? null,
@@ -180,7 +180,7 @@ export async function createGeneralLead(
 export async function updateGeneralLead(
   db: DB,
   id: string,
-  data: { notes?: string; email?: string | null; phone?: string | null; ownerId?: string | null },
+  data: { notes?: string | undefined; email?: string | null | undefined; phone?: string | null | undefined; ownerId?: string | null | undefined },
   colleagueId: string,
 ): Promise<{ data: typeof generalLeads.$inferSelect | undefined }> {
   const existing = await db.query.generalLeads.findFirst({
@@ -244,7 +244,7 @@ export async function updateGeneralLead(
 export async function updateGeneralLeadStatus(
   db: DB,
   id: string,
-  data: { status: string; rejectReason?: string },
+  data: { status: string; rejectReason?: string | undefined },
   colleagueId: string,
 ): Promise<{ data: typeof generalLeads.$inferSelect | undefined }> {
   const existing = await db.query.generalLeads.findFirst({

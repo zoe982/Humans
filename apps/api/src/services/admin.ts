@@ -26,7 +26,7 @@ export async function createColleague(
   data: {
     email: string;
     firstName: string;
-    middleNames?: string | null;
+    middleNames?: string | null | undefined;
     lastName: string;
     role: string;
   },
@@ -54,25 +54,25 @@ export async function createColleague(
     name: displayName,
     avatarUrl: null,
     googleId: null,
-    role: data.role,
+    role: data.role as typeof colleagues.$inferInsert.role,
     isActive: true,
     createdAt: now,
     updatedAt: now,
   };
 
   await db.insert(colleagues).values(newColleague);
-  return newColleague;
+  return { ...newColleague, role: newColleague.role as string };
 }
 
 export async function updateColleague(
   db: DB,
   id: string,
   data: {
-    firstName?: string;
-    middleNames?: string | null;
-    lastName?: string;
-    role?: string;
-    isActive?: boolean;
+    firstName?: string | undefined;
+    middleNames?: string | null | undefined;
+    lastName?: string | undefined;
+    role?: string | undefined;
+    isActive?: boolean | undefined;
   },
 ): Promise<typeof colleagues.$inferSelect | undefined> {
   const existing = await db.query.colleagues.findFirst({

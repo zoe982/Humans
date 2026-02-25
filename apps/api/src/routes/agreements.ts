@@ -54,6 +54,7 @@ agreementRoutes.patch("/api/agreements/:id", requirePermission("createEditRecord
   const result = await updateAgreement(
     c.get("db"),
     c.req.param("id"),
+     
     data as Record<string, unknown>,
     session?.colleagueId ?? "system",
   );

@@ -28,7 +28,7 @@ export async function createLeadSource(
     updatedAt: now,
   };
 
-  await db.insert(leadSources).values(newSource);
+  await db.insert(leadSources).values(newSource as typeof leadSources.$inferInsert);
   return newSource;
 }
 
@@ -50,7 +50,7 @@ export async function createLeadEvent(
   data: {
     humanId: string;
     eventType: LeadEventType;
-    notes?: string | null;
+    notes?: string | null | undefined;
     metadata?: unknown;
     [key: string]: unknown;
   },
@@ -65,11 +65,11 @@ export async function createLeadEvent(
     humanId: data.humanId,
     eventType: data.eventType,
     notes: data.notes ?? null,
-    metadata: data.metadata ?? null,
+    metadata: (data.metadata ?? null) as Record<string, unknown> | null,
     createdByColleagueId: colleagueId ?? null,
     createdAt: new Date().toISOString(),
   };
 
-  await db.insert(leadEvents).values(newEvent);
+  await db.insert(leadEvents).values(newEvent as typeof leadEvents.$inferInsert);
   return newEvent;
 }

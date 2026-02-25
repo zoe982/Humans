@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { isRedirect, isActionFailure, Redirect } from "@sveltejs/kit";
+import { isRedirect, isActionFailure, Redirect, type ActionFailure } from "@sveltejs/kit";
 import { mockEvent, createMockFetch, mockBatchConfigResponse } from "../../../helpers";
 import { load, actions } from "../../../../src/routes/opportunities/[id]/+page.server";
 
@@ -133,9 +133,10 @@ describe("opportunities/[id] actions.linkHuman", () => {
     const result = await actions.linkHuman(event as any);
 
     expect(isActionFailure(result)).toBe(true);
-    expect((result as any).status).toBe(400);
-    expect((result as any).data.error).toBe("Human already linked");
-    expect((result as any).data.code).toBe("DUPLICATE");
+    const failure = result as ActionFailure<{ error: string; code?: string; requestId?: string }>;
+    expect(failure.status).toBe(400);
+    expect(failure.data.error).toBe("Human already linked");
+    expect(failure.data.code).toBe("DUPLICATE");
   });
 
   it("sends roleId in payload when provided", async () => {
@@ -184,8 +185,9 @@ describe("opportunities/[id] actions.unlinkHuman", () => {
     const result = await actions.unlinkHuman(event as any);
 
     expect(isActionFailure(result)).toBe(true);
-    expect((result as any).status).toBe(404);
-    expect((result as any).data.error).toBe("Link not found");
+    const failure = result as ActionFailure<{ error: string; code?: string; requestId?: string }>;
+    expect(failure.status).toBe(404);
+    expect(failure.data.error).toBe("Link not found");
   });
 });
 
@@ -216,8 +218,9 @@ describe("opportunities/[id] actions.linkPet", () => {
     const result = await actions.linkPet(event as any);
 
     expect(isActionFailure(result)).toBe(true);
-    expect((result as any).status).toBe(400);
-    expect((result as any).data.error).toBe("Pet already linked");
+    const failure = result as ActionFailure<{ error: string; code?: string; requestId?: string }>;
+    expect(failure.status).toBe(400);
+    expect(failure.data.error).toBe("Pet already linked");
   });
 });
 
@@ -248,8 +251,9 @@ describe("opportunities/[id] actions.unlinkPet", () => {
     const result = await actions.unlinkPet(event as any);
 
     expect(isActionFailure(result)).toBe(true);
-    expect((result as any).status).toBe(404);
-    expect((result as any).data.error).toBe("Link not found");
+    const failure = result as ActionFailure<{ error: string; code?: string; requestId?: string }>;
+    expect(failure.status).toBe(404);
+    expect(failure.data.error).toBe("Link not found");
   });
 });
 
@@ -280,8 +284,9 @@ describe("opportunities/[id] actions.linkFlight", () => {
     const result = await actions.linkFlight(event as any);
 
     expect(isActionFailure(result)).toBe(true);
-    expect((result as any).status).toBe(404);
-    expect((result as any).data.error).toBe("Flight not found");
+    const failure = result as ActionFailure<{ error: string; code?: string; requestId?: string }>;
+    expect(failure.status).toBe(404);
+    expect(failure.data.error).toBe("Flight not found");
   });
 });
 
@@ -312,7 +317,8 @@ describe("opportunities/[id] actions.unlinkFlight", () => {
     const result = await actions.unlinkFlight(event as any);
 
     expect(isActionFailure(result)).toBe(true);
-    expect((result as any).data.error).toBe("No flight linked");
+    const failure = result as ActionFailure<{ error: string; code?: string; requestId?: string }>;
+    expect(failure.data.error).toBe("No flight linked");
   });
 });
 
@@ -343,8 +349,9 @@ describe("opportunities/[id] actions.linkBookingRequest", () => {
     const result = await actions.linkBookingRequest(event as any);
 
     expect(isActionFailure(result)).toBe(true);
-    expect((result as any).status).toBe(409);
-    expect((result as any).data.error).toBe("Already linked");
+    const failure = result as ActionFailure<{ error: string; code?: string; requestId?: string }>;
+    expect(failure.status).toBe(409);
+    expect(failure.data.error).toBe("Already linked");
   });
 });
 
@@ -375,8 +382,9 @@ describe("opportunities/[id] actions.unlinkBookingRequest", () => {
     const result = await actions.unlinkBookingRequest(event as any);
 
     expect(isActionFailure(result)).toBe(true);
-    expect((result as any).status).toBe(404);
-    expect((result as any).data.error).toBe("Link not found");
+    const failure = result as ActionFailure<{ error: string; code?: string; requestId?: string }>;
+    expect(failure.status).toBe(404);
+    expect(failure.data.error).toBe("Link not found");
   });
 });
 
@@ -443,7 +451,8 @@ describe("opportunities/[id] actions.addActivity", () => {
     const result = await actions.addActivity(event as any);
 
     expect(isActionFailure(result)).toBe(true);
-    expect((result as any).status).toBe(400);
-    expect((result as any).data.error).toBe("Bad request");
+    const failure = result as ActionFailure<{ error: string; code?: string; requestId?: string }>;
+    expect(failure.status).toBe(400);
+    expect(failure.data.error).toBe("Bad request");
   });
 });

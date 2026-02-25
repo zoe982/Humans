@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { isRedirect, isActionFailure, Redirect } from "@sveltejs/kit";
+import { isRedirect, isActionFailure, type ActionFailure, Redirect } from "@sveltejs/kit";
 import { mockEvent, createMockFetch, mockConfigItem, mockBatchConfigResponse } from "../../../helpers";
 import { load, actions } from "../../../../src/routes/phone-numbers/new/+page.server";
 
@@ -99,9 +99,8 @@ describe("phone-numbers/new load", () => {
       String(c[0]).includes("/api/humans"),
     );
     expect(humanCall).toBeDefined();
-    expect((humanCall as any)[1].headers).toEqual(
-      expect.objectContaining({ Cookie: "humans_session=sess-abc" }),
-    );
+    const [, humanCallInit] = humanCall as [string, RequestInit];
+    expect((humanCallInit.headers as Record<string, string>)["Cookie"]).toBe("humans_session=sess-abc");
   });
 });
 
@@ -178,7 +177,8 @@ describe("phone-numbers/new create action", () => {
       (c: unknown[]) => typeof c[1] === "object" && (c[1] as RequestInit).method === "POST",
     );
     expect(postCall).toBeDefined();
-    const body = JSON.parse((postCall as any)[1].body);
+    const [, postCallInit] = postCall as [string, RequestInit];
+    const body = JSON.parse(postCallInit.body as string);
     expect(body.hasWhatsapp).toBe(true);
   });
 
@@ -195,7 +195,8 @@ describe("phone-numbers/new create action", () => {
       (c: unknown[]) => typeof c[1] === "object" && (c[1] as RequestInit).method === "POST",
     );
     expect(postCall).toBeDefined();
-    const body = JSON.parse((postCall as any)[1].body);
+    const [, postCallInit] = postCall as [string, RequestInit];
+    const body = JSON.parse(postCallInit.body as string);
     expect(body.hasWhatsapp).toBe(false);
   });
 
@@ -212,7 +213,8 @@ describe("phone-numbers/new create action", () => {
       (c: unknown[]) => typeof c[1] === "object" && (c[1] as RequestInit).method === "POST",
     );
     expect(postCall).toBeDefined();
-    const body = JSON.parse((postCall as any)[1].body);
+    const [, postCallInit] = postCall as [string, RequestInit];
+    const body = JSON.parse(postCallInit.body as string);
     expect(body.isPrimary).toBe(true);
   });
 
@@ -229,7 +231,8 @@ describe("phone-numbers/new create action", () => {
       (c: unknown[]) => typeof c[1] === "object" && (c[1] as RequestInit).method === "POST",
     );
     expect(postCall).toBeDefined();
-    const body = JSON.parse((postCall as any)[1].body);
+    const [, postCallInit] = postCall as [string, RequestInit];
+    const body = JSON.parse(postCallInit.body as string);
     expect(body.isPrimary).toBe(false);
   });
 
@@ -246,7 +249,8 @@ describe("phone-numbers/new create action", () => {
       (c: unknown[]) => typeof c[1] === "object" && (c[1] as RequestInit).method === "POST",
     );
     expect(postCall).toBeDefined();
-    const body = JSON.parse((postCall as any)[1].body);
+    const [, postCallInit] = postCall as [string, RequestInit];
+    const body = JSON.parse(postCallInit.body as string);
     expect(body.labelId).toBeUndefined();
   });
 

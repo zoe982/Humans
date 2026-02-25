@@ -74,7 +74,9 @@ export async function listDiscountCodes(supabase: SupabaseClient, db: DB): Promi
   const typedCodes: SupabaseDiscountCode[] = codes;
   await ensureDiscountCodeDisplayIds(supabase, db, typedCodes);
 
+  // eslint-disable-next-line @typescript-eslint/non-nullable-type-assertion-style, @typescript-eslint/no-unsafe-type-assertion -- filter guarantees non-null
   const humanIds = typedCodes.filter((dc) => dc.human_id != null).map((dc) => dc.human_id as string);
+  // eslint-disable-next-line @typescript-eslint/non-nullable-type-assertion-style, @typescript-eslint/no-unsafe-type-assertion -- filter guarantees non-null
   const accountIds = typedCodes.filter((dc) => dc.account_id != null).map((dc) => dc.account_id as string);
   const allHumans = humanIds.length > 0
     ? await db.select().from(humans).where(inArray(humans.id, humanIds))
@@ -114,7 +116,9 @@ export async function getDiscountCode(supabase: SupabaseClient, db: DB, id: stri
   const typedCodes: SupabaseDiscountCode[] = codes;
   await ensureDiscountCodeDisplayIds(supabase, db, typedCodes);
 
-  const dc = toApiShape(typedCodes[0]);
+  // Safe: we already checked codes.length === 0 above
+  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+  const dc = toApiShape(typedCodes[0]!);
 
   const humanRows = dc.humanId != null
     ? await db.select().from(humans).where(eq(humans.id, dc.humanId))
@@ -141,6 +145,7 @@ export async function getDiscountCode(supabase: SupabaseClient, db: DB, id: stri
       .in("id", flightIds);
 
     if (flights != null) {
+       
       linkedFlights = (flights as { id: string; crm_display_id: string | null; origin_city: string | null; destination_city: string | null; flight_date: string | null }[]).map((f) => ({
         id: f.id,
         crmDisplayId: f.crm_display_id,
@@ -165,8 +170,8 @@ export async function updateDiscountCode(
   supabase: SupabaseClient,
   id: string,
   data: {
-    humanId?: string | null;
-    accountId?: string | null;
+    humanId?: string | null | undefined;
+    accountId?: string | null | undefined;
   },
 ): Promise<ReturnType<typeof toApiShape>> {
   const { data: existing, error: fetchError } = await supabase
@@ -216,6 +221,7 @@ export async function getDiscountCodesForFlight(supabase: SupabaseClient, db: DB
   const typedCodes: SupabaseDiscountCode[] = codes;
   await ensureDiscountCodeDisplayIds(supabase, db, typedCodes);
 
+  // eslint-disable-next-line @typescript-eslint/non-nullable-type-assertion-style, @typescript-eslint/no-unsafe-type-assertion -- filter guarantees non-null
   const humanIds = typedCodes.filter((dc) => dc.human_id != null).map((dc) => dc.human_id as string);
   const allHumans = humanIds.length > 0
     ? await db.select().from(humans).where(inArray(humans.id, humanIds))

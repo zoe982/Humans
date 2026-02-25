@@ -62,5 +62,6 @@ export const errorHandler: ErrorHandler<AppContext> = (err, c) => {
   const clientMessage = status === 500 ? "An internal error occurred" : message;
 
   const body: ApiErrorResponse = { error: clientMessage, code, requestId, details };
-  return c.json(body, status);
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- status is always a valid content status in our error paths
+  return c.json(body, status as import("hono/utils/http-status").ContentfulStatusCode);
 };

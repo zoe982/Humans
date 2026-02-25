@@ -100,6 +100,7 @@ export async function undoAuditEntry(db: DB, entryId: string, colleagueId: strin
       await db.delete(humanTypes).where(eq(humanTypes.humanId, entry.entityId));
       for (const type of typeArray) {
         const validHumanTypes: HumanType[] = ["client", "trainer", "travel_agent", "flight_broker"];
+         
         const isHumanType = (v: string): v is HumanType => (validHumanTypes as string[]).includes(v);
         if (!isHumanType(type)) continue;
         const humanType = type;

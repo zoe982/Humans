@@ -53,6 +53,7 @@ export async function logAuditEntry({
     action,
     entityType,
     entityId,
+     
     changes: changes as Record<string, unknown>,
     createdAt: new Date().toISOString(),
   });

@@ -9,7 +9,9 @@ import type { DB } from "./types";
 
 export async function listSocialIds(db: DB): Promise<{ humanName: string | null; humanDisplayId: string | null; accountName: string | null; accountDisplayId: string | null; platformName: string | null; id: string; displayId: string; handle: string; platformId: string | null; humanId: string | null; accountId: string | null; createdAt: string }[]> {
   const allSocialIds = await db.select().from(socialIds);
+  // eslint-disable-next-line @typescript-eslint/non-nullable-type-assertion-style, @typescript-eslint/no-unsafe-type-assertion -- filter guarantees non-null
   const humanIds = allSocialIds.filter((s) => s.humanId != null).map((s) => s.humanId as string);
+  // eslint-disable-next-line @typescript-eslint/non-nullable-type-assertion-style, @typescript-eslint/no-unsafe-type-assertion -- filter guarantees non-null
   const accountIds = allSocialIds.filter((s) => s.accountId != null).map((s) => s.accountId as string);
   const allHumans = humanIds.length > 0
     ? await db.select().from(humans).where(inArray(humans.id, humanIds))
@@ -71,9 +73,9 @@ export async function createSocialId(
   db: DB,
   data: {
     handle: string;
-    platformId?: string | null;
-    humanId?: string | null;
-    accountId?: string | null;
+    platformId?: string | null | undefined;
+    humanId?: string | null | undefined;
+    accountId?: string | null | undefined;
   },
 ): Promise<{ id: string; displayId: string; handle: string; platformId: string | null; humanId: string | null; accountId: string | null; createdAt: string }> {
   const now = new Date().toISOString();

@@ -38,7 +38,7 @@ export function assertUniqueIds<T extends { id: string }>(
 
   if (c != null) {
     persistError(c, {
-      requestId: c.get("requestId") ?? "unknown",
+      requestId: c.get("requestId"),
       code: "DUPLICATE_IDS",
       message: `Duplicate IDs detected in ${entityType}`,
       status: 200,

@@ -236,7 +236,7 @@ async function assertNoDuplicateName(
 
 export async function createHuman(
   db: DB,
-  data: { firstName: string; middleName?: string | null; lastName: string; status?: string; emails: { email: string; labelId?: string | null; isPrimary?: boolean }[]; types: string[] },
+  data: { firstName: string; middleName?: string | null | undefined; lastName: string; status?: string | undefined; emails: { email: string; labelId?: string | null | undefined; isPrimary?: boolean | undefined }[]; types: string[] },
 ): Promise<{ id: string; displayId: string }> {
   const now = new Date().toISOString();
   const humanId = createId();
@@ -250,7 +250,7 @@ export async function createHuman(
     firstName: data.firstName,
     middleName: data.middleName ?? null,
     lastName: data.lastName,
-    status: data.status ?? "open",
+    status: (data.status ?? "open") as typeof humans.$inferInsert.status,
     createdAt: now,
     updatedAt: now,
   });
@@ -273,7 +273,7 @@ export async function createHuman(
     await db.insert(humanTypes).values({
       id: createId(),
       humanId,
-      type,
+      type: type as typeof humanTypes.$inferInsert.type,
       createdAt: now,
     });
   }
@@ -289,7 +289,7 @@ export async function createHuman(
 export async function updateHuman(
   db: DB,
   id: string,
-  data: { firstName?: string; middleName?: string; lastName?: string; status?: string; emails?: { email: string; labelId?: string | null; isPrimary?: boolean }[]; types?: string[] },
+  data: { firstName?: string | undefined; middleName?: string | null | undefined; lastName?: string | undefined; status?: string | undefined; emails?: { email: string; labelId?: string | null | undefined; isPrimary?: boolean | undefined }[] | undefined; types?: string[] | undefined },
   colleagueId: string,
 ): Promise<{ data: typeof humans.$inferSelect | undefined; auditEntryId: string | undefined }> {
   const now = new Date().toISOString();
@@ -348,7 +348,7 @@ export async function updateHuman(
       await db.insert(humanTypes).values({
         id: createId(),
         humanId: id,
-        type,
+        type: type as typeof humanTypes.$inferInsert.type,
         createdAt: now,
       });
     }
@@ -390,7 +390,7 @@ export async function updateHumanStatus(db: DB, id: string, status: string, coll
   const oldStatus = existing.status;
   await db
     .update(humans)
-    .set({ status, updatedAt: new Date().toISOString() })
+    .set({ status: status as typeof humans.$inferInsert.status, updatedAt: new Date().toISOString() })
     .where(eq(humans.id, id));
 
   let auditEntryId: string | undefined;
@@ -572,7 +572,7 @@ export async function createHumanRelationship(db: DB, humanId1: string, humanId2
   return { id, displayId };
 }
 
-export async function updateHumanRelationship(db: DB, id: string, data: { labelId?: string | null }): Promise<{ id: string; labelId: string | null }> {
+export async function updateHumanRelationship(db: DB, id: string, data: { labelId?: string | null | undefined }): Promise<{ id: string; labelId: string | null }> {
   const existing = await db.query.humanRelationships.findFirst({
     where: eq(humanRelationships.id, id),
   });

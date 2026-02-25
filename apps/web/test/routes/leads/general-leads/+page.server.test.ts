@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { isRedirect, isActionFailure } from "@sveltejs/kit";
+import { isRedirect, isActionFailure, type ActionFailure } from "@sveltejs/kit";
 import { mockEvent, createMockFetch } from "../../../helpers";
 
 // Mock stores module to prevent $state compilation issues in test context
@@ -133,10 +133,11 @@ describe("general-leads actions.delete", () => {
     const result = await actions.delete(event as any);
 
     expect(isActionFailure(result)).toBe(true);
-    expect((result as any).status).toBe(404);
-    expect((result as any).data.error).toBe("Lead not found");
-    expect((result as any).data.code).toBe("NOT_FOUND");
-    expect((result as any).data.requestId).toBe("req-1");
+    const failure = result as ActionFailure<{ error: string; code?: string; requestId?: string }>;
+    expect(failure.status).toBe(404);
+    expect(failure.data.error).toBe("Lead not found");
+    expect(failure.data.code).toBe("NOT_FOUND");
+    expect(failure.data.requestId).toBe("req-1");
   });
 
   it("uses fallback message when API returns no error field", async () => {
@@ -149,7 +150,8 @@ describe("general-leads actions.delete", () => {
     const result = await actions.delete(event as any);
 
     expect(isActionFailure(result)).toBe(true);
-    expect((result as any).status).toBe(500);
-    expect((result as any).data.error).toBe("Failed to delete general lead");
+    const failure = result as ActionFailure<{ error: string }>;
+    expect(failure.status).toBe(500);
+    expect(failure.data.error).toBe("Failed to delete general lead");
   });
 });
