@@ -10,6 +10,8 @@
 
   let { onValueChange }: Props = $props();
 
+  // Hard-coded to 2026-02 to produce predictable CalendarDate values for assertions.
+  // Tests assert against these exact values — update both if changing the stub's date.
   function pickDay(day: number) {
     onValueChange?.(new CalendarDate(2026, 2, day));
   }

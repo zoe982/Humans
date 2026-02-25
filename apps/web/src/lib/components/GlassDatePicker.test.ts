@@ -81,7 +81,7 @@ describe("GlassDatePicker", () => {
       props: { name: "birth_date" },
     });
     const trigger = container.querySelector("button");
-    if (!trigger) throw new Error("expected trigger button");
+    if (trigger === null) throw new Error("expected trigger button");
     expect(trigger.getAttribute("data-state")).toBe("closed");
 
     await fireEvent.click(trigger);
@@ -96,7 +96,7 @@ describe("GlassDatePicker", () => {
       props: { name: "birth_date" },
     });
     const trigger = container.querySelector("button");
-    if (!trigger) throw new Error("expected trigger button");
+    if (trigger === null) throw new Error("expected trigger button");
 
     await fireEvent.click(trigger);
 
@@ -112,7 +112,7 @@ describe("GlassDatePicker", () => {
       props: { name: "birth_date", onchange },
     });
     const trigger = container.querySelector("button");
-    if (!trigger) throw new Error("expected trigger button");
+    if (trigger === null) throw new Error("expected trigger button");
 
     await fireEvent.click(trigger);
 
@@ -135,7 +135,7 @@ describe("GlassDatePicker", () => {
       props: { name: "birth_date" },
     });
     const trigger = container.querySelector("button");
-    if (!trigger) throw new Error("expected trigger button");
+    if (trigger === null) throw new Error("expected trigger button");
 
     await fireEvent.click(trigger);
 
@@ -159,7 +159,7 @@ describe("GlassDatePicker", () => {
       props: { name: "birth_date" },
     });
     const trigger = container.querySelector("button");
-    if (!trigger) throw new Error("expected trigger button");
+    if (trigger === null) throw new Error("expected trigger button");
 
     await fireEvent.click(trigger);
     await waitFor(() => {
