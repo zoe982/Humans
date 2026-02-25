@@ -12,6 +12,7 @@
   import { Button } from "$lib/components/ui/button";
   import { formatDateTime } from "$lib/utils/format";
   import { resolve } from "$app/paths";
+  import { page } from "$app/stores";
 
   let { data, form }: { data: PageData; form: ActionData } = $props();
 
@@ -313,7 +314,7 @@
       {#each linkedHumans as lh, i (i)}
         <div class="mt-4 flex items-center justify-between">
           <div>
-            <a href={resolve(`/humans/${lh.humanId}`)} class="text-sm font-medium text-accent-primary hover:underline">
+            <a href={resolve(`/humans/${lh.humanId}?from=${$page.url.pathname}`)} class="text-sm font-medium text-accent-primary hover:underline">
               {lh.humanFirstName} {lh.humanLastName}
             </a>
             <p class="text-xs text-text-muted">{lh.humanDisplayId}</p>

@@ -11,6 +11,7 @@
   import { api } from "$lib/api";
   import { onDestroy } from "svelte";
   import { resolve } from "$app/paths";
+  import { page } from "$app/stores";
 
   let { data, form }: { data: PageData; form: ActionData } = $props();
 
@@ -131,7 +132,7 @@
   <div class="glass-card p-5 mb-6">
     <h2 class="text-lg font-semibold text-text-primary mb-3">Route</h2>
     <div class="flex items-center gap-3">
-      <a href={resolve(`/route-interests/${expr.routeInterestId}`)} class="text-accent hover:text-[var(--link-hover)] font-medium">
+      <a href={resolve(`/route-interests/${expr.routeInterestId}?from=${$page.url.pathname}`)} class="text-accent hover:text-[var(--link-hover)] font-medium">
         {expr.originCity ?? "\u2014"}, {expr.originCountry ?? "\u2014"} &rarr; {expr.destinationCity ?? "\u2014"}, {expr.destinationCountry ?? "\u2014"}
       </a>
       {#if expr.routeDisplayId}
@@ -144,7 +145,7 @@
   <div class="glass-card p-5 mb-6">
     <h2 class="text-lg font-semibold text-text-primary mb-3">Human</h2>
     <div class="flex items-center gap-3">
-      <a href={resolve(`/humans/${expr.humanId}`)} class="text-accent hover:text-[var(--link-hover)] font-medium">
+      <a href={resolve(`/humans/${expr.humanId}?from=${$page.url.pathname}`)} class="text-accent hover:text-[var(--link-hover)] font-medium">
         {expr.humanName ?? "Unknown"}
       </a>
       {#if expr.humanDisplayId}
@@ -237,7 +238,7 @@
       <div>
         <label class="block text-sm font-medium text-text-secondary mb-1">Linked Activity</label>
         {#if expr.activityId}
-          <a href={resolve(`/activities/${expr.activityId}`)} class="text-sm text-accent hover:text-[var(--link-hover)]">{expr.activitySubject}</a>
+          <a href={resolve(`/activities/${expr.activityId}?from=${$page.url.pathname}`)} class="text-sm text-accent hover:text-[var(--link-hover)]">{expr.activitySubject}</a>
         {:else}
           <p class="text-sm text-text-primary">{expr.activitySubject}</p>
         {/if}

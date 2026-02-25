@@ -254,6 +254,7 @@
         {@const showDay = shouldShowDaySeparator(i)}
         {@const showConvDivider = shouldShowConversationDivider(i)}
         {@const showSender = shouldShowSenderLabel(i, parsed.direction, parsed.senderName)}
+        {@const emailParts = parsed.text ? splitEmailSignature(parsed.text) : null}
 
         <!-- Day Separator -->
         {#if showDay}
@@ -297,7 +298,6 @@
           class:message-inbound={!isOutbound}
         >
           <!-- Body Text -->
-          {@const emailParts = parsed.text ? splitEmailSignature(parsed.text) : null}
           <div
             class="text-sm text-text-primary mb-2 break-words"
             class:max-h-[45rem]={maxMessages !== undefined}

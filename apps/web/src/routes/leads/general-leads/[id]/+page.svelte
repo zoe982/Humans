@@ -17,6 +17,7 @@
   import { formatDateTime } from "$lib/utils/format";
   import { generalLeadStatuses } from "@humans/shared";
   import { resolve } from "$app/paths";
+  import { page } from "$app/stores";
 
   let { data, form }: { data: PageData; form: ActionData } = $props();
 
@@ -229,7 +230,7 @@
         <div>
           <dt class="text-sm font-medium text-text-muted">Converted Human</dt>
           <dd class="mt-1 text-sm">
-            <a href={resolve(`/humans/${lead.convertedHumanId}`)} class="text-accent hover:text-[var(--link-hover)] font-mono">
+            <a href={resolve(`/humans/${lead.convertedHumanId}?from=${$page.url.pathname}`)} class="text-accent hover:text-[var(--link-hover)] font-mono">
               {lead.convertedHumanDisplayId}
             </a>
             {#if lead.convertedHumanName}

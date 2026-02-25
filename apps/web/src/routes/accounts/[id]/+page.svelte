@@ -20,6 +20,7 @@
   import { formatRelativeTime, summarizeChanges } from "$lib/utils/format";
   import { Button } from "$lib/components/ui/button";
   import { resolve } from "$app/paths";
+  import { page } from "$app/stores";
 
   let { data }: { data: PageData } = $props();
   const accountId = data.accountId;
@@ -443,7 +444,7 @@
     >
       {#snippet row(email, _searchQuery)}
         <td>
-          <a href={resolve(`/emails/${email.id}`)} class="text-sm font-medium text-accent hover:text-[var(--link-hover)]">{email.email}</a>
+          <a href={resolve(`/emails/${email.id}?from=${$page.url.pathname}`)} class="text-sm font-medium text-accent hover:text-[var(--link-hover)]">{email.email}</a>
         </td>
         <td>
           <div class="w-36">
@@ -536,7 +537,7 @@
     >
       {#snippet row(phone, _searchQuery)}
         <td>
-          <a href={resolve(`/phone-numbers/${phone.id}`)} class="text-sm font-medium text-accent hover:text-[var(--link-hover)]">{phone.phoneNumber}</a>
+          <a href={resolve(`/phone-numbers/${phone.id}?from=${$page.url.pathname}`)} class="text-sm font-medium text-accent hover:text-[var(--link-hover)]">{phone.phoneNumber}</a>
         </td>
         <td>
           <div class="w-36">
@@ -633,7 +634,7 @@
     >
       {#snippet row(sid, _searchQuery)}
         <td>
-          <a href={resolve(`/social-ids/${sid.id}`)} class="text-sm font-medium text-accent hover:text-[var(--link-hover)]">{sid.handle}</a>
+          <a href={resolve(`/social-ids/${sid.id}?from=${$page.url.pathname}`)} class="text-sm font-medium text-accent hover:text-[var(--link-hover)]">{sid.handle}</a>
         </td>
         <td>
           {#if sid.platformName}
@@ -697,7 +698,7 @@
     >
       {#snippet row(w, _searchQuery)}
         <td class="font-mono text-sm whitespace-nowrap">
-          <a href={resolve(`/websites/${w.id}`)} class="text-accent hover:text-[var(--link-hover)]">{w.displayId}</a>
+          <a href={resolve(`/websites/${w.id}?from=${$page.url.pathname}`)} class="text-accent hover:text-[var(--link-hover)]">{w.displayId}</a>
         </td>
         <td>
           <!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
@@ -748,10 +749,10 @@
     >
       {#snippet row(rc, _searchQuery)}
         <td class="font-mono text-sm whitespace-nowrap">
-          <a href={resolve(`/referral-codes/${rc.id}`)} class="text-accent hover:text-[var(--link-hover)]">{rc.displayId}</a>
+          <a href={resolve(`/referral-codes/${rc.id}?from=${$page.url.pathname}`)} class="text-accent hover:text-[var(--link-hover)]">{rc.displayId}</a>
         </td>
         <td>
-          <a href={resolve(`/referral-codes/${rc.id}`)} class="text-sm font-medium text-accent hover:text-[var(--link-hover)]">{rc.code}</a>
+          <a href={resolve(`/referral-codes/${rc.id}?from=${$page.url.pathname}`)} class="text-sm font-medium text-accent hover:text-[var(--link-hover)]">{rc.code}</a>
         </td>
         <td class="text-sm text-text-secondary max-w-xs truncate">{rc.description ?? "\u2014"}</td>
         <td>
@@ -816,10 +817,10 @@
     >
       {#snippet row(dc, _searchQuery)}
         <td class="font-mono text-sm whitespace-nowrap">
-          <a href={resolve(`/discount-codes/${dc.id}`)} class="text-accent hover:text-[var(--link-hover)]">{dc.crmDisplayId ?? "\u2014"}</a>
+          <a href={resolve(`/discount-codes/${dc.id}?from=${$page.url.pathname}`)} class="text-accent hover:text-[var(--link-hover)]">{dc.crmDisplayId ?? "\u2014"}</a>
         </td>
         <td>
-          <a href={resolve(`/discount-codes/${dc.id}`)} class="text-sm font-medium text-accent hover:text-[var(--link-hover)]">{dc.code}</a>
+          <a href={resolve(`/discount-codes/${dc.id}?from=${$page.url.pathname}`)} class="text-sm font-medium text-accent hover:text-[var(--link-hover)]">{dc.code}</a>
         </td>
         <td class="text-sm">{dc.percentOff}%</td>
         <td class="text-sm text-text-secondary max-w-xs truncate">{dc.description ?? "\u2014"}</td>
@@ -881,10 +882,10 @@
     >
       {#snippet row(link, _searchQuery)}
         <td class="font-mono text-sm whitespace-nowrap">
-          <a href={resolve(`/humans/${link.humanId}`)} class="text-accent hover:text-[var(--link-hover)]">{link.humanDisplayId ?? "\u2014"}</a>
+          <a href={resolve(`/humans/${link.humanId}?from=${$page.url.pathname}`)} class="text-accent hover:text-[var(--link-hover)]">{link.humanDisplayId ?? "\u2014"}</a>
         </td>
         <td>
-          <a href={resolve(`/humans/${link.humanId}`)} class="text-sm font-medium text-accent hover:text-[var(--link-hover)]">
+          <a href={resolve(`/humans/${link.humanId}?from=${$page.url.pathname}`)} class="text-sm font-medium text-accent hover:text-[var(--link-hover)]">
             {link.humanName}
           </a>
         </td>
@@ -1075,7 +1076,7 @@
     >
       {#snippet row(agr, _searchQuery)}
         <td class="font-mono text-sm whitespace-nowrap">
-          <a href={resolve(`/agreements/${agr.id}`)} class="text-accent hover:text-[var(--link-hover)]">{agr.displayId}</a>
+          <a href={resolve(`/agreements/${agr.id}?from=${$page.url.pathname}`)} class="text-accent hover:text-[var(--link-hover)]">{agr.displayId}</a>
         </td>
         <td class="font-medium">{agr.title}</td>
         <td class="text-sm text-text-secondary">{agr.typeName ?? "\u2014"}</td>

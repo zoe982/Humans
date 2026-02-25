@@ -16,6 +16,7 @@
   import { PUBLIC_API_URL } from "$env/static/public";
   import { resolve } from "$app/paths";
   import { invalidateAll } from "$app/navigation";
+  import { page } from "$app/stores";
 
   let { data }: { data: PageData } = $props();
 
@@ -270,7 +271,7 @@
           onSelect={handleSelectChange("humanId")}
         />
         {#if humanId}
-          <a href={resolve(`/humans/${humanId}`)} class="mt-1 inline-block text-sm text-accent hover:text-[var(--link-hover)]">
+          <a href={resolve(`/humans/${humanId}?from=${$page.url.pathname}`)} class="mt-1 inline-block text-sm text-accent hover:text-[var(--link-hover)]">
             View Human
           </a>
         {/if}
@@ -288,7 +289,7 @@
           onSelect={handleSelectChange("accountId")}
         />
         {#if accountId}
-          <a href={resolve(`/accounts/${accountId}`)} class="mt-1 inline-block text-sm text-accent hover:text-[var(--link-hover)]">
+          <a href={resolve(`/accounts/${accountId}?from=${$page.url.pathname}`)} class="mt-1 inline-block text-sm text-accent hover:text-[var(--link-hover)]">
             View Account
           </a>
         {/if}

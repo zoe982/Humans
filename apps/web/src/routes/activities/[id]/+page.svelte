@@ -19,6 +19,7 @@
   import ConfirmDialog from "$lib/components/ConfirmDialog.svelte";
   import { Button } from "$lib/components/ui/button";
   import { resolve } from "$app/paths";
+  import { page } from "$app/stores";
 
   let { data, form }: { data: PageData; form: ActionData } = $props();
 
@@ -313,7 +314,7 @@
           onSelect={(v) => { routeSignupId = v; triggerSaveImmediate(); }}
         />
         {#if routeSignupId}
-          <a href={resolve(`/leads/route-signups/${routeSignupId}`)} class="mt-1 inline-block text-sm text-accent hover:text-[var(--link-hover)]">View Route Signup</a>
+          <a href={resolve(`/leads/route-signups/${routeSignupId}?from=${$page.url.pathname}`)} class="mt-1 inline-block text-sm text-accent hover:text-[var(--link-hover)]">View Route Signup</a>
         {/if}
       </div>
       <div>
@@ -328,7 +329,7 @@
           onSelect={(v) => { websiteBookingRequestId = v; triggerSaveImmediate(); }}
         />
         {#if websiteBookingRequestId}
-          <a href={resolve(`/leads/website-booking-requests/${websiteBookingRequestId}`)} class="mt-1 inline-block text-sm text-accent hover:text-[var(--link-hover)]">View Booking Request</a>
+          <a href={resolve(`/leads/website-booking-requests/${websiteBookingRequestId}?from=${$page.url.pathname}`)} class="mt-1 inline-block text-sm text-accent hover:text-[var(--link-hover)]">View Booking Request</a>
         {/if}
       </div>
     </div>
@@ -346,7 +347,7 @@
           onSelect={(v) => { generalLeadId = v; triggerSaveImmediate(); }}
         />
         {#if generalLeadId}
-          <a href={resolve(`/leads/general-leads/${generalLeadId}`)} class="mt-1 inline-block text-sm text-accent hover:text-[var(--link-hover)]">View General Lead</a>
+          <a href={resolve(`/leads/general-leads/${generalLeadId}?from=${$page.url.pathname}`)} class="mt-1 inline-block text-sm text-accent hover:text-[var(--link-hover)]">View General Lead</a>
         {/if}
       </div>
     </div>
@@ -415,7 +416,7 @@
       {#snippet row(item, _searchQuery)}
         {@const opp = item as unknown as LinkedOpportunity}
         <td>
-          <a href={resolve(`/opportunities/${opp.opportunityId}`)} class="text-sm font-medium text-accent hover:text-[var(--link-hover)]">
+          <a href={resolve(`/opportunities/${opp.opportunityId}?from=${$page.url.pathname}`)} class="text-sm font-medium text-accent hover:text-[var(--link-hover)]">
             {opp.displayId}
           </a>
         </td>
@@ -478,7 +479,7 @@
       {#snippet row(item, _searchQuery)}
         {@const expr = item as unknown as GeoInterestExpression}
         <td>
-          <a href={resolve(`/geo-interests/${expr.geoInterestId}`)} class="text-sm font-medium text-accent hover:text-[var(--link-hover)]">
+          <a href={resolve(`/geo-interests/${expr.geoInterestId}?from=${$page.url.pathname}`)} class="text-sm font-medium text-accent hover:text-[var(--link-hover)]">
             {expr.city ?? "—"}, {expr.country ?? "—"}
           </a>
         </td>
@@ -537,7 +538,7 @@
       {#snippet row(item, _searchQuery)}
         {@const expr = item as unknown as RouteInterestExpression}
         <td>
-          <a href={resolve(`/route-interests/${expr.routeInterestId}`)} class="text-sm font-medium text-accent hover:text-[var(--link-hover)]">
+          <a href={resolve(`/route-interests/${expr.routeInterestId}?from=${$page.url.pathname}`)} class="text-sm font-medium text-accent hover:text-[var(--link-hover)]">
             {expr.originCity ?? "—"}, {expr.originCountry ?? "—"} &rarr; {expr.destinationCity ?? "—"}, {expr.destinationCountry ?? "—"}
           </a>
         </td>

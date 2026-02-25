@@ -9,6 +9,7 @@
   import { formatRelativeTime, summarizeChanges } from "$lib/utils/format";
   import { createChangeHistoryLoader } from "$lib/changeHistory.svelte";
   import { resolve } from "$app/paths";
+  import { page } from "$app/stores";
 
   let { data, form }: { data: PageData; form: ActionData } = $props();
 
@@ -157,11 +158,11 @@
   >
     {#snippet row(expr, _searchQuery)}
       <td class="font-mono text-sm">
-        <a href={resolve(`/geo-interests/expressions/${expr.id}`)} class="text-accent hover:text-[var(--link-hover)]">{expr.displayId}</a>
+        <a href={resolve(`/geo-interests/expressions/${expr.id}?from=${$page.url.pathname}`)} class="text-accent hover:text-[var(--link-hover)]">{expr.displayId}</a>
       </td>
       <td>
         {#if expr.humanName}
-          <a href={resolve(`/humans/${expr.humanId}`)} class="text-sm font-medium text-accent hover:text-[var(--link-hover)]">{expr.humanName}</a>
+          <a href={resolve(`/humans/${expr.humanId}?from=${$page.url.pathname}`)} class="text-sm font-medium text-accent hover:text-[var(--link-hover)]">{expr.humanName}</a>
         {:else}
           <span class="text-sm text-text-muted">Unknown human</span>
         {/if}

@@ -12,6 +12,7 @@
   import NextActionSection from "$lib/components/NextActionSection.svelte";
   import { Button } from "$lib/components/ui/button";
   import { resolve } from "$app/paths";
+  import { page } from "$app/stores";
   import { formatDateTime, formatRelativeTime } from "$lib/utils/format";
   import { routeSignupStatuses } from "@humans/shared";
 
@@ -285,7 +286,7 @@
     >
       {#snippet row(activity, searchQuery)}
         <td class="font-mono text-sm whitespace-nowrap">
-          <a href={resolve(`/activities/${activity.id}`)} class="text-accent hover:text-[var(--link-hover)]">{activity.displayId}</a>
+          <a href={resolve(`/activities/${activity.id}?from=${$page.url.pathname}`)} class="text-accent hover:text-[var(--link-hover)]">{activity.displayId}</a>
         </td>
         <td>
           <!-- eslint-disable-next-line security/detect-object-injection -->

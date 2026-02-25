@@ -3,6 +3,7 @@
   import RecordManagementBar from "$lib/components/RecordManagementBar.svelte";
   import RelatedListTable from "$lib/components/RelatedListTable.svelte";
   import { resolve } from "$app/paths";
+  import { page } from "$app/stores";
 
   let { data }: { data: PageData } = $props();
 
@@ -198,7 +199,7 @@
     >
       {#snippet row(opp, _searchQuery)}
         <td class="font-mono text-sm">
-          <a href={resolve(`/opportunities/${opp.id}`)} class="text-accent hover:text-[var(--link-hover)]">{opp.displayId}</a>
+          <a href={resolve(`/opportunities/${opp.id}?from=${$page.url.pathname}`)} class="text-accent hover:text-[var(--link-hover)]">{opp.displayId}</a>
         </td>
         <td>
           <span class="glass-badge text-xs bg-glass text-text-secondary">{opp.stage}</span>
@@ -233,7 +234,7 @@
     >
       {#snippet row(dc, _searchQuery)}
         <td class="font-mono text-sm">
-          <a href={resolve(`/discount-codes/${dc.id}`)} class="text-accent hover:text-[var(--link-hover)]">{dc.crmDisplayId ?? "—"}</a>
+          <a href={resolve(`/discount-codes/${dc.id}?from=${$page.url.pathname}`)} class="text-accent hover:text-[var(--link-hover)]">{dc.crmDisplayId ?? "—"}</a>
         </td>
         <td class="font-mono text-sm">{dc.code}</td>
         <td class="text-sm">{dc.percentOff}%</td>
