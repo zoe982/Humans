@@ -2,11 +2,9 @@
   import type { PageData, ActionData } from "./$types";
   import EntityListPage from "$lib/components/EntityListPage.svelte";
   import StatusBadge from "$lib/components/StatusBadge.svelte";
-  import { Search } from "lucide-svelte";
   import { statusColors, humanTypeColors } from "$lib/constants/colors";
   import { humanTypeLabels } from "$lib/constants/labels";
   import { displayName as formatDisplayName } from "$lib/utils/format";
-  import { Button } from "$lib/components/ui/button";
   import { resolve } from "$app/paths";
 
   let { data, form }: { data: PageData; form: ActionData } = $props();
@@ -37,13 +35,12 @@
     return primary?.email ?? h.emails[0]?.email ?? "\u2014";
   }
 
-  const paginationBaseUrl = $derived.by(() => {
-    // eslint-disable-next-line svelte/prefer-svelte-reactivity
-    const params = new URLSearchParams();
-    if (data.q) params.set("q", data.q);
-    const qs = params.toString();
-    return `/humans${qs ? `?${qs}` : ""}`;
-  });
+  function searchFilter(h: Human, query: string): boolean {
+    const name = formatDisplayName(h).toLowerCase();
+    const id = h.displayId.toLowerCase();
+    const email = primaryEmail(h).toLowerCase();
+    return name.includes(query) || id.includes(query) || email.includes(query);
+  }
 </script>
 
 <EntityListPage
@@ -64,20 +61,9 @@
   deleteAction="?/delete"
   deleteMessage="Are you sure you want to delete this human? This cannot be undone."
   canDelete={data.userRole === "admin"}
-  pagination={{ page: data.page, limit: data.limit, total: data.total, baseUrl: paginationBaseUrl }}
+  {searchFilter}
+  clientPageSize={25}
 >
-  {#snippet searchForm()}
-    <form method="GET" class="mt-4 mb-6 flex items-center gap-3">
-      <div class="relative flex-1">
-        <Search size={16} class="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
-        <input type="text" name="q" value={data.q ?? ""} placeholder="Search by name or ID..." class="glass-input w-full pl-9 pr-3 py-2 text-sm" />
-      </div>
-      <Button type="submit" size="sm">Search</Button>
-      {#if data.q}
-        <a href={resolve('/humans')} class="btn-ghost text-sm">Clear</a>
-      {/if}
-    </form>
-  {/snippet}
   {#snippet desktopRow(human)}
     <td class="font-mono text-sm whitespace-nowrap">
       <a href={resolve(`/humans/${human.id}`)} class="text-accent hover:text-[var(--link-hover)]">{human.displayId}</a>

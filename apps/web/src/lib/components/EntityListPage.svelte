@@ -42,6 +42,7 @@
     canDelete?: boolean;
 
     pagination?: PaginationInfo;
+    clientPageSize?: number;
 
     desktopRow: Snippet<[item: T]>;
     mobileCard: Snippet<[item: T]>;
@@ -68,6 +69,7 @@
     deleteMessage = "Are you sure? This cannot be undone.",
     canDelete = false,
     pagination,
+    clientPageSize,
     desktopRow,
     mobileCard,
     headerAction,
@@ -116,6 +118,24 @@
     return result;
   });
 
+  let clientPage = $state(1);
+
+  // Reset client page when filtered results change
+  $effect(() => {
+    filteredSorted; // subscribe to changes
+    clientPage = 1;
+  });
+
+  const displayItems = $derived.by(() => {
+    if (!clientPageSize) return filteredSorted;
+    const start = (clientPage - 1) * clientPageSize;
+    return filteredSorted.slice(start, start + clientPageSize);
+  });
+
+  const showClientPagination = $derived(
+    clientPageSize != null && filteredSorted.length > clientPageSize,
+  );
+
   let pendingDeleteId = $state<string | null>(null);
   let deleteFormEl = $state<HTMLFormElement>();
 
@@ -159,7 +179,7 @@
 
   <!-- Mobile card view -->
   <div class="sm:hidden space-y-3">
-    {#each filteredSorted as item (item.id)}
+    {#each displayItems as item (item.id)}
       {@render mobileCard(item)}
     {:else}
       <div class="glass-card p-6 text-center text-sm text-text-muted">{emptyMessage}</div>
@@ -188,7 +208,7 @@
         </tr>
       </thead>
       <tbody>
-        {#each filteredSorted as item (item.id)}
+        {#each displayItems as item (item.id)}
           <tr class="glass-row-hover">
             {@render desktopRow(item)}
             {#if canDelete}
@@ -208,6 +228,15 @@
 
   {#if pagination}
     <Pagination page={pagination.page} limit={pagination.limit} total={pagination.total} baseUrl={pagination.baseUrl} />
+  {/if}
+
+  {#if showClientPagination && clientPageSize}
+    <Pagination
+      page={clientPage}
+      limit={clientPageSize}
+      total={filteredSorted.length}
+      onPageChange={(p) => { clientPage = p; }}
+    />
   {/if}
 </div>
 

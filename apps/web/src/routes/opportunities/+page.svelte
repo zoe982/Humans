@@ -3,10 +3,8 @@
   import EntityListPage from "$lib/components/EntityListPage.svelte";
   import StatusBadge from "$lib/components/StatusBadge.svelte";
   import SearchableSelect from "$lib/components/SearchableSelect.svelte";
-  import { Search } from "lucide-svelte";
   import { opportunityStageColors } from "$lib/constants/colors";
   import { opportunityStageLabels, OPPORTUNITY_STAGE_OPTIONS } from "$lib/constants/labels";
-  import { Button } from "$lib/components/ui/button";
   import { resolve } from "$app/paths";
 
   let { data, form }: { data: PageData; form: ActionData } = $props();
@@ -25,13 +23,14 @@
     ownerDisplayId: string | null;
     nextActionDescription: string | null;
     nextActionOwnerName: string | null;
+    nextActionOwnerId: string | null;
     nextActionDueDate: string | null;
     isOverdue: boolean;
     updatedAt: string | null;
     createdAt: string;
   };
 
-  const opportunities = $derived(data.opportunities as Opportunity[]);
+  const allOpportunities = $derived(data.opportunities as Opportunity[]);
   const colleagues = $derived(data.colleagues as Colleague[]);
   const colleagueOptions = $derived(colleagues.map((c) => ({ value: c.id, label: c.name })));
   const stageFilterOptions = $derived(OPPORTUNITY_STAGE_OPTIONS.map((s) => ({ value: s.value, label: s.label })));
@@ -39,17 +38,31 @@
   // eslint-disable-next-line security/detect-object-injection
   const stageColorMap = $derived(Object.fromEntries(Object.entries(opportunityStageColors).map(([k, v]) => [opportunityStageLabels[k] ?? k, v])));
 
-  const paginationBaseUrl = $derived.by(() => {
-    // eslint-disable-next-line svelte/prefer-svelte-reactivity
-    const params = new URLSearchParams();
-    if (data.q) params.set("q", data.q);
-    if (data.stage) params.set("stage", data.stage);
-    if (data.ownerId) params.set("ownerId", data.ownerId);
-    if (data.dealOwnerId) params.set("dealOwnerId", data.dealOwnerId);
-    if (data.overdueOnly) params.set("overdueOnly", "true");
-    const qs = params.toString();
-    return `/opportunities${qs ? `?${qs}` : ""}`;
-  });
+  let filterStage = $state("");
+  let filterOwnerId = $state("");
+  let filterDealOwnerId = $state("");
+  let filterOverdueOnly = $state(false);
+  let filterQ = $state("");
+
+  const opportunities = $derived(
+    allOpportunities.filter((opp) => {
+      if (filterStage && opp.stage !== filterStage) return false;
+      if (filterOwnerId && opp.ownerId !== filterOwnerId) return false;
+      if (filterDealOwnerId && opp.ownerId !== filterDealOwnerId) return false;
+      if (filterOverdueOnly && !opp.isOverdue) return false;
+      if (filterQ) {
+        const q = filterQ.trim().toLowerCase();
+        const text = [opp.displayId, opp.primaryHumanName, opp.ownerName, opp.nextActionDescription]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase();
+        if (!text.includes(q)) return false;
+      }
+      return true;
+    }),
+  );
+
+  const hasActiveFilters = $derived(!!(filterStage || filterOwnerId || filterDealOwnerId || filterOverdueOnly || filterQ));
 </script>
 
 <EntityListPage
@@ -71,25 +84,25 @@
     { key: "owner", label: "Owner" },
     { key: "updatedAt", label: "Last Touched" },
   ]}
+  clientPageSize={25}
   deleteAction="?/delete"
   deleteMessage="Are you sure you want to delete this opportunity? This cannot be undone."
   canDelete={data.userRole === "admin"}
-  pagination={{ page: data.page, limit: data.limit, total: data.total, baseUrl: paginationBaseUrl }}
 >
   {#snippet searchForm()}
-    <form method="GET" class="mt-4 mb-6 flex flex-wrap items-end gap-3">
+    <div class="mt-4 mb-6 flex flex-wrap items-end gap-3">
       <div class="relative flex-1 min-w-[200px]">
-        <Search size={16} class="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
-        <input type="text" name="q" value={data.q ?? ""} placeholder="Search by ID..." class="glass-input w-full pl-9 pr-3 py-2 text-sm" />
+        <input type="text" bind:value={filterQ} placeholder="Search by ID or human..." class="glass-input w-full px-3 py-2 text-sm" />
       </div>
       <div class="w-48">
         <SearchableSelect
           options={stageFilterOptions}
           name="stage"
           id="stageFilter"
-          value={data.stage ?? ""}
+          value={filterStage}
           emptyOption="All Stages"
           placeholder="Filter stage..."
+          onSelect={(val) => { filterStage = val; }}
         />
       </div>
       <div class="w-48">
@@ -97,9 +110,10 @@
           options={colleagueOptions}
           name="dealOwnerId"
           id="dealOwnerFilter"
-          value={data.dealOwnerId ?? ""}
+          value={filterDealOwnerId}
           emptyOption="All Owners"
           placeholder="Filter owner..."
+          onSelect={(val) => { filterDealOwnerId = val; }}
         />
       </div>
       <div class="w-48">
@@ -107,20 +121,20 @@
           options={colleagueOptions}
           name="ownerId"
           id="ownerFilter"
-          value={data.ownerId ?? ""}
+          value={filterOwnerId}
           emptyOption="All NA Owners"
           placeholder="Filter NA owner..."
+          onSelect={(val) => { filterOwnerId = val; }}
         />
       </div>
       <label class="flex items-center gap-2 text-sm text-text-secondary">
-        <input type="checkbox" name="overdueOnly" value="true" checked={data.overdueOnly} class="rounded border-glass-border" />
+        <input type="checkbox" bind:checked={filterOverdueOnly} class="rounded border-glass-border" />
         Overdue only
       </label>
-      <Button type="submit" size="sm">Search</Button>
-      {#if data.q || data.stage || data.ownerId || data.dealOwnerId || data.overdueOnly}
-        <a href={resolve('/opportunities')} class="btn-ghost text-sm">Clear</a>
+      {#if hasActiveFilters}
+        <button type="button" class="btn-ghost text-sm" onclick={() => { filterStage = ""; filterOwnerId = ""; filterDealOwnerId = ""; filterOverdueOnly = false; filterQ = ""; }}>Clear</button>
       {/if}
-    </form>
+    </div>
   {/snippet}
   {#snippet desktopRow(opp)}
     <td class="font-mono text-sm whitespace-nowrap">

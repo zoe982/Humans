@@ -1,17 +1,36 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { isRedirect, isActionFailure, Redirect } from "@sveltejs/kit";
 import { mockEvent, createMockFetch } from "../../../helpers";
-import { load, actions } from "../../../../src/routes/leads/route-signups/+page.server";
 
-describe("leads/route-signups +page.server load", () => {
+// Mock stores module to prevent $state compilation issues in test context
+vi.mock("$lib/data/stores.svelte.ts", () => ({
+  getStore: vi.fn(() => ({
+    items: [],
+    loading: false,
+    lastSync: null,
+    setItems: vi.fn(),
+    setLoading: vi.fn(),
+  })),
+}));
+
+vi.mock("$lib/data/sync", () => ({
+  syncIfStale: vi.fn(),
+}));
+
+import { load } from "../../../../src/routes/leads/route-signups/+page";
+import { actions } from "../../../../src/routes/leads/route-signups/+page.server";
+
+describe("leads/route-signups +page.ts load", () => {
   afterEach(() => {
-    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
   });
 
   it("redirects to /login when user is null", async () => {
-    const event = mockEvent({ user: null });
     try {
-      await load(event as any);
+      await load({
+        parent: async () => ({ user: null, sessionToken: null }),
+        fetch: vi.fn(),
+      });
       expect.fail("should have redirected");
     } catch (e) {
       expect(isRedirect(e)).toBe(true);
@@ -20,74 +39,64 @@ describe("leads/route-signups +page.server load", () => {
     }
   });
 
-  it("returns signups from API with pagination and filter fields", async () => {
-    const mockFetch = createMockFetch({
-      "/api/route-signups": { body: { data: [{ id: "rs1", routeName: "Rome" }], meta: { page: 1, limit: 25, total: 1 } } },
+  it("returns signups from API", async () => {
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ data: [{ id: "rs1", routeName: "Rome" }] }),
     });
-    vi.stubGlobal("fetch", mockFetch);
 
-    const event = mockEvent();
-    const result = await load(event as any);
+    const result = await load({
+      parent: async () => ({
+        user: { id: "u1", role: "member" },
+        sessionToken: "test-token",
+      }),
+      fetch: mockFetch,
+    });
 
     expect(result.signups).toHaveLength(1);
-    expect(result.signups[0]).toEqual({ id: "rs1", routeName: "Rome" });
-    expect(result.page).toBe(1);
-    expect(result.limit).toBe(25);
-    expect(result.total).toBe(1);
-    expect(result.status).toBe("");
-    expect(result.q).toBe("");
-    expect(result.origin).toBe("");
-    expect(result.destination).toBe("");
-    expect(result.dateFrom).toBe("");
-    expect(result.dateTo).toBe("");
+    expect(result.signups[0]).toMatchObject({ id: "rs1", routeName: "Rome" });
+    expect(result.userRole).toBe("member");
   });
 
   it("returns empty array when API fails", async () => {
-    const mockFetch = createMockFetch({
-      "/api/route-signups": { status: 500, body: { error: "fail" } },
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: false,
+      json: async () => ({ error: "fail" }),
     });
-    vi.stubGlobal("fetch", mockFetch);
 
-    const event = mockEvent();
-    const result = await load(event as any);
+    const result = await load({
+      parent: async () => ({
+        user: { id: "u1", role: "member" },
+        sessionToken: "test-token",
+      }),
+      fetch: mockFetch,
+    });
 
     expect(result.signups).toEqual([]);
-    expect(result.total).toBe(0);
-    expect(result.status).toBe("");
-    expect(result.q).toBe("");
-    expect(result.origin).toBe("");
-    expect(result.destination).toBe("");
-    expect(result.dateFrom).toBe("");
-    expect(result.dateTo).toBe("");
   });
 
-  it("passes filter params to API and returns them in data", async () => {
-    const mockFetch = createMockFetch({
-      "/api/route-signups": { body: { data: [], meta: { page: 1, limit: 25, total: 0 } } },
+  it("passes session cookie in header", async () => {
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ data: [] }),
     });
-    vi.stubGlobal("fetch", mockFetch);
 
-    const event = mockEvent({
-      url: "http://localhost/leads/route-signups?status=open&q=test&origin=Rome&destination=NYC&dateFrom=2025-01-01&dateTo=2025-12-31",
+    await load({
+      parent: async () => ({
+        user: { id: "u1", role: "member" },
+        sessionToken: "my-session-xyz",
+      }),
+      fetch: mockFetch,
     });
-    const result = await load(event as any);
 
-    // Verify filter values returned in page data
-    expect(result.status).toBe("open");
-    expect(result.q).toBe("test");
-    expect(result.origin).toBe("Rome");
-    expect(result.destination).toBe("NYC");
-    expect(result.dateFrom).toBe("2025-01-01");
-    expect(result.dateTo).toBe("2025-12-31");
-
-    // Verify params were forwarded to the API
-    const fetchUrl = (mockFetch as ReturnType<typeof vi.fn>).mock.calls[0][0] as string;
-    expect(fetchUrl).toContain("status=open");
-    expect(fetchUrl).toContain("q=test");
-    expect(fetchUrl).toContain("origin=Rome");
-    expect(fetchUrl).toContain("destination=NYC");
-    expect(fetchUrl).toContain("dateFrom=2025-01-01");
-    expect(fetchUrl).toContain("dateTo=2025-12-31");
+    expect(mockFetch).toHaveBeenCalledWith(
+      expect.stringContaining("/api/route-signups"),
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          Cookie: "humans_session=my-session-xyz",
+        }),
+      }),
+    );
   });
 });
 

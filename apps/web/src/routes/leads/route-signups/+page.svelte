@@ -4,9 +4,7 @@
   import StatusBadge from "$lib/components/StatusBadge.svelte";
   import { Search } from "lucide-svelte";
   import { signupStatusLabels } from "$lib/constants/labels";
-  import { signupStatusColors } from "$lib/constants/colors";
   import { formatRelativeTime } from "$lib/utils/format";
-  import { Button } from "$lib/components/ui/button";
   import { resolve } from "$app/paths";
 
   let { data, form }: { data: PageData; form: ActionData } = $props();
@@ -28,7 +26,33 @@
     lastActivityDate: string | null;
   };
 
-  const signups = $derived(data.signups as Signup[]);
+  const allSignups = $derived(data.signups as Signup[]);
+
+  let filterStatus = $state("");
+  let filterOrigin = $state("");
+  let filterDestination = $state("");
+  let filterDateFrom = $state("");
+  let filterDateTo = $state("");
+  let filterQ = $state("");
+
+  const signups = $derived(
+    allSignups.filter((s) => {
+      if (filterStatus && s.status !== filterStatus) return false;
+      if (filterOrigin && !(s.origin ?? "").toLowerCase().includes(filterOrigin.toLowerCase())) return false;
+      if (filterDestination && !(s.destination ?? "").toLowerCase().includes(filterDestination.toLowerCase())) return false;
+      if (filterDateFrom && s.inserted_at < filterDateFrom) return false;
+      if (filterDateTo && s.inserted_at.slice(0, 10) > filterDateTo) return false;
+      if (filterQ) {
+        const q = filterQ.trim().toLowerCase();
+        const text = [s.display_id, s.first_name, s.middle_name, s.last_name, s.email, s.origin, s.destination, s.note]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase();
+        if (!text.includes(q)) return false;
+      }
+      return true;
+    }),
+  );
 
   function displayName(s: Signup): string {
     const parts = [s.first_name, s.middle_name, s.last_name].filter(Boolean);
@@ -48,21 +72,8 @@
   };
 
   const hasActiveFilters = $derived(
-    !!(data.status || data.q || data.origin || data.destination || data.dateFrom || data.dateTo)
+    !!(filterStatus || filterOrigin || filterDestination || filterDateFrom || filterDateTo || filterQ),
   );
-
-  const paginationBaseUrl = $derived.by(() => {
-    // eslint-disable-next-line svelte/prefer-svelte-reactivity
-    const params = new URLSearchParams();
-    if (data.status) params.set("status", data.status);
-    if (data.q) params.set("q", data.q);
-    if (data.origin) params.set("origin", data.origin);
-    if (data.destination) params.set("destination", data.destination);
-    if (data.dateFrom) params.set("dateFrom", data.dateFrom);
-    if (data.dateTo) params.set("dateTo", data.dateTo);
-    const qs = params.toString();
-    return `/leads/route-signups${qs ? `?${qs}` : ""}`;
-  });
 </script>
 
 <EntityListPage
@@ -81,17 +92,17 @@
   ]}
   defaultSortKey="date"
   defaultSortDirection="desc"
+  clientPageSize={25}
   deleteAction="?/delete"
   deleteMessage="Are you sure you want to delete this route signup? This cannot be undone."
   canDelete={data.userRole === "admin"}
-  pagination={{ page: data.page, limit: data.limit, total: data.total, baseUrl: paginationBaseUrl }}
   emptyMessage="No route signups found."
 >
   {#snippet searchForm()}
-    <form method="GET" class="mt-4 mb-6 flex flex-wrap gap-3 items-end">
+    <div class="mt-4 mb-6 flex flex-wrap gap-3 items-end">
       <div>
         <label for="status" class="block text-xs font-medium text-text-muted mb-1">Status</label>
-        <select id="status" name="status" class="glass-input px-3 py-1.5 text-sm" value={data.status}>
+        <select id="status" class="glass-input px-3 py-1.5 text-sm" bind:value={filterStatus}>
           <option value="">All</option>
           <option value="open">Open</option>
           <option value="qualified">Qualified</option>
@@ -101,32 +112,31 @@
       </div>
       <div>
         <label for="origin" class="block text-xs font-medium text-text-muted mb-1">Origin</label>
-        <input id="origin" name="origin" type="text" class="glass-input px-3 py-1.5 text-sm w-32" placeholder="e.g. Rome" value={data.origin} />
+        <input id="origin" type="text" class="glass-input px-3 py-1.5 text-sm w-32" placeholder="e.g. Rome" bind:value={filterOrigin} />
       </div>
       <div>
         <label for="destination" class="block text-xs font-medium text-text-muted mb-1">Destination</label>
-        <input id="destination" name="destination" type="text" class="glass-input px-3 py-1.5 text-sm w-32" placeholder="e.g. New York" value={data.destination} />
+        <input id="destination" type="text" class="glass-input px-3 py-1.5 text-sm w-32" placeholder="e.g. New York" bind:value={filterDestination} />
       </div>
       <div>
         <label for="dateFrom" class="block text-xs font-medium text-text-muted mb-1">Date From</label>
-        <input id="dateFrom" name="dateFrom" type="date" class="glass-input px-3 py-1.5 text-sm" value={data.dateFrom} />
+        <input id="dateFrom" type="date" class="glass-input px-3 py-1.5 text-sm" bind:value={filterDateFrom} />
       </div>
       <div>
         <label for="dateTo" class="block text-xs font-medium text-text-muted mb-1">Date To</label>
-        <input id="dateTo" name="dateTo" type="date" class="glass-input px-3 py-1.5 text-sm" value={data.dateTo} />
+        <input id="dateTo" type="date" class="glass-input px-3 py-1.5 text-sm" bind:value={filterDateTo} />
       </div>
       <div class="relative flex-1 min-w-[200px]">
         <label for="q" class="block text-xs font-medium text-text-muted mb-1">Search</label>
         <div class="relative">
           <Search size={16} class="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
-          <input id="q" name="q" type="text" class="glass-input w-full pl-9 pr-3 py-1.5 text-sm" placeholder="Name, email, route..." value={data.q} />
+          <input id="q" type="text" class="glass-input w-full pl-9 pr-3 py-1.5 text-sm" placeholder="Name, email, route..." bind:value={filterQ} />
         </div>
       </div>
-      <Button type="submit" size="sm">Filter</Button>
       {#if hasActiveFilters}
-        <a href={resolve('/leads/route-signups')} class="btn-ghost text-sm">Clear</a>
+        <button type="button" class="btn-ghost text-sm" onclick={() => { filterStatus = ""; filterOrigin = ""; filterDestination = ""; filterDateFrom = ""; filterDateTo = ""; filterQ = ""; }}>Clear</button>
       {/if}
-    </form>
+    </div>
   {/snippet}
   {#snippet desktopRow(signup)}
     <td class="font-mono text-sm whitespace-nowrap">

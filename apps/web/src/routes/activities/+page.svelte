@@ -1,12 +1,9 @@
 <script lang="ts">
   import type { PageData, ActionData } from "./$types";
   import EntityListPage from "$lib/components/EntityListPage.svelte";
-  import Pagination from "$lib/components/Pagination.svelte";
   import { activityTypeColors } from "$lib/constants/colors";
   import { activityTypeLabels, ACTIVITY_TYPE_OPTIONS } from "$lib/constants/labels";
-  import { Search } from "lucide-svelte";
   import SearchableSelect from "$lib/components/SearchableSelect.svelte";
-  import { Button } from "$lib/components/ui/button";
   import { formatDate } from "$lib/utils/format";
   import { resolve } from "$app/paths";
 
@@ -32,18 +29,29 @@
     createdAt: string;
   };
 
-  const activities = $derived(data.activities as Activity[]);
+  const allActivities = $derived(data.activities as Activity[]);
 
-  const paginationBaseUrl = $derived.by(() => {
-    // eslint-disable-next-line svelte/prefer-svelte-reactivity
-    const params = new URLSearchParams();
-    if (data.q) params.set("q", data.q);
-    if (data.type) params.set("type", data.type);
-    if (data.dateFrom) params.set("dateFrom", data.dateFrom);
-    if (data.dateTo) params.set("dateTo", data.dateTo);
-    const qs = params.toString();
-    return `/activities${qs ? `?${qs}` : ""}`;
-  });
+  let filterType = $state("");
+  let filterDateFrom = $state("");
+  let filterDateTo = $state("");
+  let filterQ = $state("");
+
+  const activities = $derived(
+    allActivities.filter((a) => {
+      if (filterType && a.type !== filterType) return false;
+      if (filterDateFrom && a.activityDate < filterDateFrom) return false;
+      if (filterDateTo && a.activityDate > filterDateTo) return false;
+      if (filterQ) {
+        const q = filterQ.trim().toLowerCase();
+        const text = [a.displayId, a.subject, a.notes, a.body, a.humanName, a.accountName, a.ownerName]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase();
+        if (!text.includes(q)) return false;
+      }
+      return true;
+    }),
+  );
 
   function truncate(s: string | null, len: number): string {
     if (!s) return "\u2014";
@@ -58,6 +66,8 @@
     if (a.websiteBookingRequestId) links.push({ label: `Booking ${a.websiteBookingRequestId.slice(0, 8)}...`, href: resolve(`/leads/website-booking-requests/${a.websiteBookingRequestId}`) });
     return links;
   }
+
+  const hasActiveFilters = $derived(!!(filterType || filterDateFrom || filterDateTo || filterQ));
 </script>
 
 <EntityListPage
@@ -76,40 +86,41 @@
     { key: "linkedTo", label: "Linked To", sortable: true, sortValue: (a) => a.humanName ?? a.accountName ?? "" },
     { key: "date", label: "Date", sortable: true, sortValue: (a) => a.activityDate },
   ]}
+  clientPageSize={25}
+  deleteAction="?/delete"
   deleteMessage="Are you sure you want to delete this activity?"
   canDelete={true}
-  pagination={{ page: data.page, limit: data.limit, total: data.total, baseUrl: paginationBaseUrl }}
 >
   {#snippet searchForm()}
-    <form method="GET" class="mt-4 flex flex-wrap items-end gap-4 glass-card p-4 mb-6">
+    <div class="mt-4 flex flex-wrap items-end gap-4 glass-card p-4 mb-6">
       <div class="flex-1 min-w-[200px]">
         <label for="searchFilter" class="block text-sm font-medium text-text-secondary mb-1">Search</label>
-        <div class="relative">
-          <Search size={14} class="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
-          <input id="searchFilter" name="q" type="text" value={data.q ?? ""} placeholder="Search subject or notes..." class="glass-input w-full pl-8 pr-3 py-2 text-sm" />
-        </div>
+        <input id="searchFilter" type="text" bind:value={filterQ} placeholder="Search subject or notes..." class="glass-input w-full px-3 py-2 text-sm" />
       </div>
-      <div>
+      <div class="flex-1 min-w-[200px]">
         <label for="typeFilter" class="block text-sm font-medium text-text-secondary mb-1">Type</label>
         <SearchableSelect
           options={ACTIVITY_TYPE_OPTIONS}
           name="type"
           id="typeFilter"
-          value={data.type ?? ""}
+          value={filterType}
           emptyOption="All"
           placeholder="Filter by type..."
+          onSelect={(val) => { filterType = val; }}
         />
       </div>
       <div>
         <label for="dateFrom" class="block text-sm font-medium text-text-secondary mb-1">From</label>
-        <input id="dateFrom" name="dateFrom" type="date" value={data.dateFrom} class="glass-input px-3 py-2 text-sm" />
+        <input id="dateFrom" type="date" bind:value={filterDateFrom} class="glass-input px-3 py-2 text-sm" />
       </div>
       <div>
         <label for="dateTo" class="block text-sm font-medium text-text-secondary mb-1">To</label>
-        <input id="dateTo" name="dateTo" type="date" value={data.dateTo} class="glass-input px-3 py-2 text-sm" />
+        <input id="dateTo" type="date" bind:value={filterDateTo} class="glass-input px-3 py-2 text-sm" />
       </div>
-      <Button type="submit">Filter</Button>
-    </form>
+      {#if hasActiveFilters}
+        <button type="button" class="btn-ghost text-sm" onclick={() => { filterType = ""; filterDateFrom = ""; filterDateTo = ""; filterQ = ""; }}>Clear</button>
+      {/if}
+    </div>
   {/snippet}
   {#snippet desktopRow(activity)}
     <td class="font-mono text-sm whitespace-nowrap">
@@ -154,9 +165,6 @@
       {#if activity.notes || activity.body}
         <p class="text-sm text-text-muted mt-1 line-clamp-2">{truncate(activity.notes ?? activity.body, 100)}</p>
       {/if}
-      <div class="mt-2 flex justify-end">
-        <button type="button" class="text-destructive-foreground hover:opacity-80 text-xs" onclick={(e) => { e.preventDefault(); }}>Delete</button>
-      </div>
     </a>
   {/snippet}
 </EntityListPage>

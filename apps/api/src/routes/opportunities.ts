@@ -44,7 +44,7 @@ opportunityRoutes.get("/api/opportunities", requirePermission("viewRecords"), as
   const rawPage = Number(c.req.query("page"));
   const rawLimit = Number(c.req.query("limit"));
   const page = Math.max(1, rawPage !== 0 ? rawPage : 1);
-  const limit = Math.min(100, Math.max(1, rawLimit !== 0 ? rawLimit : 25));
+  const limit = Math.min(10000, Math.max(1, rawLimit !== 0 ? rawLimit : 25));
   const rawQ = c.req.query("q");
   const q = rawQ !== undefined && rawQ !== "" ? rawQ : undefined;
   const rawStage = c.req.query("stage");

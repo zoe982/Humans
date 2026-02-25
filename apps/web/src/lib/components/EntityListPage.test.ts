@@ -489,4 +489,61 @@ describe("EntityListPage", () => {
     await fireEvent.click(deleteButton);
     expect(screen.getByText("This will permanently remove the record.")).toBeDefined();
   });
+
+  // ── 11. Client-side pagination with clientPageSize ─────────────────────────
+
+  it("renders only clientPageSize items when set", () => {
+    const manyItems = Array.from({ length: 10 }, (_, i) => ({
+      id: `item-${i}`,
+      name: `Item ${i}`,
+      createdAt: "2024-01-01",
+    }));
+    const { container } = render(EntityListPage, {
+      props: baseProps({ items: manyItems, clientPageSize: 3 }),
+    });
+    const cells = container.querySelectorAll("[data-testid='desktop-cell']");
+    expect(cells.length).toBe(3);
+  });
+
+  it("renders client-side pagination nav when clientPageSize is set", () => {
+    const manyItems = Array.from({ length: 10 }, (_, i) => ({
+      id: `item-${i}`,
+      name: `Item ${i}`,
+      createdAt: "2024-01-01",
+    }));
+    const { container } = render(EntityListPage, {
+      props: baseProps({ items: manyItems, clientPageSize: 3 }),
+    });
+    expect(container.querySelector("nav[aria-label='Pagination']")).not.toBeNull();
+  });
+
+  it("shows second page items when Next is clicked in client pagination", async () => {
+    const manyItems = Array.from({ length: 10 }, (_, i) => ({
+      id: `item-${i}`,
+      name: `Item ${i}`,
+      createdAt: "2024-01-01",
+    }));
+    const { container } = render(EntityListPage, {
+      props: baseProps({ items: manyItems, clientPageSize: 3 }),
+    });
+    const buttons = container.querySelectorAll("button");
+    const nextButton = Array.from(buttons).find((b) => b.textContent?.includes("Next"));
+    if (!nextButton) throw new Error("expected Next button");
+    await fireEvent.click(nextButton);
+    const cells = container.querySelectorAll("[data-testid='desktop-cell']");
+    expect(cells.length).toBe(3);
+    expect(cells[0].textContent).toBe("Item 3");
+  });
+
+  it("does not render client-side pagination when all items fit on one page", () => {
+    const fewItems = [
+      { id: "item-1", name: "Alpha", createdAt: "2024-01-01" },
+      { id: "item-2", name: "Beta", createdAt: "2024-02-01" },
+    ];
+    const { container } = render(EntityListPage, {
+      props: baseProps({ items: fewItems, clientPageSize: 5 }),
+    });
+    // Pagination should not show since total (2) <= pageSize (5)
+    expect(container.querySelector("nav[aria-label='Pagination']")).toBeNull();
+  });
 });

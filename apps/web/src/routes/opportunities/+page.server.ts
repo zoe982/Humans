@@ -1,75 +1,11 @@
-import { redirect } from "@sveltejs/kit";
 import type { RequestEvent, ActionFailure } from "@sveltejs/kit";
 import { PUBLIC_API_URL } from "$env/static/public";
-import { isListData, failFromApi } from "$lib/server/api";
-
-function isPaginatedData(value: unknown): value is { meta: { page: number; limit: number; total: number } } {
-  return typeof value === "object" && value !== null && "meta" in value && typeof (value as { meta: unknown }).meta === "object";
-}
+import { failFromApi } from "$lib/server/api";
 
 function getFormString(form: FormData, key: string): string {
   const raw = form.get(key);
   return typeof raw === "string" ? raw : "";
 }
-
-export const load = async ({ locals, cookies, url }: RequestEvent): Promise<{ opportunities: unknown[]; colleagues: unknown[]; page: number; limit: number; total: number; q: string; stage: string; ownerId: string; dealOwnerId: string; overdueOnly: boolean; userRole: string }> => {
-  if (locals.user == null) redirect(302, "/login");
-
-  const sessionToken = cookies.get("humans_session");
-  const pageRaw = Number(url.searchParams.get("page"));
-  const limitRaw = Number(url.searchParams.get("limit"));
-  const page = pageRaw !== 0 ? pageRaw : 1;
-  const limit = limitRaw !== 0 ? limitRaw : 25;
-  const q = url.searchParams.get("q") ?? "";
-  const stage = url.searchParams.get("stage") ?? "";
-  const ownerId = url.searchParams.get("ownerId") ?? "";
-  const dealOwnerId = url.searchParams.get("dealOwnerId") ?? "";
-  const overdueOnly = url.searchParams.get("overdueOnly") === "true";
-
-  const params = new URLSearchParams();
-  params.set("page", String(page));
-  params.set("limit", String(limit));
-  if (q !== "") params.set("q", q);
-  if (stage !== "") params.set("stage", stage);
-  if (ownerId !== "") params.set("ownerId", ownerId);
-  if (dealOwnerId !== "") params.set("dealOwnerId", dealOwnerId);
-  if (overdueOnly) params.set("overdueOnly", "true");
-
-  const headers = { Cookie: `humans_session=${sessionToken ?? ""}` };
-
-  const [res, colleaguesRes] = await Promise.all([
-    fetch(`${PUBLIC_API_URL}/api/opportunities?${params.toString()}`, { headers }),
-    fetch(`${PUBLIC_API_URL}/api/colleagues`, { headers }),
-  ]);
-
-  let opportunities: unknown[] = [];
-  let meta = { page, limit, total: 0 };
-  if (res.ok) {
-    const raw: unknown = await res.json();
-    opportunities = isListData(raw) ? raw.data : [];
-    if (isPaginatedData(raw)) meta = raw.meta;
-  }
-
-  let colleagues: unknown[] = [];
-  if (colleaguesRes.ok) {
-    const raw: unknown = await colleaguesRes.json();
-    colleagues = isListData(raw) ? raw.data : [];
-  }
-
-  return {
-    opportunities,
-    colleagues,
-    page: meta.page,
-    limit: meta.limit,
-    total: meta.total,
-    q,
-    stage,
-    ownerId,
-    dealOwnerId,
-    overdueOnly,
-    userRole: locals.user.role,
-  };
-};
 
 export const actions = {
   delete: async ({ request, cookies }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {

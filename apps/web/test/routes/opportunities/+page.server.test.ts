@@ -1,17 +1,36 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { isRedirect, isActionFailure, Redirect } from "@sveltejs/kit";
 import { mockEvent, createMockFetch } from "../../helpers";
-import { load, actions } from "../../../src/routes/opportunities/+page.server";
 
-describe("opportunities +page.server load", () => {
+// Mock stores module to prevent $state compilation issues in test context
+vi.mock("$lib/data/stores.svelte.ts", () => ({
+  getStore: vi.fn(() => ({
+    items: [],
+    loading: false,
+    lastSync: null,
+    setItems: vi.fn(),
+    setLoading: vi.fn(),
+  })),
+}));
+
+vi.mock("$lib/data/sync", () => ({
+  syncIfStale: vi.fn(),
+}));
+
+import { load } from "../../../src/routes/opportunities/+page";
+import { actions } from "../../../src/routes/opportunities/+page.server";
+
+describe("opportunities +page.ts load", () => {
   afterEach(() => {
-    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
   });
 
   it("redirects to /login when user is null", async () => {
-    const event = mockEvent({ user: null });
     try {
-      await load(event as any);
+      await load({
+        parent: async () => ({ user: null, sessionToken: null }),
+        fetch: vi.fn(),
+      });
       expect.fail("should have redirected");
     } catch (e) {
       expect(isRedirect(e)).toBe(true);
@@ -20,93 +39,85 @@ describe("opportunities +page.server load", () => {
     }
   });
 
-  it("returns opportunities from API with pagination", async () => {
-    const mockFetch = createMockFetch({
-      "/api/opportunities": { body: { data: [{ id: "opp1", displayId: "OPP-alpha-001", stage: "open" }], meta: { page: 1, limit: 25, total: 1 } } },
-      "/api/colleagues": { body: { data: [{ id: "col1", name: "Agent A" }] } },
-    });
-    vi.stubGlobal("fetch", mockFetch);
+  it("returns opportunities and colleagues from API", async () => {
+    const mockFetch = vi.fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ data: [{ id: "opp1", displayId: "OPP-alpha-001", stage: "open" }] }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ data: [{ id: "col1", name: "Agent A" }] }),
+      });
 
-    const event = mockEvent();
-    const result = await load(event as any);
+    const result = await load({
+      parent: async () => ({
+        user: { id: "u1", role: "member" },
+        sessionToken: "test-token",
+      }),
+      fetch: mockFetch,
+    });
 
     expect(result.opportunities).toHaveLength(1);
-    expect(result.opportunities[0]).toEqual({ id: "opp1", displayId: "OPP-alpha-001", stage: "open" });
-    expect(result.page).toBe(1);
-    expect(result.limit).toBe(25);
-    expect(result.total).toBe(1);
+    expect(result.opportunities[0]).toMatchObject({ id: "opp1", displayId: "OPP-alpha-001", stage: "open" });
     expect(result.colleagues).toHaveLength(1);
-    expect(result.colleagues[0]).toEqual({ id: "col1", name: "Agent A" });
+    expect(result.colleagues[0]).toMatchObject({ id: "col1", name: "Agent A" });
+    expect(result.userRole).toBe("member");
   });
 
-  it("returns empty array when API fails", async () => {
-    const mockFetch = createMockFetch({
-      "/api/opportunities": { status: 500, body: { error: "Server error" } },
-      "/api/colleagues": { status: 500, body: { error: "Server error" } },
+  it("returns empty arrays when API fails", async () => {
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: false,
+      json: async () => ({ error: "Server error" }),
     });
-    vi.stubGlobal("fetch", mockFetch);
 
-    const event = mockEvent();
-    const result = await load(event as any);
+    const result = await load({
+      parent: async () => ({
+        user: { id: "u1", role: "member" },
+        sessionToken: "test-token",
+      }),
+      fetch: mockFetch,
+    });
 
     expect(result.opportunities).toEqual([]);
-    expect(result.total).toBe(0);
+    expect(result.colleagues).toEqual([]);
   });
 
   it("returns empty colleagues when colleagues API fails", async () => {
-    const mockFetch = createMockFetch({
-      "/api/opportunities": { body: { data: [], meta: { page: 1, limit: 25, total: 0 } } },
-      "/api/colleagues": { status: 500, body: { error: "Server error" } },
-    });
-    vi.stubGlobal("fetch", mockFetch);
+    const mockFetch = vi.fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ data: [] }),
+      })
+      .mockResolvedValueOnce({
+        ok: false,
+        json: async () => ({ error: "Server error" }),
+      });
 
-    const event = mockEvent();
-    const result = await load(event as any);
+    const result = await load({
+      parent: async () => ({
+        user: { id: "u1", role: "member" },
+        sessionToken: "test-token",
+      }),
+      fetch: mockFetch,
+    });
 
     expect(result.colleagues).toEqual([]);
   });
 
-  it("passes filter params to API", async () => {
-    const mockFetch = createMockFetch({
-      "/api/opportunities": { body: { data: [], meta: { page: 1, limit: 25, total: 0 } } },
-      "/api/colleagues": { body: { data: [] } },
+  it("exposes userRole from parent", async () => {
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ data: [] }),
     });
-    vi.stubGlobal("fetch", mockFetch);
 
-    const event = mockEvent({ url: "http://localhost/opportunities?stage=open&ownerId=col1&overdueOnly=true&q=test" });
-    const result = await load(event as any);
-
-    expect(result.stage).toBe("open");
-    expect(result.ownerId).toBe("col1");
-    expect(result.overdueOnly).toBe(true);
-    expect(result.q).toBe("test");
-  });
-
-  it("defaults filter params to empty strings and false when absent", async () => {
-    const mockFetch = createMockFetch({
-      "/api/opportunities": { body: { data: [], meta: { page: 1, limit: 25, total: 0 } } },
-      "/api/colleagues": { body: { data: [] } },
+    const result = await load({
+      parent: async () => ({
+        user: { id: "u1", role: "admin" },
+        sessionToken: "test-token",
+      }),
+      fetch: mockFetch,
     });
-    vi.stubGlobal("fetch", mockFetch);
-
-    const event = mockEvent();
-    const result = await load(event as any);
-
-    expect(result.stage).toBe("");
-    expect(result.ownerId).toBe("");
-    expect(result.overdueOnly).toBe(false);
-    expect(result.q).toBe("");
-  });
-
-  it("exposes userRole from locals", async () => {
-    const mockFetch = createMockFetch({
-      "/api/opportunities": { body: { data: [], meta: { page: 1, limit: 25, total: 0 } } },
-      "/api/colleagues": { body: { data: [] } },
-    });
-    vi.stubGlobal("fetch", mockFetch);
-
-    const event = mockEvent({ user: { id: "u1", email: "a@b.com", role: "admin", name: "Admin" } });
-    const result = await load(event as any);
 
     expect(result.userRole).toBe("admin");
   });

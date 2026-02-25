@@ -1,9 +1,6 @@
 <script lang="ts">
-  import type { PageData } from "./$types";
   import EntityListPage from "$lib/components/EntityListPage.svelte";
   import { resolve } from "$app/paths";
-
-  let { data }: { data: PageData } = $props();
 
   type Flight = {
     id: string;
@@ -18,7 +15,21 @@
     capacity_pet_seats: number;
   };
 
+  let { data }: { data: { flights: Flight[]; userRole: string } } = $props();
+
   const flights = $derived(data.flights as Flight[]);
+
+  function searchFilter(item: Flight, q: string): boolean {
+    const text = [
+      item.crm_display_id,
+      item.origin_city,
+      item.destination_city,
+    ]
+      .filter(Boolean)
+      .join(" ")
+      .toLowerCase();
+    return text.includes(q);
+  }
 </script>
 
 <EntityListPage
@@ -33,7 +44,9 @@
     { key: "price", label: "Price" },
     { key: "visible", label: "Visible" },
   ]}
-  pagination={{ page: data.page, limit: data.limit, total: data.total, baseUrl: "/flights" }}
+  {searchFilter}
+  searchPlaceholder="Search flights..."
+  clientPageSize={25}
 >
   {#snippet desktopRow(flight)}
     <td class="font-mono text-sm whitespace-nowrap">

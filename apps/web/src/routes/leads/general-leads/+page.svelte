@@ -1,10 +1,8 @@
 <script lang="ts">
   import type { PageData, ActionData } from "./$types";
   import EntityListPage from "$lib/components/EntityListPage.svelte";
-  import { Search } from "lucide-svelte";
   import { generalLeadStatusLabels, generalLeadSourceLabels } from "$lib/constants/labels";
   import { generalLeadStatusColors, generalLeadSourceColors } from "$lib/constants/colors";
-  import { Button } from "$lib/components/ui/button";
   import { resolve } from "$app/paths";
 
   let { data, form }: { data: PageData; form: ActionData } = $props();
@@ -24,17 +22,27 @@
     createdAt: string;
   };
 
-  const leads = $derived(data.leads as Lead[]);
+  const allLeads = $derived(data.leads as Lead[]);
 
-  const paginationBaseUrl = $derived.by(() => {
-    // eslint-disable-next-line svelte/prefer-svelte-reactivity
-    const params = new URLSearchParams();
-    if (data.status) params.set("status", data.status);
-    if (data.source) params.set("source", data.source);
-    if (data.q) params.set("q", data.q);
-    const qs = params.toString();
-    return `/leads/general-leads${qs ? `?${qs}` : ""}`;
-  });
+  let filterStatus = $state("");
+  let filterSource = $state("");
+  let filterQ = $state("");
+
+  const leads = $derived(
+    allLeads.filter((lead) => {
+      if (filterStatus && lead.status !== filterStatus) return false;
+      if (filterSource && lead.source !== filterSource) return false;
+      if (filterQ) {
+        const q = filterQ.trim().toLowerCase();
+        const text = [lead.displayId, lead.email, lead.phone, lead.ownerName, lead.notes]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase();
+        if (!text.includes(q)) return false;
+      }
+      return true;
+    }),
+  );
 </script>
 
 <EntityListPage
@@ -54,16 +62,16 @@
     { key: "createdAt", label: "Created" },
     { key: "convertedHuman", label: "Converted Human" },
   ]}
+  clientPageSize={25}
   deleteAction="?/delete"
   deleteMessage="Are you sure you want to delete this general lead? This cannot be undone."
   canDelete={data.userRole === "admin"}
-  pagination={{ page: data.page, limit: data.limit, total: data.total, baseUrl: paginationBaseUrl }}
 >
   {#snippet searchForm()}
-    <form method="GET" class="mt-4 mb-6 flex flex-wrap gap-3 items-end">
+    <div class="mt-4 mb-6 flex flex-wrap gap-3 items-end">
       <div>
         <label for="status" class="block text-xs font-medium text-text-muted mb-1">Status</label>
-        <select id="status" name="status" class="glass-input px-3 py-1.5 text-sm" value={data.status}>
+        <select id="status" class="glass-input px-3 py-1.5 text-sm" bind:value={filterStatus}>
           <option value="">All</option>
           <option value="open">Open</option>
           <option value="qualified">Qualified</option>
@@ -73,7 +81,7 @@
       </div>
       <div>
         <label for="source" class="block text-xs font-medium text-text-muted mb-1">Source</label>
-        <select id="source" name="source" class="glass-input px-3 py-1.5 text-sm" value={data.source}>
+        <select id="source" class="glass-input px-3 py-1.5 text-sm" bind:value={filterSource}>
           <option value="">All</option>
           <option value="whatsapp">WhatsApp</option>
           <option value="email">Email</option>
@@ -82,16 +90,12 @@
       </div>
       <div class="relative flex-1 min-w-[200px]">
         <label for="q" class="block text-xs font-medium text-text-muted mb-1">Search</label>
-        <div class="relative">
-          <Search size={16} class="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
-          <input id="q" name="q" type="text" class="glass-input w-full pl-9 pr-3 py-1.5 text-sm" placeholder="Code or notes..." value={data.q} />
-        </div>
+        <input id="q" type="text" class="glass-input w-full px-3 py-1.5 text-sm" placeholder="Code or notes..." bind:value={filterQ} />
       </div>
-      <Button type="submit" size="sm">Filter</Button>
-      {#if data.status || data.source || data.q}
-        <a href={resolve('/leads/general-leads')} class="btn-ghost text-sm">Clear</a>
+      {#if filterStatus || filterSource || filterQ}
+        <button type="button" class="btn-ghost text-sm" onclick={() => { filterStatus = ""; filterSource = ""; filterQ = ""; }}>Clear</button>
       {/if}
-    </form>
+    </div>
   {/snippet}
   {#snippet desktopRow(lead)}
     <td class="font-mono text-sm whitespace-nowrap">

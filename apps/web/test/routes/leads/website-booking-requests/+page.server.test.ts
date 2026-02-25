@@ -1,17 +1,36 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { isRedirect, Redirect, isActionFailure } from "@sveltejs/kit";
 import { mockEvent, createMockFetch } from "../../../helpers";
-import { load, actions } from "../../../../src/routes/leads/website-booking-requests/+page.server";
 
-describe("website-booking-requests +page.server load", () => {
+// Mock stores module to prevent $state compilation issues in test context
+vi.mock("$lib/data/stores.svelte.ts", () => ({
+  getStore: vi.fn(() => ({
+    items: [],
+    loading: false,
+    lastSync: null,
+    setItems: vi.fn(),
+    setLoading: vi.fn(),
+  })),
+}));
+
+vi.mock("$lib/data/sync", () => ({
+  syncIfStale: vi.fn(),
+}));
+
+import { load } from "../../../../src/routes/leads/website-booking-requests/+page";
+import { actions } from "../../../../src/routes/leads/website-booking-requests/+page.server";
+
+describe("website-booking-requests +page.ts load", () => {
   afterEach(() => {
-    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
   });
 
   it("redirects to /login when user is null", async () => {
-    const event = mockEvent({ user: null });
     try {
-      await load(event as any);
+      await load({
+        parent: async () => ({ user: null, sessionToken: null }),
+        fetch: vi.fn(),
+      });
       expect.fail("should have redirected");
     } catch (e) {
       expect(isRedirect(e)).toBe(true);
@@ -21,65 +40,78 @@ describe("website-booking-requests +page.server load", () => {
   });
 
   it("returns bookings list from API", async () => {
-    const mockFetch = createMockFetch({
-      "/api/website-booking-requests": {
-        body: {
-          data: [{ id: "b1", status: "new" }],
-          meta: { page: 1, limit: 25, total: 1 },
-        },
-      },
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ data: [{ id: "b1", status: "new" }] }),
     });
-    vi.stubGlobal("fetch", mockFetch);
-    const event = mockEvent();
-    const result = await load(event as any);
+
+    const result = await load({
+      parent: async () => ({
+        user: { id: "u1", role: "member" },
+        sessionToken: "test-token",
+      }),
+      fetch: mockFetch,
+    });
+
     expect(result.bookings).toHaveLength(1);
-    expect(result.page).toBe(1);
-    expect(result.limit).toBe(25);
-    expect(result.total).toBe(1);
+    expect(result.bookings[0]).toMatchObject({ id: "b1", status: "new" });
   });
 
-  it("returns empty array and zero total when API fails", async () => {
-    const mockFetch = createMockFetch({
-      "/api/website-booking-requests": { status: 500, body: { error: "fail" } },
+  it("returns empty array when API fails", async () => {
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: false,
+      json: async () => ({ error: "fail" }),
     });
-    vi.stubGlobal("fetch", mockFetch);
-    const event = mockEvent();
-    const result = await load(event as any);
+
+    const result = await load({
+      parent: async () => ({
+        user: { id: "u1", role: "member" },
+        sessionToken: "test-token",
+      }),
+      fetch: mockFetch,
+    });
+
     expect(result.bookings).toEqual([]);
-    expect(result.total).toBe(0);
   });
 
-  it("passes page and limit from URL params", async () => {
-    const mockFetch = createMockFetch({
-      "/api/website-booking-requests": {
-        body: {
-          data: [],
-          meta: { page: 2, limit: 10, total: 50 },
-        },
-      },
+  it("passes session cookie in header", async () => {
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ data: [] }),
     });
-    vi.stubGlobal("fetch", mockFetch);
-    const event = mockEvent({ url: "http://localhost/leads/website-booking-requests?page=2&limit=10" });
-    const result = await load(event as any);
+
+    await load({
+      parent: async () => ({
+        user: { id: "u1", role: "member" },
+        sessionToken: "my-session-456",
+      }),
+      fetch: mockFetch,
+    });
+
     expect(mockFetch).toHaveBeenCalledWith(
-      expect.stringContaining("page=2"),
-      expect.any(Object),
+      expect.stringContaining("/api/website-booking-requests"),
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          Cookie: "humans_session=my-session-456",
+        }),
+      }),
     );
-    expect(mockFetch).toHaveBeenCalledWith(
-      expect.stringContaining("limit=10"),
-      expect.any(Object),
-    );
-    expect(result.page).toBe(2);
-    expect(result.limit).toBe(10);
   });
 
-  it("returns userRole from locals", async () => {
-    const mockFetch = createMockFetch({
-      "/api/website-booking-requests": { body: { data: [], meta: { page: 1, limit: 25, total: 0 } } },
+  it("returns userRole from parent", async () => {
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ data: [] }),
     });
-    vi.stubGlobal("fetch", mockFetch);
-    const event = mockEvent({ user: { id: "u1", email: "a@b.com", role: "manager", name: "Mgr" } });
-    const result = await load(event as any);
+
+    const result = await load({
+      parent: async () => ({
+        user: { id: "u1", role: "manager" },
+        sessionToken: "test-token",
+      }),
+      fetch: mockFetch,
+    });
+
     expect(result.userRole).toBe("manager");
   });
 });

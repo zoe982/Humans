@@ -1,17 +1,35 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { isRedirect, Redirect } from "@sveltejs/kit";
-import { mockEvent, createMockFetch } from "../../helpers";
-import { load } from "../../../src/routes/flights/+page.server";
 
-describe("flights +page.server load", () => {
+// Mock stores module to prevent $state compilation issues in test context
+vi.mock("$lib/data/stores.svelte.ts", () => ({
+  getStore: vi.fn(() => ({
+    items: [],
+    loading: false,
+    lastSync: null,
+    setItems: vi.fn(),
+    setLoading: vi.fn(),
+  })),
+}));
+
+vi.mock("$lib/data/sync", () => ({
+  syncIfStale: vi.fn(),
+}));
+
+// Browser defaults to false in test mocks ($app/environment)
+import { load } from "../../../src/routes/flights/+page";
+
+describe("flights +page.ts load", () => {
   afterEach(() => {
-    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
   });
 
   it("redirects to /login when user is null", async () => {
-    const event = mockEvent({ user: null });
     try {
-      await load(event as any);
+      await load({
+        parent: async () => ({ user: null, sessionToken: null }),
+        fetch: vi.fn(),
+      });
       expect.fail("should have redirected");
     } catch (e) {
       expect(isRedirect(e)).toBe(true);
@@ -20,24 +38,65 @@ describe("flights +page.server load", () => {
     }
   });
 
-  it("returns flights data from API", async () => {
-    const mockFetch = createMockFetch({
-      "/api/flights": {
-        body: {
-          data: [{ id: "flight-1", origin: "JFK", destination: "LAX" }],
-          meta: { page: 1, limit: 25, total: 1 },
-        },
-      },
+  it("returns flights data from API on server (browser=false)", async () => {
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        data: [{ id: "flight-1", origin_city: "JFK", destination_city: "LAX" }],
+      }),
     });
-    vi.stubGlobal("fetch", mockFetch);
 
-    const event = mockEvent();
-    const result = await load(event as any);
+    const result = await load({
+      parent: async () => ({
+        user: { id: "u1", role: "member" },
+        sessionToken: "test-token",
+      }),
+      fetch: mockFetch,
+    });
 
     expect(result.flights).toHaveLength(1);
-    expect(result.flights[0]).toEqual({ id: "flight-1", origin: "JFK", destination: "LAX" });
-    expect(result.page).toBe(1);
-    expect(result.limit).toBe(25);
-    expect(result.total).toBe(1);
+    expect(result.flights[0]).toMatchObject({ id: "flight-1" });
+    expect(result.userRole).toBe("member");
+  });
+
+  it("passes session cookie in header on server", async () => {
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ data: [] }),
+    });
+
+    await load({
+      parent: async () => ({
+        user: { id: "u1", role: "member" },
+        sessionToken: "my-session-123",
+      }),
+      fetch: mockFetch,
+    });
+
+    expect(mockFetch).toHaveBeenCalledWith(
+      expect.stringContaining("/api/flights"),
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          Cookie: "humans_session=my-session-123",
+        }),
+      }),
+    );
+  });
+
+  it("returns empty flights array when API returns error", async () => {
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: false,
+      json: async () => ({ error: "Server error" }),
+    });
+
+    const result = await load({
+      parent: async () => ({
+        user: { id: "u1", role: "member" },
+        sessionToken: "test-token",
+      }),
+      fetch: mockFetch,
+    });
+
+    expect(result.flights).toEqual([]);
   });
 });

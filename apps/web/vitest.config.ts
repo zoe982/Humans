@@ -63,6 +63,8 @@ export default defineConfig({
       // Vite's default extension resolution does not try the compound .svelte.ts
       // extension, so we need explicit aliases for these rune-based modules.
       "$lib/changeHistory": path.resolve(__dirname, "src/lib/changeHistory.svelte.ts"),
+      "$lib/data/stores.svelte.ts": path.resolve(__dirname, "src/lib/data/stores.svelte.ts"),
+      "$lib/data/stores": path.resolve(__dirname, "src/lib/data/stores.svelte.ts"),
     },
   },
   test: {
@@ -95,6 +97,7 @@ export default defineConfig({
         "src/lib/changeHistory.svelte.ts",
         // Uses Svelte 5 $state() — istanbul wraps it, breaking the compiler
         "src/lib/stores/theme.svelte.ts",
+        "src/lib/data/stores.svelte.ts",
         // Pure data files — no executable logic
         "src/lib/constants/**",
         // Service worker — uses browser-only APIs (caches, FetchEvent)

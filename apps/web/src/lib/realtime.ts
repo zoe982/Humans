@@ -2,6 +2,8 @@ import PartySocket from "partysocket";
 import { browser } from "$app/environment";
 import { invalidateAll } from "$app/navigation";
 import { PUBLIC_API_URL } from "$env/static/public";
+import { handleRealtimeMessage, type RealtimeMessage } from "$lib/data/realtime-handler";
+import { syncAll } from "$lib/data/sync";
 
 let socket: PartySocket | null = null;
 let currentUserId: string | null = null;
@@ -14,6 +16,19 @@ function scheduleInvalidation(): void {
     invalidateTimer = null;
     void invalidateAll();
   }, 300);
+}
+
+function isRealtimeMessage(raw: unknown): raw is RealtimeMessage {
+  return (
+    typeof raw === "object" &&
+    raw !== null &&
+    "method" in raw &&
+    "path" in raw &&
+    "actorId" in raw &&
+    typeof (raw as RealtimeMessage).method === "string" &&
+    typeof (raw as RealtimeMessage).path === "string" &&
+    typeof (raw as RealtimeMessage).actorId === "string"
+  );
 }
 
 export function initRealtime(userId: string, sessionToken: string): void {
@@ -32,14 +47,28 @@ export function initRealtime(userId: string, sessionToken: string): void {
   });
 
   socket.addEventListener("open", () => {
-    if (hasConnectedBefore) void invalidateAll();
+    if (hasConnectedBefore) {
+      // Reconnected after disconnect — resync all stores
+      void syncAll();
+    }
     hasConnectedBefore = true;
   });
 
   socket.addEventListener("message", (event: MessageEvent) => {
     try {
       const raw: unknown = typeof event.data === "string" ? JSON.parse(event.data) : event.data;
-      if (typeof raw === "object" && raw !== null && "actorId" in raw && (raw as { actorId: unknown }).actorId === currentUserId) return;
+
+      if (isRealtimeMessage(raw)) {
+        const result = handleRealtimeMessage(raw, currentUserId ?? "");
+        if (result === "unknown") {
+          // Unknown path — fallback to invalidateAll for safety
+          scheduleInvalidation();
+        }
+        // "handled" or "ignored" — no further action needed
+        return;
+      }
+
+      // Non-standard message format — fallback
       scheduleInvalidation();
     } catch {
       /* ignore malformed messages */

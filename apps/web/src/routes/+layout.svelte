@@ -3,6 +3,7 @@
   import type { LayoutData } from "./$types";
   import { page } from "$app/stores";
   import { resolve } from "$app/paths";
+  import { beforeNavigate } from "$app/navigation";
   import { Search, Users } from "lucide-svelte";
   import MobileNav from "$lib/components/MobileNav.svelte";
   import CommandPalette from "$lib/components/CommandPalette.svelte";
@@ -10,9 +11,13 @@
   import { Toaster } from "svelte-sonner";
   import { onMount, onDestroy } from "svelte";
   import { initRealtime, destroyRealtime } from "$lib/realtime";
+  import { initCache, clearCache } from "$lib/data/cache";
+  import { syncAll } from "$lib/data/sync";
+  import { clearAllStores } from "$lib/data/stores.svelte";
   import UpdateBanner from "$lib/components/UpdateBanner.svelte";
   import InstallPrompt from "$lib/components/InstallPrompt.svelte";
   import BlankPageDetector from "$lib/components/BlankPageDetector.svelte";
+  import OfflineBanner from "$lib/components/OfflineBanner.svelte";
 
   let commandPaletteOpen = $state(false);
 
@@ -21,11 +26,20 @@
   onMount(() => {
     if (data.user && data.sessionToken) {
       initRealtime(data.user.id, data.sessionToken);
+      void initCache(data.sessionToken).then(() => syncAll());
     }
   });
 
   onDestroy(() => {
     destroyRealtime();
+  });
+
+  beforeNavigate(({ to }) => {
+    if (to?.url.pathname === "/login") {
+      void clearCache();
+      clearAllStores();
+      destroyRealtime();
+    }
   });
 
   const isManager = $derived(data.user?.role === "manager" || data.user?.role === "admin");
@@ -120,6 +134,7 @@
         </div>
       </div>
     </nav>
+    <OfflineBanner />
     <UpdateBanner />
     <InstallPrompt />
   {/if}
