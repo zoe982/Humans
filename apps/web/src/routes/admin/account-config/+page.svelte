@@ -16,6 +16,7 @@
   const humanPhoneLabels = $derived(data.humanPhoneLabels as ConfigItem[]);
   const opportunityHumanRoles = $derived(data.opportunityHumanRoles as ConfigItem[]);
   const humanRelationshipLabels = $derived(data.humanRelationshipLabels as ConfigItem[]);
+  const agreementTypes = $derived(data.agreementTypes as ConfigItem[]);
 </script>
 
 <svelte:head>
@@ -200,6 +201,30 @@
       {/if}
       <form method="POST" action="?/createOpportunityHumanRole" class="flex gap-2">
         <input name="name" type="text" required placeholder="New role name..." class="glass-input flex-1 px-3 py-2 text-sm" />
+        <Button type="submit" size="sm">Add</Button>
+      </form>
+    </div>
+
+    <!-- Agreement Types -->
+    <div class="glass-card p-5">
+      <h2 class="text-lg font-semibold text-text-primary mb-4">Agreement Types</h2>
+      {#if agreementTypes.length === 0}
+        <p class="text-text-muted text-sm mb-4">No agreement types yet.</p>
+      {:else}
+        <div class="space-y-2 mb-4">
+          {#each agreementTypes as item (item.id)}
+            <div class="flex items-center justify-between p-3 rounded-lg bg-glass hover:bg-glass-hover transition-colors">
+              <span class="text-sm text-text-primary">{item.name}</span>
+              <form method="POST" action="?/deleteAgreementType">
+                <input type="hidden" name="id" value={item.id} />
+                <button type="submit" class="text-destructive-foreground hover:opacity-80 text-sm">Remove</button>
+              </form>
+            </div>
+          {/each}
+        </div>
+      {/if}
+      <form method="POST" action="?/createAgreementType" class="flex gap-2">
+        <input name="name" type="text" required placeholder="New agreement type..." class="glass-input flex-1 px-3 py-2 text-sm" />
         <Button type="submit" size="sm">Add</Button>
       </form>
     </div>

@@ -19,8 +19,8 @@
   import TypeTogglePills from "$lib/components/TypeTogglePills.svelte";
   import { createAutoSaver, type SaveStatus } from "$lib/autosave";
   import { api } from "$lib/api";
-  import { statusColors as statusColorMap, humanTypeColors as typeColors, activityTypeColors, labelBadgeColor, opportunityStageColors } from "$lib/constants/colors";
-  import { humanTypeLabels as typeLabels, activityTypeLabels, ACTIVITY_TYPE_OPTIONS, opportunityStageLabels } from "$lib/constants/labels";
+  import { statusColors as statusColorMap, humanTypeColors as typeColors, activityTypeColors, labelBadgeColor, opportunityStageColors, agreementStatusColors } from "$lib/constants/colors";
+  import { humanTypeLabels as typeLabels, activityTypeLabels, ACTIVITY_TYPE_OPTIONS, opportunityStageLabels, agreementStatusLabels } from "$lib/constants/labels";
   import { formatRelativeTime, formatDateTime, summarizeChanges } from "$lib/utils/format";
   import { PET_BREEDS } from "@humans/shared/constants";
   import { onDestroy } from "svelte";
@@ -162,8 +162,10 @@
 
   type GeneralLead = { id: string; displayId: string; source: string; status: string; createdAt: string };
   type HumanOpportunity = { id: string; displayId: string; stage: string; passengerSeats: number; petSeats: number; createdAt: string };
+  type HumanAgreement = { id: string; displayId: string; title: string; typeName: string | null; status: string; activationDate: string | null };
   const generalLeads = $derived(data.generalLeads as GeneralLead[]);
   const humanOpportunities = $derived(data.humanOpportunities as HumanOpportunity[]);
+  const humanAgreements = $derived(data.humanAgreements as HumanAgreement[]);
 
   const emailLabelOptions = $derived(emailLabelConfigs.map((l) => ({ value: l.id, label: l.name })));
   const phoneLabelOptions = $derived(phoneLabelConfigs.map((l) => ({ value: l.id, label: l.name })));
@@ -1511,6 +1513,40 @@
           </div>
           <Button type="submit" size="sm">Create Opportunity</Button>
         </form>
+      {/snippet}
+    </RelatedListTable>
+  </div>
+
+  <!-- Agreements -->
+  <div class="mt-6">
+    <RelatedListTable
+      title="Agreements"
+      items={humanAgreements}
+      columns={[
+        { key: "displayId", label: "ID" },
+        { key: "title", label: "Title", sortable: true, sortValue: (a) => a.title },
+        { key: "type", label: "Type" },
+        { key: "status", label: "Status", sortable: true, sortValue: (a) => a.status },
+        { key: "activationDate", label: "Activation Date", sortable: true, sortValue: (a) => a.activationDate ?? "" },
+      ]}
+      defaultSortKey="title"
+      defaultSortDirection="asc"
+      searchFilter={(a, q) => a.title.toLowerCase().includes(q) || a.displayId.toLowerCase().includes(q) || (a.typeName ?? "").toLowerCase().includes(q)}
+      emptyMessage="No linked agreements."
+    >
+      {#snippet row(agr, _searchQuery)}
+        <td class="font-mono text-sm whitespace-nowrap">
+          <a href={resolve(`/agreements/${agr.id}`)} class="text-accent hover:text-[var(--link-hover)]">{agr.displayId}</a>
+        </td>
+        <td class="font-medium">{agr.title}</td>
+        <td class="text-sm text-text-secondary">{agr.typeName ?? "\u2014"}</td>
+        <td>
+          <!-- eslint-disable-next-line security/detect-object-injection -->
+          <span class="glass-badge inline-flex rounded-full px-2 py-0.5 text-xs font-medium {agreementStatusColors[agr.status] ?? 'bg-glass text-text-secondary'}">
+            {agreementStatusLabels[agr.status] ?? agr.status}
+          </span>
+        </td>
+        <td class="text-sm text-text-muted">{agr.activationDate ?? "\u2014"}</td>
       {/snippet}
     </RelatedListTable>
   </div>

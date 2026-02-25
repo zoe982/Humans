@@ -425,6 +425,42 @@ const MIGRATION_STATEMENTS = [
     \`created_at\` text NOT NULL
   )`,
 
+  // ── Agreement types config ─────────────────────────────────────────
+  `CREATE TABLE IF NOT EXISTS \`agreement_types_config\` (
+    \`id\` text PRIMARY KEY NOT NULL,
+    \`name\` text NOT NULL,
+    \`created_at\` text NOT NULL
+  )`,
+
+  // ── Agreements (depend on humans, accounts, agreement_types_config) ─
+  `CREATE TABLE IF NOT EXISTS \`agreements\` (
+    \`id\` text PRIMARY KEY NOT NULL,
+    \`display_id\` text NOT NULL UNIQUE,
+    \`title\` text NOT NULL,
+    \`type_id\` text REFERENCES \`agreement_types_config\`(\`id\`),
+    \`status\` text DEFAULT 'open' NOT NULL,
+    \`activation_date\` text,
+    \`notes\` text,
+    \`human_id\` text REFERENCES \`humans\`(\`id\`),
+    \`account_id\` text REFERENCES \`accounts\`(\`id\`),
+    \`created_at\` text NOT NULL,
+    \`updated_at\` text NOT NULL
+  )`,
+
+  // ── Documents (generic, depend on colleagues) ───────────────────────
+  `CREATE TABLE IF NOT EXISTS \`documents\` (
+    \`id\` text PRIMARY KEY NOT NULL,
+    \`display_id\` text NOT NULL UNIQUE,
+    \`key\` text NOT NULL,
+    \`filename\` text NOT NULL,
+    \`content_type\` text NOT NULL,
+    \`size_bytes\` integer NOT NULL,
+    \`entity_type\` text NOT NULL,
+    \`entity_id\` text NOT NULL,
+    \`uploaded_by\` text REFERENCES \`colleagues\`(\`id\`),
+    \`created_at\` text NOT NULL
+  )`,
+
   // ── Indexes ───────────────────────────────────────────────────────
   `CREATE UNIQUE INDEX IF NOT EXISTS \`colleagues_email_unique\` ON \`colleagues\` (\`email\`)`,
   `CREATE UNIQUE INDEX IF NOT EXISTS \`colleagues_google_id_unique\` ON \`colleagues\` (\`google_id\`)`,
@@ -458,10 +494,17 @@ const MIGRATION_STATEMENTS = [
   `CREATE INDEX IF NOT EXISTS \`websites_account_id_idx\` ON \`websites\` (\`account_id\`)`,
   `CREATE INDEX IF NOT EXISTS \`referral_codes_human_id_idx\` ON \`referral_codes\` (\`human_id\`)`,
   `CREATE INDEX IF NOT EXISTS \`referral_codes_account_id_idx\` ON \`referral_codes\` (\`account_id\`)`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS \`agreement_types_config_name_unique\` ON \`agreement_types_config\` (\`name\`)`,
+  `CREATE INDEX IF NOT EXISTS \`agreements_human_id_idx\` ON \`agreements\` (\`human_id\`)`,
+  `CREATE INDEX IF NOT EXISTS \`agreements_account_id_idx\` ON \`agreements\` (\`account_id\`)`,
+  `CREATE INDEX IF NOT EXISTS \`documents_entity_type_entity_id_idx\` ON \`documents\` (\`entity_type\`, \`entity_id\`)`,
+  `CREATE INDEX IF NOT EXISTS \`documents_key_idx\` ON \`documents\` (\`key\`)`,
 ];
 
 // Clean tables in FK-safe order (children first)
 const CLEANUP_TABLES = [
+  "documents",
+  "agreements",
   "opportunity_humans",
   "opportunity_pets",
   "activity_opportunities",
@@ -495,6 +538,7 @@ const CLEANUP_TABLES = [
   "human_phone_labels_config",
   "account_human_labels_config",
   "account_types_config",
+  "agreement_types_config",
   "email_labels_config",
   "phone_labels_config",
   "display_id_counters",

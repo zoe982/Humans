@@ -7,7 +7,7 @@
   import { Trash2 } from "lucide-svelte";
   import { Button } from "$lib/components/ui/button";
   import { formatRelativeTime, summarizeChanges } from "$lib/utils/format";
-  import { createChangeHistoryLoader } from "$lib/changeHistory";
+  import { createChangeHistoryLoader } from "$lib/changeHistory.svelte";
   import { resolve } from "$app/paths";
 
   let { data, form }: { data: PageData; form: ActionData } = $props();

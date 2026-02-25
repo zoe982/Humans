@@ -13,8 +13,8 @@
   import { createAutoSaver, type SaveStatus } from "$lib/autosave";
   import { api } from "$lib/api";
   import { onDestroy } from "svelte";
-  import { statusColors as statusColorMap, activityTypeColors } from "$lib/constants/colors";
-  import { activityTypeLabels, ACTIVITY_TYPE_OPTIONS } from "$lib/constants/labels";
+  import { statusColors as statusColorMap, activityTypeColors, agreementStatusColors } from "$lib/constants/colors";
+  import { activityTypeLabels, ACTIVITY_TYPE_OPTIONS, agreementStatusLabels } from "$lib/constants/labels";
   import SearchableSelect from "$lib/components/SearchableSelect.svelte";
   import { formatRelativeTime, formatDateTime, summarizeChanges } from "$lib/utils/format";
   import { Button } from "$lib/components/ui/button";
@@ -99,6 +99,9 @@
   const phoneLabelConfigs = $derived(data.phoneLabelConfigs as ConfigItem[]);
   const allHumans = $derived(data.allHumans as HumanListItem[]);
   const socialIdPlatformConfigs = $derived(data.socialIdPlatformConfigs as ConfigItem[]);
+
+  type AccountAgreement = { id: string; displayId: string; title: string; typeName: string | null; status: string; activationDate: string | null };
+  const accountAgreements = $derived(data.accountAgreements as AccountAgreement[]);
 
   const humanOptions = $derived(allHumans.map((h) => ({ value: h.id, label: `${h.firstName} ${h.lastName}` })));
   const emailLabelOptions = $derived(emailLabelConfigs.map((l) => ({ value: l.id, label: l.name })));
@@ -919,6 +922,40 @@
         </form>
       {/snippet}
     </ActivityConversationView>
+  </div>
+
+  <!-- Agreements -->
+  <div class="mt-6">
+    <RelatedListTable
+      title="Agreements"
+      items={accountAgreements}
+      columns={[
+        { key: "displayId", label: "ID" },
+        { key: "title", label: "Title", sortable: true, sortValue: (a) => a.title },
+        { key: "type", label: "Type" },
+        { key: "status", label: "Status", sortable: true, sortValue: (a) => a.status },
+        { key: "activationDate", label: "Activation Date", sortable: true, sortValue: (a) => a.activationDate ?? "" },
+      ]}
+      defaultSortKey="title"
+      defaultSortDirection="asc"
+      searchFilter={(a, q) => a.title.toLowerCase().includes(q) || a.displayId.toLowerCase().includes(q) || (a.typeName ?? "").toLowerCase().includes(q)}
+      emptyMessage="No linked agreements."
+    >
+      {#snippet row(agr, _searchQuery)}
+        <td class="font-mono text-sm whitespace-nowrap">
+          <a href={resolve(`/agreements/${agr.id}`)} class="text-accent hover:text-[var(--link-hover)]">{agr.displayId}</a>
+        </td>
+        <td class="font-medium">{agr.title}</td>
+        <td class="text-sm text-text-secondary">{agr.typeName ?? "\u2014"}</td>
+        <td>
+          <!-- eslint-disable-next-line security/detect-object-injection -->
+          <span class="glass-badge inline-flex rounded-full px-2 py-0.5 text-xs font-medium {agreementStatusColors[agr.status] ?? 'bg-glass text-text-secondary'}">
+            {agreementStatusLabels[agr.status] ?? agr.status}
+          </span>
+        </td>
+        <td class="text-sm text-text-muted">{agr.activationDate ?? "\u2014"}</td>
+      {/snippet}
+    </RelatedListTable>
   </div>
 
   <!-- Change History -->

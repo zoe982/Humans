@@ -9,6 +9,7 @@ import {
   pets,
   colleagues,
   humanWebsiteBookingRequests,
+  type OpportunityStage,
 } from "@humans/db/schema";
 import { createId } from "@humans/db";
 import { ERROR_CODES } from "@humans/shared";
@@ -30,7 +31,7 @@ export async function listOpportunities(
   const offset = (page - 1) * limit;
   const conditions: ReturnType<typeof eq>[] = [];
 
-  if (filters.stage != null) conditions.push(eq(opportunities.stage, filters.stage));
+  if (filters.stage != null) conditions.push(sql`${opportunities.stage} = ${filters.stage}`);
   if (filters.ownerId != null) conditions.push(eq(opportunities.nextActionOwnerId, filters.ownerId));
   if (filters.dealOwnerId != null) conditions.push(eq(opportunities.ownerId, filters.dealOwnerId));
   if (filters.overdueOnly != null && filters.overdueOnly) {
@@ -240,7 +241,7 @@ export async function createOpportunity(
   await db.insert(opportunities).values({
     id,
     displayId,
-    stage: data.stage ?? "open",
+    stage: (data.stage ?? "open") as OpportunityStage,
     seatsRequested: data.seatsRequested ?? 1,
     passengerSeats: data.passengerSeats ?? 1,
     petSeats: data.petSeats ?? 0,

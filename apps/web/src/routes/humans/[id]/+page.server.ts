@@ -30,6 +30,7 @@ export const load = async ({ locals, cookies, params }: RequestEvent): Promise<{
   humanRelationships: unknown[];
   humanRelationshipLabelConfigs: unknown[];
   allHumans: unknown[];
+  humanAgreements: unknown[];
 }> => {
   if (locals.user == null) redirect(302, "/login");
 
@@ -73,12 +74,13 @@ export const load = async ({ locals, cookies, params }: RequestEvent): Promise<{
   const humanRelationshipLabelConfigs = configs["human-relationship-labels"] ?? [];
 
   // Batch 2: remaining data fetches
-  const [generalLeads, humanOpportunities, allDiscountCodes, humanRelationships, allHumans] = await Promise.all([
+  const [generalLeads, humanOpportunities, allDiscountCodes, humanRelationships, allHumans, humanAgreements] = await Promise.all([
     fetchList(`${PUBLIC_API_URL}/api/general-leads?convertedHumanId=${id}&limit=50`),
     fetchList(`${PUBLIC_API_URL}/api/opportunities?humanId=${id}&limit=50`),
     fetchList(`${PUBLIC_API_URL}/api/discount-codes`),
     fetchList(`${PUBLIC_API_URL}/api/humans/${id}/relationships`),
     fetchList(`${PUBLIC_API_URL}/api/humans?limit=500`),
+    fetchList(`${PUBLIC_API_URL}/api/agreements?humanId=${id}&limit=50`),
   ]);
 
   // Derive convertedFromLead from the first general lead (backwards compat)
@@ -149,6 +151,7 @@ export const load = async ({ locals, cookies, params }: RequestEvent): Promise<{
     humanRelationships,
     humanRelationshipLabelConfigs,
     allHumans,
+    humanAgreements,
   };
 };
 

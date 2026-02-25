@@ -47,5 +47,9 @@
       <h2 class="text-lg font-semibold text-text-primary">Websites</h2>
       <p class="mt-2 text-sm text-text-secondary">View and manage all websites across humans and accounts.</p>
     </a>
+    <a href={resolve('/agreements')} class="glass-card p-6 hover:bg-glass-hover transition-colors">
+      <h2 class="text-lg font-semibold text-text-primary">Agreements</h2>
+      <p class="mt-2 text-sm text-text-secondary">Track contracts and agreements linked to humans and accounts.</p>
+    </a>
   </div>
 </div>

@@ -3,12 +3,18 @@ import { ERROR_CODES } from "@humans/shared";
 import { authMiddleware } from "../middleware/auth";
 import { requirePermission } from "../middleware/rbac";
 import { badRequest, notFound } from "../lib/errors";
+import {
+  listDocuments,
+  createDocument,
+  deleteDocument,
+} from "../services/documents";
 import type { AppContext } from "../types";
 
 const documentRoutes = new Hono<AppContext>();
 
 documentRoutes.use("/*", authMiddleware);
 
+// Upload a document (with optional entity linking + PDF validation)
 documentRoutes.post("/api/documents/upload", requirePermission("createEditRecords"), async (c) => {
   const formData = await c.req.formData();
   const file = formData.get("file");
@@ -22,15 +28,54 @@ documentRoutes.post("/api/documents/upload", requirePermission("createEditRecord
     throw badRequest(ERROR_CODES.FILE_TOO_LARGE, "File too large (max 10MB)");
   }
 
+  const entityType = formData.get("entityType");
+  const entityId = formData.get("entityId");
+
+  // If entity linking fields are provided, validate PDF content type
+  if (entityType != null && entityId != null) {
+    if (file.type !== "application/pdf") {
+      throw badRequest(ERROR_CODES.DOCUMENT_INVALID_TYPE, "Only PDF files are allowed");
+    }
+  }
+
   const key = `${crypto.randomUUID()}-${file.name}`;
   await c.env.DOCUMENTS.put(key, file.stream(), {
     httpMetadata: { contentType: file.type },
   });
 
+  // If entity linking fields are provided, create D1 record
+  if (typeof entityType === "string" && typeof entityId === "string") {
+    const session = c.get("session");
+    const doc = await createDocument(c.get("db"), {
+      key,
+      filename: file.name,
+      contentType: file.type,
+      sizeBytes: file.size,
+      entityType,
+      entityId,
+      uploadedBy: session?.colleagueId ?? null,
+    });
+    return c.json({ data: doc }, 201);
+  }
+
   return c.json({ data: { key } }, 201);
 });
 
-documentRoutes.get("/api/documents/:key", requirePermission("viewRecords"), async (c) => {
+// List documents for an entity
+documentRoutes.get("/api/documents", requirePermission("viewRecords"), async (c) => {
+  const entityType = c.req.query("entityType");
+  const entityId = c.req.query("entityId");
+
+  if (entityType == null || entityId == null) {
+    throw badRequest(ERROR_CODES.VALIDATION_FAILED, "entityType and entityId are required");
+  }
+
+  const data = await listDocuments(c.get("db"), entityType, entityId);
+  return c.json({ data });
+});
+
+// Download a document by R2 key
+documentRoutes.get("/api/documents/download/:key", requirePermission("viewRecords"), async (c) => {
   const key = c.req.param("key");
   const object = await c.env.DOCUMENTS.get(key);
 
@@ -43,6 +88,12 @@ documentRoutes.get("/api/documents/:key", requirePermission("viewRecords"), asyn
   headers.set("Cache-Control", "private, max-age=3600");
 
   return new Response(object.body, { headers });
+});
+
+// Delete a document (D1 + R2)
+documentRoutes.delete("/api/documents/:id", requirePermission("createEditRecords"), async (c) => {
+  await deleteDocument(c.get("db"), c.env.DOCUMENTS, c.req.param("id"));
+  return c.json({ success: true });
 });
 
 export { documentRoutes };

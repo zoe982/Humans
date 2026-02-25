@@ -68,6 +68,13 @@ export const generalLeadSourceColors: Record<string, string> = {
   direct_referral: "badge-purple",
 };
 
+/** Agreement status badge colors */
+export const agreementStatusColors: Record<string, string> = {
+  open: "badge-blue",
+  active: "badge-green",
+  closed_inactive: "badge-red",
+};
+
 /** Opportunity stage badge colors */
 export const opportunityStageColors: Record<string, string> = {
   open: "badge-blue",

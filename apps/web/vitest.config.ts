@@ -42,6 +42,7 @@ export default defineConfig({
       "$app/environment": path.resolve(__dirname, "test/mocks/app-environment.ts"),
       "$app/stores": path.resolve(__dirname, "test/mocks/app-stores.ts"),
       "$app/navigation": path.resolve(__dirname, "test/mocks/app-navigation.ts"),
+      "$app/paths": path.resolve(__dirname, "test/mocks/app-paths.ts"),
       "@sveltejs/kit": path.resolve(__dirname, "test/mocks/sveltejs-kit.ts"),
       // lucide-svelte generates SVG elements via DOM manipulation that
       // happy-dom cannot handle (SVGElement.setAttribute is not a function).

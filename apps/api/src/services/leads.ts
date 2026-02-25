@@ -1,5 +1,5 @@
 import { eq } from "drizzle-orm";
-import { leadSources, leadEvents } from "@humans/db/schema";
+import { leadSources, leadEvents, type LeadEventType } from "@humans/db/schema";
 import { createId } from "@humans/db";
 import { nextDisplayId } from "../lib/display-id";
 import type { DB } from "./types";
@@ -48,6 +48,8 @@ export async function listLeadEvents(db: DB, humanId?: string): Promise<(typeof 
 export async function createLeadEvent(
   db: DB,
   data: {
+    humanId: string;
+    eventType: LeadEventType;
     notes?: string | null;
     metadata?: unknown;
     [key: string]: unknown;
@@ -60,6 +62,8 @@ export async function createLeadEvent(
     id: createId(),
     displayId,
     ...data,
+    humanId: data.humanId,
+    eventType: data.eventType,
     notes: data.notes ?? null,
     metadata: data.metadata ?? null,
     createdByColleagueId: colleagueId ?? null,

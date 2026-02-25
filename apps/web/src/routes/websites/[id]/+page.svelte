@@ -7,7 +7,7 @@
   import { createAutoSaver, type SaveStatus } from "$lib/autosave";
   import { onDestroy } from "svelte";
   import { formatRelativeTime, summarizeChanges } from "$lib/utils/format";
-  import { createChangeHistoryLoader } from "$lib/changeHistory";
+  import { createChangeHistoryLoader } from "$lib/changeHistory.svelte";
   import RelatedListTable from "$lib/components/RelatedListTable.svelte";
   import { resolve } from "$app/paths";
 

@@ -36,9 +36,9 @@ export async function listPets(db: DB): Promise<{ id: string; displayId: string;
   return rows.map((r) => ({
     id: r.id,
     displayId: r.displayId,
-    humanId: r.humanId,
+    humanId: r.humanId ?? "",
     type: r.type,
-    name: r.name,
+    name: r.name ?? "",
     breed: r.breed,
     weight: r.weight,
     notes: r.notes,
@@ -90,9 +90,9 @@ export async function getPet(db: DB, id: string): Promise<{ id: string; displayI
   return {
     id: row.id,
     displayId: row.displayId,
-    humanId: row.humanId,
+    humanId: row.humanId ?? "",
     type: row.type,
-    name: row.name,
+    name: row.name ?? "",
     breed: row.breed,
     weight: row.weight,
     notes: row.notes,
