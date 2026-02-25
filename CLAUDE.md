@@ -242,3 +242,29 @@ Maximum capacity: ~17.5M IDs per prefix.
 - **Formatter**: `packages/db/src/display-id.ts` — `formatDisplayId(prefix, counter)` and `parseDisplayId(id)`
 - **Counter**: `apps/api/src/lib/display-id.ts` — `nextDisplayId(db, prefix)` atomically increments and returns the next ID
 - **Adding a new prefix**: Add it to `DISPLAY_ID_PREFIXES` in `packages/db/src/display-id.ts`, update this table, call `nextDisplayId(db, "XXX")` in your service
+
+## {#each} Key Convention
+
+ALWAYS use index-based keys: `{#each items as item, i (i)}`
+
+NEVER use `(item.id)` — if the API ever returns duplicate IDs, Svelte 5 crashes the entire page with `each_key_duplicate` and no recovery. Index-based keys are safe regardless of data quality. The only exception is drag-and-drop reorder where stable identity matters.
+
+## API Response Invariant — assertUniqueIds
+
+All service functions that return entity arrays MUST pass them through `assertUniqueIds()` (`apps/api/src/lib/assert-unique-ids.ts`) before returning. This deduplicates by ID (first wins), logs a warning, and optionally persists to error_log. It never throws.
+
+Usage:
+```typescript
+import { assertUniqueIds } from "../lib/assert-unique-ids";
+const activities = assertUniqueIds([...directActivities, ...humanActivities], "activities", c);
+```
+
+## Full Table Scan Policy
+
+NEVER do unbounded `db.select().from(TABLE)` on high-growth tables: **humans, emails, phones, activities, accounts, agreements**. Always scope with `.where()` or `inArray()`.
+
+This is enforced by `apps/api/test/unit/audit/unbounded-selects.test.ts` which scans all service files and fails on violations. Config tables and small entity tables are exempt.
+
+Exceptions are allowlisted in the test:
+- `EXCLUDED_FILES`: batch jobs like `front-sync.ts` that intentionally load all data
+- `KNOWN_LIST_ALL`: primary list endpoints that load their own table (e.g., `listAccounts`)
