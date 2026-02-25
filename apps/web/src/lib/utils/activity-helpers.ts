@@ -1,3 +1,21 @@
+const SIGNATURE_RE = /(?:^|\n)(-- ?\n|---\n)/;
+
+/** Split email text into body + signature at the first common separator. */
+export function splitEmailSignature(text: string): {
+  body: string;
+  signature: string | null;
+} {
+  const match = SIGNATURE_RE.exec(text);
+  if (match == null) {
+    return { body: text, signature: null };
+  }
+  const body = text.slice(0, match.index).trimEnd();
+  // Signature starts at the separator line itself
+  const sigStart = match.index === 0 ? 0 : match.index + 1;
+  const signature = text.slice(sigStart);
+  return { body, signature };
+}
+
 const NOTES_PREFIX_RE = /^(?:Inbound|Outbound) from (.+?)(?:\n|$)/;
 const NOTES_FULL_RE = /^(Inbound|Outbound) from (.+?)\n([\s\S]*)$/;
 

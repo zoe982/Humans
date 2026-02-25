@@ -5,6 +5,8 @@
   import * as Select from "$lib/components/ui/select/index.js";
   import { ArrowLeft } from "lucide-svelte";
   import { resolve } from "$app/paths";
+  import { page } from "$app/stores";
+  import { entityLabelFromPath, isValidFromPath } from "$lib/utils/back-navigation";
 
   type Props = {
     backHref: string;
@@ -34,6 +36,16 @@
     actions,
   }: Props = $props();
 
+  const fromParam = $derived($page.url.searchParams.get("from"));
+  const effectiveBackHref = $derived(
+    fromParam && isValidFromPath(fromParam) ? fromParam : backHref
+  );
+  const effectiveBackLabel = $derived(
+    fromParam && isValidFromPath(fromParam)
+      ? (entityLabelFromPath(fromParam) ?? backLabel)
+      : backLabel
+  );
+
   let selectedStatus = $state(status ?? "");
 
   // When statusLabels is provided, remap colorMap keys from raw values to display labels
@@ -55,8 +67,8 @@
 <div class="glass-card-strong p-4 mb-6">
   <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
     <div class="flex items-center gap-4">
-      <a href={resolve(backHref)} class="inline-flex items-center gap-1 text-text-muted hover:text-text-primary text-sm" aria-label="Back to {backLabel}">
-        <ArrowLeft size={16} aria-hidden="true" /> {backLabel}
+      <a href={resolve(effectiveBackHref)} class="inline-flex items-center gap-1 text-text-muted hover:text-text-primary text-sm" aria-label="Back to {effectiveBackLabel}">
+        <ArrowLeft size={16} aria-hidden="true" /> {effectiveBackLabel}
       </a>
       <h1 class="text-xl font-bold text-text-primary">{title}</h1>
       {#if status}

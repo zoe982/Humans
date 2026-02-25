@@ -4,9 +4,10 @@
   import { Search, Trash2 } from "lucide-svelte";
   import { Button } from "$lib/components/ui/button";
   import HighlightText from "$lib/components/HighlightText.svelte";
+  import FormattedActivityText from "$lib/components/FormattedActivityText.svelte";
   import { activityTypeColors } from "$lib/constants/colors";
   import { activityTypeLabels } from "$lib/constants/labels";
-  import { parseActivityContent } from "$lib/utils/activity-helpers";
+  import { parseActivityContent, splitEmailSignature } from "$lib/utils/activity-helpers";
   import { resolve } from "$app/paths";
 
   type GeoExpr = { city?: string | null; country?: string | null };
@@ -296,17 +297,28 @@
           class:message-inbound={!isOutbound}
         >
           <!-- Body Text -->
+          {@const emailParts = parsed.text ? splitEmailSignature(parsed.text) : null}
           <div
             class="text-sm text-text-primary mb-2 break-words"
             class:max-h-[45rem]={maxMessages !== undefined}
             class:overflow-y-auto={maxMessages !== undefined}
           >
-            {#if parsed.text}
-              <HighlightText text={parsed.text} query={searchQuery} />
+            {#if emailParts}
+              <FormattedActivityText text={emailParts.body} query={searchQuery} />
             {:else}
               <HighlightText text={activity.subject} query={searchQuery} />
             {/if}
           </div>
+          {#if emailParts?.signature}
+            <details class="mt-2 text-xs text-text-muted">
+              <summary class="cursor-pointer select-none opacity-60 hover:opacity-100 transition-opacity">
+                Signature
+              </summary>
+              <div class="mt-1 whitespace-pre-line opacity-50">
+                {emailParts.signature}
+              </div>
+            </details>
+          {/if}
 
           <!-- Linked Entity Tags -->
           {#if hasLinkedEntities(activity)}
