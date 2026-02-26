@@ -18,7 +18,7 @@ socialIdRoutes.use("/*", authMiddleware);
 
 // List all social IDs
 socialIdRoutes.get("/api/social-ids", requirePermission("viewRecords"), async (c) => {
-  const data = await listSocialIds(c.get("db"));
+  const data = await listSocialIds(c.get("db"), c.req.query("q"));
   return c.json({ data });
 });
 

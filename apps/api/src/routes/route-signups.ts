@@ -10,8 +10,8 @@ import { internal, notFound, badRequest } from "../lib/errors";
 import { sanitizePostgrestValue } from "../lib/supabase-sanitize";
 import { nextDisplayId } from "../lib/display-id";
 import { getNextAction, updateNextAction, completeNextAction } from "../services/entity-next-actions";
-import { createEmail, deleteEmail } from "../services/emails";
-import { createPhoneNumber, deletePhoneNumber } from "../services/phone-numbers";
+import { createEmail, deleteEmail, listEmailsForEntity } from "../services/emails";
+import { createPhoneNumber, deletePhoneNumber, listPhoneNumbersForEntity } from "../services/phone-numbers";
 import { createSocialId, deleteSocialId, listSocialIdsForEntity } from "../services/social-ids";
 import type { AppContext } from "../types";
 import type { DB } from "../services/types";
@@ -220,6 +220,18 @@ routeSignupRoutes.post("/api/route-signups/:id/next-action/done", requirePermiss
   const db = c.get("db");
   await completeNextAction(db, "route_signup", c.req.param("id"), session.colleagueId);
   return c.json({ success: true });
+});
+
+// GET /api/route-signups/:id/emails
+routeSignupRoutes.get("/api/route-signups/:id/emails", requirePermission("viewRouteSignups"), async (c) => {
+  const data = await listEmailsForEntity(c.get("db"), "routeSignupId", c.req.param("id"));
+  return c.json({ data });
+});
+
+// GET /api/route-signups/:id/phone-numbers
+routeSignupRoutes.get("/api/route-signups/:id/phone-numbers", requirePermission("viewRouteSignups"), async (c) => {
+  const data = await listPhoneNumbersForEntity(c.get("db"), "routeSignupId", c.req.param("id"));
+  return c.json({ data });
 });
 
 // POST /api/route-signups/:id/emails

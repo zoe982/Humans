@@ -19,7 +19,7 @@ phoneNumberRoutes.use("/*", authMiddleware);
 
 // List all phone numbers (with human name)
 phoneNumberRoutes.get("/api/phone-numbers", requirePermission("viewRecords"), async (c) => {
-  const data = await listPhoneNumbers(c.get("db"));
+  const data = await listPhoneNumbers(c.get("db"), c.req.query("q"));
   return c.json({ data });
 });
 

@@ -1,4 +1,4 @@
-import { eq, inArray } from "drizzle-orm";
+import { eq, inArray, like } from "drizzle-orm";
 import { emails, humans, accounts, generalLeads, humanEmailLabelsConfig, accountEmailLabelsConfig } from "@humans/db/schema";
 import { createId } from "@humans/db";
 import { ERROR_CODES } from "@humans/shared";
@@ -28,8 +28,10 @@ function resolveOwner(
   return { ownerName: null, ownerDisplayId: null };
 }
 
-export async function listEmails(db: DB): Promise<{ ownerName: string | null; ownerDisplayId: string | null; labelName: string | null; id: string; displayId: string; humanId: string | null; accountId: string | null; generalLeadId: string | null; websiteBookingRequestId: string | null; routeSignupId: string | null; email: string; labelId: string | null; isPrimary: boolean; createdAt: string }[]> {
-  const allEmails = await db.select().from(emails);
+export async function listEmails(db: DB, query?: string): Promise<{ ownerName: string | null; ownerDisplayId: string | null; labelName: string | null; id: string; displayId: string; humanId: string | null; accountId: string | null; generalLeadId: string | null; websiteBookingRequestId: string | null; routeSignupId: string | null; email: string; labelId: string | null; isPrimary: boolean; createdAt: string }[]> {
+  const allEmails = query != null && query !== ""
+    ? await db.select().from(emails).where(like(emails.email, `%${query}%`))
+    : await db.select().from(emails);
   const humanIds = allEmails.flatMap((e) => e.humanId != null ? [e.humanId] : []);
   const accountIds = allEmails.flatMap((e) => e.accountId != null ? [e.accountId] : []);
   const generalLeadIds = allEmails.flatMap((e) => e.generalLeadId != null ? [e.generalLeadId] : []);
@@ -177,4 +179,21 @@ export async function deleteEmail(db: DB, id: string): Promise<void> {
   }
 
   await db.delete(emails).where(eq(emails.id, id));
+}
+
+export async function listEmailsForEntity(
+  db: DB,
+  column: "generalLeadId" | "websiteBookingRequestId" | "routeSignupId",
+  entityId: string,
+): Promise<{ id: string; displayId: string; email: string; labelId: string | null; isPrimary: boolean; createdAt: string }[]> {
+  // eslint-disable-next-line security/detect-object-injection -- column is a typed union, not user input
+  const rows = await db.select().from(emails).where(eq(emails[column], entityId));
+  return rows.map((e) => ({
+    id: e.id,
+    displayId: e.displayId,
+    email: e.email,
+    labelId: e.labelId,
+    isPrimary: e.isPrimary,
+    createdAt: e.createdAt,
+  }));
 }

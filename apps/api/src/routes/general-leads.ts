@@ -24,8 +24,8 @@ import {
   deleteGeneralLead,
   importLeadFromFront,
 } from "../services/general-leads";
-import { createEmail, deleteEmail } from "../services/emails";
-import { createPhoneNumber, deletePhoneNumber } from "../services/phone-numbers";
+import { createEmail, deleteEmail, listEmailsForEntity } from "../services/emails";
+import { createPhoneNumber, deletePhoneNumber, listPhoneNumbersForEntity } from "../services/phone-numbers";
 import { createSocialId, deleteSocialId, listSocialIdsForEntity } from "../services/social-ids";
 import { getNextAction, updateNextAction, completeNextAction } from "../services/entity-next-actions";
 import type { AppContext } from "../types";
@@ -149,6 +149,18 @@ generalLeadRoutes.post("/api/general-leads/:id/next-action/done", requirePermiss
   const db = c.get("db");
   await completeNextAction(db, "general_lead", c.req.param("id"), session.colleagueId);
   return c.json({ success: true });
+});
+
+// GET /api/general-leads/:id/emails
+generalLeadRoutes.get("/api/general-leads/:id/emails", requirePermission("viewGeneralLeads"), async (c) => {
+  const data = await listEmailsForEntity(c.get("db"), "generalLeadId", c.req.param("id"));
+  return c.json({ data });
+});
+
+// GET /api/general-leads/:id/phone-numbers
+generalLeadRoutes.get("/api/general-leads/:id/phone-numbers", requirePermission("viewGeneralLeads"), async (c) => {
+  const data = await listPhoneNumbersForEntity(c.get("db"), "generalLeadId", c.req.param("id"));
+  return c.json({ data });
 });
 
 // POST /api/general-leads/:id/emails

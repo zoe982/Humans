@@ -6,6 +6,7 @@ import {
   updateEmail,
   createEmail,
   deleteEmail,
+  listEmailsForEntity,
 } from "../../../src/services/emails";
 import * as schema from "@humans/db/schema";
 
@@ -107,6 +108,27 @@ describe("listEmails", () => {
     expect(result).toHaveLength(1);
     expect(result[0]!.email).toBe("alice@test.com");
     expect(result[0]!.ownerName).toBe("Alice Smith");
+  });
+
+  it("filters emails by query string", async () => {
+    const db = getTestDb();
+    await seedHuman(db, "h-1", "Alice", "Smith");
+    await seedEmail(db, "em-1", "alice@test.com", { humanId: "h-1" });
+    await seedEmail(db, "em-2", "bob@test.com", { humanId: "h-1" });
+
+    const result = await listEmails(db, "alice");
+    expect(result).toHaveLength(1);
+    expect(result[0]!.email).toBe("alice@test.com");
+  });
+
+  it("returns all emails when query is undefined", async () => {
+    const db = getTestDb();
+    await seedHuman(db, "h-1", "Alice", "Smith");
+    await seedEmail(db, "em-1", "alice@test.com", { humanId: "h-1" });
+    await seedEmail(db, "em-2", "bob@test.com", { humanId: "h-1" });
+
+    const result = await listEmails(db);
+    expect(result).toHaveLength(2);
   });
 
   it("returns multiple emails across different humans", async () => {
@@ -347,5 +369,28 @@ describe("deleteEmail", () => {
 
     const rows = await db.select().from(schema.emails);
     expect(rows).toHaveLength(0);
+  });
+});
+
+describe("listEmailsForEntity", () => {
+  it("returns emails for a general lead", async () => {
+    const db = getTestDb();
+    await seedGeneralLead(db, "gl-1", "Sam", "Wilson");
+    await seedEmail(db, "em-1", "sam@test.com", { generalLeadId: "gl-1" });
+    await seedEmail(db, "em-2", "other@test.com");
+
+    const result = await listEmailsForEntity(db, "generalLeadId", "gl-1");
+    expect(result).toHaveLength(1);
+    expect(result[0]).toMatchObject({
+      id: "em-1",
+      email: "sam@test.com",
+    });
+    expect(result[0]!.displayId).toMatch(/^EML-/);
+  });
+
+  it("returns empty list when no emails for entity", async () => {
+    const db = getTestDb();
+    const result = await listEmailsForEntity(db, "generalLeadId", "nonexistent");
+    expect(result).toHaveLength(0);
   });
 });

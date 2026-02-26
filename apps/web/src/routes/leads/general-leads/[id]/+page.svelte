@@ -17,6 +17,7 @@
   import LeadScoreInlineFlags from "$lib/components/LeadScoreInlineFlags.svelte";
   import { resolve } from "$app/paths";
   import { page } from "$app/stores";
+  import { Trash2 } from "lucide-svelte";
 
   let { data, form }: { data: PageData; form: ActionData } = $props();
 
@@ -353,17 +354,28 @@
       title="Emails"
       items={lead.emails ?? []}
       columns={[
+        { key: "displayId", label: "ID", sortable: true, sortValue: (e) => e.displayId },
         { key: "email", label: "Email", sortable: true, sortValue: (e) => e.email },
         { key: "isPrimary", label: "Primary", sortable: false },
+        { key: "delete", label: "", headerClass: "w-10" },
       ]}
       defaultSortKey="email"
-      searchFilter={(e, q) => e.email.toLowerCase().includes(q)}
+      searchFilter={(e, q) => e.email.toLowerCase().includes(q) || e.displayId.toLowerCase().includes(q)}
       emptyMessage="No emails yet."
       addLabel="Email"
     >
       {#snippet row(email, searchQuery)}
+        <td class="font-mono text-sm whitespace-nowrap"><a href={resolve(`/emails/${email.id}?from=${$page.url.pathname}`)} class="text-accent hover:text-[var(--link-hover)]">{email.displayId}</a></td>
         <td class="text-sm"><HighlightText text={email.email} query={searchQuery} /></td>
         <td>{email.isPrimary ? "Yes" : ""}</td>
+        <td>
+          <form method="POST" action="?/deleteEmail">
+            <input type="hidden" name="emailId" value={email.id} />
+            <button type="submit" class="flex items-center justify-center w-7 h-7 rounded-lg text-text-muted hover:text-destructive-foreground hover:bg-destructive transition-colors duration-150" aria-label="Delete email">
+              <Trash2 size={14} />
+            </button>
+          </form>
+        </td>
       {/snippet}
       {#snippet addForm()}
         <form method="POST" action="?/addEmail" class="space-y-3">
@@ -387,6 +399,7 @@
         { key: "phoneNumber", label: "Phone Number", sortable: true, sortValue: (p) => p.phoneNumber },
         { key: "hasWhatsapp", label: "WhatsApp", sortable: false },
         { key: "isPrimary", label: "Primary", sortable: false },
+        { key: "delete", label: "", headerClass: "w-10" },
       ]}
       defaultSortKey="phoneNumber"
       searchFilter={(p, q) => p.phoneNumber.toLowerCase().includes(q) || p.displayId.toLowerCase().includes(q)}
@@ -398,6 +411,14 @@
         <td class="text-sm"><HighlightText text={phone.phoneNumber} query={searchQuery} /></td>
         <td>{phone.hasWhatsapp ? "Yes" : ""}</td>
         <td>{phone.isPrimary ? "Yes" : ""}</td>
+        <td>
+          <form method="POST" action="?/deletePhoneNumber">
+            <input type="hidden" name="phoneNumberId" value={phone.id} />
+            <button type="submit" class="flex items-center justify-center w-7 h-7 rounded-lg text-text-muted hover:text-destructive-foreground hover:bg-destructive transition-colors duration-150" aria-label="Delete phone number">
+              <Trash2 size={14} />
+            </button>
+          </form>
+        </td>
       {/snippet}
       {#snippet addForm()}
         <form method="POST" action="?/addPhoneNumber" class="space-y-3">
@@ -417,17 +438,28 @@
       title="Social IDs"
       items={lead.socialIds ?? []}
       columns={[
+        { key: "displayId", label: "ID", sortable: true, sortValue: (s) => s.displayId },
         { key: "handle", label: "Handle", sortable: true, sortValue: (s) => s.handle },
         { key: "platformName", label: "Platform", sortable: true, sortValue: (s) => s.platformName ?? "" },
+        { key: "delete", label: "", headerClass: "w-10" },
       ]}
       defaultSortKey="handle"
-      searchFilter={(s, q) => s.handle.toLowerCase().includes(q) || (s.platformName ?? "").toLowerCase().includes(q)}
+      searchFilter={(s, q) => s.handle.toLowerCase().includes(q) || (s.platformName ?? "").toLowerCase().includes(q) || s.displayId.toLowerCase().includes(q)}
       emptyMessage="No social IDs yet."
       addLabel="Social ID"
     >
       {#snippet row(socialId, searchQuery)}
+        <td class="font-mono text-sm whitespace-nowrap"><a href={resolve(`/social-ids/${socialId.id}?from=${$page.url.pathname}`)} class="text-accent hover:text-[var(--link-hover)]">{socialId.displayId}</a></td>
         <td class="text-sm"><HighlightText text={socialId.handle} query={searchQuery} /></td>
         <td class="text-sm">{socialId.platformName ?? "—"}</td>
+        <td>
+          <form method="POST" action="?/deleteSocialId">
+            <input type="hidden" name="socialIdId" value={socialId.id} />
+            <button type="submit" class="flex items-center justify-center w-7 h-7 rounded-lg text-text-muted hover:text-destructive-foreground hover:bg-destructive transition-colors duration-150" aria-label="Delete social ID">
+              <Trash2 size={14} />
+            </button>
+          </form>
+        </td>
       {/snippet}
       {#snippet addForm()}
         <form method="POST" action="?/addSocialId" class="space-y-3">

@@ -1,4 +1,4 @@
-import { eq, inArray } from "drizzle-orm";
+import { eq, inArray, like } from "drizzle-orm";
 import { phones, humans, accounts, generalLeads, humanPhoneLabelsConfig, accountPhoneLabelsConfig } from "@humans/db/schema";
 import { createId } from "@humans/db";
 import { ERROR_CODES } from "@humans/shared";
@@ -28,8 +28,10 @@ function resolveOwner(
   return { ownerName: null, ownerDisplayId: null };
 }
 
-export async function listPhoneNumbers(db: DB): Promise<{ ownerName: string | null; ownerDisplayId: string | null; labelName: string | null; id: string; displayId: string; humanId: string | null; accountId: string | null; generalLeadId: string | null; websiteBookingRequestId: string | null; routeSignupId: string | null; phoneNumber: string; labelId: string | null; hasWhatsapp: boolean; isPrimary: boolean; createdAt: string }[]> {
-  const allPhones = await db.select().from(phones);
+export async function listPhoneNumbers(db: DB, query?: string): Promise<{ ownerName: string | null; ownerDisplayId: string | null; labelName: string | null; id: string; displayId: string; humanId: string | null; accountId: string | null; generalLeadId: string | null; websiteBookingRequestId: string | null; routeSignupId: string | null; phoneNumber: string; labelId: string | null; hasWhatsapp: boolean; isPrimary: boolean; createdAt: string }[]> {
+  const allPhones = query != null && query !== ""
+    ? await db.select().from(phones).where(like(phones.phoneNumber, `%${query}%`))
+    : await db.select().from(phones);
   const humanIds = allPhones.flatMap((p) => p.humanId != null ? [p.humanId] : []);
   const accountIds = allPhones.flatMap((p) => p.accountId != null ? [p.accountId] : []);
   const generalLeadIds = allPhones.flatMap((p) => p.generalLeadId != null ? [p.generalLeadId] : []);
@@ -187,4 +189,22 @@ export async function deletePhoneNumber(db: DB, id: string): Promise<void> {
   }
 
   await db.delete(phones).where(eq(phones.id, id));
+}
+
+export async function listPhoneNumbersForEntity(
+  db: DB,
+  column: "generalLeadId" | "websiteBookingRequestId" | "routeSignupId",
+  entityId: string,
+): Promise<{ id: string; displayId: string; phoneNumber: string; labelId: string | null; hasWhatsapp: boolean; isPrimary: boolean; createdAt: string }[]> {
+  // eslint-disable-next-line security/detect-object-injection -- column is a typed union, not user input
+  const rows = await db.select().from(phones).where(eq(phones[column], entityId));
+  return rows.map((p) => ({
+    id: p.id,
+    displayId: p.displayId,
+    phoneNumber: p.phoneNumber,
+    labelId: p.labelId,
+    hasWhatsapp: p.hasWhatsapp,
+    isPrimary: p.isPrimary,
+    createdAt: p.createdAt,
+  }));
 }

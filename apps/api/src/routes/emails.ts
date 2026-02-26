@@ -18,7 +18,7 @@ emailRoutes.use("/*", authMiddleware);
 
 // List all emails with human names
 emailRoutes.get("/api/emails", requirePermission("viewRecords"), async (c) => {
-  const data = await listEmails(c.get("db"));
+  const data = await listEmails(c.get("db"), c.req.query("q"));
   return c.json({ data });
 });
 

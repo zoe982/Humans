@@ -7,6 +7,7 @@ import {
   createPhoneNumber,
   updatePhoneNumber,
   deletePhoneNumber,
+  listPhoneNumbersForEntity,
 } from "../../../src/services/phone-numbers";
 import * as schema from "@humans/db/schema";
 
@@ -109,6 +110,27 @@ describe("listPhoneNumbers", () => {
     expect(result).toHaveLength(1);
     expect(result[0]!.phoneNumber).toBe("+1111111111");
     expect(result[0]!.ownerName).toBe("Alice Smith");
+  });
+
+  it("filters phone numbers by query string", async () => {
+    const db = getTestDb();
+    await seedHuman(db, "h-1", "Alice", "Smith");
+    await seedPhone(db, "ph-1", "+1111111111", { humanId: "h-1" });
+    await seedPhone(db, "ph-2", "+2222222222", { humanId: "h-1" });
+
+    const result = await listPhoneNumbers(db, "+111");
+    expect(result).toHaveLength(1);
+    expect(result[0]!.phoneNumber).toBe("+1111111111");
+  });
+
+  it("returns all phones when query is undefined", async () => {
+    const db = getTestDb();
+    await seedHuman(db, "h-1", "Alice", "Smith");
+    await seedPhone(db, "ph-1", "+1111111111", { humanId: "h-1" });
+    await seedPhone(db, "ph-2", "+2222222222", { humanId: "h-1" });
+
+    const result = await listPhoneNumbers(db);
+    expect(result).toHaveLength(2);
   });
 
   it("returns multiple phone numbers across different humans", async () => {
@@ -349,5 +371,28 @@ describe("deletePhoneNumber", () => {
 
     const rows = await db.select().from(schema.phones);
     expect(rows).toHaveLength(0);
+  });
+});
+
+describe("listPhoneNumbersForEntity", () => {
+  it("returns phones for a general lead", async () => {
+    const db = getTestDb();
+    await seedGeneralLead(db, "gl-1", "Sam", "Wilson");
+    await seedPhone(db, "ph-1", "+1234567890", { generalLeadId: "gl-1" });
+    await seedPhone(db, "ph-2", "+0000000000");
+
+    const result = await listPhoneNumbersForEntity(db, "generalLeadId", "gl-1");
+    expect(result).toHaveLength(1);
+    expect(result[0]).toMatchObject({
+      id: "ph-1",
+      phoneNumber: "+1234567890",
+    });
+    expect(result[0]!.displayId).toMatch(/^FON-/);
+  });
+
+  it("returns empty list when no phones for entity", async () => {
+    const db = getTestDb();
+    const result = await listPhoneNumbersForEntity(db, "generalLeadId", "nonexistent");
+    expect(result).toHaveLength(0);
   });
 });

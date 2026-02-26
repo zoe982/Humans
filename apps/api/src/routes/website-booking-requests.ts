@@ -8,8 +8,8 @@ import { internal, notFound, badRequest } from "../lib/errors";
 import { nextDisplayId } from "../lib/display-id";
 import { getNextAction, updateNextAction, completeNextAction } from "../services/entity-next-actions";
 import { getLinkedHumansForBookingRequest } from "../services/humans";
-import { createEmail, deleteEmail } from "../services/emails";
-import { createPhoneNumber, deletePhoneNumber } from "../services/phone-numbers";
+import { createEmail, deleteEmail, listEmailsForEntity } from "../services/emails";
+import { createPhoneNumber, deletePhoneNumber, listPhoneNumbersForEntity } from "../services/phone-numbers";
 import { createSocialId, deleteSocialId, listSocialIdsForEntity } from "../services/social-ids";
 import type { AppContext } from "../types";
 import type { DB } from "../services/types";
@@ -210,6 +210,26 @@ websiteBookingRequestRoutes.post(
     const db = c.get("db");
     await completeNextAction(db, "website_booking_request", c.req.param("id"), session.colleagueId);
     return c.json({ success: true });
+  },
+);
+
+// GET /api/website-booking-requests/:id/emails
+websiteBookingRequestRoutes.get(
+  "/api/website-booking-requests/:id/emails",
+  requirePermission("viewWebsiteBookingRequests"),
+  async (c) => {
+    const data = await listEmailsForEntity(c.get("db"), "websiteBookingRequestId", c.req.param("id"));
+    return c.json({ data });
+  },
+);
+
+// GET /api/website-booking-requests/:id/phone-numbers
+websiteBookingRequestRoutes.get(
+  "/api/website-booking-requests/:id/phone-numbers",
+  requirePermission("viewWebsiteBookingRequests"),
+  async (c) => {
+    const data = await listPhoneNumbersForEntity(c.get("db"), "websiteBookingRequestId", c.req.param("id"));
+    return c.json({ data });
   },
 );
 

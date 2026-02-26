@@ -1,4 +1,4 @@
-import { eq, inArray } from "drizzle-orm";
+import { eq, inArray, like } from "drizzle-orm";
 import { socialIds, socialIdPlatformsConfig, humans, accounts, generalLeads } from "@humans/db/schema";
 import { createId } from "@humans/db";
 import { ERROR_CODES } from "@humans/shared";
@@ -7,8 +7,10 @@ import { nextDisplayId } from "../lib/display-id";
 import { rematchActivitiesBySocialId } from "./activity-rematch";
 import type { DB } from "./types";
 
-export async function listSocialIds(db: DB): Promise<{ humanName: string | null; humanDisplayId: string | null; accountName: string | null; accountDisplayId: string | null; generalLeadName: string | null; generalLeadDisplayId: string | null; platformName: string | null; id: string; displayId: string; handle: string; platformId: string | null; humanId: string | null; accountId: string | null; generalLeadId: string | null; websiteBookingRequestId: string | null; routeSignupId: string | null; createdAt: string }[]> {
-  const allSocialIds = await db.select().from(socialIds);
+export async function listSocialIds(db: DB, query?: string): Promise<{ humanName: string | null; humanDisplayId: string | null; accountName: string | null; accountDisplayId: string | null; generalLeadName: string | null; generalLeadDisplayId: string | null; platformName: string | null; id: string; displayId: string; handle: string; platformId: string | null; humanId: string | null; accountId: string | null; generalLeadId: string | null; websiteBookingRequestId: string | null; routeSignupId: string | null; createdAt: string }[]> {
+  const allSocialIds = query != null && query !== ""
+    ? await db.select().from(socialIds).where(like(socialIds.handle, `%${query}%`))
+    : await db.select().from(socialIds);
   // eslint-disable-next-line @typescript-eslint/non-nullable-type-assertion-style, @typescript-eslint/no-unsafe-type-assertion -- filter guarantees non-null
   const humanIds = allSocialIds.filter((s) => s.humanId != null).map((s) => s.humanId as string);
   // eslint-disable-next-line @typescript-eslint/non-nullable-type-assertion-style, @typescript-eslint/no-unsafe-type-assertion -- filter guarantees non-null

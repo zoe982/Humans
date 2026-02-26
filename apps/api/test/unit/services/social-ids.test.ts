@@ -109,6 +109,25 @@ describe("listSocialIds", () => {
     expect(result[0]!.platformName).toBeNull();
   });
 
+  it("filters social IDs by query string", async () => {
+    const db = getTestDb();
+    await seedSocialId(db, "soc-1", "@alice");
+    await seedSocialId(db, "soc-2", "@bob");
+
+    const result = await listSocialIds(db, "alice");
+    expect(result).toHaveLength(1);
+    expect(result[0]!.handle).toBe("@alice");
+  });
+
+  it("returns all social IDs when query is undefined", async () => {
+    const db = getTestDb();
+    await seedSocialId(db, "soc-1", "@alice");
+    await seedSocialId(db, "soc-2", "@bob");
+
+    const result = await listSocialIds(db);
+    expect(result).toHaveLength(2);
+  });
+
   it("enriches social ID with human name and displayId", async () => {
     const db = getTestDb();
     await seedHuman(db, "h-1", "Alice", "Smith");

@@ -65,8 +65,8 @@
     [key: string]: string | null | Record<string, unknown>;
   };
 
-  type CrmEmail = { id: string; email: string; isPrimary: boolean | null };
-  type CrmPhoneNumber = { id: string; phoneNumber: string; isPrimary: boolean | null };
+  type CrmEmail = { id: string; displayId: string; email: string; isPrimary: boolean | null };
+  type CrmPhoneNumber = { id: string; displayId: string; phoneNumber: string; isPrimary: boolean | null };
   type SocialId = { id: string; displayId: string; handle: string; platformId: string | null; platformName: string | null; createdAt: string };
   type PlatformConfig = { id: string; name: string };
 
@@ -353,22 +353,24 @@
     </div>
   {/if}
 
-  <!-- CRM Emails -->
+  <!-- Emails -->
   <div class="mb-6">
     <RelatedListTable
-      title="CRM Emails"
+      title="Emails"
       items={crmEmails}
       columns={[
+        { key: "displayId", label: "ID", sortable: true, sortValue: (e) => e.displayId },
         { key: "email", label: "Email", sortable: true, sortValue: (e) => e.email },
         { key: "isPrimary", label: "Primary", sortable: false },
         { key: "delete", label: "", headerClass: "w-10" },
       ]}
       defaultSortKey="email"
-      searchFilter={(e, q) => e.email.toLowerCase().includes(q)}
-      emptyMessage="No CRM emails linked yet."
+      searchFilter={(e, q) => e.email.toLowerCase().includes(q) || e.displayId.toLowerCase().includes(q)}
+      emptyMessage="No emails linked yet."
       addLabel="Email"
     >
       {#snippet row(email, searchQuery)}
+        <td class="font-mono text-sm whitespace-nowrap"><a href={resolve(`/emails/${email.id}?from=${$page.url.pathname}`)} class="text-accent hover:text-[var(--link-hover)]">{email.displayId}</a></td>
         <td class="text-sm"><HighlightText text={email.email} query={searchQuery} /></td>
         <td class="text-sm text-text-secondary">{email.isPrimary ? "Yes" : ""}</td>
         <td>
@@ -392,22 +394,24 @@
     </RelatedListTable>
   </div>
 
-  <!-- CRM Phone Numbers -->
+  <!-- Phone Numbers -->
   <div class="mb-6">
     <RelatedListTable
-      title="CRM Phone Numbers"
+      title="Phone Numbers"
       items={crmPhoneNumbers}
       columns={[
+        { key: "displayId", label: "ID", sortable: true, sortValue: (p) => p.displayId },
         { key: "phoneNumber", label: "Phone", sortable: true, sortValue: (p) => p.phoneNumber },
         { key: "isPrimary", label: "Primary", sortable: false },
         { key: "delete", label: "", headerClass: "w-10" },
       ]}
       defaultSortKey="phoneNumber"
-      searchFilter={(p, q) => p.phoneNumber.toLowerCase().includes(q)}
-      emptyMessage="No CRM phone numbers linked yet."
+      searchFilter={(p, q) => p.phoneNumber.toLowerCase().includes(q) || p.displayId.toLowerCase().includes(q)}
+      emptyMessage="No phone numbers linked yet."
       addLabel="Phone Number"
     >
       {#snippet row(phone, searchQuery)}
+        <td class="font-mono text-sm whitespace-nowrap"><a href={resolve(`/phone-numbers/${phone.id}?from=${$page.url.pathname}`)} class="text-accent hover:text-[var(--link-hover)]">{phone.displayId}</a></td>
         <td class="text-sm"><HighlightText text={phone.phoneNumber} query={searchQuery} /></td>
         <td class="text-sm text-text-secondary">{phone.isPrimary ? "Yes" : ""}</td>
         <td>
@@ -437,16 +441,18 @@
       title="Social IDs"
       items={socialIds}
       columns={[
+        { key: "displayId", label: "ID", sortable: true, sortValue: (s) => s.displayId },
         { key: "handle", label: "Handle", sortable: true, sortValue: (s) => s.handle },
         { key: "platformName", label: "Platform", sortable: true, sortValue: (s) => s.platformName ?? "" },
         { key: "delete", label: "", headerClass: "w-10" },
       ]}
       defaultSortKey="handle"
-      searchFilter={(s, q) => s.handle.toLowerCase().includes(q) || (s.platformName ?? "").toLowerCase().includes(q)}
+      searchFilter={(s, q) => s.handle.toLowerCase().includes(q) || (s.platformName ?? "").toLowerCase().includes(q) || s.displayId.toLowerCase().includes(q)}
       emptyMessage="No social IDs yet."
       addLabel="Social ID"
     >
       {#snippet row(socialId, searchQuery)}
+        <td class="font-mono text-sm whitespace-nowrap"><a href={resolve(`/social-ids/${socialId.id}?from=${$page.url.pathname}`)} class="text-accent hover:text-[var(--link-hover)]">{socialId.displayId}</a></td>
         <td class="text-sm"><HighlightText text={socialId.handle} query={searchQuery} /></td>
         <td class="text-sm">{socialId.platformName ?? "—"}</td>
         <td>
