@@ -24,13 +24,18 @@ export async function fetchEntityList(
     headers["Cookie"] = `humans_session=${sessionToken}`;
   }
 
-  const res = await svelteKitFetch(url, {
-    ...(browser ? { credentials: "include" as const } : {}),
-    headers,
-  });
+  try {
+    const res = await svelteKitFetch(url, {
+      ...(browser ? { credentials: "include" as const } : {}),
+      headers,
+    });
 
-  if (!res.ok) return [];
+    if (!res.ok) return [];
 
-  const raw: unknown = await res.json();
-  return isListResponse(raw) ? raw.data : [];
+    const raw: unknown = await res.json();
+    return isListResponse(raw) ? raw.data : [];
+  } catch {
+    // Network error, CORS failure, or JSON parse error — return empty list
+    return [];
+  }
 }

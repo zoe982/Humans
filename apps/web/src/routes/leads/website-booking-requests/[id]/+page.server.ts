@@ -3,6 +3,10 @@ import type { RequestEvent, ActionFailure } from "@sveltejs/kit";
 import { PUBLIC_API_URL } from "$env/static/public";
 import { isObjData, isListData, failFromApi, fetchConfigs, authHeaders } from "$lib/server/api";
 
+function isConfigsRecord(value: unknown): value is Record<string, unknown[]> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
 function getFormString(form: FormData, key: string): string {
   const raw = form.get(key);
   return typeof raw === "string" ? raw : "";
@@ -24,75 +28,55 @@ export const load = async ({ locals, cookies, params }: RequestEvent): Promise<{
   const booking = isObjData(bookingRaw) ? bookingRaw.data : null;
   if (booking == null) redirect(302, "/leads/website-booking-requests");
 
-  // Build parallel fetch list: activities, colleagues, linked humans, emails, phones, social-ids, and optionally attribution
+  // Helpers that consume response bodies immediately to free Workers connections.
+  // Cloudflare Workers allow max 6 simultaneous outbound connections; stalled
+  // (unconsumed) bodies count against this limit and trigger
+  // "Response closed due to connection limit" errors.
+  async function fetchList(url: string): Promise<unknown[]> {
+    try {
+      const res = await fetch(url, { headers: authHeaders(sessionToken) });
+      if (!res.ok) { await res.body?.cancel(); return []; }
+      const raw: unknown = await res.json();
+      return isListData(raw) ? raw.data : [];
+    } catch { return []; }
+  }
+  async function fetchObj(url: string): Promise<Record<string, unknown> | null> {
+    try {
+      const res = await fetch(url, { headers: authHeaders(sessionToken) });
+      if (!res.ok) { await res.body?.cancel(); return null; }
+      const raw: unknown = await res.json();
+      return isObjData(raw) ? raw.data : null;
+    } catch { return null; }
+  }
+
   const marketingAttributionId = typeof booking["marketing_attribution_id"] === "string" ? booking["marketing_attribution_id"] : null;
 
-  const headers = authHeaders(sessionToken);
-  const parallelFetches: Promise<Response>[] = [
-    fetch(`${PUBLIC_API_URL}/api/activities?websiteBookingRequestId=${id ?? ""}&include=linkedEntities`, { headers }),
-    fetch(`${PUBLIC_API_URL}/api/colleagues`, { headers }),
-    fetch(`${PUBLIC_API_URL}/api/website-booking-requests/${id ?? ""}/linked-humans`, { headers }),
-    fetch(`${PUBLIC_API_URL}/api/lead-scores/by-parent/website_booking_request/${id ?? ""}`, { headers }),
-    fetch(`${PUBLIC_API_URL}/api/website-booking-requests/${id ?? ""}/emails`, { headers }),
-    fetch(`${PUBLIC_API_URL}/api/website-booking-requests/${id ?? ""}/phone-numbers`, { headers }),
-    fetch(`${PUBLIC_API_URL}/api/website-booking-requests/${id ?? ""}/social-ids`, { headers }),
+  // Batch 1 (3 fetches — each consumes body immediately, freeing the connection)
+  const [activities, colleagues, linkedHumans] = await Promise.all([
+    fetchList(`${PUBLIC_API_URL}/api/activities?websiteBookingRequestId=${id ?? ""}&include=linkedEntities`),
+    fetchList(`${PUBLIC_API_URL}/api/colleagues`),
+    fetchList(`${PUBLIC_API_URL}/api/website-booking-requests/${id ?? ""}/linked-humans`),
+  ]);
+
+  // Batch 2 (3 fetches)
+  const [leadScore, emails, phoneNumbers] = await Promise.all([
+    fetchObj(`${PUBLIC_API_URL}/api/lead-scores/by-parent/website_booking_request/${id ?? ""}`),
+    fetchList(`${PUBLIC_API_URL}/api/website-booking-requests/${id ?? ""}/emails`),
+    fetchList(`${PUBLIC_API_URL}/api/website-booking-requests/${id ?? ""}/phone-numbers`),
+  ]);
+
+  // Batch 3 (2-3 fetches)
+  const batch3: Promise<unknown>[] = [
+    fetchList(`${PUBLIC_API_URL}/api/website-booking-requests/${id ?? ""}/social-ids`),
+    fetchConfigs(sessionToken, ["social-id-platforms", "lead-sources", "lead-channels"]),
   ];
   if (marketingAttributionId != null) {
-    parallelFetches.push(
-      fetch(`${PUBLIC_API_URL}/api/marketing-attributions/${marketingAttributionId}`, { headers }),
-    );
+    batch3.push(fetchObj(`${PUBLIC_API_URL}/api/marketing-attributions/${marketingAttributionId}`));
   }
-  const [activitiesRes, colleaguesRes, linkedHumansRes, leadScoreRes, emailsRes, phoneNumbersRes, socialIdsRes, attributionRes] = await Promise.all(parallelFetches);
-
-  let activities: unknown[] = [];
-  if (activitiesRes.ok) {
-    const activitiesRaw: unknown = await activitiesRes.json();
-    activities = isListData(activitiesRaw) ? activitiesRaw.data : [];
-  }
-
-  let colleagues: unknown[] = [];
-  if (colleaguesRes.ok) {
-    const colleaguesRaw: unknown = await colleaguesRes.json();
-    colleagues = isListData(colleaguesRaw) ? colleaguesRaw.data : [];
-  }
-
-  let linkedHumans: unknown[] = [];
-  if (linkedHumansRes.ok) {
-    const linkedHumansRaw: unknown = await linkedHumansRes.json();
-    linkedHumans = isListData(linkedHumansRaw) ? linkedHumansRaw.data : [];
-  }
-
-  let leadScore: Record<string, unknown> | null = null;
-  if (leadScoreRes.ok) {
-    const lsRaw: unknown = await leadScoreRes.json();
-    leadScore = isObjData(lsRaw) ? lsRaw.data : null;
-  }
-
-  let emails: unknown[] = [];
-  if (emailsRes.ok) {
-    const emailsRaw: unknown = await emailsRes.json();
-    emails = isListData(emailsRaw) ? emailsRaw.data : [];
-  }
-
-  let phoneNumbers: unknown[] = [];
-  if (phoneNumbersRes.ok) {
-    const phoneNumbersRaw: unknown = await phoneNumbersRes.json();
-    phoneNumbers = isListData(phoneNumbersRaw) ? phoneNumbersRaw.data : [];
-  }
-
-  let socialIds: unknown[] = [];
-  if (socialIdsRes.ok) {
-    const socialIdsRaw: unknown = await socialIdsRes.json();
-    socialIds = isListData(socialIdsRaw) ? socialIdsRaw.data : [];
-  }
-
-  let marketingAttribution: unknown = null;
-  if (attributionRes?.ok === true) {
-    const attrRaw: unknown = await attributionRes.json();
-    marketingAttribution = isObjData(attrRaw) ? attrRaw.data : null;
-  }
-
-  const configs = await fetchConfigs(sessionToken, ["social-id-platforms", "lead-sources", "lead-channels"]);
+  const [socialIdsResult, configsResult, attrResult] = await Promise.all(batch3);
+  const socialIds = Array.isArray(socialIdsResult) ? socialIdsResult : [];
+  const configs = isConfigsRecord(configsResult) ? configsResult : {};
+  const marketingAttribution = attrResult ?? null;
 
   return { booking, activities, colleagues, linkedHumans, marketingAttribution, leadScore, emails, phoneNumbers, socialIds, platformConfigs: configs["social-id-platforms"] ?? [], leadSources: configs["lead-sources"] ?? [], leadChannels: configs["lead-channels"] ?? [], user: locals.user };
 };

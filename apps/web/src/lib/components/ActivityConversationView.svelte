@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { Snippet } from "svelte";
+  import { SvelteSet } from "svelte/reactivity";
   import { slide } from "svelte/transition";
   import { Search, Trash2 } from "lucide-svelte";
   import { Button } from "$lib/components/ui/button";
@@ -206,6 +207,27 @@
       (a.linkedOpportunities != null && a.linkedOpportunities.length > 0)
     );
   }
+
+  // Track which activity indices have overflowing body text
+  const overflowSet = new SvelteSet<number>();
+
+  function detectOverflow(node: HTMLElement, index: number) {
+    const wrapper = node.closest('.activity-body-wrapper') as HTMLElement | null;
+    const check = () => {
+      if (!wrapper) return;
+      if (node.scrollHeight > node.clientHeight + 2) {
+        wrapper.classList.add('is-truncated');
+        overflowSet.add(index);
+      } else {
+        wrapper.classList.remove('is-truncated');
+        overflowSet.delete(index);
+      }
+    };
+    requestAnimationFrame(check);
+    const ro = new ResizeObserver(check);
+    ro.observe(node);
+    return { destroy() { ro.disconnect(); } };
+  }
 </script>
 
 <div class="glass-card overflow-hidden">
@@ -315,19 +337,26 @@
           class:message-outbound={isOutbound}
           class:message-inbound={!isOutbound}
         >
-          <!-- Body Text -->
-          <div
-            class="text-sm text-text-primary mb-2 break-words"
-            class:max-h-[45rem]={maxMessages !== undefined}
-            class:overflow-y-auto={maxMessages !== undefined}
-          >
-            {#if emailParts}
-              <FormattedActivityText text={emailParts.body} query={searchQuery} />
-            {:else}
-              <HighlightText text={activity.subject} query={searchQuery} />
-            {/if}
+          <!-- Body Text with truncation -->
+          <div class="activity-body-wrapper">
+            <div
+              class="text-sm text-text-primary break-words activity-body-text"
+              use:detectOverflow={i}
+            >
+              {#if emailParts}
+                <FormattedActivityText text={emailParts.body} query={searchQuery} />
+              {:else}
+                <HighlightText text={activity.subject} query={searchQuery} />
+              {/if}
+            </div>
+            <a
+              href={resolve(`/activities/${activity.id}?from=${$page.url.pathname}`)}
+              class="activity-view-full"
+            >
+              View full activity &rarr;
+            </a>
           </div>
-          {#if emailParts?.signature}
+          {#if emailParts?.signature && !overflowSet.has(i)}
             <details class="mt-2 text-xs text-text-muted">
               <summary class="cursor-pointer select-none opacity-60 hover:opacity-100 transition-opacity">
                 Signature
@@ -365,16 +394,7 @@
               <!-- Display ID link -->
               <a
                 href={resolve(`/activities/${activity.id}?from=${$page.url.pathname}`)}
-                class="font-mono text-xs shrink-0 activity-id-link"
-                style="color: var(--color-text-muted); opacity: 0.5; transition: opacity 0.2s, color 0.2s;"
-                onmouseenter={(e) => {
-                  (e.currentTarget as HTMLElement).style.opacity = "1";
-                  (e.currentTarget as HTMLElement).style.color = "var(--color-accent)";
-                }}
-                onmouseleave={(e) => {
-                  (e.currentTarget as HTMLElement).style.opacity = "0.5";
-                  (e.currentTarget as HTMLElement).style.color = "var(--color-text-muted)";
-                }}
+                class="activity-display-id"
               >
                 {activity.displayId}
               </a>
@@ -510,5 +530,76 @@
 
   :global(.light) .message-inbound {
     border-left: 3px solid rgba(100, 116, 139, 0.22);
+  }
+
+  /* ── Body truncation ── */
+  .activity-body-wrapper {
+    position: relative;
+    margin-bottom: 0.5rem;
+  }
+
+  .activity-body-text {
+    max-height: 31.25rem; /* 25 lines × 1.25rem */
+    overflow: hidden;
+    line-height: 1.25rem;
+  }
+
+  /* Fade last 3rem to transparent via mask (theme-agnostic) */
+  .is-truncated .activity-body-text {
+    -webkit-mask-image: linear-gradient(to bottom, black calc(100% - 3rem), transparent 100%);
+    mask-image: linear-gradient(to bottom, black calc(100% - 3rem), transparent 100%);
+  }
+
+  .activity-view-full {
+    display: none;
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--color-accent);
+    margin-top: 0.375rem;
+    transition: color 0.15s;
+  }
+  .activity-view-full:hover {
+    color: var(--link-hover);
+  }
+  .is-truncated .activity-view-full {
+    display: block;
+  }
+
+  /* ── Display ID pill ── */
+  .activity-display-id {
+    display: inline-flex;
+    align-items: center;
+    font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    color: var(--color-accent);
+    background: rgba(6, 182, 212, 0.10);
+    border: 1px solid rgba(6, 182, 212, 0.20);
+    border-radius: 0.375rem;
+    padding: 0.125rem 0.375rem;
+    transition: background 0.15s, border-color 0.15s, box-shadow 0.15s;
+    flex-shrink: 0;
+    line-height: 1.4;
+    text-decoration: none;
+  }
+
+  .activity-display-id:hover {
+    background: rgba(6, 182, 212, 0.18);
+    border-color: rgba(6, 182, 212, 0.38);
+    box-shadow: 0 0 8px rgba(6, 182, 212, 0.14);
+    color: var(--link-hover);
+  }
+
+  :global(.light) .activity-display-id {
+    color: #0891b2;
+    background: rgba(6, 182, 212, 0.10);
+    border-color: rgba(6, 182, 212, 0.22);
+  }
+
+  :global(.light) .activity-display-id:hover {
+    background: rgba(6, 182, 212, 0.16);
+    border-color: rgba(6, 182, 212, 0.35);
+    color: #0e7490;
   }
 </style>
