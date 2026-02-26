@@ -22,6 +22,7 @@ export async function deriveKey(
     ["deriveKey"],
   );
 
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- ArrayBufferLike.slice() returns ArrayBuffer at runtime
   const saltBuf: ArrayBuffer = salt.buffer.slice(salt.byteOffset, salt.byteOffset + salt.byteLength) as ArrayBuffer;
   return crypto.subtle.deriveKey(
     { name: "PBKDF2", salt: saltBuf, iterations: PBKDF2_ITERATIONS, hash: "SHA-256" },
@@ -51,6 +52,7 @@ export async function decrypt(
   iv: Uint8Array,
   ciphertext: ArrayBuffer,
 ): Promise<unknown> {
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- ArrayBufferLike.slice() returns ArrayBuffer at runtime
   const ivBuf: ArrayBuffer = iv.buffer.slice(iv.byteOffset, iv.byteOffset + iv.byteLength) as ArrayBuffer;
   const decrypted = await crypto.subtle.decrypt(
     { name: "AES-GCM", iv: ivBuf },
