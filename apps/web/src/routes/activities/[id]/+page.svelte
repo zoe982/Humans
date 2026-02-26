@@ -77,6 +77,7 @@
     websiteBookingRequestId: string | null;
     generalLeadId: string | null;
     frontId: string | null;
+    frontConversationId: string | null;
     geoInterestExpressions: GeoInterestExpression[];
     routeInterestExpressions: RouteInterestExpression[];
     linkedOpportunities: LinkedOpportunity[];
@@ -208,6 +209,8 @@
     { id: "created", field: "Created", value: formatDateTime(activity.createdAt) },
     { id: "updated", field: "Updated", value: formatDateTime(activity.updatedAt) },
     { id: "createdBy", field: "Created by", value: isFrontSynced ? "Front.com Sync" : (activity.ownerName ? `${activity.ownerName} (${activity.ownerDisplayId})` : "—") },
+    ...(activity.frontId ? [{ id: "frontId", field: "Front Message ID", value: activity.frontId }] : []),
+    ...(activity.frontConversationId ? [{ id: "frontConversationId", field: "Front Conversation ID", value: activity.frontConversationId }] : []),
   ]);
 </script>
 
