@@ -536,3 +536,50 @@ describe("Lead code generation", () => {
     expect(body2.data.displayId).toBe("LEA-AAA-002");
   });
 });
+
+// ─── Import from Front ────────────────────────────────────────────────
+
+describe("POST /api/general-leads/import-from-front", () => {
+  it("returns 401 when unauthenticated", async () => {
+    const res = await SELF.fetch(`${BASE}/import-from-front`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ frontId: "cnv_test1" }),
+    });
+    expect(res.status).toBe(401);
+  });
+
+  it("returns 403 for viewer role", async () => {
+    const { token } = await createUserAndSession("viewer");
+    const res = await SELF.fetch(`${BASE}/import-from-front`, {
+      method: "POST",
+      headers: jsonHeaders(token),
+      body: JSON.stringify({ frontId: "cnv_test1" }),
+    });
+    expect(res.status).toBe(403);
+  });
+
+  it("returns 400 for invalid body (missing frontId)", async () => {
+    const { token } = await createUserAndSession("agent");
+    const res = await SELF.fetch(`${BASE}/import-from-front`, {
+      method: "POST",
+      headers: jsonHeaders(token),
+      body: JSON.stringify({}),
+    });
+    expect(res.status).toBe(400);
+    const body = (await res.json()) as { code: string };
+    expect(body.code).toBe("VALIDATION_FAILED");
+  });
+
+  it("returns 400 for invalid body (empty frontId)", async () => {
+    const { token } = await createUserAndSession("agent");
+    const res = await SELF.fetch(`${BASE}/import-from-front`, {
+      method: "POST",
+      headers: jsonHeaders(token),
+      body: JSON.stringify({ frontId: "" }),
+    });
+    expect(res.status).toBe(400);
+    const body = (await res.json()) as { code: string };
+    expect(body.code).toBe("VALIDATION_FAILED");
+  });
+});

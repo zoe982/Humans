@@ -155,3 +155,91 @@ describe("general-leads actions.delete", () => {
     expect(failure.data.error).toBe("Failed to delete general lead");
   });
 });
+
+describe("general-leads actions.importFromFront", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("returns 400 when frontId is empty", async () => {
+    const event = mockEvent({ formData: { frontId: "" } });
+    const result = await actions.importFromFront(event as any);
+
+    expect(isActionFailure(result)).toBe(true);
+    const failure = result as ActionFailure<{ importError: string }>;
+    expect(failure.status).toBe(400);
+    expect(failure.data.importError).toBe("Please enter a Front message or conversation ID");
+  });
+
+  it("returns 400 when frontId is whitespace-only", async () => {
+    const event = mockEvent({ formData: { frontId: "   " } });
+    const result = await actions.importFromFront(event as any);
+
+    expect(isActionFailure(result)).toBe(true);
+    const failure = result as ActionFailure<{ importError: string }>;
+    expect(failure.status).toBe(400);
+    expect(failure.data.importError).toBe("Please enter a Front message or conversation ID");
+  });
+
+  it("redirects to lead detail page on success", async () => {
+    const mockFetch = createMockFetch({
+      "/api/general-leads/import-from-front": {
+        status: 201,
+        body: { data: { lead: { id: "lea-new-1", displayId: "LEA-AAA-001" }, activitiesImported: 3, contactHandle: "john@example.com", contactName: "John Doe" } },
+      },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = mockEvent({ formData: { frontId: "cnv_test123" } });
+    try {
+      await actions.importFromFront(event as any);
+      expect.fail("should have redirected");
+    } catch (e) {
+      expect(isRedirect(e)).toBe(true);
+    }
+  });
+
+  it("returns failure with importError when API returns error", async () => {
+    const mockFetch = createMockFetch({
+      "/api/general-leads/import-from-front": {
+        status: 400,
+        body: { error: "Conversation already imported as LEA-AAA-001", code: "FRONT_IMPORT_ALREADY_EXISTS" },
+      },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = mockEvent({ formData: { frontId: "cnv_test123" } });
+    const result = await actions.importFromFront(event as any);
+
+    expect(isActionFailure(result)).toBe(true);
+    const failure = result as ActionFailure<{ importError: string; code?: string }>;
+    expect(failure.status).toBe(400);
+    expect(failure.data.importError).toBe("Conversation already imported as LEA-AAA-001");
+    expect(failure.data.code).toBe("FRONT_IMPORT_ALREADY_EXISTS");
+  });
+
+  it("sends correct payload to API", async () => {
+    const mockFetch = createMockFetch({
+      "/api/general-leads/import-from-front": {
+        status: 201,
+        body: { data: { lead: { id: "lea-1", displayId: "LEA-AAA-001" }, activitiesImported: 0, contactHandle: null, contactName: null } },
+      },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = mockEvent({ formData: { frontId: "msg_abc123" } });
+    try {
+      await actions.importFromFront(event as any);
+    } catch {
+      // redirect expected
+    }
+
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+    const call = mockFetch.mock.calls[0]!;
+    expect(call[0]).toContain("/api/general-leads/import-from-front");
+    const opts = call[1] as RequestInit;
+    expect(opts.method).toBe("POST");
+    const parsedBody: unknown = JSON.parse(opts.body as string);
+    expect(parsedBody).toEqual({ frontId: "msg_abc123" });
+  });
+});

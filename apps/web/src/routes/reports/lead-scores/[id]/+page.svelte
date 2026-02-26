@@ -41,6 +41,7 @@
   };
 
   let score = $state(data.score as LeadScore);
+  const parentEntity = $derived(data.parentEntity as Record<string, unknown> | null);
 
   // Keep in sync with server data
   $effect(() => {
@@ -135,15 +136,96 @@
     </div>
   </div>
 
-  <!-- Parent Entity Link -->
-  <div class="glass-card p-4 mb-6">
-    <div class="flex items-center justify-between">
-      <span class="text-sm text-text-muted">{parentLabel}</span>
-      <a href={parentHref} class="text-accent hover:underline text-sm">
-        View {parentLabel} &rarr;
-      </a>
+  <!-- Parent Entity Context -->
+  {#if parentEntity != null}
+    <div class="glass-card p-6 mb-6">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="text-lg font-semibold text-text-primary">{parentLabel}</h2>
+        <a href={parentHref} class="text-sm text-accent hover:underline">
+          View {parentLabel} &rarr;
+        </a>
+      </div>
+      <dl class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+        {#if parentEntity.type === "general_lead"}
+          <div>
+            <dt class="text-text-muted">Name</dt>
+            <dd class="text-text-secondary">{[parentEntity.firstName, parentEntity.middleName, parentEntity.lastName].filter(Boolean).join(" ") || "—"}</dd>
+          </div>
+          <div>
+            <dt class="text-text-muted">Status</dt>
+            <dd class="text-text-secondary">{parentEntity.status ?? "—"}</dd>
+          </div>
+          <div>
+            <dt class="text-text-muted">Owner</dt>
+            <dd class="text-text-secondary">{parentEntity.ownerName ?? "—"}</dd>
+          </div>
+          <div>
+            <dt class="text-text-muted">Emails</dt>
+            <dd class="text-text-secondary">{Array.isArray(parentEntity.emails) ? (parentEntity.emails as { email: string }[]).map(e => e.email).join(", ") : "—"}</dd>
+          </div>
+          <div>
+            <dt class="text-text-muted">Phones</dt>
+            <dd class="text-text-secondary">{Array.isArray(parentEntity.phoneNumbers) ? (parentEntity.phoneNumbers as { phoneNumber: string }[]).map(p => p.phoneNumber).join(", ") : "—"}</dd>
+          </div>
+        {:else if parentEntity.type === "website_booking_request"}
+          <div>
+            <dt class="text-text-muted">Name</dt>
+            <dd class="text-text-secondary">{[parentEntity.first_name, parentEntity.last_name].filter(Boolean).join(" ") || "—"}</dd>
+          </div>
+          <div>
+            <dt class="text-text-muted">Email</dt>
+            <dd class="text-text-secondary">{parentEntity.client_email ?? "—"}</dd>
+          </div>
+          <div>
+            <dt class="text-text-muted">Origin</dt>
+            <dd class="text-text-secondary">{parentEntity.origin_city ?? "—"}</dd>
+          </div>
+          <div>
+            <dt class="text-text-muted">Destination</dt>
+            <dd class="text-text-secondary">{parentEntity.destination_city ?? "—"}</dd>
+          </div>
+          <div>
+            <dt class="text-text-muted">Travel Date</dt>
+            <dd class="text-text-secondary">{parentEntity.travel_date ?? "—"}</dd>
+          </div>
+          <div>
+            <dt class="text-text-muted">Status</dt>
+            <dd class="text-text-secondary">{parentEntity.status ?? "—"}</dd>
+          </div>
+        {:else}
+          <div>
+            <dt class="text-text-muted">Name</dt>
+            <dd class="text-text-secondary">{[parentEntity.first_name, parentEntity.last_name].filter(Boolean).join(" ") || "—"}</dd>
+          </div>
+          <div>
+            <dt class="text-text-muted">Email</dt>
+            <dd class="text-text-secondary">{parentEntity.email ?? "—"}</dd>
+          </div>
+          <div>
+            <dt class="text-text-muted">Origin</dt>
+            <dd class="text-text-secondary">{parentEntity.origin ?? "—"}</dd>
+          </div>
+          <div>
+            <dt class="text-text-muted">Destination</dt>
+            <dd class="text-text-secondary">{parentEntity.destination ?? "—"}</dd>
+          </div>
+          <div>
+            <dt class="text-text-muted">Status</dt>
+            <dd class="text-text-secondary">{parentEntity.status ?? "—"}</dd>
+          </div>
+        {/if}
+      </dl>
     </div>
-  </div>
+  {:else}
+    <div class="glass-card p-4 mb-6">
+      <div class="flex items-center justify-between">
+        <span class="text-sm text-text-muted">{parentLabel}</span>
+        <a href={parentHref} class="text-accent hover:underline text-sm">
+          View {parentLabel} &rarr;
+        </a>
+      </div>
+    </div>
+  {/if}
 
   <!-- Fit Section -->
   <div class="glass-card p-6 mb-6">

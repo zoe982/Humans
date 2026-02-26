@@ -61,7 +61,7 @@ generalLeadRoutes.post("/api/general-leads/import-from-front", requirePermission
   if (session === null) return c.json({ error: "Unauthorized" }, 401);
 
   const frontToken = c.env.FRONT_API_TOKEN;
-  if (frontToken == null || frontToken === "") {
+  if (frontToken === "") {
     return c.json({ error: "Front API token not configured" }, 500);
   }
 

@@ -425,9 +425,9 @@ function parseName(name: string): { firstName: string; lastName: string } {
     return { firstName: "(unknown)", lastName: "(unknown)" };
   }
   if (parts.length === 1) {
-    return { firstName: parts[0]!, lastName: "(unknown)" };
+    return { firstName: parts[0] ?? "(unknown)", lastName: "(unknown)" };
   }
-  return { firstName: parts[0]!, lastName: parts.slice(1).join(" ") };
+  return { firstName: parts[0] ?? "(unknown)", lastName: parts.slice(1).join(" ") };
 }
 
 export async function importLeadFromFront(
@@ -459,7 +459,7 @@ export async function importLeadFromFront(
   if (existing.length > 0) {
     throw badRequest(
       ERROR_CODES.FRONT_IMPORT_ALREADY_EXISTS,
-      `Conversation already imported as ${existing[0]!.displayId}`,
+      `Conversation already imported as ${existing[0]?.displayId ?? "unknown"}`,
     );
   }
 

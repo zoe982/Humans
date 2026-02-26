@@ -4,6 +4,7 @@
   import { generalLeadStatusLabels } from "$lib/constants/labels";
   import { generalLeadStatusColors } from "$lib/constants/colors";
   import { resolve } from "$app/paths";
+  import { enhance } from "$app/forms";
 
   let { data, form }: { data: PageData; form: ActionData } = $props();
 
@@ -26,6 +27,7 @@
 
   let filterStatus = $state("");
   let filterQ = $state("");
+  let showImportForm = $state(false);
 
   const leads = $derived(
     allLeads.filter((lead) => {
@@ -46,8 +48,6 @@
 <EntityListPage
   title="General Leads"
   breadcrumbs={[{ label: "Leads", href: "/leads" }, { label: "General Leads" }]}
-  newHref="/leads/general-leads/new"
-  newLabel="New Lead"
   items={leads}
   error={form?.error}
   columns={[
@@ -64,7 +64,33 @@
   deleteMessage="Are you sure you want to delete this general lead? This cannot be undone."
   canDelete={data.userRole === "admin"}
 >
+  {#snippet headerAction()}
+    <div class="flex gap-2">
+      <button type="button" class="btn-secondary" onclick={() => { showImportForm = !showImportForm; }}>
+        Import from Front
+      </button>
+      <a href={resolve("/leads/general-leads/new")} class="btn-primary">New Lead</a>
+    </div>
+  {/snippet}
   {#snippet searchForm()}
+    {#if showImportForm}
+      <div class="mt-4 mb-4 glass-card p-4">
+        <form method="POST" action="?/importFromFront" use:enhance>
+          <div class="flex flex-wrap gap-3 items-end">
+            <div class="flex-1 min-w-[250px]">
+              <label for="frontId" class="block text-xs font-medium text-text-muted mb-1">Front Message or Conversation ID</label>
+              <input id="frontId" name="frontId" type="text" class="glass-input w-full px-3 py-1.5 text-sm" placeholder="msg_xxx or cnv_xxx" />
+            </div>
+            <button type="submit" class="btn-primary text-sm">Import</button>
+            <button type="button" class="btn-ghost text-sm" onclick={() => { showImportForm = false; }}>Cancel</button>
+          </div>
+          <p class="text-xs text-text-muted mt-2">Paste a Front message ID (msg_xxx) or conversation ID (cnv_xxx) to import the contact as a lead with all messages as activities.</p>
+        </form>
+        {#if form?.importError}
+          <div class="mt-2 text-sm text-red-400">{form.importError}</div>
+        {/if}
+      </div>
+    {/if}
     <div class="mt-4 mb-6 flex flex-wrap gap-3 items-end">
       <div>
         <label for="status" class="block text-xs font-medium text-text-muted mb-1">Status</label>

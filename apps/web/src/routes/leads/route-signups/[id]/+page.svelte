@@ -15,8 +15,8 @@
   import { resolve } from "$app/paths";
   import { page } from "$app/stores";
   import { formatDateTime, formatRelativeTime } from "$lib/utils/format";
-  import { routeSignupStatuses, getLeadScoreBand } from "@humans/shared";
-  import LeadScoreBadge from "$lib/components/LeadScoreBadge.svelte";
+  import { routeSignupStatuses } from "@humans/shared";
+  import LeadScoreInlineFlags from "$lib/components/LeadScoreInlineFlags.svelte";
   import { Trash2 } from "lucide-svelte";
 
   let { data, form }: { data: PageData; form: ActionData } = $props();
@@ -84,19 +84,32 @@
       : null
   );
 
-  type LeadScoreSummary = {
+  type LeadScoreFull = {
     id: string;
     scoreTotal: number;
     scoreFit: number;
     scoreIntent: number;
     scoreEngagement: number;
     scoreNegative: number;
+    fitMatchesCurrentWebsiteFlight: boolean;
+    fitPriceAcknowledgedOk: boolean;
+    intentDepositPaid: boolean;
+    intentPaymentDetailsSent: boolean;
+    intentRequestedPaymentDetails: boolean;
+    intentBookingSubmitted: boolean;
+    intentBookingStarted: boolean;
+    intentRouteSignupSubmitted: boolean;
+    engagementRespondedFast: boolean;
+    engagementRespondedSlow: boolean;
+    negativeNoContactMethod: boolean;
+    negativeOffNetworkRequest: boolean;
+    negativePriceObjection: boolean;
+    negativeGhostedAfterPaymentSent: boolean;
+    customerHasFlown: boolean;
   };
 
-  let leadScore = $state<LeadScoreSummary | null>(null);
-  $effect(() => { leadScore = data.leadScore as LeadScoreSummary | null; });
-
-  const leadScoreBand = $derived(leadScore != null ? getLeadScoreBand(leadScore.scoreTotal) : null);
+  let leadScore = $state<LeadScoreFull | null>(null);
+  $effect(() => { leadScore = data.leadScore as LeadScoreFull | null; });
 
   // Auto-create lead score on first view if none exists
   $effect(() => {
@@ -106,7 +119,7 @@
         body: JSON.stringify({ parentType: "route_signup", parentId: signup.id }),
       }).then((result) => {
         if (result != null && typeof result === "object" && "data" in result) {
-          leadScore = (result as { data: LeadScoreSummary }).data;
+          leadScore = (result as { data: LeadScoreFull }).data;
         }
       }).catch(() => {
         // Silent failure — score will be created on next page load
@@ -267,35 +280,13 @@
   </div>
 
   <!-- Lead Score -->
-  {#if leadScore != null && leadScoreBand != null}
+  {#if leadScore != null}
     <div class="glass-card p-6 mb-6">
-      <div class="flex items-center justify-between">
-        <h2 class="text-lg font-semibold text-text-primary">Lead Score</h2>
-        <a href={resolve(`/reports/lead-scores/${leadScore.id}`)} class="text-sm text-accent hover:underline">
-          View Details &rarr;
-        </a>
-      </div>
-      <div class="mt-4 flex items-center gap-6 flex-wrap">
-        <LeadScoreBadge score={leadScore.scoreTotal} band={leadScoreBand} size="lg" />
-        <div class="flex gap-4 text-sm">
-          <div class="text-center">
-            <div class="text-lg font-semibold text-green-400">+{leadScore.scoreFit}</div>
-            <div class="text-text-muted">Fit</div>
-          </div>
-          <div class="text-center">
-            <div class="text-lg font-semibold text-blue-400">+{leadScore.scoreIntent}</div>
-            <div class="text-text-muted">Intent</div>
-          </div>
-          <div class="text-center">
-            <div class="text-lg font-semibold text-purple-400">+{leadScore.scoreEngagement}</div>
-            <div class="text-text-muted">Engage</div>
-          </div>
-          <div class="text-center">
-            <div class="text-lg font-semibold text-red-400">-{leadScore.scoreNegative}</div>
-            <div class="text-text-muted">Negative</div>
-          </div>
-        </div>
-      </div>
+      <LeadScoreInlineFlags
+        {leadScore}
+        detailHref={`/reports/lead-scores/${leadScore.id}`}
+        onScoreUpdate={(updated) => { leadScore = updated; }}
+      />
     </div>
   {/if}
 
