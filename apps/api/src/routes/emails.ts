@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { createEmailSchema, updateEmailSchema } from "@humans/shared";
 import { authMiddleware } from "../middleware/auth";
 import { requirePermission } from "../middleware/rbac";
+import { supabaseMiddleware } from "../middleware/supabase";
 import {
   listEmails,
   getEmail,
@@ -22,8 +23,39 @@ emailRoutes.get("/api/emails", requirePermission("viewRecords"), async (c) => {
 });
 
 // Get single email
-emailRoutes.get("/api/emails/:id", requirePermission("viewRecords"), async (c) => {
+emailRoutes.get("/api/emails/:id", requirePermission("viewRecords"), supabaseMiddleware, async (c) => {
   const data = await getEmail(c.get("db"), c.req.param("id"));
+
+  if (data.websiteBookingRequestId != null) {
+    const supabase = c.get("supabase");
+    const { data: bor } = await supabase
+      .from("bookings")
+      .select("crm_display_id, first_name, last_name")
+      .eq("id", data.websiteBookingRequestId)
+      .single();
+    if (bor != null) {
+      const borData = bor as { crm_display_id?: string | null; first_name?: string | null; last_name?: string | null };
+      data.websiteBookingRequestDisplayId = typeof borData.crm_display_id === "string" ? borData.crm_display_id : null;
+      const borName = [borData.first_name, borData.last_name].filter(Boolean).join(" ");
+      data.websiteBookingRequestName = borName !== "" ? borName : null;
+    }
+  }
+
+  if (data.routeSignupId != null) {
+    const supabase = c.get("supabase");
+    const { data: rou } = await supabase
+      .from("announcement_signups")
+      .select("display_id, first_name, last_name")
+      .eq("id", data.routeSignupId)
+      .single();
+    if (rou != null) {
+      const rouData = rou as { display_id?: string | null; first_name?: string | null; last_name?: string | null };
+      data.routeSignupDisplayId = typeof rouData.display_id === "string" ? rouData.display_id : null;
+      const rouName = [rouData.first_name, rouData.last_name].filter(Boolean).join(" ");
+      data.routeSignupName = rouName !== "" ? rouName : null;
+    }
+  }
+
   return c.json({ data });
 });
 

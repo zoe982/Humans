@@ -10,13 +10,10 @@
   import { createChangeHistoryLoader } from "$lib/changeHistory.svelte";
   import RelatedListTable from "$lib/components/RelatedListTable.svelte";
   import { resolve } from "$app/paths";
-  import { page } from "$app/stores";
 
   let { data }: { data: PageData } = $props();
 
   type ConfigItem = { id: string; name: string };
-  type HumanListItem = { id: string; firstName: string; lastName: string; displayId: string };
-  type AccountListItem = { id: string; name: string; displayId: string };
   type Email = {
     id: string;
     displayId: string;
@@ -31,19 +28,25 @@
     isPrimary: boolean;
     ownerName: string | null;
     ownerDisplayId: string | null;
+    humanDisplayId: string | null;
+    humanName: string | null;
+    accountDisplayId: string | null;
+    accountName: string | null;
+    generalLeadDisplayId: string | null;
+    generalLeadName: string | null;
+    websiteBookingRequestDisplayId: string | null;
+    websiteBookingRequestName: string | null;
+    routeSignupDisplayId: string | null;
+    routeSignupName: string | null;
   };
 
   const email = $derived(data.email as Email);
   const humanEmailLabelConfigs = $derived(data.humanEmailLabelConfigs as ConfigItem[]);
   const accountEmailLabelConfigs = $derived(data.accountEmailLabelConfigs as ConfigItem[]);
-  const allHumans = $derived(data.allHumans as HumanListItem[]);
-  const allAccounts = $derived(data.allAccounts as AccountListItem[]);
 
   // Auto-save state
   let emailAddress = $state("");
   let labelId = $state("");
-  let humanId = $state<string | null>(null);
-  let accountId = $state<string | null>(null);
   let isPrimary = $state(false);
   let saveStatus = $state<SaveStatus>("idle");
   let initialized = $state(false);
@@ -77,32 +80,34 @@
   $effect(() => {
     emailAddress = email.email;
     labelId = email.labelId ?? "";
-    humanId = email.humanId ?? null;
-    accountId = email.accountId ?? null;
     isPrimary = email.isPrimary;
     if (!initialized) initialized = true;
   });
 
   // Label options based on current owner type
   const emailLabelOptions = $derived(
-    (accountId != null && humanId == null ? accountEmailLabelConfigs : humanEmailLabelConfigs)
+    (email.accountId != null && email.humanId == null ? accountEmailLabelConfigs : humanEmailLabelConfigs)
       .map((l) => ({ value: l.id, label: l.name }))
   );
 
-  // Owner options: humans and accounts
-  const ownerOptions = $derived([
-    ...allHumans.map((h) => ({ value: `human:${h.id}`, label: `${h.displayId} ${h.firstName} ${h.lastName}` })),
-    ...allAccounts.map((a) => ({ value: `account:${a.id}`, label: `${a.displayId} ${a.name}` })),
-  ]);
+  // Relationships
+  type Relationship = { href: string; displayId: string; name: string | null };
 
-  const selectedOwnerValue = $derived(
-    humanId != null ? `human:${humanId}` : accountId != null ? `account:${accountId}` : ""
-  );
-
-  const ownerHref = $derived(
-    humanId != null ? resolve(`/humans/${humanId}?from=${$page.url.pathname}`) :
-    accountId != null ? resolve(`/accounts/${accountId}?from=${$page.url.pathname}`) : "#"
-  );
+  const relationships: Relationship[] = $derived.by(() => {
+    const rels: Relationship[] = [];
+    const e = email;
+    if (e.humanId && e.humanDisplayId)
+      rels.push({ href: resolve(`/humans/${e.humanId}`), displayId: e.humanDisplayId, name: e.humanName });
+    if (e.accountId && e.accountDisplayId)
+      rels.push({ href: resolve(`/accounts/${e.accountId}`), displayId: e.accountDisplayId, name: e.accountName });
+    if (e.generalLeadId && e.generalLeadDisplayId)
+      rels.push({ href: resolve(`/leads/general-leads/${e.generalLeadId}`), displayId: e.generalLeadDisplayId, name: e.generalLeadName });
+    if (e.websiteBookingRequestId && e.websiteBookingRequestDisplayId)
+      rels.push({ href: resolve(`/leads/website-booking-requests/${e.websiteBookingRequestId}`), displayId: e.websiteBookingRequestDisplayId, name: e.websiteBookingRequestName });
+    if (e.routeSignupId && e.routeSignupDisplayId)
+      rels.push({ href: resolve(`/leads/route-signups/${e.routeSignupId}`), displayId: e.routeSignupDisplayId, name: e.routeSignupName });
+    return rels;
+  });
 
   onDestroy(() => autoSaver.destroy());
 
@@ -111,8 +116,6 @@
     autoSaver.save({
       email: emailAddress,
       labelId: labelId || null,
-      humanId,
-      accountId,
       isPrimary,
     });
   }
@@ -122,29 +125,8 @@
     autoSaver.saveImmediate({
       email: emailAddress,
       labelId: labelId || null,
-      humanId,
-      accountId,
       isPrimary,
     });
-  }
-
-  function handleOwnerChange(value: string) {
-    const [type, id] = value.split(":");
-    if (type && id) {
-      const wasAccount = accountId != null && humanId == null;
-      if (type === "human") {
-        humanId = id;
-        accountId = null;
-      } else {
-        accountId = id;
-        humanId = null;
-      }
-      const isAccount = accountId != null && humanId == null;
-      if (wasAccount !== isAccount) {
-        labelId = "";
-      }
-      triggerSaveImmediate();
-    }
   }
 
   function handleLabelChange(value: string) {
@@ -195,24 +177,6 @@
     </div>
 
     <div>
-      <label for="owner" class="block text-sm font-medium text-text-secondary">Owner</label>
-      <SearchableSelect
-        options={ownerOptions}
-        name="owner"
-        id="owner"
-        value={selectedOwnerValue}
-        placeholder="Search owners..."
-        onSelect={handleOwnerChange}
-      />
-      {#if email.ownerName}
-        <!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
-        <a href={ownerHref} class="mt-1 inline-block text-sm text-accent hover:text-[var(--link-hover)]">
-          View {email.ownerName}
-        </a>
-      {/if}
-    </div>
-
-    <div>
       <label class="flex items-center gap-2 text-sm text-text-secondary">
         <input
           type="checkbox"
@@ -224,6 +188,22 @@
       </label>
     </div>
   </div>
+
+  {#if relationships.length > 0}
+    <div class="glass-card p-6 mt-6">
+      <h2 class="text-lg font-semibold text-text-primary">Relationships</h2>
+      <div class="mt-4 space-y-2">
+        {#each relationships as rel, i (i)}
+          <div class="text-sm">
+            <a href={rel.href} class="text-accent hover:text-[var(--link-hover)] font-mono">{rel.displayId}</a>
+            {#if rel.name}
+              <span class="text-text-secondary ml-1">({rel.name})</span>
+            {/if}
+          </div>
+        {/each}
+      </div>
+    </div>
+  {/if}
 
   <!-- Change History -->
   <div class="mt-6">

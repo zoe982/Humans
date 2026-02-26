@@ -21,8 +21,6 @@ describe("emails/[id] +page.server load", () => {
         "account-email-labels": [mockConfigItem({ id: "albl1", name: "Billing" })],
       }),
       "/api/emails/e1": { body: { data: sampleEmail } },
-      "/api/humans": { body: { data: [{ id: "h1", firstName: "Jane" }] } },
-      "/api/accounts": { body: { data: [{ id: "acc1", name: "Acme" }] } },
     });
     vi.stubGlobal("fetch", mockFetch);
   });
@@ -43,14 +41,12 @@ describe("emails/[id] +page.server load", () => {
     }
   });
 
-  it("returns email, label configs, humans, and accounts on success", async () => {
+  it("returns email and label configs on success", async () => {
     const event = makeEvent();
     const result = await load(event as any);
     expect(result.email).toEqual(sampleEmail);
     expect(result.humanEmailLabelConfigs).toEqual([expect.objectContaining({ id: "lbl1", name: "Work" })]);
     expect(result.accountEmailLabelConfigs).toEqual([expect.objectContaining({ id: "albl1", name: "Billing" })]);
-    expect(result.allHumans).toHaveLength(1);
-    expect(result.allAccounts).toHaveLength(1);
   });
 
   it("redirects to /emails when email API returns 404", async () => {
@@ -83,19 +79,15 @@ describe("emails/[id] +page.server load", () => {
     }
   });
 
-  it("returns empty arrays when secondary APIs fail", async () => {
+  it("returns empty arrays when config API fails", async () => {
     mockFetch = createMockFetch({
       "account-config/batch": { status: 500, body: { error: "fail" } },
       "/api/emails/e1": { body: { data: sampleEmail } },
-      "/api/humans": { status: 500, body: { error: "fail" } },
-      "/api/accounts": { status: 500, body: { error: "fail" } },
     });
     vi.stubGlobal("fetch", mockFetch);
     const event = makeEvent();
     const result = await load(event as any);
     expect(result.humanEmailLabelConfigs).toEqual([]);
     expect(result.accountEmailLabelConfigs).toEqual([]);
-    expect(result.allHumans).toEqual([]);
-    expect(result.allAccounts).toEqual([]);
   });
 });

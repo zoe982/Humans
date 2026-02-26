@@ -122,6 +122,7 @@
           <th class="pb-3 pr-4 font-medium">Display ID</th>
           <th class="pb-3 pr-4 font-medium">Parent</th>
           <th class="pb-3 pr-4 font-medium">Type</th>
+          <th class="pb-3 pr-4 font-medium">Band</th>
           <th class="pb-3 pr-4 font-medium">Score</th>
           <th class="pb-3 pr-4 font-medium">Fit</th>
           <th class="pb-3 pr-4 font-medium">Intent</th>
@@ -132,20 +133,28 @@
       </thead>
       <tbody>
         {#each scores as score, i (i)}
-          <tr class="border-b border-glass-border/50 glass-row-hover">
+          <tr
+            class="border-b border-glass-border/50 glass-row-hover cursor-pointer"
+            onclick={() => goto(resolve(`/reports/lead-scores/${score.id}`))}
+          >
             <td class="py-3 pr-4 whitespace-nowrap">
               <a href={resolve(`/reports/lead-scores/${score.id}`)} class="text-accent hover:underline font-mono text-sm">
                 {score.displayId}
               </a>
             </td>
             <td class="py-3 pr-4">
-              <a href={parentLink(score)} class="text-accent hover:underline text-sm">
+              <a href={parentLink(score)} class="text-accent hover:underline text-sm" onclick={(e) => e.stopPropagation()}>
                 {score.parentId.slice(0, 8)}...
               </a>
             </td>
             <td class="py-3 pr-4">
               <span class="glass-badge inline-flex rounded-full px-2 py-0.5 text-xs font-medium bg-glass text-text-secondary">
                 {parentTypeLabels[score.parentType] ?? score.parentType}
+              </span>
+            </td>
+            <td class="py-3 pr-4">
+              <span class="inline-flex rounded-full px-2 py-0.5 text-xs font-medium capitalize {score.band === 'hot' ? 'bg-red-500/20 text-red-400' : score.band === 'warm' ? 'bg-yellow-500/20 text-yellow-400' : 'bg-blue-500/20 text-blue-400'}">
+                {score.band}
               </span>
             </td>
             <td class="py-3 pr-4">
@@ -161,7 +170,7 @@
           </tr>
         {:else}
           <tr>
-            <td colspan="9" class="py-12 text-center text-text-muted">No lead scores found.</td>
+            <td colspan="10" class="py-12 text-center text-text-muted">No lead scores found.</td>
           </tr>
         {/each}
       </tbody>

@@ -44,11 +44,26 @@ async function seedAccount(db: ReturnType<typeof getTestDb>, id = "acc-1", name 
   return id;
 }
 
+async function seedGeneralLead(db: ReturnType<typeof getTestDb>, id: string, first: string, last: string) {
+  seedCounter++;
+  const ts = now();
+  await db.insert(schema.generalLeads).values({
+    id,
+    displayId: `LEA-${String(seedCounter).padStart(6, "0")}`,
+    firstName: first,
+    lastName: last,
+    status: "open",
+    createdAt: ts,
+    updatedAt: ts,
+  });
+  return id;
+}
+
 async function seedEmail(
   db: ReturnType<typeof getTestDb>,
   id: string,
   email: string,
-  opts: { humanId?: string; accountId?: string; labelId?: string | null } = {},
+  opts: { humanId?: string; accountId?: string; generalLeadId?: string; labelId?: string | null } = {},
 ) {
   seedCounter++;
   const ts = now();
@@ -57,7 +72,7 @@ async function seedEmail(
     displayId: `EML-${String(seedCounter).padStart(6, "0")}`,
     humanId: opts.humanId ?? null,
     accountId: opts.accountId ?? null,
-    generalLeadId: null,
+    generalLeadId: opts.generalLeadId ?? null,
     websiteBookingRequestId: null,
     routeSignupId: null,
     email,
@@ -194,6 +209,48 @@ describe("getEmail", () => {
 
     const result = await getEmail(db, "em-1");
     expect(result.labelName).toBeNull();
+  });
+
+  it("returns per-entity resolved fields for human-owned email", async () => {
+    const db = getTestDb();
+    await seedHuman(db, "h-1", "Carol", "King");
+    await seedEmail(db, "em-1", "carol@test.com", { humanId: "h-1" });
+
+    const result = await getEmail(db, "em-1");
+    expect(result.humanDisplayId).toMatch(/^HUM-/);
+    expect(result.humanName).toBe("Carol King");
+    expect(result.accountDisplayId).toBeNull();
+    expect(result.accountName).toBeNull();
+    expect(result.generalLeadDisplayId).toBeNull();
+    expect(result.generalLeadName).toBeNull();
+    expect(result.websiteBookingRequestDisplayId).toBeNull();
+    expect(result.websiteBookingRequestName).toBeNull();
+    expect(result.routeSignupDisplayId).toBeNull();
+    expect(result.routeSignupName).toBeNull();
+  });
+
+  it("returns per-entity resolved fields for account-owned email", async () => {
+    const db = getTestDb();
+    await seedAccount(db, "acc-1", "Widget Corp");
+    await seedEmail(db, "em-1", "widgets@test.com", { accountId: "acc-1" });
+
+    const result = await getEmail(db, "em-1");
+    expect(result.humanDisplayId).toBeNull();
+    expect(result.humanName).toBeNull();
+    expect(result.accountDisplayId).toMatch(/^ACC-/);
+    expect(result.accountName).toBe("Widget Corp");
+  });
+
+  it("returns per-entity resolved fields for general-lead-owned email", async () => {
+    const db = getTestDb();
+    await seedGeneralLead(db, "gl-1", "Sam", "Wilson");
+    await seedEmail(db, "em-1", "sam@test.com", { generalLeadId: "gl-1" });
+
+    const result = await getEmail(db, "em-1");
+    expect(result.generalLeadDisplayId).toMatch(/^LEA-/);
+    expect(result.generalLeadName).toBe("Sam Wilson");
+    expect(result.humanDisplayId).toBeNull();
+    expect(result.accountDisplayId).toBeNull();
   });
 });
 

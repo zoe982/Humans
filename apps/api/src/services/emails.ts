@@ -60,7 +60,7 @@ export async function listEmails(db: DB): Promise<{ ownerName: string | null; ow
   return data;
 }
 
-export async function getEmail(db: DB, id: string): Promise<{ ownerName: string | null; ownerDisplayId: string | null; labelName: string | null; id: string; displayId: string; humanId: string | null; accountId: string | null; generalLeadId: string | null; websiteBookingRequestId: string | null; routeSignupId: string | null; email: string; labelId: string | null; isPrimary: boolean; createdAt: string }> {
+export async function getEmail(db: DB, id: string): Promise<{ ownerName: string | null; ownerDisplayId: string | null; labelName: string | null; id: string; displayId: string; humanId: string | null; accountId: string | null; generalLeadId: string | null; websiteBookingRequestId: string | null; routeSignupId: string | null; email: string; labelId: string | null; isPrimary: boolean; createdAt: string; humanDisplayId: string | null; humanName: string | null; accountDisplayId: string | null; accountName: string | null; generalLeadDisplayId: string | null; generalLeadName: string | null; websiteBookingRequestDisplayId: string | null; websiteBookingRequestName: string | null; routeSignupDisplayId: string | null; routeSignupName: string | null }> {
   const allEmails = await db.select().from(emails).where(eq(emails.id, id));
   const email = allEmails[0];
   if (email == null) {
@@ -83,11 +83,25 @@ export async function getEmail(db: DB, id: string): Promise<{ ownerName: string 
   const labels = email.humanId != null ? humanLabels : accountLabels;
   const label = email.labelId != null ? labels.find((l) => l.id === email.labelId) : null;
 
+  const humanMatch = allHumans.find((h) => h.id === email.humanId);
+  const accountMatch = allAccounts.find((a) => a.id === email.accountId);
+  const leadMatch = allGeneralLeads.find((l) => l.id === email.generalLeadId);
+
   return {
     ...email,
     ownerName,
     ownerDisplayId,
     labelName: label?.name ?? null,
+    humanDisplayId: humanMatch?.displayId ?? null,
+    humanName: humanMatch != null ? `${humanMatch.firstName} ${humanMatch.lastName}` : null,
+    accountDisplayId: accountMatch?.displayId ?? null,
+    accountName: accountMatch?.name ?? null,
+    generalLeadDisplayId: leadMatch?.displayId ?? null,
+    generalLeadName: leadMatch != null ? `${leadMatch.firstName} ${leadMatch.lastName}` : null,
+    websiteBookingRequestDisplayId: null as string | null,
+    websiteBookingRequestName: null as string | null,
+    routeSignupDisplayId: null as string | null,
+    routeSignupName: null as string | null,
   };
 }
 

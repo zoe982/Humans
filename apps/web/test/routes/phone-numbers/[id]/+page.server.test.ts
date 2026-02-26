@@ -21,8 +21,6 @@ describe("phone-numbers/[id] +page.server load", () => {
         "account-phone-labels": [mockConfigItem({ id: "aplbl1", name: "Office" })],
       }),
       "/api/phone-numbers/ph1": { body: { data: samplePhone } },
-      "/api/humans": { body: { data: [{ id: "h1", firstName: "Jane" }] } },
-      "/api/accounts": { body: { data: [{ id: "acc1", name: "Acme" }] } },
     });
     vi.stubGlobal("fetch", mockFetch);
   });
@@ -43,14 +41,12 @@ describe("phone-numbers/[id] +page.server load", () => {
     }
   });
 
-  it("returns phone, label configs, humans, and accounts on success", async () => {
+  it("returns phone and label configs on success", async () => {
     const event = makeEvent();
     const result = await load(event as any);
     expect(result.phone).toEqual(samplePhone);
     expect(result.humanPhoneLabelConfigs).toEqual([expect.objectContaining({ id: "plbl1", name: "Mobile" })]);
     expect(result.accountPhoneLabelConfigs).toEqual([expect.objectContaining({ id: "aplbl1", name: "Office" })]);
-    expect(result.allHumans).toHaveLength(1);
-    expect(result.allAccounts).toHaveLength(1);
   });
 
   it("redirects to /phone-numbers when phone API returns 404", async () => {
@@ -83,19 +79,15 @@ describe("phone-numbers/[id] +page.server load", () => {
     }
   });
 
-  it("returns empty arrays when secondary APIs fail", async () => {
+  it("returns empty arrays when config API fails", async () => {
     mockFetch = createMockFetch({
       "account-config/batch": { status: 500, body: { error: "fail" } },
       "/api/phone-numbers/ph1": { body: { data: samplePhone } },
-      "/api/humans": { status: 500, body: { error: "fail" } },
-      "/api/accounts": { status: 500, body: { error: "fail" } },
     });
     vi.stubGlobal("fetch", mockFetch);
     const event = makeEvent();
     const result = await load(event as any);
     expect(result.humanPhoneLabelConfigs).toEqual([]);
     expect(result.accountPhoneLabelConfigs).toEqual([]);
-    expect(result.allHumans).toEqual([]);
-    expect(result.allAccounts).toEqual([]);
   });
 });
