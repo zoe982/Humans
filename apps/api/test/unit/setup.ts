@@ -407,6 +407,9 @@ const MIGRATION_STATEMENTS = [
     \`platform_id\` text REFERENCES \`social_id_platforms_config\`(\`id\`),
     \`human_id\` text,
     \`account_id\` text,
+    \`general_lead_id\` text,
+    \`website_booking_request_id\` text,
+    \`route_signup_id\` text,
     \`created_at\` text NOT NULL
   )`,
 
@@ -549,6 +552,9 @@ const MIGRATION_STATEMENTS = [
   `CREATE INDEX IF NOT EXISTS \`route_interest_expressions_route_interest_id_idx\` ON \`route_interest_expressions\` (\`route_interest_id\`)`,
   `CREATE INDEX IF NOT EXISTS \`social_ids_human_id_idx\` ON \`social_ids\` (\`human_id\`)`,
   `CREATE INDEX IF NOT EXISTS \`social_ids_account_id_idx\` ON \`social_ids\` (\`account_id\`)`,
+  `CREATE INDEX IF NOT EXISTS \`social_ids_general_lead_id_idx\` ON \`social_ids\` (\`general_lead_id\`)`,
+  `CREATE INDEX IF NOT EXISTS \`social_ids_website_booking_request_id_idx\` ON \`social_ids\` (\`website_booking_request_id\`)`,
+  `CREATE INDEX IF NOT EXISTS \`social_ids_route_signup_id_idx\` ON \`social_ids\` (\`route_signup_id\`)`,
   `CREATE UNIQUE INDEX IF NOT EXISTS \`error_log_display_id_idx\` ON \`error_log\` (\`display_id\`)`,
   `CREATE INDEX IF NOT EXISTS \`error_log_resolution_status_idx\` ON \`error_log\` (\`resolution_status\`)`,
   `CREATE INDEX IF NOT EXISTS \`opportunity_humans_opportunity_id_idx\` ON \`opportunity_humans\` (\`opportunity_id\`)`,
