@@ -31,7 +31,7 @@ describe("cache", () => {
       resetDbInstance();
       await initCache("new-token");
 
-      const result = await getCached<{ id: string; name: string }>("humans");
+      const result = await getCached("humans");
       expect(result).toBeNull();
     });
 
@@ -44,7 +44,7 @@ describe("cache", () => {
       resetDbInstance();
       await initCache(sessionToken);
 
-      const result = await getCached<{ id: string; name: string }>("humans");
+      const result = await getCached("humans");
       expect(result).not.toBeNull();
       expect(result!.items).toEqual([{ id: "1", name: "Alice" }]);
     });
@@ -59,7 +59,7 @@ describe("cache", () => {
       ];
 
       await setCached("humans", items);
-      const result = await getCached<{ id: string; name: string }>("humans");
+      const result = await getCached("humans");
 
       expect(result).not.toBeNull();
       expect(result!.items).toEqual(items);
@@ -78,7 +78,7 @@ describe("cache", () => {
       await setCached("humans", [{ id: "1", name: "Alice" }]);
       await setCached("humans", [{ id: "2", name: "Bob" }]);
 
-      const result = await getCached<{ id: string; name: string }>("humans");
+      const result = await getCached("humans");
       expect(result!.items).toEqual([{ id: "2", name: "Bob" }]);
     });
 
@@ -88,8 +88,8 @@ describe("cache", () => {
       await setCached("humans", [{ id: "h1", name: "Alice" }]);
       await setCached("accounts", [{ id: "a1", company: "Acme" }]);
 
-      const humans = await getCached<{ id: string; name: string }>("humans");
-      const accounts = await getCached<{ id: string; company: string }>("accounts");
+      const humans = await getCached("humans");
+      const accounts = await getCached("accounts");
 
       expect(humans!.items).toEqual([{ id: "h1", name: "Alice" }]);
       expect(accounts!.items).toEqual([{ id: "a1", company: "Acme" }]);

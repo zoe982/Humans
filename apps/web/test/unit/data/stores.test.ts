@@ -6,7 +6,7 @@ vi.mock("$lib/data/cache", () => ({
   getCached: vi.fn().mockResolvedValue(null),
 }));
 
-import { createEntityStore } from "$lib/data/stores.svelte.ts";
+import { createEntityStore } from "$lib/data/stores.svelte";
 
 describe("createEntityStore", () => {
   beforeEach(() => {
@@ -40,8 +40,8 @@ describe("createEntityStore", () => {
     store.addItem({ id: "2", name: "Bob" });
 
     expect(store.items).toHaveLength(2);
-    expect(store.items[0].id).toBe("2");
-    expect(store.items[1].id).toBe("1");
+    expect(store.items[0]!.id).toBe("2");
+    expect(store.items[1]!.id).toBe("1");
   });
 
   it("updateItem replaces the item with matching id", () => {
@@ -53,8 +53,8 @@ describe("createEntityStore", () => {
 
     store.updateItem("1", { id: "1", name: "Alice Updated" });
 
-    expect(store.items[0].name).toBe("Alice Updated");
-    expect(store.items[1].name).toBe("Bob");
+    expect(store.items[0]!.name).toBe("Alice Updated");
+    expect(store.items[1]!.name).toBe("Bob");
   });
 
   it("updateItem does nothing for non-existent id", () => {
@@ -64,7 +64,7 @@ describe("createEntityStore", () => {
     store.updateItem("999", { id: "999", name: "Ghost" });
 
     expect(store.items).toHaveLength(1);
-    expect(store.items[0].name).toBe("Alice");
+    expect(store.items[0]!.name).toBe("Alice");
   });
 
   it("removeItem filters out the item with matching id", () => {

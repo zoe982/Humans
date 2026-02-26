@@ -5,7 +5,7 @@ vi.mock("$lib/api", () => ({
   api: vi.fn(),
   ApiRequestError: class ApiRequestError extends Error {
     status: number;
-    constructor(message: string, code: string | undefined, requestId: string | undefined, details: unknown, status: number) {
+    constructor(message: string, _code: string | undefined, _requestId: string | undefined, _details: unknown, status: number) {
       super(message);
       this.name = "ApiRequestError";
       this.status = status;
@@ -20,7 +20,7 @@ vi.mock("$lib/data/cache", () => ({
   clearCache: vi.fn().mockResolvedValue(undefined),
 }));
 
-vi.mock("$lib/data/stores.svelte.ts", () => {
+vi.mock("$lib/data/stores.svelte", () => {
   const stores: Record<string, ReturnType<typeof makeStore>> = {};
 
   function makeStore() {
@@ -58,7 +58,7 @@ vi.mock("$lib/data/stores.svelte.ts", () => {
 import { syncEntity, syncIfStale, syncAll } from "$lib/data/sync";
 import { api } from "$lib/api";
 import { isStale } from "$lib/data/cache";
-import { getStore } from "$lib/data/stores.svelte.ts";
+import { getStore } from "$lib/data/stores.svelte";
 
 const mockApi = vi.mocked(api);
 const mockIsStale = vi.mocked(isStale);
@@ -117,7 +117,7 @@ describe("sync", () => {
       mockApi.mockResolvedValueOnce({ data: [], total: 0 });
 
       const store = getStore("humans");
-      store.lastSync = Date.now() - 600_000;
+      (store as { lastSync: number | null }).lastSync = Date.now() - 600_000;
 
       await syncIfStale("humans");
 
@@ -128,7 +128,7 @@ describe("sync", () => {
       mockIsStale.mockReturnValue(false);
 
       const store = getStore("activities");
-      store.lastSync = Date.now();
+      (store as { lastSync: number | null }).lastSync = Date.now();
 
       await syncIfStale("activities");
 

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-vi.mock("$lib/data/stores.svelte.ts", () => {
+vi.mock("$lib/data/stores.svelte", () => {
   const stores: Record<string, { removeItem: ReturnType<typeof vi.fn>; updateItem: ReturnType<typeof vi.fn> }> = {};
   return {
     getStore: vi.fn((entityType: string) => {
@@ -24,7 +24,7 @@ vi.mock("$lib/data/sync", () => ({
 import {
   handleRealtimeMessage,
 } from "$lib/data/realtime-handler";
-import { getStore } from "$lib/data/stores.svelte.ts";
+import { getStore } from "$lib/data/stores.svelte";
 import { syncEntity, fetchSingleRecord } from "$lib/data/sync";
 
 const mockSyncEntity = vi.mocked(syncEntity);

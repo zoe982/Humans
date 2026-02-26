@@ -38,7 +38,7 @@
 
   type Props = {
     activities: Activity[];
-    entityType: "human" | "account" | "opportunity";
+    entityType: "human" | "account" | "opportunity" | "general-lead" | "website-booking-request" | "route-interest";
     entityId: string;
     addForm?: Snippet;
     onDelete?: (id: string) => void;
@@ -184,6 +184,19 @@
     if (direction === "outbound") return `${name} →`;
     if (direction === "inbound") return `← ${name}`;
     return name;
+  }
+
+  function entityBasePath(type: string, id: string): string {
+    const map: Record<string, string> = {
+      human: `/humans/${id}`,
+      account: `/accounts/${id}`,
+      opportunity: `/opportunities/${id}`,
+      "general-lead": `/leads/general-leads/${id}`,
+      "website-booking-request": `/leads/website-booking-requests/${id}`,
+      "route-interest": `/route-interests/${id}`,
+    };
+    // eslint-disable-next-line security/detect-object-injection
+    return map[type] ?? `/humans/${id}`;
   }
 
   function hasLinkedEntities(a: Activity): boolean {
@@ -434,7 +447,7 @@
             {#if showViewAll}
               ·
               <a
-                href={resolve(`/${entityType === 'human' ? 'humans' : entityType === 'account' ? 'accounts' : 'opportunities'}/${entityId}/activities`)}
+                href={resolve(`${entityBasePath(entityType, entityId)}/activities`)}
                 class="text-accent hover:text-[var(--link-hover)] transition-colors duration-150"
               >
                 View all →

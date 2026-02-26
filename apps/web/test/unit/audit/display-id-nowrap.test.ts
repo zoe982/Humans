@@ -65,13 +65,13 @@ function findViolations(filePath: string): { line: number; snippet: string }[] {
       tdContent = "";
 
       // Extract from <td onwards
-      const fromTd = line.slice(line.indexOf("<td"));
+      const fromTd = line!.slice(line!.indexOf("<td"));
       tdContent = fromTd;
 
       // Extract the opening tag attributes
       const tagEnd = fromTd.match(/<td([^>]*)>/);
       if (tagEnd) {
-        tdOpeningTag = tagEnd[1];
+        tdOpeningTag = tagEnd[1] ?? "";
       }
     } else {
       tdContent += "\n" + line;
@@ -86,7 +86,7 @@ function findViolations(filePath: string): { line: number; snippet: string }[] {
         if (!tdOpeningTag.includes("whitespace-nowrap")) {
           violations.push({
             line: tdStartLine + 1,
-            snippet: lines[tdStartLine].trim().slice(0, 120),
+            snippet: lines[tdStartLine]!.trim().slice(0, 120),
           });
         }
       }
