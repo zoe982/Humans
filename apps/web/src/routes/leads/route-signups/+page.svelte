@@ -2,6 +2,8 @@
   import type { PageData, ActionData } from "./$types";
   import EntityListPage from "$lib/components/EntityListPage.svelte";
   import StatusBadge from "$lib/components/StatusBadge.svelte";
+  import LeadScoreBadge from "$lib/components/LeadScoreBadge.svelte";
+  import { getLeadScoreBand } from "@humans/shared";
   import { Search } from "lucide-svelte";
   import { signupStatusLabels } from "$lib/constants/labels";
   import { formatRelativeTime } from "$lib/utils/format";
@@ -24,6 +26,7 @@
     consent: boolean | null;
     newsletter_opt_in: boolean | null;
     lastActivityDate: string | null;
+    scoreTotal: number | null;
   };
 
   const allSignups = $derived(data.signups as Signup[]);
@@ -87,6 +90,7 @@
     { key: "email", label: "Email", sortable: true, sortValue: (s) => s.email ?? "" },
     { key: "origin", label: "Origin", sortable: true, sortValue: (s) => s.origin ?? "" },
     { key: "destination", label: "Destination", sortable: true, sortValue: (s) => s.destination ?? "" },
+    { key: "score", label: "Score", sortable: true, sortValue: (s) => String(s.scoreTotal ?? -1).padStart(4, "0") },
     { key: "status", label: "Status", sortable: true, sortValue: (s) => s.status ?? "" },
     { key: "date", label: "Date", sortable: true, sortValue: (s) => s.inserted_at },
   ]}
@@ -149,6 +153,13 @@
     <td class="text-text-secondary">{signup.origin ?? "\u2014"}</td>
     <td class="text-text-secondary">{signup.destination ?? "\u2014"}</td>
     <td>
+      {#if signup.scoreTotal != null}
+        <LeadScoreBadge score={signup.scoreTotal} band={getLeadScoreBand(signup.scoreTotal)} />
+      {:else}
+        <span class="text-text-muted">&mdash;</span>
+      {/if}
+    </td>
+    <td>
       <StatusBadge status={signupStatusLabels[signup.status ?? ""] ?? signup.status ?? "\u2014"} colorMap={statusColorMap} />
     </td>
     <td class="text-text-muted">{formatDatetime(signup.inserted_at)}</td>
@@ -160,7 +171,12 @@
       {/if}
       <div class="flex items-center justify-between mb-2">
         <span class="font-medium text-accent">{displayName(signup)}</span>
-        <StatusBadge status={signupStatusLabels[signup.status ?? ""] ?? signup.status ?? "\u2014"} colorMap={statusColorMap} />
+        <div class="flex items-center gap-2">
+          {#if signup.scoreTotal != null}
+            <LeadScoreBadge score={signup.scoreTotal} band={getLeadScoreBand(signup.scoreTotal)} />
+          {/if}
+          <StatusBadge status={signupStatusLabels[signup.status ?? ""] ?? signup.status ?? "\u2014"} colorMap={statusColorMap} />
+        </div>
       </div>
       {#if signup.email}
         <p class="text-sm text-text-secondary truncate">{signup.email}</p>

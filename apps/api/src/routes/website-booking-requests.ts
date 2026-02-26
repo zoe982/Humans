@@ -1,5 +1,7 @@
 import { Hono } from "hono";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { inArray } from "drizzle-orm";
+import { leadScores } from "@humans/db/schema";
 import { updateWebsiteBookingRequestSchema, updateEntityNextActionSchema, createEmailSchema, createPhoneNumberSchema, createSocialIdSchema, ERROR_CODES } from "@humans/shared";
 import { authMiddleware } from "../middleware/auth";
 import { requirePermission } from "../middleware/rbac";
@@ -74,7 +76,26 @@ websiteBookingRequestRoutes.get(
     // Auto-assign display IDs to rows missing them
     await ensureDisplayIds(supabase, db, data);
 
-    return c.json({ data, meta: { page, limit, total: count ?? 0 } });
+    // Fetch lead scores from D1
+    const bookingIds = data.map((b: { id: string }) => b.id);
+    let enriched = data;
+    if (bookingIds.length > 0) {
+      const scores = await db
+        .select({
+          websiteBookingRequestId: leadScores.websiteBookingRequestId,
+          scoreTotal: leadScores.scoreTotal,
+        })
+        .from(leadScores)
+        .where(inArray(leadScores.websiteBookingRequestId, bookingIds));
+
+      const scoreMap = new Map(scores.map((r) => [r.websiteBookingRequestId, r.scoreTotal]));
+      enriched = data.map((b: { id: string }) => ({
+        ...b,
+        scoreTotal: scoreMap.get(b.id) ?? null,
+      }));
+    }
+
+    return c.json({ data: enriched, meta: { page, limit, total: count ?? 0 } });
   },
 );
 

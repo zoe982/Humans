@@ -162,6 +162,79 @@
   let searchResults = $state<{ id: string; firstName: string; lastName: string; emails: { email: string }[] }[]>([]);
   let searching = $state(false);
 
+  // Link-existing state for emails, phones, social IDs
+  let emailAddMode = $state<"create" | "link">("create");
+  let phoneAddMode = $state<"create" | "link">("create");
+  let socialIdAddMode = $state<"create" | "link">("create");
+  let emailLinkQuery = $state("");
+  let phoneLinkQuery = $state("");
+  let socialIdLinkQuery = $state("");
+  let emailLinkResults = $state<{ id: string; displayId: string; email: string; ownerName: string | null }[]>([]);
+  let phoneLinkResults = $state<{ id: string; displayId: string; phoneNumber: string; ownerName: string | null }[]>([]);
+  let socialIdLinkResults = $state<{ id: string; displayId: string; handle: string; platformName: string | null; humanName: string | null; accountName: string | null }[]>([]);
+  let linkSearching = $state(false);
+  let linking = $state(false);
+
+  async function searchExistingEmails() {
+    if (emailLinkQuery.trim().length < 2) { emailLinkResults = []; return; }
+    linkSearching = true;
+    try {
+      const res = await api(`/api/emails`, { params: { q: emailLinkQuery.trim() } }) as { data: typeof emailLinkResults };
+      emailLinkResults = (res.data ?? []).filter((e) => !crmEmails.some((ce) => ce.id === e.id));
+    } catch { emailLinkResults = []; } finally { linkSearching = false; }
+  }
+
+  async function searchExistingPhones() {
+    if (phoneLinkQuery.trim().length < 2) { phoneLinkResults = []; return; }
+    linkSearching = true;
+    try {
+      const res = await api(`/api/phone-numbers`, { params: { q: phoneLinkQuery.trim() } }) as { data: typeof phoneLinkResults };
+      phoneLinkResults = (res.data ?? []).filter((p) => !crmPhoneNumbers.some((cp) => cp.id === p.id));
+    } catch { phoneLinkResults = []; } finally { linkSearching = false; }
+  }
+
+  async function searchExistingSocialIds() {
+    if (socialIdLinkQuery.trim().length < 2) { socialIdLinkResults = []; return; }
+    linkSearching = true;
+    try {
+      const res = await api(`/api/social-ids`, { params: { q: socialIdLinkQuery.trim() } }) as { data: typeof socialIdLinkResults };
+      socialIdLinkResults = (res.data ?? []).filter((s) => !socialIds.some((cs) => cs.id === s.id));
+    } catch { socialIdLinkResults = []; } finally { linkSearching = false; }
+  }
+
+  async function linkEmail(emailId: string) {
+    linking = true;
+    try {
+      await api(`/api/emails/${emailId}`, { method: "PATCH", body: JSON.stringify({ websiteBookingRequestId: booking.id }) });
+      emailLinkQuery = ""; emailLinkResults = [];
+      toast("Email linked");
+      await invalidateAll();
+    } catch (err) { toast(`Failed to link email: ${err instanceof Error ? err.message : "Unknown error"}`); }
+    finally { linking = false; }
+  }
+
+  async function linkPhone(phoneId: string) {
+    linking = true;
+    try {
+      await api(`/api/phone-numbers/${phoneId}`, { method: "PATCH", body: JSON.stringify({ websiteBookingRequestId: booking.id }) });
+      phoneLinkQuery = ""; phoneLinkResults = [];
+      toast("Phone number linked");
+      await invalidateAll();
+    } catch (err) { toast(`Failed to link phone: ${err instanceof Error ? err.message : "Unknown error"}`); }
+    finally { linking = false; }
+  }
+
+  async function linkSocialId(socialIdId: string) {
+    linking = true;
+    try {
+      await api(`/api/social-ids/${socialIdId}`, { method: "PATCH", body: JSON.stringify({ websiteBookingRequestId: booking.id }) });
+      socialIdLinkQuery = ""; socialIdLinkResults = [];
+      toast("Social ID linked");
+      await invalidateAll();
+    } catch (err) { toast(`Failed to link social ID: ${err instanceof Error ? err.message : "Unknown error"}`); }
+    finally { linking = false; }
+  }
+
   function displayName(b: Booking): string {
     const parts = [b.first_name, b.middle_name, b.last_name].filter(Boolean);
     return parts.length > 0 ? parts.join(" ") : "—";
@@ -518,6 +591,7 @@
       searchFilter={(e, q) => e.email.toLowerCase().includes(q) || e.displayId.toLowerCase().includes(q)}
       emptyMessage="No emails linked yet."
       addLabel="Email"
+      onFormToggle={(open) => { if (!open) { emailAddMode = 'create'; emailLinkQuery = ''; emailLinkResults = []; } }}
     >
       {#snippet row(email, searchQuery)}
         <td class="font-mono text-sm whitespace-nowrap"><a href={resolve(`/emails/${email.id}?from=${$page.url.pathname}`)} class="text-accent hover:text-[var(--link-hover)]">{email.displayId}</a></td>
@@ -533,13 +607,42 @@
         </td>
       {/snippet}
       {#snippet addForm()}
-        <form method="POST" action="?/addEmail" class="space-y-3">
-          <div>
-            <label for="newEmailAddress" class="block text-sm font-medium text-text-secondary">Email</label>
-            <input id="newEmailAddress" name="email" type="email" required class="glass-input mt-1 block w-full px-3 py-2 text-sm" placeholder="Email address" />
+        <div class="flex gap-2 mb-3">
+          <button type="button" class="px-3 py-1 text-xs rounded-full transition-colors {emailAddMode === 'create' ? 'bg-accent text-white' : 'bg-glass-hover text-text-muted'}" onclick={() => { emailAddMode = 'create'; emailLinkQuery = ''; emailLinkResults = []; }}>Create New</button>
+          <button type="button" class="px-3 py-1 text-xs rounded-full transition-colors {emailAddMode === 'link' ? 'bg-accent text-white' : 'bg-glass-hover text-text-muted'}" onclick={() => { emailAddMode = 'link'; }}>Link Existing</button>
+        </div>
+        {#if emailAddMode === 'create'}
+          <form method="POST" action="?/addEmail" class="space-y-3">
+            <div>
+              <label for="newEmailAddress" class="block text-sm font-medium text-text-secondary">Email</label>
+              <input id="newEmailAddress" name="email" type="email" required class="glass-input mt-1 block w-full px-3 py-2 text-sm" placeholder="Email address" />
+            </div>
+            <Button type="submit" size="sm">Add Email</Button>
+          </form>
+        {:else}
+          <div class="space-y-3">
+            <div>
+              <label for="borLinkEmail" class="block text-sm font-medium text-text-secondary">Search emails</label>
+              <input id="borLinkEmail" type="text" bind:value={emailLinkQuery} oninput={searchExistingEmails} class="glass-input mt-1 block w-full px-3 py-2 text-sm" placeholder="Type to search existing emails..." />
+            </div>
+            {#if linkSearching}<p class="text-xs text-text-muted">Searching...</p>{/if}
+            {#if emailLinkResults.length > 0}
+              <ul class="divide-y divide-glass-border rounded-lg border border-glass-border overflow-hidden">
+                {#each emailLinkResults as result, i (i)}
+                  <li class="flex items-center justify-between px-3 py-2 hover:bg-glass-hover transition-colors">
+                    <div>
+                      <p class="text-sm font-medium text-text-primary">{result.email}</p>
+                      <p class="text-xs text-text-muted">{result.displayId}{result.ownerName ? ` — ${result.ownerName}` : ""}</p>
+                    </div>
+                    <Button type="button" size="sm" disabled={linking} onclick={() => linkEmail(result.id)}>{linking ? "Linking..." : "Link"}</Button>
+                  </li>
+                {/each}
+              </ul>
+            {:else if emailLinkQuery.length >= 2 && !linkSearching}
+              <p class="text-xs text-text-muted">No matching emails found.</p>
+            {/if}
           </div>
-          <Button type="submit" size="sm">Add Email</Button>
-        </form>
+        {/if}
       {/snippet}
     </RelatedListTable>
   </div>
@@ -559,6 +662,7 @@
       searchFilter={(p, q) => p.phoneNumber.toLowerCase().includes(q) || p.displayId.toLowerCase().includes(q)}
       emptyMessage="No phone numbers linked yet."
       addLabel="Phone Number"
+      onFormToggle={(open) => { if (!open) { phoneAddMode = 'create'; phoneLinkQuery = ''; phoneLinkResults = []; } }}
     >
       {#snippet row(phone, searchQuery)}
         <td class="font-mono text-sm whitespace-nowrap"><a href={resolve(`/phone-numbers/${phone.id}?from=${$page.url.pathname}`)} class="text-accent hover:text-[var(--link-hover)]">{phone.displayId}</a></td>
@@ -574,13 +678,42 @@
         </td>
       {/snippet}
       {#snippet addForm()}
-        <form method="POST" action="?/addPhoneNumber" class="space-y-3">
-          <div>
-            <label for="newPhoneNumber" class="block text-sm font-medium text-text-secondary">Phone Number</label>
-            <input id="newPhoneNumber" name="phoneNumber" type="tel" required class="glass-input mt-1 block w-full px-3 py-2 text-sm" placeholder="Phone number" />
+        <div class="flex gap-2 mb-3">
+          <button type="button" class="px-3 py-1 text-xs rounded-full transition-colors {phoneAddMode === 'create' ? 'bg-accent text-white' : 'bg-glass-hover text-text-muted'}" onclick={() => { phoneAddMode = 'create'; phoneLinkQuery = ''; phoneLinkResults = []; }}>Create New</button>
+          <button type="button" class="px-3 py-1 text-xs rounded-full transition-colors {phoneAddMode === 'link' ? 'bg-accent text-white' : 'bg-glass-hover text-text-muted'}" onclick={() => { phoneAddMode = 'link'; }}>Link Existing</button>
+        </div>
+        {#if phoneAddMode === 'create'}
+          <form method="POST" action="?/addPhoneNumber" class="space-y-3">
+            <div>
+              <label for="newPhoneNumber" class="block text-sm font-medium text-text-secondary">Phone Number</label>
+              <input id="newPhoneNumber" name="phoneNumber" type="tel" required class="glass-input mt-1 block w-full px-3 py-2 text-sm" placeholder="Phone number" />
+            </div>
+            <Button type="submit" size="sm">Add Phone Number</Button>
+          </form>
+        {:else}
+          <div class="space-y-3">
+            <div>
+              <label for="borLinkPhone" class="block text-sm font-medium text-text-secondary">Search phone numbers</label>
+              <input id="borLinkPhone" type="text" bind:value={phoneLinkQuery} oninput={searchExistingPhones} class="glass-input mt-1 block w-full px-3 py-2 text-sm" placeholder="Type to search existing phone numbers..." />
+            </div>
+            {#if linkSearching}<p class="text-xs text-text-muted">Searching...</p>{/if}
+            {#if phoneLinkResults.length > 0}
+              <ul class="divide-y divide-glass-border rounded-lg border border-glass-border overflow-hidden">
+                {#each phoneLinkResults as result, i (i)}
+                  <li class="flex items-center justify-between px-3 py-2 hover:bg-glass-hover transition-colors">
+                    <div>
+                      <p class="text-sm font-medium text-text-primary">{result.phoneNumber}</p>
+                      <p class="text-xs text-text-muted">{result.displayId}{result.ownerName ? ` — ${result.ownerName}` : ""}</p>
+                    </div>
+                    <Button type="button" size="sm" disabled={linking} onclick={() => linkPhone(result.id)}>{linking ? "Linking..." : "Link"}</Button>
+                  </li>
+                {/each}
+              </ul>
+            {:else if phoneLinkQuery.length >= 2 && !linkSearching}
+              <p class="text-xs text-text-muted">No matching phone numbers found.</p>
+            {/if}
           </div>
-          <Button type="submit" size="sm">Add Phone Number</Button>
-        </form>
+        {/if}
       {/snippet}
     </RelatedListTable>
   </div>
@@ -600,6 +733,7 @@
       searchFilter={(s, q) => s.handle.toLowerCase().includes(q) || (s.platformName ?? "").toLowerCase().includes(q) || s.displayId.toLowerCase().includes(q)}
       emptyMessage="No social IDs yet."
       addLabel="Social ID"
+      onFormToggle={(open) => { if (!open) { socialIdAddMode = 'create'; socialIdLinkQuery = ''; socialIdLinkResults = []; } }}
     >
       {#snippet row(socialId, searchQuery)}
         <td class="font-mono text-sm whitespace-nowrap"><a href={resolve(`/social-ids/${socialId.id}?from=${$page.url.pathname}`)} class="text-accent hover:text-[var(--link-hover)]">{socialId.displayId}</a></td>
@@ -615,22 +749,51 @@
         </td>
       {/snippet}
       {#snippet addForm()}
-        <form method="POST" action="?/addSocialId" class="space-y-3">
-          <div>
-            <label for="newSocialHandle" class="block text-sm font-medium text-text-secondary">Handle</label>
-            <input id="newSocialHandle" name="handle" type="text" required class="glass-input mt-1 block w-full px-3 py-2 text-sm" placeholder="@username or profile URL" />
+        <div class="flex gap-2 mb-3">
+          <button type="button" class="px-3 py-1 text-xs rounded-full transition-colors {socialIdAddMode === 'create' ? 'bg-accent text-white' : 'bg-glass-hover text-text-muted'}" onclick={() => { socialIdAddMode = 'create'; socialIdLinkQuery = ''; socialIdLinkResults = []; }}>Create New</button>
+          <button type="button" class="px-3 py-1 text-xs rounded-full transition-colors {socialIdAddMode === 'link' ? 'bg-accent text-white' : 'bg-glass-hover text-text-muted'}" onclick={() => { socialIdAddMode = 'link'; }}>Link Existing</button>
+        </div>
+        {#if socialIdAddMode === 'create'}
+          <form method="POST" action="?/addSocialId" class="space-y-3">
+            <div>
+              <label for="newSocialHandle" class="block text-sm font-medium text-text-secondary">Handle</label>
+              <input id="newSocialHandle" name="handle" type="text" required class="glass-input mt-1 block w-full px-3 py-2 text-sm" placeholder="@username or profile URL" />
+            </div>
+            <div>
+              <label for="newSocialPlatform" class="block text-sm font-medium text-text-secondary">Platform</label>
+              <SearchableSelect
+                options={platformConfigs.map((p) => ({ value: p.id, label: p.name }))}
+                name="platformId"
+                id="newSocialPlatform"
+                placeholder="Select platform..."
+              />
+            </div>
+            <Button type="submit" size="sm">Add Social ID</Button>
+          </form>
+        {:else}
+          <div class="space-y-3">
+            <div>
+              <label for="borLinkSocialId" class="block text-sm font-medium text-text-secondary">Search social IDs</label>
+              <input id="borLinkSocialId" type="text" bind:value={socialIdLinkQuery} oninput={searchExistingSocialIds} class="glass-input mt-1 block w-full px-3 py-2 text-sm" placeholder="Type to search existing social IDs..." />
+            </div>
+            {#if linkSearching}<p class="text-xs text-text-muted">Searching...</p>{/if}
+            {#if socialIdLinkResults.length > 0}
+              <ul class="divide-y divide-glass-border rounded-lg border border-glass-border overflow-hidden">
+                {#each socialIdLinkResults as result, i (i)}
+                  <li class="flex items-center justify-between px-3 py-2 hover:bg-glass-hover transition-colors">
+                    <div>
+                      <p class="text-sm font-medium text-text-primary">{result.handle}</p>
+                      <p class="text-xs text-text-muted">{result.displayId}{result.platformName ? ` — ${result.platformName}` : ""}{result.humanName ? ` — ${result.humanName}` : ""}{result.accountName ? ` — ${result.accountName}` : ""}</p>
+                    </div>
+                    <Button type="button" size="sm" disabled={linking} onclick={() => linkSocialId(result.id)}>{linking ? "Linking..." : "Link"}</Button>
+                  </li>
+                {/each}
+              </ul>
+            {:else if socialIdLinkQuery.length >= 2 && !linkSearching}
+              <p class="text-xs text-text-muted">No matching social IDs found.</p>
+            {/if}
           </div>
-          <div>
-            <label for="newSocialPlatform" class="block text-sm font-medium text-text-secondary">Platform</label>
-            <SearchableSelect
-              options={platformConfigs.map((p) => ({ value: p.id, label: p.name }))}
-              name="platformId"
-              id="newSocialPlatform"
-              placeholder="Select platform..."
-            />
-          </div>
-          <Button type="submit" size="sm">Add Social ID</Button>
-        </form>
+        {/if}
       {/snippet}
     </RelatedListTable>
   </div>

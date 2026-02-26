@@ -2,6 +2,8 @@
   import type { PageData, ActionData } from "./$types";
   import EntityListPage from "$lib/components/EntityListPage.svelte";
   import StatusBadge from "$lib/components/StatusBadge.svelte";
+  import LeadScoreBadge from "$lib/components/LeadScoreBadge.svelte";
+  import { getLeadScoreBand } from "@humans/shared";
   import { bookingRequestStatusLabels, depositStatusLabels } from "$lib/constants/labels";
   import { resolve } from "$app/paths";
 
@@ -20,6 +22,7 @@
     status: string | null;
     deposit_status: string | null;
     inserted_at: string;
+    scoreTotal: number | null;
   };
 
   const bookings = $derived(data.bookings as Booking[]);
@@ -63,6 +66,7 @@
     { key: "email", label: "Email" },
     { key: "route", label: "Route" },
     { key: "travelDate", label: "Travel Date" },
+    { key: "score", label: "Score" },
     { key: "deposit", label: "Deposit" },
     { key: "status", label: "Status" },
     { key: "date", label: "Date" },
@@ -91,6 +95,13 @@
     </td>
     <td class="text-text-secondary">{booking.travel_date ?? "—"}</td>
     <td>
+      {#if booking.scoreTotal != null}
+        <LeadScoreBadge score={booking.scoreTotal} band={getLeadScoreBand(booking.scoreTotal)} />
+      {:else}
+        <span class="text-text-muted">&mdash;</span>
+      {/if}
+    </td>
+    <td>
       <StatusBadge status={depositStatusLabels[booking.deposit_status ?? ""] ?? booking.deposit_status ?? "—"} colorMap={{
         "Pending": "badge-yellow",
         "Paid": "badge-green",
@@ -114,12 +125,17 @@
       {/if}
       <div class="flex items-center justify-between mb-2">
         <span class="font-medium text-accent">{displayName(booking)}</span>
-        <StatusBadge status={bookingRequestStatusLabels[booking.status ?? ""] ?? booking.status ?? "—"} colorMap={{
-          "Confirmed": "badge-green",
-          "Cancelled": "badge-red",
-          "No Response": "badge-yellow",
-          "Converted": "badge-green",
-        }} />
+        <div class="flex items-center gap-2">
+          {#if booking.scoreTotal != null}
+            <LeadScoreBadge score={booking.scoreTotal} band={getLeadScoreBand(booking.scoreTotal)} />
+          {/if}
+          <StatusBadge status={bookingRequestStatusLabels[booking.status ?? ""] ?? booking.status ?? "—"} colorMap={{
+            "Confirmed": "badge-green",
+            "Cancelled": "badge-red",
+            "No Response": "badge-yellow",
+            "Converted": "badge-green",
+          }} />
+        </div>
       </div>
       {#if booking.client_email}
         <p class="text-sm text-text-secondary truncate">{booking.client_email}</p>

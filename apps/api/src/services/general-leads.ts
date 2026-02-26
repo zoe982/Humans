@@ -40,7 +40,7 @@ export async function listGeneralLeads(
   page: number,
   limit: number,
   filters: { q?: string | undefined; status?: string | undefined; convertedHumanId?: string | undefined },
-): Promise<{ data: { convertedHumanDisplayId: string | null; convertedHumanName: string | null; id: string; displayId: string; status: string; firstName: string; middleName: string | null; lastName: string; notes: string | null; rejectReason: string | null; convertedHumanId: string | null; ownerId: string | null; createdAt: string; updatedAt: string; ownerName: string | null }[]; meta: { page: number; limit: number; total: number } }> {
+): Promise<{ data: { convertedHumanDisplayId: string | null; convertedHumanName: string | null; scoreTotal: number | null; id: string; displayId: string; status: string; firstName: string; middleName: string | null; lastName: string; notes: string | null; rejectReason: string | null; convertedHumanId: string | null; ownerId: string | null; createdAt: string; updatedAt: string; ownerName: string | null }[]; meta: { page: number; limit: number; total: number } }> {
   const offset = (page - 1) * limit;
   const conditions: ReturnType<typeof eq>[] = [];
 
@@ -76,9 +76,11 @@ export async function listGeneralLeads(
       createdAt: generalLeads.createdAt,
       updatedAt: generalLeads.updatedAt,
       ownerName: colleagues.name,
+      scoreTotal: leadScores.scoreTotal,
     })
     .from(generalLeads)
     .leftJoin(colleagues, eq(generalLeads.ownerId, colleagues.id))
+    .leftJoin(leadScores, eq(leadScores.generalLeadId, generalLeads.id))
     .where(whereClause)
     .orderBy(
       asc(sql`CASE WHEN ${generalLeads.status} IN ('open', 'qualified') THEN 0 ELSE 1 END`),

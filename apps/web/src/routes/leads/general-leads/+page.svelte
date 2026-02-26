@@ -1,6 +1,8 @@
 <script lang="ts">
   import type { PageData, ActionData } from "./$types";
   import EntityListPage from "$lib/components/EntityListPage.svelte";
+  import LeadScoreBadge from "$lib/components/LeadScoreBadge.svelte";
+  import { getLeadScoreBand } from "@humans/shared";
   import { generalLeadStatusLabels } from "$lib/constants/labels";
   import { generalLeadStatusColors } from "$lib/constants/colors";
   import { resolve } from "$app/paths";
@@ -20,6 +22,7 @@
     lastName: string;
     notes: string | null;
     ownerName: string | null;
+    scoreTotal: number | null;
     convertedHumanDisplayId: string | null;
     convertedHumanId: string | null;
     convertedHumanName: string | null;
@@ -73,6 +76,7 @@
   columns={[
     { key: "displayId", label: "Lead Code" },
     { key: "name", label: "Name" },
+    { key: "score", label: "Score" },
     { key: "status", label: "Status" },
     { key: "owner", label: "Owner" },
     { key: "notes", label: "Notes" },
@@ -188,6 +192,13 @@
     </td>
     <td class="text-text-primary text-sm">{[lead.firstName, lead.middleName, lead.lastName].filter(Boolean).join(" ")}</td>
     <td>
+      {#if lead.scoreTotal != null}
+        <LeadScoreBadge score={lead.scoreTotal} band={getLeadScoreBand(lead.scoreTotal)} />
+      {:else}
+        <span class="text-text-muted">&mdash;</span>
+      {/if}
+    </td>
+    <td>
       <!-- eslint-disable-next-line security/detect-object-injection -->
       <span class="glass-badge inline-flex rounded-full px-2 py-0.5 text-xs font-medium {generalLeadStatusColors[lead.status] ?? 'bg-glass text-text-secondary'}">
         <!-- eslint-disable-next-line security/detect-object-injection -->
@@ -211,11 +222,16 @@
     <a href={resolve(`/leads/general-leads/${lead.id}`)} class="glass-card p-4 block hover:ring-1 hover:ring-accent/40 transition">
       <span class="font-mono text-xs text-text-muted">{lead.displayId}</span>
       <div class="flex items-center justify-between mb-2 mt-1">
-        <!-- eslint-disable-next-line security/detect-object-injection -->
-        <span class="glass-badge inline-flex rounded-full px-2 py-0.5 text-xs font-medium {generalLeadStatusColors[lead.status] ?? 'bg-glass text-text-secondary'}">
+        <div class="flex items-center gap-2">
           <!-- eslint-disable-next-line security/detect-object-injection -->
-          {generalLeadStatusLabels[lead.status] ?? lead.status}
-        </span>
+          <span class="glass-badge inline-flex rounded-full px-2 py-0.5 text-xs font-medium {generalLeadStatusColors[lead.status] ?? 'bg-glass text-text-secondary'}">
+            <!-- eslint-disable-next-line security/detect-object-injection -->
+            {generalLeadStatusLabels[lead.status] ?? lead.status}
+          </span>
+          {#if lead.scoreTotal != null}
+            <LeadScoreBadge score={lead.scoreTotal} band={getLeadScoreBand(lead.scoreTotal)} />
+          {/if}
+        </div>
       </div>
       <p class="text-sm font-medium text-text-primary">{[lead.firstName, lead.middleName, lead.lastName].filter(Boolean).join(" ")}</p>
       {#if lead.ownerName}

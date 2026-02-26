@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { sql, inArray } from "drizzle-orm";
-import { activities } from "@humans/db/schema";
+import { activities, leadScores } from "@humans/db/schema";
 import { updateRouteSignupSchema, updateEntityNextActionSchema, createEmailSchema, createPhoneNumberSchema, createSocialIdSchema, ERROR_CODES } from "@humans/shared";
 import { authMiddleware } from "../middleware/auth";
 import { requirePermission } from "../middleware/rbac";
@@ -112,6 +112,24 @@ routeSignupRoutes.get("/api/route-signups", requirePermission("viewRouteSignups"
     enriched = data.map((s: { id: string }) => ({
       ...s,
       lastActivityDate: dateMap.get(s.id) ?? null,
+    }));
+  }
+
+  // Fetch lead scores from D1
+  const enrichedIds = enriched.map((s: { id: string }) => s.id);
+  if (enrichedIds.length > 0) {
+    const scores = await db
+      .select({
+        routeSignupId: leadScores.routeSignupId,
+        scoreTotal: leadScores.scoreTotal,
+      })
+      .from(leadScores)
+      .where(inArray(leadScores.routeSignupId, enrichedIds));
+
+    const scoreMap = new Map(scores.map((r) => [r.routeSignupId, r.scoreTotal]));
+    enriched = enriched.map((s: { id: string }) => ({
+      ...s,
+      scoreTotal: scoreMap.get(s.id) ?? null,
     }));
   }
 
