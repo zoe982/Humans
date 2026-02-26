@@ -4,6 +4,7 @@
   import StatusBadge from "$lib/components/StatusBadge.svelte";
   import AlertBanner from "$lib/components/AlertBanner.svelte";
   import RelatedListTable from "$lib/components/RelatedListTable.svelte";
+  import MarketingAttributionCard from "$lib/components/MarketingAttributionCard.svelte";
   import HighlightText from "$lib/components/HighlightText.svelte";
   import { bookingRequestStatusColors, activityTypeColors } from "$lib/constants/colors";
   import { bookingRequestStatusLabels, depositStatusLabels, balanceStatusLabels, activityTypeLabels, ACTIVITY_TYPE_OPTIONS } from "$lib/constants/labels";
@@ -77,7 +78,14 @@
     linkedAt: string;
   };
 
+  type MarketingAttr = {
+    id: string;
+    crmDisplayId: string | null;
+    [key: string]: unknown;
+  };
+
   const booking = $derived(data.booking as Booking);
+  const marketingAttribution = $derived(data.marketingAttribution as MarketingAttr | null);
   const activities = $derived(data.activities as Activity[]);
   const linkedHumans = $derived((data.linkedHumans ?? []) as LinkedHuman[]);
   const colleaguesList = $derived((data.colleagues ?? []) as Colleague[]);
@@ -241,6 +249,19 @@
       </div>
     {/if}
   </div>
+
+  <!-- Marketing Attribution -->
+  {#if marketingAttribution != null}
+    <div class="glass-card p-6 mb-6">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="text-lg font-semibold text-text-primary">Marketing Attribution</h2>
+        <a href={resolve(`/marketing-attributions/${marketingAttribution.id}`)} class="text-sm font-mono text-accent hover:text-[var(--link-hover)]">
+          {marketingAttribution.crmDisplayId ?? "View"}
+        </a>
+      </div>
+      <MarketingAttributionCard attribution={marketingAttribution as any} />
+    </div>
+  {/if}
 
   <!-- Pricing -->
   <div class="glass-card p-6 mb-6">

@@ -237,6 +237,7 @@ Maximum capacity: ~17.5M IDs per prefix.
 | FRY | Front Sync Runs | `services/front-sync.ts` |
 | BOR | Booking Requests | `routes/website-booking-requests.ts` |
 | ERR | Error Log | `lib/error-logger.ts` |
+| MAT | Marketing Attributions | `services/marketing-attributions.ts` |
 
 ### Implementation
 - **Formatter**: `packages/db/src/display-id.ts` — `formatDisplayId(prefix, counter)` and `parseDisplayId(id)`

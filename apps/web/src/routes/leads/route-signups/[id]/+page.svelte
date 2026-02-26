@@ -3,6 +3,7 @@
   import RecordManagementBar from "$lib/components/RecordManagementBar.svelte";
   import AlertBanner from "$lib/components/AlertBanner.svelte";
   import RelatedListTable from "$lib/components/RelatedListTable.svelte";
+  import MarketingAttributionCard from "$lib/components/MarketingAttributionCard.svelte";
   import HighlightText from "$lib/components/HighlightText.svelte";
   import { invalidateAll } from "$app/navigation";
   import { api } from "$lib/api";
@@ -56,7 +57,14 @@
     createdAt: string;
   };
 
+  type MarketingAttr = {
+    id: string;
+    crmDisplayId: string | null;
+    [key: string]: unknown;
+  };
+
   const signup = $derived(data.signup as Signup);
+  const marketingAttribution = $derived(data.marketingAttribution as MarketingAttr | null);
   const activities = $derived(data.activities as Activity[]);
   const colleaguesList = $derived((data.colleagues ?? []) as Colleague[]);
   const colleagueOptions = $derived(colleaguesList.map((c) => ({ value: c.id, label: `${c.displayId ?? ""} ${c.name}`.trim() })));
@@ -204,6 +212,19 @@
       </div>
     </dl>
   </div>
+
+  <!-- Marketing Attribution -->
+  {#if marketingAttribution != null}
+    <div class="glass-card p-6 mb-6">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="text-lg font-semibold text-text-primary">Marketing Attribution</h2>
+        <a href={resolve(`/marketing-attributions/${marketingAttribution.id}`)} class="text-sm font-mono text-accent hover:text-[var(--link-hover)]">
+          {marketingAttribution.crmDisplayId ?? "View"}
+        </a>
+      </div>
+      <MarketingAttributionCard attribution={marketingAttribution as any} />
+    </div>
+  {/if}
 
   <!-- Note (Read-only) -->
   <div class="glass-card p-6 mb-6">

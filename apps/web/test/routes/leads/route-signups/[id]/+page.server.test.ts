@@ -42,11 +42,12 @@ describe("route-signups/[id] load", () => {
     }
   });
 
-  it("returns signup, activities, and user on success", async () => {
+  it("returns signup, activities, marketingAttribution, and user on success", async () => {
     const event = makeEvent();
     const result = await load(event as any);
     expect(result.signup).toEqual(sampleSignup);
     expect(result.activities).toEqual([{ id: "a-1", type: "email" }]);
+    expect(result.marketingAttribution).toBeNull();
     expect(result.user).toBeDefined();
   });
 
@@ -63,6 +64,21 @@ describe("route-signups/[id] load", () => {
     } catch (e) {
       expect(isRedirect(e)).toBe(true);
     }
+  });
+
+  it("fetches marketing attribution when signup has marketing_attribution_id", async () => {
+    const signupWithAttr = { ...sampleSignup, marketing_attribution_id: "mat-1" };
+    const sampleAttr = { id: "mat-1", crmDisplayId: "MAT-AAA-001" };
+    mockFetch = createMockFetch({
+      "/api/route-signups/rs-1": { body: { data: signupWithAttr } },
+      "/api/activities?routeSignupId=rs-1": { body: { data: [] } },
+      "/api/marketing-attributions/mat-1": { body: { data: sampleAttr } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent();
+    const result = await load(event as any);
+    expect(result.marketingAttribution).toEqual(sampleAttr);
   });
 
   it("returns empty activities when activities API fails", async () => {

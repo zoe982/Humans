@@ -8,7 +8,7 @@ function getFormString(form: FormData, key: string): string {
   return typeof raw === "string" ? raw : "";
 }
 
-export const load = async ({ locals, cookies, params }: RequestEvent): Promise<{ signup: unknown; activities: unknown[]; colleagues: unknown[]; user: NonNullable<typeof locals.user> }> => {
+export const load = async ({ locals, cookies, params }: RequestEvent): Promise<{ signup: unknown; activities: unknown[]; colleagues: unknown[]; marketingAttribution: unknown; user: NonNullable<typeof locals.user> }> => {
   if (locals.user == null) redirect(302, "/login");
 
   const sessionToken = cookies.get("humans_session");
@@ -24,15 +24,26 @@ export const load = async ({ locals, cookies, params }: RequestEvent): Promise<{
   const signup = isObjData(signupRaw) ? signupRaw.data : null;
   if (signup == null) redirect(302, "/leads/route-signups");
 
-  // Fetch activities and colleagues concurrently
-  const [activitiesRes, colleaguesRes] = await Promise.all([
+  // Build parallel fetch list: activities, colleagues, and optionally attribution
+  const signupObj = signup as Record<string, unknown>;
+  const marketingAttributionId = typeof signupObj["marketing_attribution_id"] === "string" ? signupObj["marketing_attribution_id"] : null;
+
+  const parallelFetches: Promise<Response>[] = [
     fetch(`${PUBLIC_API_URL}/api/activities?routeSignupId=${id ?? ""}`, {
       headers: { Cookie: `humans_session=${sessionToken ?? ""}` },
     }),
     fetch(`${PUBLIC_API_URL}/api/colleagues`, {
       headers: { Cookie: `humans_session=${sessionToken ?? ""}` },
     }),
-  ]);
+  ];
+  if (marketingAttributionId != null) {
+    parallelFetches.push(
+      fetch(`${PUBLIC_API_URL}/api/marketing-attributions/${marketingAttributionId}`, {
+        headers: { Cookie: `humans_session=${sessionToken ?? ""}` },
+      }),
+    );
+  }
+  const [activitiesRes, colleaguesRes, attributionRes] = await Promise.all(parallelFetches) as [Response, Response, Response | undefined];
 
   let activities: unknown[] = [];
   if (activitiesRes.ok) {
@@ -46,7 +57,13 @@ export const load = async ({ locals, cookies, params }: RequestEvent): Promise<{
     colleagues = isListData(colleaguesRaw) ? colleaguesRaw.data : [];
   }
 
-  return { signup, activities, colleagues, user: locals.user };
+  let marketingAttribution: unknown = null;
+  if (attributionRes != null && attributionRes.ok) {
+    const attrRaw: unknown = await attributionRes.json();
+    marketingAttribution = isObjData(attrRaw) ? attrRaw.data : null;
+  }
+
+  return { signup, activities, colleagues, marketingAttribution, user: locals.user };
 };
 
 export const actions = {

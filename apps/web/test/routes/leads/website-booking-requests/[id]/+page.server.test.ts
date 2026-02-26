@@ -42,13 +42,30 @@ describe("website-booking-requests/[id] +page.server load", () => {
     }
   });
 
-  it("returns booking, activities, linkedHumans, and user on success", async () => {
+  it("returns booking, activities, linkedHumans, marketingAttribution, and user on success", async () => {
     const event = makeEvent();
     const result = await load(event as any);
     expect(result.booking).toEqual(sampleBooking);
     expect(result.activities).toHaveLength(1);
     expect(result.linkedHumans).toEqual(sampleLinkedHumans);
+    expect(result.marketingAttribution).toBeNull();
     expect(result.user).toBeDefined();
+  });
+
+  it("fetches marketing attribution when booking has marketing_attribution_id", async () => {
+    const bookingWithAttr = { ...sampleBooking, marketing_attribution_id: "mat-1" };
+    const sampleAttr = { id: "mat-1", crmDisplayId: "MAT-AAA-001" };
+    mockFetch = createMockFetch({
+      "/api/website-booking-requests/b1/linked-humans": { body: { data: sampleLinkedHumans } },
+      "/api/website-booking-requests/b1": { body: { data: bookingWithAttr } },
+      "/api/activities": { body: { data: [] } },
+      "/api/marketing-attributions/mat-1": { body: { data: sampleAttr } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent();
+    const result = await load(event as any);
+    expect(result.marketingAttribution).toEqual(sampleAttr);
   });
 
   it("returns empty linkedHumans when linked-humans API fails", async () => {

@@ -93,6 +93,10 @@ describe("formatDisplayId", () => {
     it("works with ERR prefix", () => {
       expect(formatDisplayId("ERR", 42)).toBe("ERR-AAA-042");
     });
+
+    it("works with MAT prefix", () => {
+      expect(formatDisplayId("MAT", 1)).toBe("MAT-AAA-001");
+    });
   });
 
   describe("invalid counter values", () => {
