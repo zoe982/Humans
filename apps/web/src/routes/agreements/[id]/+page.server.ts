@@ -2,6 +2,7 @@ import { redirect } from "@sveltejs/kit";
 import type { RequestEvent } from "@sveltejs/kit";
 import { PUBLIC_API_URL } from "$env/static/public";
 import { isObjData, isListData, fetchList, fetchConfigs } from "$lib/server/api";
+import { humanListItemSchema, accountListItemSchema } from "@humans/shared";
 
 export const load = async ({ locals, cookies, params }: RequestEvent): Promise<{
   agreement: Record<string, unknown>;
@@ -25,8 +26,8 @@ export const load = async ({ locals, cookies, params }: RequestEvent): Promise<{
   if (agreement == null) redirect(302, "/agreements");
 
   const [allHumans, allAccounts, configs, documentsRes] = await Promise.all([
-    fetchList(`${PUBLIC_API_URL}/api/humans`, sessionToken),
-    fetchList(`${PUBLIC_API_URL}/api/accounts`, sessionToken),
+    fetchList(`${PUBLIC_API_URL}/api/humans`, sessionToken, { schema: humanListItemSchema, schemaName: "humanListItem" }),
+    fetchList(`${PUBLIC_API_URL}/api/accounts`, sessionToken, { schema: accountListItemSchema, schemaName: "accountListItem" }),
     fetchConfigs(sessionToken, ["agreement-types"]),
     fetch(`${PUBLIC_API_URL}/api/documents?entityType=agreement&entityId=${id}`, {
       headers: { Cookie: `humans_session=${sessionToken}` },

@@ -1,7 +1,8 @@
 import { redirect } from "@sveltejs/kit";
 import type { RequestEvent, ActionFailure } from "@sveltejs/kit";
 import { PUBLIC_API_URL } from "$env/static/public";
-import { isObjData, isListData, failFromApi, fetchConfigs, authHeaders } from "$lib/server/api";
+import { isObjData, failFromApi, fetchConfigs, authHeaders, fetchList, fetchObj } from "$lib/server/api";
+import { generalLeadDetailSchema, type GeneralLeadDetail } from "@humans/shared";
 
 function formStr(value: FormDataEntryValue | null): string {
   return typeof value === "string" ? value : "";

@@ -14,8 +14,8 @@ export const load = async ({ locals, cookies }: RequestEvent): Promise<{ allHuma
   const sessionToken = cookies.get("humans_session") ?? "";
 
   const [allHumans, allAccounts, configs] = await Promise.all([
-    fetchList(`${PUBLIC_API_URL}/api/humans`, sessionToken),
-    fetchList(`${PUBLIC_API_URL}/api/accounts`, sessionToken),
+    fetchList(`${PUBLIC_API_URL}/api/humans`, sessionToken, { schema: humanListItemSchema, schemaName: "humanListItem" }),
+    fetchList(`${PUBLIC_API_URL}/api/accounts`, sessionToken, { schema: accountListItemSchema, schemaName: "accountListItem" }),
     fetchConfigs(sessionToken, ["agreement-types"]),
   ]);
 

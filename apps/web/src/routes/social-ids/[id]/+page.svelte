@@ -107,6 +107,18 @@
     allAccounts.map((a) => ({ value: a.id, label: `${a.displayId} ${a.name}` }))
   );
 
+  const generalLeadOptions = $derived(
+    allGeneralLeads.map((l) => ({ value: l.id, label: `${l.displayId} ${l.firstName} ${l.lastName}` }))
+  );
+
+  const bookingRequestOptions = $derived(
+    allBookingRequests.map((b) => ({ value: b.id, label: `${b.crm_display_id ?? ""} ${[b.first_name, b.last_name].filter(Boolean).join(" ")}`.trim() }))
+  );
+
+  const routeSignupOptions = $derived(
+    allRouteSignups.map((r) => ({ value: r.id, label: `${r.display_id ?? ""} ${[r.first_name, r.last_name].filter(Boolean).join(" ")}`.trim() }))
+  );
+
   onDestroy(() => autoSaver.destroy());
 
   function triggerSave() {
@@ -116,6 +128,9 @@
       platformId: platformId || null,
       humanId: humanId || null,
       accountId: accountId || null,
+      generalLeadId: generalLeadId || null,
+      websiteBookingRequestId: websiteBookingRequestId || null,
+      routeSignupId: routeSignupId || null,
     });
   }
 
@@ -126,6 +141,9 @@
       platformId: platformId || null,
       humanId: humanId || null,
       accountId: accountId || null,
+      generalLeadId: generalLeadId || null,
+      websiteBookingRequestId: websiteBookingRequestId || null,
+      routeSignupId: routeSignupId || null,
     });
   }
 
@@ -141,6 +159,21 @@
 
   function handleAccountChange(value: string) {
     accountId = value;
+    triggerSaveImmediate();
+  }
+
+  function handleGeneralLeadChange(value: string) {
+    generalLeadId = value;
+    triggerSaveImmediate();
+  }
+
+  function handleBookingRequestChange(value: string) {
+    websiteBookingRequestId = value;
+    triggerSaveImmediate();
+  }
+
+  function handleRouteSignupChange(value: string) {
+    routeSignupId = value;
     triggerSaveImmediate();
   }
 </script>
