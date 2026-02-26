@@ -1,6 +1,7 @@
 import { ERROR_CODES } from "@humans/shared";
 import { notFound } from "../lib/errors";
 import { nextDisplayId } from "../lib/display-id";
+import { assertUniqueIds } from "../lib/assert-unique-ids";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { DB } from "./types";
 
@@ -219,10 +220,11 @@ export async function listMarketingAttributions(
     typed.map((a) => a.id),
   );
 
-  return typed.map((row) => ({
+  const results = typed.map((row) => ({
     ...toApiShape(row),
     linkedLead: linkedLeads.get(row.id) ?? null,
   }));
+  return assertUniqueIds(results, "marketing-attributions");
 }
 
 export async function getMarketingAttribution(
