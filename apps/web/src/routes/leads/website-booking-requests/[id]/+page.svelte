@@ -99,10 +99,6 @@
   const booking = $derived(data.booking as Booking);
   const marketingAttribution = $derived(data.marketingAttribution as MarketingAttr | null);
   let activities = $state<Activity[]>(data.activities as Activity[]);
-
-  $effect(() => {
-    activities = data.activities as Activity[];
-  });
   const linkedHumans = $derived((data.linkedHumans ?? []) as LinkedHuman[]);
   const colleaguesList = $derived((data.colleagues ?? []) as Colleague[]);
   const colleagueOptions = $derived(colleaguesList.map((c) => ({ value: c.id, label: `${c.displayId ?? ""} ${c.name}`.trim() })));

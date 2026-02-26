@@ -101,10 +101,6 @@
   const reverseRoute = $derived(data.reverseRoute as ReverseRoute);
   let activities = $state<Activity[]>(data.activities as Activity[]);
 
-  $effect(() => {
-    activities = data.activities as Activity[];
-  });
-
   // Summary statistics
   const uniqueHumanCount = $derived(new Set(routeInterest.expressions.map(e => e.humanId)).size);
   const oneTimeCount = $derived(routeInterest.expressions.filter(e => e.frequency === "one_time").length);

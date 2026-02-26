@@ -72,10 +72,6 @@
 
   const lead = $derived(data.lead as Lead);
   let activities = $state<Activity[]>(data.activities as Activity[]);
-
-  $effect(() => {
-    activities = data.activities as Activity[];
-  });
   const colleaguesList = $derived((data.colleagues ?? []) as Colleague[]);
   const colleagueOptions = $derived(colleaguesList.map((c) => ({ value: c.id, label: `${c.displayId ?? ""} ${c.name}`.trim() })));
   const isAdmin = $derived(data.user?.role === "admin");
