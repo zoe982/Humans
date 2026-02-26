@@ -64,8 +64,6 @@
     );
   });
 
-  let pendingDeleteId = $state<string | null>(null);
-
   const formResult = $derived(form as FormResult);
 
   $effect(() => {
