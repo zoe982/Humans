@@ -58,6 +58,8 @@
     emails: Email[];
     phoneNumbers: Phone[];
     socialIds: SocialId[];
+    source: string | null;
+    channel: string | null;
     nextAction?: NextAction | null;
     createdAt: string;
     updatedAt: string;

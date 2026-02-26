@@ -63,6 +63,8 @@
     inserted_at: string;
     booking_request_ref: string | null;
     additional_information: string | null;
+    crm_source: string | null;
+    crm_channel: string | null;
     nextAction?: NextAction | null;
   };
 

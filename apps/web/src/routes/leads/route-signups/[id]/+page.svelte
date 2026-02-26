@@ -50,6 +50,8 @@
     inserted_at: string;
     consent: boolean | null;
     newsletter_opt_in: boolean | null;
+    crm_source: string | null;
+    crm_channel: string | null;
     nextAction?: NextAction | null;
   };
 
