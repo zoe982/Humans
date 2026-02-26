@@ -44,11 +44,11 @@
           if (e.key === "ArrowRight" && idx < tabs.length - 1) {
             e.preventDefault();
             selectTab(tabs[idx + 1].id);
-            (e.currentTarget as HTMLElement).nextElementSibling?.focus();
+            ((e.currentTarget as HTMLElement).nextElementSibling as HTMLElement | null)?.focus();
           } else if (e.key === "ArrowLeft" && idx > 0) {
             e.preventDefault();
             selectTab(tabs[idx - 1].id);
-            (e.currentTarget as HTMLElement).previousElementSibling?.focus();
+            ((e.currentTarget as HTMLElement).previousElementSibling as HTMLElement | null)?.focus();
           } else if (e.key === "Home") {
             e.preventDefault();
             selectTab(tabs[0].id);

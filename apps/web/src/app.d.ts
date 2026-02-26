@@ -1,8 +1,5 @@
 /// <reference types="@sveltejs/kit" />
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-declare const __BUILD_TIMESTAMP__: string;
-
 // Declare public env vars so svelte-check works without a .env file
 declare module '$env/static/public' {
   export const PUBLIC_API_URL: string;
@@ -37,6 +34,9 @@ declare global {
       };
     }
   }
+
+  // Injected at build time via vite.config.ts define
+  const __BUILD_TIMESTAMP__: string;
 }
 
 export {};

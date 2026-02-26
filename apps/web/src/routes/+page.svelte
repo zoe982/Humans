@@ -4,13 +4,14 @@
   import { resolve } from "$app/paths";
 
   let { data }: { data: PageData } = $props();
+  const pageData = data as unknown as { user: unknown } | null;
 </script>
 
 <svelte:head>
   <title>Humans - Pet Air Valet</title>
 </svelte:head>
 
-{#if !data.user}
+{#if !pageData?.user}
   <div class="flex min-h-screen items-center justify-center">
     <div class="text-center">
       <h1 class="mb-4 text-4xl font-bold text-text-primary inline-flex items-center gap-3"><Users size={36} /> Humans</h1>
