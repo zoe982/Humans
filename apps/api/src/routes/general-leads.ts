@@ -7,6 +7,7 @@ import {
   updateEntityNextActionSchema,
   createEmailSchema,
   createPhoneNumberSchema,
+  importFromFrontSchema,
   ERROR_CODES,
 } from "@humans/shared";
 import { authMiddleware } from "../middleware/auth";
@@ -20,6 +21,7 @@ import {
   updateGeneralLeadStatus,
   convertGeneralLead,
   deleteGeneralLead,
+  importLeadFromFront,
 } from "../services/general-leads";
 import { createEmail, deleteEmail } from "../services/emails";
 import { createPhoneNumber, deletePhoneNumber } from "../services/phone-numbers";
@@ -45,6 +47,26 @@ generalLeadRoutes.get("/api/general-leads", requirePermission("viewGeneralLeads"
   const convertedHumanId = rawConvertedHumanId !== undefined && rawConvertedHumanId !== "" ? rawConvertedHumanId : undefined;
   const result = await listGeneralLeads(db, page, limit, { q, status, convertedHumanId });
   return c.json(result);
+});
+
+// POST /api/general-leads/import-from-front
+generalLeadRoutes.post("/api/general-leads/import-from-front", requirePermission("manageGeneralLeads"), async (c) => {
+  const body: unknown = await c.req.json();
+  const parsed = importFromFrontSchema.safeParse(body);
+  if (!parsed.success) {
+    throw badRequest(ERROR_CODES.VALIDATION_FAILED, "Invalid input", parsed.error.flatten().fieldErrors);
+  }
+
+  const session = c.get("session");
+  if (session === null) return c.json({ error: "Unauthorized" }, 401);
+
+  const frontToken = c.env.FRONT_API_TOKEN;
+  if (frontToken == null || frontToken === "") {
+    return c.json({ error: "Front API token not configured" }, 500);
+  }
+
+  const result = await importLeadFromFront(c.get("db"), parsed.data.frontId, frontToken, session.colleagueId);
+  return c.json({ data: result }, 201);
 });
 
 // GET /api/general-leads/:id
