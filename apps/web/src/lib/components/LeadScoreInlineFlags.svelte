@@ -89,46 +89,87 @@
   </a>
 </div>
 
-<!-- 4-column category sub-cards -->
-<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+<!-- 3-column category grid: [Fit+Engagement] [Intent] [Negative+Lifecycle] -->
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
 
-  <!-- Fit Card -->
-  <div class="rounded-xl border-l-[3px] border-l-green-500/50 bg-[rgba(34,197,94,0.04)] p-3">
-    <div class="flex items-center justify-between mb-2">
-      <span class="text-xs font-semibold uppercase text-green-400">Fit</span>
-      <span class="text-xs text-text-muted">{score.scoreFit}/35</span>
+  <!-- Column 1: Fit stacked above Engagement -->
+  <div class="flex flex-col gap-4">
+
+    <!-- Fit Card -->
+    <div class="rounded-xl border-l-[3px] border-l-green-500/50 bg-[rgba(34,197,94,0.04)] p-3">
+      <div class="flex items-center justify-between mb-2">
+        <span class="text-xs font-semibold uppercase text-green-400">Fit</span>
+        <span class="text-xs text-text-muted">{score.scoreFit}/35</span>
+      </div>
+      <div class="space-y-1">
+        <label class="flex items-start gap-2.5 cursor-pointer rounded-lg px-2 py-1.5 transition-colors hover:bg-[rgba(255,255,255,0.06)] {score.fitMatchesCurrentWebsiteFlight ? 'bg-[rgba(34,197,94,0.07)]' : ''}">
+          <input
+            type="checkbox"
+            checked={score.fitMatchesCurrentWebsiteFlight}
+            onchange={(e) => toggleFlag("fitMatchesCurrentWebsiteFlight", e.currentTarget.checked)}
+            disabled={saving}
+            class="mt-0.5 h-4 w-4 rounded border-glass-border bg-glass accent-accent"
+          />
+          <div>
+            <span class="text-xs text-text-primary leading-tight block">Website flight match</span>
+            <span class="text-[10px] text-text-muted">+30 pts</span>
+          </div>
+        </label>
+        <label class="flex items-start gap-2.5 cursor-pointer rounded-lg px-2 py-1.5 transition-colors hover:bg-[rgba(255,255,255,0.06)] {score.fitPriceAcknowledgedOk ? 'bg-[rgba(34,197,94,0.07)]' : ''}">
+          <input
+            type="checkbox"
+            checked={score.fitPriceAcknowledgedOk}
+            onchange={(e) => toggleFlag("fitPriceAcknowledgedOk", e.currentTarget.checked)}
+            disabled={saving}
+            class="mt-0.5 h-4 w-4 rounded border-glass-border bg-glass accent-accent"
+          />
+          <div>
+            <span class="text-xs text-text-primary leading-tight block">Price acknowledged OK</span>
+            <span class="text-[10px] text-text-muted">+5 pts</span>
+          </div>
+        </label>
+      </div>
     </div>
-    <div class="space-y-1">
-      <label class="flex items-start gap-2.5 cursor-pointer rounded-lg px-2 py-1.5 transition-colors hover:bg-[rgba(255,255,255,0.06)] {score.fitMatchesCurrentWebsiteFlight ? 'bg-[rgba(34,197,94,0.07)]' : ''}">
-        <input
-          type="checkbox"
-          checked={score.fitMatchesCurrentWebsiteFlight}
-          onchange={(e) => toggleFlag("fitMatchesCurrentWebsiteFlight", e.currentTarget.checked)}
-          disabled={saving}
-          class="mt-0.5 h-4 w-4 rounded border-glass-border bg-glass accent-accent"
-        />
-        <div>
-          <span class="text-xs text-text-primary leading-tight block">Website flight match</span>
-          <span class="text-[10px] text-text-muted">+30 pts</span>
-        </div>
-      </label>
-      <label class="flex items-start gap-2.5 cursor-pointer rounded-lg px-2 py-1.5 transition-colors hover:bg-[rgba(255,255,255,0.06)] {score.fitPriceAcknowledgedOk ? 'bg-[rgba(34,197,94,0.07)]' : ''}">
-        <input
-          type="checkbox"
-          checked={score.fitPriceAcknowledgedOk}
-          onchange={(e) => toggleFlag("fitPriceAcknowledgedOk", e.currentTarget.checked)}
-          disabled={saving}
-          class="mt-0.5 h-4 w-4 rounded border-glass-border bg-glass accent-accent"
-        />
-        <div>
-          <span class="text-xs text-text-primary leading-tight block">Price acknowledged OK</span>
-          <span class="text-[10px] text-text-muted">+5 pts</span>
-        </div>
-      </label>
+
+    <!-- Engagement Card -->
+    <div class="rounded-xl border-l-[3px] border-l-purple-500/50 bg-[rgba(168,85,247,0.04)] p-3">
+      <div class="flex items-center justify-between mb-2">
+        <span class="text-xs font-semibold uppercase text-purple-400">Engagement</span>
+        <span class="text-xs text-text-muted">{score.scoreEngagement}/15</span>
+      </div>
+      <div class="space-y-1">
+        <label class="flex items-start gap-2.5 cursor-pointer rounded-lg px-2 py-1.5 transition-colors hover:bg-[rgba(255,255,255,0.06)] {score.engagementRespondedFast ? 'bg-[rgba(168,85,247,0.07)]' : ''}">
+          <input
+            type="checkbox"
+            checked={score.engagementRespondedFast}
+            onchange={(e) => toggleFlag("engagementRespondedFast", e.currentTarget.checked)}
+            disabled={saving}
+            class="mt-0.5 h-4 w-4 rounded border-glass-border bg-glass accent-accent"
+          />
+          <div>
+            <span class="text-xs text-text-primary leading-tight block">Responded fast</span>
+            <span class="text-[10px] text-text-muted">+15 pts</span>
+          </div>
+        </label>
+        <label class="flex items-start gap-2.5 cursor-pointer rounded-lg px-2 py-1.5 transition-colors hover:bg-[rgba(255,255,255,0.06)] {score.engagementRespondedSlow ? 'bg-[rgba(168,85,247,0.07)]' : ''}">
+          <input
+            type="checkbox"
+            checked={score.engagementRespondedSlow}
+            onchange={(e) => toggleFlag("engagementRespondedSlow", e.currentTarget.checked)}
+            disabled={saving}
+            class="mt-0.5 h-4 w-4 rounded border-glass-border bg-glass accent-accent"
+          />
+          <div>
+            <span class="text-xs text-text-primary leading-tight block">Responded slow</span>
+            <span class="text-[10px] text-text-muted">+8 pts</span>
+          </div>
+        </label>
+      </div>
     </div>
+
   </div>
 
-  <!-- Intent Card -->
+  <!-- Column 2: Intent (tallest — anchors grid height) -->
   <div class="rounded-xl border-l-[3px] border-l-blue-500/50 bg-[rgba(59,130,246,0.04)] p-3">
     <div class="flex items-center justify-between mb-2">
       <span class="text-xs font-semibold uppercase text-blue-400">Intent</span>
@@ -216,122 +257,90 @@
     </div>
   </div>
 
-  <!-- Engagement Card -->
-  <div class="rounded-xl border-l-[3px] border-l-purple-500/50 bg-[rgba(168,85,247,0.04)] p-3">
-    <div class="flex items-center justify-between mb-2">
-      <span class="text-xs font-semibold uppercase text-purple-400">Engagement</span>
-      <span class="text-xs text-text-muted">{score.scoreEngagement}/15</span>
+  <!-- Column 3: Negative stacked above Lifecycle -->
+  <div class="flex flex-col gap-4">
+
+    <!-- Negative Card -->
+    <div class="rounded-xl border-l-[3px] border-l-red-500/50 bg-[rgba(239,68,68,0.04)] p-3">
+      <div class="flex items-center justify-between mb-2">
+        <span class="text-xs font-semibold uppercase text-red-400">Negative</span>
+        <span class="text-xs text-text-muted">-{score.scoreNegative}/60</span>
+      </div>
+      <div class="space-y-1">
+        <label class="flex items-start gap-2.5 cursor-pointer rounded-lg px-2 py-1.5 transition-colors hover:bg-[rgba(255,255,255,0.06)] {score.negativeNoContactMethod ? 'bg-[rgba(239,68,68,0.07)]' : ''}">
+          <input
+            type="checkbox"
+            checked={score.negativeNoContactMethod}
+            onchange={(e) => toggleFlag("negativeNoContactMethod", e.currentTarget.checked)}
+            disabled={saving}
+            class="mt-0.5 h-4 w-4 rounded border-glass-border bg-glass accent-accent"
+          />
+          <div>
+            <span class="text-xs text-text-primary leading-tight block">No contact method</span>
+            <span class="text-[10px] text-text-muted">-30 pts</span>
+          </div>
+        </label>
+        <label class="flex items-start gap-2.5 cursor-pointer rounded-lg px-2 py-1.5 transition-colors hover:bg-[rgba(255,255,255,0.06)] {score.negativeOffNetworkRequest ? 'bg-[rgba(239,68,68,0.07)]' : ''}">
+          <input
+            type="checkbox"
+            checked={score.negativeOffNetworkRequest}
+            onchange={(e) => toggleFlag("negativeOffNetworkRequest", e.currentTarget.checked)}
+            disabled={saving}
+            class="mt-0.5 h-4 w-4 rounded border-glass-border bg-glass accent-accent"
+          />
+          <div>
+            <span class="text-xs text-text-primary leading-tight block">Off-network request</span>
+            <span class="text-[10px] text-text-muted">-25 pts</span>
+          </div>
+        </label>
+        <label class="flex items-start gap-2.5 cursor-pointer rounded-lg px-2 py-1.5 transition-colors hover:bg-[rgba(255,255,255,0.06)] {score.negativePriceObjection ? 'bg-[rgba(239,68,68,0.07)]' : ''}">
+          <input
+            type="checkbox"
+            checked={score.negativePriceObjection}
+            onchange={(e) => toggleFlag("negativePriceObjection", e.currentTarget.checked)}
+            disabled={saving}
+            class="mt-0.5 h-4 w-4 rounded border-glass-border bg-glass accent-accent"
+          />
+          <div>
+            <span class="text-xs text-text-primary leading-tight block">Price objection</span>
+            <span class="text-[10px] text-text-muted">-20 pts</span>
+          </div>
+        </label>
+        <label class="flex items-start gap-2.5 cursor-pointer rounded-lg px-2 py-1.5 transition-colors hover:bg-[rgba(255,255,255,0.06)] {score.negativeGhostedAfterPaymentSent ? 'bg-[rgba(239,68,68,0.07)]' : ''}">
+          <input
+            type="checkbox"
+            checked={score.negativeGhostedAfterPaymentSent}
+            onchange={(e) => toggleFlag("negativeGhostedAfterPaymentSent", e.currentTarget.checked)}
+            disabled={saving}
+            class="mt-0.5 h-4 w-4 rounded border-glass-border bg-glass accent-accent"
+          />
+          <div>
+            <span class="text-xs text-text-primary leading-tight block">Ghosted after payment sent</span>
+            <span class="text-[10px] text-text-muted">-15 pts</span>
+          </div>
+        </label>
+      </div>
     </div>
-    <div class="space-y-1">
-      <label class="flex items-start gap-2.5 cursor-pointer rounded-lg px-2 py-1.5 transition-colors hover:bg-[rgba(255,255,255,0.06)] {score.engagementRespondedFast ? 'bg-[rgba(168,85,247,0.07)]' : ''}">
+
+    <!-- Lifecycle: Customer has flown -->
+    <div
+      class="rounded-xl border px-4 py-2.5 transition-colors {score.customerHasFlown
+        ? 'border-[rgba(234,179,8,0.40)] bg-[rgba(234,179,8,0.12)]'
+        : 'border-[rgba(234,179,8,0.25)] bg-[rgba(234,179,8,0.06)] hover:bg-[rgba(234,179,8,0.10)]'}"
+    >
+      <label class="flex items-center gap-2.5 cursor-pointer">
         <input
           type="checkbox"
-          checked={score.engagementRespondedFast}
-          onchange={(e) => toggleFlag("engagementRespondedFast", e.currentTarget.checked)}
+          checked={score.customerHasFlown}
+          onchange={(e) => toggleFlag("customerHasFlown", e.currentTarget.checked)}
           disabled={saving}
-          class="mt-0.5 h-4 w-4 rounded border-glass-border bg-glass accent-accent"
+          class="h-4 w-4 rounded border-glass-border bg-glass accent-accent"
         />
-        <div>
-          <span class="text-xs text-text-primary leading-tight block">Responded fast</span>
-          <span class="text-[10px] text-text-muted">+15 pts</span>
-        </div>
-      </label>
-      <label class="flex items-start gap-2.5 cursor-pointer rounded-lg px-2 py-1.5 transition-colors hover:bg-[rgba(255,255,255,0.06)] {score.engagementRespondedSlow ? 'bg-[rgba(168,85,247,0.07)]' : ''}">
-        <input
-          type="checkbox"
-          checked={score.engagementRespondedSlow}
-          onchange={(e) => toggleFlag("engagementRespondedSlow", e.currentTarget.checked)}
-          disabled={saving}
-          class="mt-0.5 h-4 w-4 rounded border-glass-border bg-glass accent-accent"
-        />
-        <div>
-          <span class="text-xs text-text-primary leading-tight block">Responded slow</span>
-          <span class="text-[10px] text-text-muted">+8 pts</span>
-        </div>
+        <span class="text-xs font-medium text-text-primary">Customer has flown</span>
+        <span class="text-[10px] text-text-muted">(min 95 pts)</span>
       </label>
     </div>
+
   </div>
 
-  <!-- Negative Card -->
-  <div class="rounded-xl border-l-[3px] border-l-red-500/50 bg-[rgba(239,68,68,0.04)] p-3">
-    <div class="flex items-center justify-between mb-2">
-      <span class="text-xs font-semibold uppercase text-red-400">Negative</span>
-      <span class="text-xs text-text-muted">-{score.scoreNegative}/60</span>
-    </div>
-    <div class="space-y-1">
-      <label class="flex items-start gap-2.5 cursor-pointer rounded-lg px-2 py-1.5 transition-colors hover:bg-[rgba(255,255,255,0.06)] {score.negativeNoContactMethod ? 'bg-[rgba(239,68,68,0.07)]' : ''}">
-        <input
-          type="checkbox"
-          checked={score.negativeNoContactMethod}
-          onchange={(e) => toggleFlag("negativeNoContactMethod", e.currentTarget.checked)}
-          disabled={saving}
-          class="mt-0.5 h-4 w-4 rounded border-glass-border bg-glass accent-accent"
-        />
-        <div>
-          <span class="text-xs text-text-primary leading-tight block">No contact method</span>
-          <span class="text-[10px] text-text-muted">-30 pts</span>
-        </div>
-      </label>
-      <label class="flex items-start gap-2.5 cursor-pointer rounded-lg px-2 py-1.5 transition-colors hover:bg-[rgba(255,255,255,0.06)] {score.negativeOffNetworkRequest ? 'bg-[rgba(239,68,68,0.07)]' : ''}">
-        <input
-          type="checkbox"
-          checked={score.negativeOffNetworkRequest}
-          onchange={(e) => toggleFlag("negativeOffNetworkRequest", e.currentTarget.checked)}
-          disabled={saving}
-          class="mt-0.5 h-4 w-4 rounded border-glass-border bg-glass accent-accent"
-        />
-        <div>
-          <span class="text-xs text-text-primary leading-tight block">Off-network request</span>
-          <span class="text-[10px] text-text-muted">-25 pts</span>
-        </div>
-      </label>
-      <label class="flex items-start gap-2.5 cursor-pointer rounded-lg px-2 py-1.5 transition-colors hover:bg-[rgba(255,255,255,0.06)] {score.negativePriceObjection ? 'bg-[rgba(239,68,68,0.07)]' : ''}">
-        <input
-          type="checkbox"
-          checked={score.negativePriceObjection}
-          onchange={(e) => toggleFlag("negativePriceObjection", e.currentTarget.checked)}
-          disabled={saving}
-          class="mt-0.5 h-4 w-4 rounded border-glass-border bg-glass accent-accent"
-        />
-        <div>
-          <span class="text-xs text-text-primary leading-tight block">Price objection</span>
-          <span class="text-[10px] text-text-muted">-20 pts</span>
-        </div>
-      </label>
-      <label class="flex items-start gap-2.5 cursor-pointer rounded-lg px-2 py-1.5 transition-colors hover:bg-[rgba(255,255,255,0.06)] {score.negativeGhostedAfterPaymentSent ? 'bg-[rgba(239,68,68,0.07)]' : ''}">
-        <input
-          type="checkbox"
-          checked={score.negativeGhostedAfterPaymentSent}
-          onchange={(e) => toggleFlag("negativeGhostedAfterPaymentSent", e.currentTarget.checked)}
-          disabled={saving}
-          class="mt-0.5 h-4 w-4 rounded border-glass-border bg-glass accent-accent"
-        />
-        <div>
-          <span class="text-xs text-text-primary leading-tight block">Ghosted after payment sent</span>
-          <span class="text-[10px] text-text-muted">-15 pts</span>
-        </div>
-      </label>
-    </div>
-  </div>
-</div>
-
-<!-- Lifecycle -->
-<div class="mt-5">
-  <div
-    class="inline-flex rounded-xl border px-4 py-2.5 transition-colors {score.customerHasFlown
-      ? 'border-[rgba(234,179,8,0.40)] bg-[rgba(234,179,8,0.12)]'
-      : 'border-[rgba(234,179,8,0.25)] bg-[rgba(234,179,8,0.06)] hover:bg-[rgba(234,179,8,0.10)]'}"
-  >
-    <label class="flex items-center gap-2.5 cursor-pointer">
-      <input
-        type="checkbox"
-        checked={score.customerHasFlown}
-        onchange={(e) => toggleFlag("customerHasFlown", e.currentTarget.checked)}
-        disabled={saving}
-        class="h-4 w-4 rounded border-glass-border bg-glass accent-accent"
-      />
-      <span class="text-xs font-medium text-text-primary">Customer has flown</span>
-      <span class="text-[10px] text-text-muted">(min 95 pts)</span>
-    </label>
-  </div>
 </div>

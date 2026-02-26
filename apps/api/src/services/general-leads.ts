@@ -1,5 +1,5 @@
 import { eq, sql, like, or, and, desc, asc } from "drizzle-orm";
-import { generalLeads, generalLeadStatuses, activities, colleagues, humans, emails, phones, socialIds, socialIdPlatformsConfig } from "@humans/db/schema";
+import { generalLeads, generalLeadStatuses, activities, colleagues, humans, emails, phones, socialIds, socialIdPlatformsConfig, leadScores } from "@humans/db/schema";
 import type { GeneralLeadStatus } from "@humans/db/schema";
 import { createId } from "@humans/db";
 import { ERROR_CODES } from "@humans/shared";
@@ -425,6 +425,8 @@ export async function deleteGeneralLead(db: DB, id: string): Promise<void> {
   await db.update(socialIds).set({ generalLeadId: null }).where(eq(socialIds.generalLeadId, id));
   // Nullify generalLeadId on linked activities
   await db.update(activities).set({ generalLeadId: null }).where(eq(activities.generalLeadId, id));
+  // Delete lead scores (they belong to this lead, not shared)
+  await db.delete(leadScores).where(eq(leadScores.generalLeadId, id));
   await db.delete(generalLeads).where(eq(generalLeads.id, id));
 }
 
