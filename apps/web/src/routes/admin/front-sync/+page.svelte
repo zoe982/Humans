@@ -25,6 +25,12 @@
     unmatchedContacts: UnmatchedContact[];
     nextCursor: string | null;
     syncRunId: string;
+    linkedToHumans?: number;
+    linkedToAccounts?: number;
+    linkedToRouteSignups?: number;
+    linkedToBookings?: number;
+    linkedToColleagues?: number;
+    linkedToGeneralLeads?: number;
   }
 
   interface SyncRun {
@@ -65,7 +71,6 @@
   // Revert state
   let showRevertConfirm = $state(false);
   let revertTargetId = $state("");
-  let reverting = $state(false);
 
   // Reclassify state
   let reclassifying = $state(false);

@@ -1,7 +1,6 @@
 <script lang="ts">
   import type { PageData } from "./$types";
   import PageHeader from "$lib/components/PageHeader.svelte";
-  import { resolve } from "$app/paths";
 
   let { data }: { data: PageData } = $props();
 

@@ -16,13 +16,12 @@
   import * as Dialog from "$lib/components/ui/dialog";
   import GlassDateTimePicker from "$lib/components/GlassDateTimePicker.svelte";
   import GlassDatePicker from "$lib/components/GlassDatePicker.svelte";
-  import HighlightText from "$lib/components/HighlightText.svelte";
   import TypeTogglePills from "$lib/components/TypeTogglePills.svelte";
   import { createAutoSaver, type SaveStatus } from "$lib/autosave";
   import { api } from "$lib/api";
-  import { statusColors as statusColorMap, humanTypeColors as typeColors, activityTypeColors, labelBadgeColor, opportunityStageColors, agreementStatusColors } from "$lib/constants/colors";
+  import { statusColors as statusColorMap, humanTypeColors as typeColors, opportunityStageColors, agreementStatusColors } from "$lib/constants/colors";
   import { humanTypeLabels as typeLabels, activityTypeLabels, ACTIVITY_TYPE_OPTIONS, opportunityStageLabels, agreementStatusLabels } from "$lib/constants/labels";
-  import { formatRelativeTime, formatDateTime, summarizeChanges } from "$lib/utils/format";
+  import { formatRelativeTime, summarizeChanges } from "$lib/utils/format";
   import { PET_BREEDS } from "@humans/shared/constants";
   import { onDestroy } from "svelte";
   import { Button } from "$lib/components/ui/button";
@@ -30,11 +29,6 @@
   import { page } from "$app/stores";
 
   let { data, form }: { data: PageData; form: ActionData } = $props();
-
-  function truncateText(s: string | null, len: number): string {
-    if (!s) return "\u2014";
-    return s.length > len ? s.slice(0, len) + "..." : s;
-  }
 
   type HumanEmail = { id: string; displayId: string; email: string; labelId: string | null; labelName: string | null; isPrimary: boolean };
   type LinkedSignup = { id: string; routeSignupId: string; linkedAt: string; displayId: string | null; passengerName: string | null; origin: string | null; destination: string | null };
@@ -114,6 +108,7 @@
   type AccountOption = { id: string; name: string; displayId?: string };
   type Human = {
     id: string;
+    displayId: string;
     firstName: string;
     middleName: string | null;
     lastName: string;
@@ -1115,7 +1110,8 @@
             <label for="discountCodeId" class="block text-sm font-medium text-text-secondary">Discount Code</label>
             <select id="discountCodeId" name="discountCodeId" required class="glass-input mt-1 block w-full">
               <option value="">Select a discount code...</option>
-              {#each data.allDiscountCodes as dc, i (i)}
+              {#each data.allDiscountCodes as rawDc, i (i)}
+                {@const dc = rawDc as { id: string; code: string; crmDisplayId: string | null }}
                 <option value={dc.id}>{dc.code} ({dc.crmDisplayId ?? dc.id})</option>
               {/each}
             </select>

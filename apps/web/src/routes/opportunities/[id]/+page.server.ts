@@ -47,12 +47,12 @@ export const load = async ({ locals, cookies, params }: RequestEvent): Promise<{
   const [bookingRequestsRaw, cadenceConfigs] = await Promise.all([
     fetchObj(`${PUBLIC_API_URL}/api/opportunities/${id}/booking-requests`, token),
     fetchList(`${PUBLIC_API_URL}/api/opportunity-cadence`, token),
-  ]);
+  ]) as [Record<string, unknown> | null, unknown[]];
 
   const bookingRequests = bookingRequestsRaw != null
     ? {
-        linked: Array.isArray(bookingRequestsRaw.linked) ? bookingRequestsRaw.linked : [],
-        available: Array.isArray(bookingRequestsRaw.available) ? bookingRequestsRaw.available : [],
+        linked: Array.isArray(bookingRequestsRaw["linked"]) ? bookingRequestsRaw["linked"] as unknown[] : [],
+        available: Array.isArray(bookingRequestsRaw["available"]) ? bookingRequestsRaw["available"] as unknown[] : [],
       }
     : { linked: [] as unknown[], available: [] as unknown[] };
 

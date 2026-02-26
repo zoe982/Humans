@@ -5,11 +5,21 @@ import { load, actions } from "../../../../../src/routes/leads/general-leads/[id
 
 const sampleLead = {
   id: "lea-1",
+  displayId: "LEA-AAA-001",
   firstName: "Jane",
   middleName: null,
   lastName: "Smith",
   status: "open",
   notes: "Some notes",
+  rejectReason: null,
+  convertedHumanId: null,
+  ownerId: null,
+  createdAt: "2024-01-01T00:00:00.000Z",
+  updatedAt: "2024-01-01T00:00:00.000Z",
+  ownerName: null,
+  convertedHumanDisplayId: null,
+  convertedHumanName: null,
+  activities: [],
   emails: [],
   phoneNumbers: [],
 };

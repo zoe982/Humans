@@ -18,7 +18,7 @@
   import { api } from "$lib/api";
   import { opportunityStageColors } from "$lib/constants/colors";
   import { opportunityStageLabels, OPPORTUNITY_STAGE_OPTIONS, TERMINAL_STAGES, ACTIVITY_TYPE_OPTIONS, activityTypeLabels } from "$lib/constants/labels";
-  import { formatRelativeTime, formatDateTime, formatDate, summarizeChanges } from "$lib/utils/format";
+  import { formatRelativeTime, formatDate, summarizeChanges } from "$lib/utils/format";
   import { onDestroy } from "svelte";
   import { Button } from "$lib/components/ui/button";
   import { resolve } from "$app/paths";
@@ -99,8 +99,6 @@
   const roleConfigs = $derived(data.roleConfigs as ConfigItem[]);
   const flightSummary = $derived((data.flightSummary ?? []) as FlightSummary[]);
   const bookingRequests = $derived(data.bookingRequests as { linked: BookingRequestLink[]; available: BookingRequestLink[] });
-  const apiUrl = $derived(data.apiUrl as string);
-
   const linkedFlight = $derived(opportunity.flightId ? flightSummary.find((f) => f.id === opportunity.flightId) ?? null : null);
   const flightOptions = $derived(
     flightSummary.map((f) => ({

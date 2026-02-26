@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { invalidateAll } from "$app/navigation";
   import type { PageData, ActionData } from "./$types";
   import RecordManagementBar from "$lib/components/RecordManagementBar.svelte";
   import RelatedListTable from "$lib/components/RelatedListTable.svelte";

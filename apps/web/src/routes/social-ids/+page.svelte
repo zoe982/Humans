@@ -17,6 +17,11 @@
     accountId: string | null;
     accountName: string | null;
     accountDisplayId: string | null;
+    generalLeadId: string | null;
+    generalLeadName: string | null;
+    generalLeadDisplayId: string | null;
+    websiteBookingRequestId: string | null;
+    routeSignupId: string | null;
   };
 
   const socialIds = $derived(data.socialIds as SocialId[]);
@@ -34,15 +39,17 @@
     { key: "platform", label: "Platform" },
     { key: "human", label: "Human" },
     { key: "account", label: "Account" },
+    { key: "generalLead", label: "General Lead" },
   ]}
   searchFilter={(s, q) =>
     s.handle.toLowerCase().includes(q) ||
     (s.platformName?.toLowerCase().includes(q) ?? false) ||
     (s.humanName?.toLowerCase().includes(q) ?? false) ||
     (s.accountName?.toLowerCase().includes(q) ?? false) ||
+    (s.generalLeadName?.toLowerCase().includes(q) ?? false) ||
     s.displayId.toLowerCase().includes(q)
   }
-  searchPlaceholder="Search handles, platforms, humans, accounts..."
+  searchPlaceholder="Search handles, platforms, humans, accounts, leads..."
 >
   {#snippet desktopRow(sid)}
     <td class="font-mono text-sm whitespace-nowrap"><a href={resolve(`/social-ids/${sid.id}`)} class="text-accent hover:text-[var(--link-hover)]">{sid.displayId}</a></td>
@@ -74,6 +81,16 @@
         <span class="text-text-muted">\u2014</span>
       {/if}
     </td>
+    <td>
+      {#if sid.generalLeadId}
+        <a href={resolve(`/leads/general-leads/${sid.generalLeadId}`)} class="text-accent hover:text-[var(--link-hover)]">{sid.generalLeadName ?? "\u2014"}</a>
+        {#if sid.generalLeadDisplayId}
+          <span class="ml-1 text-xs text-text-muted">{sid.generalLeadDisplayId}</span>
+        {/if}
+      {:else}
+        <span class="text-text-muted">\u2014</span>
+      {/if}
+    </td>
   {/snippet}
   {#snippet mobileCard(sid)}
     <a href={resolve(`/social-ids/${sid.id}`)} class="glass-card p-4 block hover:ring-1 hover:ring-accent/40 transition">
@@ -85,6 +102,9 @@
         {/if}
         {#if sid.humanName}
           <span class="ml-2">{sid.humanName}</span>
+        {/if}
+        {#if sid.generalLeadName}
+          <span class="ml-2">{sid.generalLeadName}</span>
         {/if}
       </div>
     </a>

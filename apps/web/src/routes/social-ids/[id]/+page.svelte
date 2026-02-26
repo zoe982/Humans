@@ -254,6 +254,60 @@
         </a>
       {/if}
     </div>
+
+    <div>
+      <label for="generalLead" class="block text-sm font-medium text-text-secondary">General Lead</label>
+      <SearchableSelect
+        options={generalLeadOptions}
+        name="generalLeadId"
+        id="generalLead"
+        value={generalLeadId}
+        emptyOption="None"
+        placeholder="Search general leads..."
+        onSelect={handleGeneralLeadChange}
+      />
+      {#if generalLeadId}
+        <a href={resolve(`/leads/general-leads/${generalLeadId}?from=${$page.url.pathname}`)} class="mt-1 inline-block text-sm text-accent hover:text-[var(--link-hover)]">
+          View General Lead
+        </a>
+      {/if}
+    </div>
+
+    <div>
+      <label for="bookingRequest" class="block text-sm font-medium text-text-secondary">Booking Request</label>
+      <SearchableSelect
+        options={bookingRequestOptions}
+        name="websiteBookingRequestId"
+        id="bookingRequest"
+        value={websiteBookingRequestId}
+        emptyOption="None"
+        placeholder="Search booking requests..."
+        onSelect={handleBookingRequestChange}
+      />
+      {#if websiteBookingRequestId}
+        <a href={resolve(`/leads/website-booking-requests/${websiteBookingRequestId}?from=${$page.url.pathname}`)} class="mt-1 inline-block text-sm text-accent hover:text-[var(--link-hover)]">
+          View Booking Request
+        </a>
+      {/if}
+    </div>
+
+    <div>
+      <label for="routeSignup" class="block text-sm font-medium text-text-secondary">Route Signup</label>
+      <SearchableSelect
+        options={routeSignupOptions}
+        name="routeSignupId"
+        id="routeSignup"
+        value={routeSignupId}
+        emptyOption="None"
+        placeholder="Search route signups..."
+        onSelect={handleRouteSignupChange}
+      />
+      {#if routeSignupId}
+        <a href={resolve(`/leads/route-signups/${routeSignupId}?from=${$page.url.pathname}`)} class="mt-1 inline-block text-sm text-accent hover:text-[var(--link-hover)]">
+          View Route Signup
+        </a>
+      {/if}
+    </div>
   </div>
 
   <!-- Change History -->
