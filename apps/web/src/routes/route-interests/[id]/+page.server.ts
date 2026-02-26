@@ -9,6 +9,7 @@ function formStr(value: FormDataEntryValue | null): string {
 
 export const load = async ({ locals, cookies, params }: RequestEvent): Promise<{
   routeInterest: Record<string, unknown>;
+  activities: unknown[];
   humans: unknown[];
   reverseRoute: Record<string, unknown> | null;
 }> => {
@@ -18,10 +19,11 @@ export const load = async ({ locals, cookies, params }: RequestEvent): Promise<{
   const id = params.id ?? "";
   const headers = { Cookie: `humans_session=${sessionToken ?? ""}` };
 
-  const [riRes, humansRes, listRes] = await Promise.all([
+  const [riRes, humansRes, listRes, activitiesRes] = await Promise.all([
     fetch(`${PUBLIC_API_URL}/api/route-interests/${id}`, { headers }),
     fetch(`${PUBLIC_API_URL}/api/humans`, { headers }),
     fetch(`${PUBLIC_API_URL}/api/route-interests`, { headers }),
+    fetch(`${PUBLIC_API_URL}/api/activities?routeSignupId=${id}&include=linkedEntities`, { headers }),
   ]);
 
   if (!riRes.ok) redirect(302, "/route-interests");
@@ -64,7 +66,13 @@ export const load = async ({ locals, cookies, params }: RequestEvent): Promise<{
     }
   }
 
-  return { routeInterest, humans, reverseRoute };
+  let activities: unknown[] = [];
+  if (activitiesRes.ok) {
+    const activitiesRaw: unknown = await activitiesRes.json();
+    activities = isListData(activitiesRaw) ? activitiesRaw.data : [];
+  }
+
+  return { routeInterest, activities, humans, reverseRoute };
 };
 
 export const actions = {
@@ -102,6 +110,39 @@ export const actions = {
     if (!res.ok) {
       const resBody: unknown = await res.json();
       return failFromApi(resBody, res.status, "Failed to delete expression");
+    }
+
+    return { success: true };
+  },
+
+  addActivity: async ({ request, cookies, params }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
+    const form = await request.formData();
+    const sessionToken = cookies.get("humans_session");
+    const id = params.id ?? "";
+
+    const typeVal = formStr(form.get("type"));
+    const notesVal = formStr(form.get("notes"));
+    const activityDateVal = formStr(form.get("activityDate"));
+    const payload = {
+      type: typeVal !== "" ? typeVal : "email",
+      subject: form.get("subject"),
+      notes: notesVal !== "" ? notesVal : undefined,
+      activityDate: activityDateVal !== "" ? activityDateVal : new Date().toISOString(),
+      routeSignupId: id,
+    };
+
+    const res = await fetch(`${PUBLIC_API_URL}/api/activities`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Cookie: `humans_session=${sessionToken ?? ""}`,
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!res.ok) {
+      const resBody: unknown = await res.json();
+      return failFromApi(resBody, res.status, "Failed to create activity");
     }
 
     return { success: true };

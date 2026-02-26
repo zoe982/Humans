@@ -5,9 +5,14 @@
   import ConfirmDialog from "$lib/components/ConfirmDialog.svelte";
   import SearchableSelect from "$lib/components/SearchableSelect.svelte";
   import RelatedListTable from "$lib/components/RelatedListTable.svelte";
+  import ActivityConversationView from "$lib/components/ActivityConversationView.svelte";
   import { Trash2 } from "lucide-svelte";
   import { Button } from "$lib/components/ui/button";
   import * as Select from "$lib/components/ui/select";
+  import { invalidateAll } from "$app/navigation";
+  import { api } from "$lib/api";
+  import { toast } from "svelte-sonner";
+  import { ACTIVITY_TYPE_OPTIONS } from "$lib/constants/labels";
   import { formatRelativeTime, summarizeChanges } from "$lib/utils/format";
   import { createChangeHistoryLoader } from "$lib/changeHistory.svelte";
   import { resolve } from "$app/paths";
@@ -76,9 +81,29 @@
     lastName: string;
   };
 
+  type Activity = {
+    id: string;
+    displayId: string;
+    type: string;
+    subject: string;
+    notes: string | null;
+    body: string | null;
+    direction: string | null;
+    activityDate: string;
+    frontConversationId: string | null;
+    ownerName?: string | null;
+    ownerDisplayId?: string | null;
+    createdAt: string;
+  };
+
   const routeInterest = $derived(data.routeInterest as RouteInterest);
   const humans = $derived(data.humans as Human[]);
   const reverseRoute = $derived(data.reverseRoute as ReverseRoute);
+  let activities = $state<Activity[]>(data.activities as Activity[]);
+
+  $effect(() => {
+    activities = data.activities as Activity[];
+  });
 
   // Summary statistics
   const uniqueHumanCount = $derived(new Set(routeInterest.expressions.map(e => e.humanId)).size);
@@ -97,6 +122,17 @@
     const direction = diff > 0 ? "Outbound" : "Return";
     return `${direction} has ${Math.abs(diff)} more expression${Math.abs(diff) === 1 ? "" : "s"} than ${diff > 0 ? "return" : "outbound"}.`;
   });
+
+  async function deleteActivity(id: string) {
+    activities = activities.filter((a) => a.id !== id);
+    try {
+      await api(`/api/activities/${id}`, { method: "DELETE" });
+      toast("Activity deleted");
+    } catch {
+      toast("Failed to delete activity");
+      await invalidateAll();
+    }
+  }
 
   let humanSearch = $state("");
   let selectedHumanId = $state("");
@@ -425,6 +461,59 @@
       </form>
     {/snippet}
   </RelatedListTable>
+
+  <!-- Activities -->
+  <div class="mt-6 mb-6">
+    <ActivityConversationView
+      {activities}
+      entityType="route-interest"
+      entityId={routeInterest.id}
+      maxMessages={8}
+      showViewAll={true}
+      onDelete={deleteActivity}
+    >
+      {#snippet addForm()}
+        <form method="POST" action="?/addActivity" class="space-y-3">
+          <div>
+            <label for="activityType" class="block text-sm font-medium text-text-secondary">Type</label>
+            <SearchableSelect
+              options={ACTIVITY_TYPE_OPTIONS}
+              name="type"
+              id="activityType"
+              value="email"
+              placeholder="Select type..."
+            />
+          </div>
+          <div>
+            <label for="activitySubject" class="block text-sm font-medium text-text-secondary">Subject</label>
+            <input
+              id="activitySubject" name="subject" type="text" required
+              class="glass-input mt-1 block w-full px-3 py-2 text-sm"
+              placeholder="Activity subject"
+            />
+          </div>
+          <div>
+            <label for="activityNotes" class="block text-sm font-medium text-text-secondary">Notes</label>
+            <textarea
+              id="activityNotes" name="notes" rows="3"
+              class="glass-input mt-1 block w-full px-3 py-2 text-sm"
+              placeholder="Optional notes..."
+            ></textarea>
+          </div>
+          <div>
+            <label for="activityDate" class="block text-sm font-medium text-text-secondary">Date</label>
+            <input
+              id="activityDate" name="activityDate" type="datetime-local"
+              class="glass-input mt-1 block w-full px-3 py-2 text-sm"
+            />
+          </div>
+          <Button type="submit" size="sm">
+            Add Activity
+          </Button>
+        </form>
+      {/snippet}
+    </ActivityConversationView>
+  </div>
 
   <!-- Change History -->
   <div class="mt-6">

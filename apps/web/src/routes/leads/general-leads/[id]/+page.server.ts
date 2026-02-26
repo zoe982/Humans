@@ -9,6 +9,7 @@ function formStr(value: FormDataEntryValue | null): string {
 
 export const load = async ({ locals, cookies, params }: RequestEvent): Promise<{
   lead: Record<string, unknown>;
+  activities: unknown[];
   user: { id: string; email: string; role: string; name: string };
   allHumans: unknown[];
   colleagues: unknown[];
@@ -29,10 +30,11 @@ export const load = async ({ locals, cookies, params }: RequestEvent): Promise<{
   if (lead == null) redirect(302, "/leads/general-leads");
 
   const headers = { Cookie: `humans_session=${sessionToken ?? ""}` };
-  const [humansRes, colleaguesRes, leadScoreRes] = await Promise.all([
+  const [humansRes, colleaguesRes, leadScoreRes, activitiesRes] = await Promise.all([
     fetch(`${PUBLIC_API_URL}/api/humans?limit=200`, { headers }),
     fetch(`${PUBLIC_API_URL}/api/colleagues`, { headers }),
     fetch(`${PUBLIC_API_URL}/api/lead-scores/by-parent/general_lead/${id}`, { headers }),
+    fetch(`${PUBLIC_API_URL}/api/activities?generalLeadId=${id}&include=linkedEntities`, { headers }),
   ]);
 
   let allHumans: unknown[] = [];
@@ -53,7 +55,13 @@ export const load = async ({ locals, cookies, params }: RequestEvent): Promise<{
     leadScore = isObjData(raw) ? (raw.data as Record<string, unknown> | null) : null;
   }
 
-  return { lead, user: locals.user, allHumans, colleagues, leadScore };
+  let activities: unknown[] = [];
+  if (activitiesRes.ok) {
+    const raw: unknown = await activitiesRes.json();
+    activities = isListData(raw) ? raw.data : [];
+  }
+
+  return { lead, activities, user: locals.user, allHumans, colleagues, leadScore };
 };
 
 export const actions = {

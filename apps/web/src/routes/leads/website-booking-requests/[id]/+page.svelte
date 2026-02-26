@@ -4,12 +4,15 @@
   import StatusBadge from "$lib/components/StatusBadge.svelte";
   import AlertBanner from "$lib/components/AlertBanner.svelte";
   import RelatedListTable from "$lib/components/RelatedListTable.svelte";
+  import ActivityConversationView from "$lib/components/ActivityConversationView.svelte";
   import MarketingAttributionCard from "$lib/components/MarketingAttributionCard.svelte";
   import HighlightText from "$lib/components/HighlightText.svelte";
-  import { bookingRequestStatusColors, activityTypeColors } from "$lib/constants/colors";
-  import { bookingRequestStatusLabels, depositStatusLabels, balanceStatusLabels, activityTypeLabels, ACTIVITY_TYPE_OPTIONS } from "$lib/constants/labels";
+  import { bookingRequestStatusColors } from "$lib/constants/colors";
+  import { bookingRequestStatusLabels, depositStatusLabels, balanceStatusLabels, ACTIVITY_TYPE_OPTIONS } from "$lib/constants/labels";
   import SearchableSelect from "$lib/components/SearchableSelect.svelte";
   import NextActionSection from "$lib/components/NextActionSection.svelte";
+  import { invalidateAll } from "$app/navigation";
+  import { toast } from "svelte-sonner";
   import { Button } from "$lib/components/ui/button";
   import { formatDateTime } from "$lib/utils/format";
   import LeadScoreInlineFlags from "$lib/components/LeadScoreInlineFlags.svelte";
@@ -61,11 +64,14 @@
 
   type Activity = {
     id: string;
+    displayId: string;
     type: string;
     subject: string;
     notes: string | null;
     body: string | null;
+    direction: string | null;
     activityDate: string;
+    frontConversationId: string | null;
     ownerId: string | null;
     ownerName: string | null;
     ownerDisplayId: string | null;
@@ -92,7 +98,11 @@
 
   const booking = $derived(data.booking as Booking);
   const marketingAttribution = $derived(data.marketingAttribution as MarketingAttr | null);
-  const activities = $derived(data.activities as Activity[]);
+  let activities = $state<Activity[]>(data.activities as Activity[]);
+
+  $effect(() => {
+    activities = data.activities as Activity[];
+  });
   const linkedHumans = $derived((data.linkedHumans ?? []) as LinkedHuman[]);
   const colleaguesList = $derived((data.colleagues ?? []) as Colleague[]);
   const colleagueOptions = $derived(colleaguesList.map((c) => ({ value: c.id, label: `${c.displayId ?? ""} ${c.name}`.trim() })));
@@ -181,6 +191,17 @@
   function startEditNote() {
     noteValue = booking.crm_note ?? "";
     editingNote = true;
+  }
+
+  async function deleteActivity(id: string) {
+    activities = activities.filter((a) => a.id !== id);
+    try {
+      await api(`/api/activities/${id}`, { method: "DELETE" });
+      toast("Activity deleted");
+    } catch {
+      toast("Failed to delete activity");
+      await invalidateAll();
+    }
   }
 
   async function searchHumans() {
@@ -569,41 +590,14 @@
 
   <!-- Activities -->
   <div class="mb-6">
-    <RelatedListTable
-      title="Activities"
-      items={activities}
-      columns={[
-        { key: "type", label: "Type", sortable: true, sortValue: (a) => activityTypeLabels[a.type] ?? a.type },
-        { key: "owner", label: "Owner", sortable: true, sortValue: (a) => a.ownerName ?? "" },
-        { key: "subject", label: "Subject", sortable: true, sortValue: (a) => a.subject },
-        { key: "notes", label: "Notes", sortable: true, sortValue: (a) => a.notes ?? "" },
-        { key: "date", label: "Date", sortable: true, sortValue: (a) => a.activityDate },
-      ]}
-      defaultSortKey="date"
-      defaultSortDirection="desc"
-      searchFilter={(a, q) => {
-        const typeLabel = (activityTypeLabels[a.type] ?? a.type).toLowerCase();
-        return a.subject.toLowerCase().includes(q) ||
-          (a.notes ?? "").toLowerCase().includes(q) ||
-          typeLabel.includes(q);
-      }}
-      emptyMessage="No activities yet."
-      searchEmptyMessage="No activities match your search."
-      addLabel="Activity"
+    <ActivityConversationView
+      {activities}
+      entityType="website-booking-request"
+      entityId={booking.id}
+      maxMessages={8}
+      showViewAll={true}
+      onDelete={deleteActivity}
     >
-      {#snippet row(activity, searchQuery)}
-        <td>
-          <span class="glass-badge inline-flex rounded-full px-2 py-0.5 text-xs font-medium {activityTypeColors[activity.type] ?? 'bg-glass text-text-secondary'}">
-            <HighlightText text={activityTypeLabels[activity.type] ?? activity.type} query={searchQuery} />
-          </span>
-        </td>
-        <td class="text-sm text-text-secondary">{activity.ownerName ?? "\u2014"}</td>
-        <td class="text-sm font-medium max-w-sm truncate">
-          <HighlightText text={activity.subject} query={searchQuery} />
-        </td>
-        <td class="text-text-muted max-w-xs truncate"><HighlightText text={activity.notes ?? activity.body ?? "—"} query={searchQuery} /></td>
-        <td class="text-text-muted whitespace-nowrap">{formatDateTime(activity.activityDate)}</td>
-      {/snippet}
       {#snippet addForm()}
         <form method="POST" action="?/addActivity" class="space-y-3">
           <div>
@@ -644,7 +638,7 @@
           </Button>
         </form>
       {/snippet}
-    </RelatedListTable>
+    </ActivityConversationView>
   </div>
 
   <!-- Danger Zone (Admin only) -->

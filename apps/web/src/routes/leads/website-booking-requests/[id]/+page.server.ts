@@ -29,7 +29,7 @@ export const load = async ({ locals, cookies, params }: RequestEvent): Promise<{
 
   const headers = { Cookie: `humans_session=${sessionToken ?? ""}` };
   const parallelFetches: Promise<Response>[] = [
-    fetch(`${PUBLIC_API_URL}/api/activities?websiteBookingRequestId=${id ?? ""}`, { headers }),
+    fetch(`${PUBLIC_API_URL}/api/activities?websiteBookingRequestId=${id ?? ""}&include=linkedEntities`, { headers }),
     fetch(`${PUBLIC_API_URL}/api/colleagues`, { headers }),
     fetch(`${PUBLIC_API_URL}/api/website-booking-requests/${id ?? ""}/linked-humans`, { headers }),
     fetch(`${PUBLIC_API_URL}/api/lead-scores/by-parent/website_booking_request/${id ?? ""}`, { headers }),
