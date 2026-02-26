@@ -5,6 +5,7 @@ import {
 } from "@humans/shared";
 import { authMiddleware } from "../middleware/auth";
 import { requirePermission } from "../middleware/rbac";
+import { supabaseMiddleware } from "../middleware/supabase";
 import {
   listLeadScores,
   getLeadScore,
@@ -20,7 +21,7 @@ const leadScoreRoutes = new Hono<AppContext>();
 leadScoreRoutes.use("/*", authMiddleware);
 
 // GET /api/lead-scores
-leadScoreRoutes.get("/api/lead-scores", requirePermission("viewLeadScores"), async (c) => {
+leadScoreRoutes.get("/api/lead-scores", requirePermission("viewLeadScores"), supabaseMiddleware, async (c) => {
   const db = c.get("db");
   const rawPage = Number(c.req.query("page"));
   const rawLimit = Number(c.req.query("limit"));
@@ -39,6 +40,42 @@ leadScoreRoutes.get("/api/lead-scores", requirePermission("viewLeadScores"), asy
   if (parentType !== undefined) filters.parentType = parentType;
   const result = await listLeadScores(db, page, limit, filters);
   result.data = assertUniqueIds(result.data, "lead-scores", c);
+
+  // Enrich BOR/ROU parent display IDs from Supabase
+  const borIds = result.data.filter((s) => s.websiteBookingRequestId != null && s.parentDisplayId == null).map((s) => s.websiteBookingRequestId as string);
+  const rouIds = result.data.filter((s) => s.routeSignupId != null && s.parentDisplayId == null).map((s) => s.routeSignupId as string);
+
+  const supabase = c.get("supabase");
+  if (borIds.length > 0) {
+    const { data: bors } = await supabase
+      .from("bookings")
+      .select("id, crm_display_id")
+      .in("id", borIds);
+    if (bors != null) {
+      const borMap = new Map((bors as { id: string; crm_display_id: string | null }[]).map((b) => [b.id, b.crm_display_id]));
+      for (const score of result.data) {
+        if (score.websiteBookingRequestId != null && score.parentDisplayId == null) {
+          score.parentDisplayId = borMap.get(score.websiteBookingRequestId) ?? null;
+        }
+      }
+    }
+  }
+
+  if (rouIds.length > 0) {
+    const { data: rous } = await supabase
+      .from("announcement_signups")
+      .select("id, display_id")
+      .in("id", rouIds);
+    if (rous != null) {
+      const rouMap = new Map((rous as { id: string; display_id: string | null }[]).map((r) => [r.id, r.display_id]));
+      for (const score of result.data) {
+        if (score.routeSignupId != null && score.parentDisplayId == null) {
+          score.parentDisplayId = rouMap.get(score.routeSignupId) ?? null;
+        }
+      }
+    }
+  }
+
   return c.json(result);
 });
 

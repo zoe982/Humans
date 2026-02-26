@@ -20,6 +20,7 @@
     band: string;
     parentType: string;
     parentId: string;
+    parentDisplayId: string | null;
     createdAt: string;
     updatedAt: string;
   };
@@ -143,8 +144,8 @@
               </a>
             </td>
             <td class="py-3 pr-4">
-              <a href={parentLink(score)} class="text-accent hover:underline text-sm" onclick={(e) => e.stopPropagation()}>
-                {score.parentId.slice(0, 8)}...
+              <a href={parentLink(score)} class="text-accent hover:underline font-mono text-sm" onclick={(e) => e.stopPropagation()}>
+                {score.parentDisplayId ?? score.parentId.slice(0, 8) + "..."}
               </a>
             </td>
             <td class="py-3 pr-4">

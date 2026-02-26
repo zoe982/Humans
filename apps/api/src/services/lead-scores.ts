@@ -1,5 +1,5 @@
-import { eq, sql, and, like, or, desc } from "drizzle-orm";
-import { leadScores } from "@humans/db/schema";
+import { eq, sql, and, like, or, desc, inArray } from "drizzle-orm";
+import { leadScores, generalLeads } from "@humans/db/schema";
 import { createId } from "@humans/db";
 import { ERROR_CODES, type LeadScoreParentType, getLeadScoreBand } from "@humans/shared";
 import { notFound } from "../lib/errors";
@@ -270,7 +270,7 @@ export async function listLeadScores(
   limit: number,
   filters: { band?: string; parentType?: string; q?: string },
 ): Promise<{
-  data: (typeof leadScores.$inferSelect & { band: string; parentType: string; parentId: string })[];
+  data: (typeof leadScores.$inferSelect & { band: string; parentType: string; parentId: string; parentDisplayId: string | null })[];
   meta: { page: number; limit: number; total: number };
 }> {
   const offset = (page - 1) * limit;
@@ -316,16 +316,29 @@ export async function listLeadScores(
     .limit(limit)
     .offset(offset);
 
-  const data = rows.map((row) => ({
-    ...row,
-    band: getLeadScoreBand(row.scoreTotal),
-    parentType: row.generalLeadId != null
+  // Resolve general lead display IDs from D1
+  const glIds = rows.flatMap((r) => r.generalLeadId != null ? [r.generalLeadId] : []);
+  const glRows = glIds.length > 0
+    ? await db.select({ id: generalLeads.id, displayId: generalLeads.displayId }).from(generalLeads).where(inArray(generalLeads.id, glIds))
+    : [];
+  const glDisplayIdMap = new Map(glRows.map((r) => [r.id, r.displayId]));
+
+  const data = rows.map((row) => {
+    const parentType = row.generalLeadId != null
       ? "general_lead"
       : row.websiteBookingRequestId != null
         ? "website_booking_request"
-        : "route_signup",
-    parentId: row.generalLeadId ?? row.websiteBookingRequestId ?? row.routeSignupId ?? "",
-  }));
+        : "route_signup";
+    const parentId = row.generalLeadId ?? row.websiteBookingRequestId ?? row.routeSignupId ?? "";
+
+    // General lead display IDs resolved here; BOR/ROU resolved at route layer
+    let parentDisplayId: string | null = null;
+    if (row.generalLeadId != null) {
+      parentDisplayId = glDisplayIdMap.get(row.generalLeadId) ?? null;
+    }
+
+    return { ...row, band: getLeadScoreBand(row.scoreTotal), parentType, parentId, parentDisplayId };
+  });
 
   return { data, meta: { page, limit, total } };
 }
