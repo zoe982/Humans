@@ -15,7 +15,9 @@
   import { resolve } from "$app/paths";
   import { page } from "$app/stores";
   import { formatDateTime, formatRelativeTime } from "$lib/utils/format";
-  import { routeSignupStatuses } from "@humans/shared";
+  import { routeSignupStatuses, getLeadScoreBand } from "@humans/shared";
+  import LeadScoreBadge from "$lib/components/LeadScoreBadge.svelte";
+  import { Trash2 } from "lucide-svelte";
 
   let { data, form }: { data: PageData; form: ActionData } = $props();
 
@@ -63,6 +65,9 @@
     [key: string]: unknown;
   };
 
+  type CrmEmail = { id: string; email: string; isPrimary: boolean | null };
+  type CrmPhoneNumber = { id: string; phoneNumber: string; isPrimary: boolean | null };
+
   const signup = $derived(data.signup as Signup);
   const marketingAttribution = $derived(data.marketingAttribution as MarketingAttr | null);
   const activities = $derived(data.activities as Activity[]);
@@ -71,11 +76,43 @@
   const isAdmin = $derived(data.user?.role === "admin");
   const isClosed = $derived(signup.status?.startsWith("closed_") ?? false);
   const currentColleagueId = $derived(data.user?.id ?? "");
+  const crmEmails = $derived((data.emails ?? []) as CrmEmail[]);
+  const crmPhoneNumbers = $derived((data.phoneNumbers ?? []) as CrmPhoneNumber[]);
   const lastActivityDate = $derived(
     activities.length > 0
       ? activities.reduce((latest, a) => (a.activityDate > latest ? a.activityDate : latest), "")
       : null
   );
+
+  type LeadScoreSummary = {
+    id: string;
+    scoreTotal: number;
+    scoreFit: number;
+    scoreIntent: number;
+    scoreEngagement: number;
+    scoreNegative: number;
+  };
+
+  let leadScore = $state<LeadScoreSummary | null>(null);
+  $effect(() => { leadScore = data.leadScore as LeadScoreSummary | null; });
+
+  const leadScoreBand = $derived(leadScore != null ? getLeadScoreBand(leadScore.scoreTotal) : null);
+
+  // Auto-create lead score on first view if none exists
+  $effect(() => {
+    if (leadScore == null) {
+      api("/api/lead-scores/ensure", {
+        method: "POST",
+        body: JSON.stringify({ parentType: "route_signup", parentId: signup.id }),
+      }).then((result) => {
+        if (result != null && typeof result === "object" && "data" in result) {
+          leadScore = (result as { data: LeadScoreSummary }).data;
+        }
+      }).catch(() => {
+        // Silent failure — score will be created on next page load
+      });
+    }
+  });
 
   let showDeleteConfirm = $state(false);
   let searchQuery = $state("");
@@ -178,10 +215,10 @@
     </div>
   {/if}
 
-  <!-- Details -->
+  <!-- Metadata -->
   <div class="glass-card p-6 mb-6">
-    <h2 class="text-lg font-semibold text-text-primary">Details</h2>
-    <dl class="mt-4 grid grid-cols-2 gap-4">
+    <h2 class="text-lg font-semibold text-text-primary">Metadata</h2>
+    <dl class="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
       <div>
         <dt class="text-sm font-medium text-text-muted">Email</dt>
         <dd class="mt-1 text-sm text-text-primary">{signup.email ?? "—"}</dd>
@@ -195,16 +232,16 @@
         <dd class="mt-1 text-sm text-text-primary">{signup.destination ?? "—"}</dd>
       </div>
       <div>
-        <dt class="text-sm font-medium text-text-muted">Created</dt>
-        <dd class="mt-1 text-sm text-text-primary">{formatDatetime(signup.inserted_at)}</dd>
-      </div>
-      <div>
         <dt class="text-sm font-medium text-text-muted">Consent</dt>
         <dd class="mt-1 text-sm text-text-primary">{signup.consent ? "Yes" : "No"}</dd>
       </div>
       <div>
         <dt class="text-sm font-medium text-text-muted">Newsletter Opt-in</dt>
         <dd class="mt-1 text-sm text-text-primary">{signup.newsletter_opt_in ? "Yes" : "No"}</dd>
+      </div>
+      <div>
+        <dt class="text-sm font-medium text-text-muted">Created</dt>
+        <dd class="mt-1 text-sm text-text-primary">{formatDatetime(signup.inserted_at)}</dd>
       </div>
       <div>
         <dt class="text-sm font-medium text-text-muted">Last Activity</dt>
@@ -214,8 +251,8 @@
   </div>
 
   <!-- Marketing Attribution -->
-  {#if marketingAttribution != null}
-    <div class="glass-card p-6 mb-6">
+  <div class="glass-card p-6 mb-6">
+    {#if marketingAttribution != null}
       <div class="flex items-center justify-between mb-4">
         <h2 class="text-lg font-semibold text-text-primary">Marketing Attribution</h2>
         <a href={resolve(`/marketing-attributions/${marketingAttribution.id}`)} class="text-sm font-mono text-accent hover:text-[var(--link-hover)]">
@@ -223,6 +260,42 @@
         </a>
       </div>
       <MarketingAttributionCard attribution={marketingAttribution as any} />
+    {:else}
+      <h2 class="text-lg font-semibold text-text-primary">Marketing Attribution</h2>
+      <p class="mt-3 text-sm text-text-muted italic">No marketing attribution linked.</p>
+    {/if}
+  </div>
+
+  <!-- Lead Score -->
+  {#if leadScore != null && leadScoreBand != null}
+    <div class="glass-card p-6 mb-6">
+      <div class="flex items-center justify-between">
+        <h2 class="text-lg font-semibold text-text-primary">Lead Score</h2>
+        <a href={resolve(`/reports/lead-scores/${leadScore.id}`)} class="text-sm text-accent hover:underline">
+          View Details &rarr;
+        </a>
+      </div>
+      <div class="mt-4 flex items-center gap-6 flex-wrap">
+        <LeadScoreBadge score={leadScore.scoreTotal} band={leadScoreBand} size="lg" />
+        <div class="flex gap-4 text-sm">
+          <div class="text-center">
+            <div class="text-lg font-semibold text-green-400">+{leadScore.scoreFit}</div>
+            <div class="text-text-muted">Fit</div>
+          </div>
+          <div class="text-center">
+            <div class="text-lg font-semibold text-blue-400">+{leadScore.scoreIntent}</div>
+            <div class="text-text-muted">Intent</div>
+          </div>
+          <div class="text-center">
+            <div class="text-lg font-semibold text-purple-400">+{leadScore.scoreEngagement}</div>
+            <div class="text-text-muted">Engage</div>
+          </div>
+          <div class="text-center">
+            <div class="text-lg font-semibold text-red-400">-{leadScore.scoreNegative}</div>
+            <div class="text-text-muted">Negative</div>
+          </div>
+        </div>
+      </div>
     </div>
   {/if}
 
@@ -242,11 +315,11 @@
   {#if signup.status !== "closed_converted"}
     <div class="glass-card p-6 mb-6">
       <h2 class="text-lg font-semibold text-text-primary">Convert to Human</h2>
-      <div class="mt-4 space-y-4">
-        <!-- Link to existing human -->
+      <div class="mt-4 grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Left: Link to existing -->
         <div>
-          <p class="text-sm font-medium text-text-secondary">Link to existing human</p>
-          <div class="mt-2 flex items-center gap-2">
+          <p class="text-sm font-medium text-text-secondary mb-2">Link to existing human</p>
+          <div class="flex items-center gap-2">
             <input
               type="text"
               bind:value={searchQuery}
@@ -279,12 +352,12 @@
             <p class="mt-2 text-sm text-text-muted">Searching...</p>
           {/if}
         </div>
-
-        <div class="border-t border-glass-border pt-4">
-          <p class="text-sm font-medium text-text-secondary">Or create a new human</p>
+        <!-- Right: Create new -->
+        <div>
+          <p class="text-sm font-medium text-text-secondary mb-2">Create new human</p>
           <a
             href={resolve(convertUrl())}
-            class="btn-primary mt-2 inline-block text-sm"
+            class="btn-primary inline-block text-sm"
           >
             Create New Human
           </a>
@@ -292,6 +365,84 @@
       </div>
     </div>
   {/if}
+
+  <!-- CRM Emails -->
+  <div class="mb-6">
+    <RelatedListTable
+      title="CRM Emails"
+      items={crmEmails}
+      columns={[
+        { key: "email", label: "Email", sortable: true, sortValue: (e) => e.email },
+        { key: "isPrimary", label: "Primary", sortable: false },
+        { key: "delete", label: "", headerClass: "w-10" },
+      ]}
+      defaultSortKey="email"
+      searchFilter={(e, q) => e.email.toLowerCase().includes(q)}
+      emptyMessage="No CRM emails linked yet."
+      addLabel="Email"
+    >
+      {#snippet row(email, searchQuery)}
+        <td class="text-sm"><HighlightText text={email.email} query={searchQuery} /></td>
+        <td class="text-sm text-text-secondary">{email.isPrimary ? "Yes" : ""}</td>
+        <td>
+          <form method="POST" action="?/deleteEmail">
+            <input type="hidden" name="emailId" value={email.id} />
+            <button type="submit" class="flex items-center justify-center w-7 h-7 rounded-lg text-text-muted hover:text-destructive-foreground hover:bg-destructive transition-colors duration-150" aria-label="Delete email">
+              <Trash2 size={14} />
+            </button>
+          </form>
+        </td>
+      {/snippet}
+      {#snippet addForm()}
+        <form method="POST" action="?/addEmail" class="space-y-3">
+          <div>
+            <label for="newEmailAddress" class="block text-sm font-medium text-text-secondary">Email</label>
+            <input id="newEmailAddress" name="email" type="email" required class="glass-input mt-1 block w-full px-3 py-2 text-sm" placeholder="Email address" />
+          </div>
+          <Button type="submit" size="sm">Add Email</Button>
+        </form>
+      {/snippet}
+    </RelatedListTable>
+  </div>
+
+  <!-- CRM Phone Numbers -->
+  <div class="mb-6">
+    <RelatedListTable
+      title="CRM Phone Numbers"
+      items={crmPhoneNumbers}
+      columns={[
+        { key: "phoneNumber", label: "Phone", sortable: true, sortValue: (p) => p.phoneNumber },
+        { key: "isPrimary", label: "Primary", sortable: false },
+        { key: "delete", label: "", headerClass: "w-10" },
+      ]}
+      defaultSortKey="phoneNumber"
+      searchFilter={(p, q) => p.phoneNumber.toLowerCase().includes(q)}
+      emptyMessage="No CRM phone numbers linked yet."
+      addLabel="Phone Number"
+    >
+      {#snippet row(phone, searchQuery)}
+        <td class="text-sm"><HighlightText text={phone.phoneNumber} query={searchQuery} /></td>
+        <td class="text-sm text-text-secondary">{phone.isPrimary ? "Yes" : ""}</td>
+        <td>
+          <form method="POST" action="?/deletePhoneNumber">
+            <input type="hidden" name="phoneNumberId" value={phone.id} />
+            <button type="submit" class="flex items-center justify-center w-7 h-7 rounded-lg text-text-muted hover:text-destructive-foreground hover:bg-destructive transition-colors duration-150" aria-label="Delete phone number">
+              <Trash2 size={14} />
+            </button>
+          </form>
+        </td>
+      {/snippet}
+      {#snippet addForm()}
+        <form method="POST" action="?/addPhoneNumber" class="space-y-3">
+          <div>
+            <label for="newPhoneNumber" class="block text-sm font-medium text-text-secondary">Phone Number</label>
+            <input id="newPhoneNumber" name="phoneNumber" type="tel" required class="glass-input mt-1 block w-full px-3 py-2 text-sm" placeholder="Phone number" />
+          </div>
+          <Button type="submit" size="sm">Add Phone Number</Button>
+        </form>
+      {/snippet}
+    </RelatedListTable>
+  </div>
 
   <!-- Activities -->
   <div class="mb-6">

@@ -81,6 +81,33 @@ describe("route-signups/[id] load", () => {
     expect(result.marketingAttribution).toEqual(sampleAttr);
   });
 
+  it("returns leadScore when lead-scores API returns data", async () => {
+    const sampleScore = { id: "sco-1", scoreTotal: 45, scoreFit: 30, scoreIntent: 5, scoreEngagement: 15, scoreNegative: 5 };
+    mockFetch = createMockFetch({
+      "/api/route-signups/rs-1": { body: { data: sampleSignup } },
+      "/api/activities?routeSignupId=rs-1": { body: { data: [] } },
+      "/api/lead-scores/by-parent/route_signup/rs-1": { body: { data: sampleScore } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent();
+    const result = await load(event as any);
+    expect(result.leadScore).toEqual(sampleScore);
+  });
+
+  it("returns null leadScore when lead-scores API returns null data", async () => {
+    mockFetch = createMockFetch({
+      "/api/route-signups/rs-1": { body: { data: sampleSignup } },
+      "/api/activities?routeSignupId=rs-1": { body: { data: [] } },
+      "/api/lead-scores/by-parent/route_signup/rs-1": { body: { data: null } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent();
+    const result = await load(event as any);
+    expect(result.leadScore).toBeNull();
+  });
+
   it("returns empty activities when activities API fails", async () => {
     mockFetch = createMockFetch({
       "/api/route-signups/rs-1": { body: { data: sampleSignup } },

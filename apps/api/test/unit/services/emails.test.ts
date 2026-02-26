@@ -46,21 +46,22 @@ async function seedAccount(db: ReturnType<typeof getTestDb>, id = "acc-1", name 
 
 async function seedEmail(
   db: ReturnType<typeof getTestDb>,
-  id = "em-1",
-  ownerId = "h-1",
-  email = "test@example.com",
-  ownerType: "human" | "account" = "human",
-  labelId: string | null = null,
+  id: string,
+  email: string,
+  opts: { humanId?: string; accountId?: string; labelId?: string | null } = {},
 ) {
   seedCounter++;
   const ts = now();
   await db.insert(schema.emails).values({
     id,
     displayId: `EML-${String(seedCounter).padStart(6, "0")}`,
-    ownerType,
-    ownerId,
+    humanId: opts.humanId ?? null,
+    accountId: opts.accountId ?? null,
+    generalLeadId: null,
+    websiteBookingRequestId: null,
+    routeSignupId: null,
     email,
-    labelId,
+    labelId: opts.labelId ?? null,
     isPrimary: true,
     createdAt: ts,
   });
@@ -85,7 +86,7 @@ describe("listEmails", () => {
   it("returns emails with human names", async () => {
     const db = getTestDb();
     await seedHuman(db, "h-1", "Alice", "Smith");
-    await seedEmail(db, "em-1", "h-1", "alice@test.com");
+    await seedEmail(db, "em-1", "alice@test.com", { humanId: "h-1" });
 
     const result = await listEmails(db);
     expect(result).toHaveLength(1);
@@ -97,14 +98,14 @@ describe("listEmails", () => {
     const db = getTestDb();
     await seedHuman(db, "h-1", "Alice", "Smith");
     await seedHuman(db, "h-2", "Bob", "Jones");
-    await seedEmail(db, "em-1", "h-1", "alice@test.com");
-    await seedEmail(db, "em-2", "h-2", "bob@test.com");
+    await seedEmail(db, "em-1", "alice@test.com", { humanId: "h-1" });
+    await seedEmail(db, "em-2", "bob@test.com", { humanId: "h-2" });
 
     const result = await listEmails(db);
     expect(result).toHaveLength(2);
 
-    const alice = result.find((e) => e.ownerId === "h-1");
-    const bob = result.find((e) => e.ownerId === "h-2");
+    const alice = result.find((e) => e.humanId === "h-1");
+    const bob = result.find((e) => e.humanId === "h-2");
     expect(alice!.ownerName).toBe("Alice Smith");
     expect(bob!.ownerName).toBe("Bob Jones");
   });
@@ -112,7 +113,7 @@ describe("listEmails", () => {
   it("returns emails owned by an account with account name", async () => {
     const db = getTestDb();
     await seedAccount(db, "acc-1", "Acme Corp");
-    await seedEmail(db, "em-1", "acc-1", "acme@test.com", "account");
+    await seedEmail(db, "em-1", "acme@test.com", { accountId: "acc-1" });
 
     const result = await listEmails(db);
     expect(result).toHaveLength(1);
@@ -124,7 +125,7 @@ describe("listEmails", () => {
     const db = getTestDb();
     await seedHuman(db, "h-1", "Alice", "Smith");
     await seedHumanEmailLabel(db, "lbl-1", "Work");
-    await seedEmail(db, "em-1", "h-1", "alice@work.com", "human", "lbl-1");
+    await seedEmail(db, "em-1", "alice@work.com", { humanId: "h-1", labelId: "lbl-1" });
 
     const result = await listEmails(db);
     expect(result).toHaveLength(1);
@@ -135,7 +136,7 @@ describe("listEmails", () => {
     const db = getTestDb();
     await seedAccount(db, "acc-1", "Acme Corp");
     await seedAccountEmailLabel(db, "lbl-2", "Billing");
-    await seedEmail(db, "em-1", "acc-1", "billing@acme.com", "account", "lbl-2");
+    await seedEmail(db, "em-1", "billing@acme.com", { accountId: "acc-1", labelId: "lbl-2" });
 
     const result = await listEmails(db);
     expect(result).toHaveLength(1);
@@ -156,20 +157,20 @@ describe("getEmail", () => {
   it("returns email enriched with human data", async () => {
     const db = getTestDb();
     await seedHuman(db, "h-1", "Carol", "King");
-    await seedEmail(db, "em-1", "h-1", "carol@test.com");
+    await seedEmail(db, "em-1", "carol@test.com", { humanId: "h-1" });
 
     const result = await getEmail(db, "em-1");
     expect(result.id).toBe("em-1");
     expect(result.email).toBe("carol@test.com");
     expect(result.ownerName).toBe("Carol King");
-    expect(result.humanDisplayId ?? result.ownerDisplayId).toMatch(/^HUM-/);
+    expect(result.ownerDisplayId).toMatch(/^HUM-/);
     expect(result.labelName).toBeNull();
   });
 
   it("returns email enriched with account data", async () => {
     const db = getTestDb();
     await seedAccount(db, "acc-1", "Widget Corp");
-    await seedEmail(db, "em-1", "acc-1", "widgets@test.com", "account");
+    await seedEmail(db, "em-1", "widgets@test.com", { accountId: "acc-1" });
 
     const result = await getEmail(db, "em-1");
     expect(result.ownerName).toBe("Widget Corp");
@@ -180,7 +181,7 @@ describe("getEmail", () => {
     const db = getTestDb();
     await seedHuman(db, "h-1", "Carol", "King");
     await seedHumanEmailLabel(db, "lbl-1", "Personal");
-    await seedEmail(db, "em-1", "h-1", "carol@home.com", "human", "lbl-1");
+    await seedEmail(db, "em-1", "carol@home.com", { humanId: "h-1", labelId: "lbl-1" });
 
     const result = await getEmail(db, "em-1");
     expect(result.labelName).toBe("Personal");
@@ -189,7 +190,7 @@ describe("getEmail", () => {
   it("returns null labelName for orphaned labelId", async () => {
     const db = getTestDb();
     await seedHuman(db, "h-1", "Carol", "King");
-    await seedEmail(db, "em-1", "h-1", "carol@test.com", "human", "nonexistent-label");
+    await seedEmail(db, "em-1", "carol@test.com", { humanId: "h-1", labelId: "nonexistent-label" });
 
     const result = await getEmail(db, "em-1");
     expect(result.labelName).toBeNull();
@@ -211,7 +212,7 @@ describe("updateEmail", () => {
   it("updates the email address", async () => {
     const db = getTestDb();
     await seedHuman(db, "h-1");
-    await seedEmail(db, "em-1", "h-1", "old@test.com");
+    await seedEmail(db, "em-1", "old@test.com", { humanId: "h-1" });
 
     const result = await updateEmail(db, "em-1", { email: "new@test.com" });
     expect(result!.email).toBe("new@test.com");
@@ -220,7 +221,7 @@ describe("updateEmail", () => {
   it("updates the isPrimary flag", async () => {
     const db = getTestDb();
     await seedHuman(db, "h-1");
-    await seedEmail(db, "em-1", "h-1", "old@test.com");
+    await seedEmail(db, "em-1", "old@test.com", { humanId: "h-1" });
 
     const result = await updateEmail(db, "em-1", { isPrimary: true });
     expect(result!.isPrimary).toBe(true);
@@ -229,7 +230,7 @@ describe("updateEmail", () => {
   it("persists updated value to the database", async () => {
     const db = getTestDb();
     await seedHuman(db, "h-1");
-    await seedEmail(db, "em-1", "h-1", "before@test.com");
+    await seedEmail(db, "em-1", "before@test.com", { humanId: "h-1" });
 
     await updateEmail(db, "em-1", { email: "after@test.com" });
 
@@ -249,8 +250,7 @@ describe("createEmail", () => {
     });
 
     expect(result.id).toBeDefined();
-    expect(result.ownerId).toBe("h-1");
-    expect(result.ownerType).toBe("human");
+    expect(result.humanId).toBe("h-1");
     expect(result.email).toBe("new@test.com");
     expect(result.isPrimary).toBe(false);
     expect(result.labelId).toBeNull();
@@ -284,7 +284,7 @@ describe("deleteEmail", () => {
   it("deletes an existing email", async () => {
     const db = getTestDb();
     await seedHuman(db, "h-1");
-    await seedEmail(db, "em-1", "h-1");
+    await seedEmail(db, "em-1", "test@example.com", { humanId: "h-1" });
 
     await deleteEmail(db, "em-1");
 

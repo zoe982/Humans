@@ -2,7 +2,7 @@ import { Hono } from "hono";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { sql, inArray } from "drizzle-orm";
 import { activities } from "@humans/db/schema";
-import { updateRouteSignupSchema, updateEntityNextActionSchema, ERROR_CODES } from "@humans/shared";
+import { updateRouteSignupSchema, updateEntityNextActionSchema, createEmailSchema, createPhoneNumberSchema, ERROR_CODES } from "@humans/shared";
 import { authMiddleware } from "../middleware/auth";
 import { requirePermission } from "../middleware/rbac";
 import { supabaseMiddleware } from "../middleware/supabase";
@@ -10,6 +10,8 @@ import { internal, notFound, badRequest } from "../lib/errors";
 import { sanitizePostgrestValue } from "../lib/supabase-sanitize";
 import { nextDisplayId } from "../lib/display-id";
 import { getNextAction, updateNextAction, completeNextAction } from "../services/entity-next-actions";
+import { createEmail, deleteEmail } from "../services/emails";
+import { createPhoneNumber, deletePhoneNumber } from "../services/phone-numbers";
 import type { AppContext } from "../types";
 import type { DB } from "../services/types";
 
@@ -216,6 +218,34 @@ routeSignupRoutes.post("/api/route-signups/:id/next-action/done", requirePermiss
 
   const db = c.get("db");
   await completeNextAction(db, "route_signup", c.req.param("id"), session.colleagueId);
+  return c.json({ success: true });
+});
+
+// POST /api/route-signups/:id/emails
+routeSignupRoutes.post("/api/route-signups/:id/emails", requirePermission("manageRouteSignups"), async (c) => {
+  const body: unknown = await c.req.json();
+  const data = createEmailSchema.parse(body);
+  const result = await createEmail(c.get("db"), { ...data, routeSignupId: c.req.param("id") });
+  return c.json({ data: result }, 201);
+});
+
+// DELETE /api/route-signups/:id/emails/:emailId
+routeSignupRoutes.delete("/api/route-signups/:id/emails/:emailId", requirePermission("manageRouteSignups"), async (c) => {
+  await deleteEmail(c.get("db"), c.req.param("emailId"));
+  return c.json({ success: true });
+});
+
+// POST /api/route-signups/:id/phone-numbers
+routeSignupRoutes.post("/api/route-signups/:id/phone-numbers", requirePermission("manageRouteSignups"), async (c) => {
+  const body: unknown = await c.req.json();
+  const data = createPhoneNumberSchema.parse(body);
+  const result = await createPhoneNumber(c.get("db"), { ...data, routeSignupId: c.req.param("id") });
+  return c.json({ data: result }, 201);
+});
+
+// DELETE /api/route-signups/:id/phone-numbers/:phoneId
+routeSignupRoutes.delete("/api/route-signups/:id/phone-numbers/:phoneId", requirePermission("manageRouteSignups"), async (c) => {
+  await deletePhoneNumber(c.get("db"), c.req.param("phoneId"));
   return c.json({ success: true });
 });
 

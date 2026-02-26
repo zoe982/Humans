@@ -72,7 +72,7 @@ describe("general-leads/new create action", () => {
     vi.stubGlobal("fetch", mockFetch);
 
     const event = mockEvent({
-      formData: { source: "referral", notes: "Came via partner", ownerId: "col-1" },
+      formData: { firstName: "Jane", lastName: "Smith", notes: "Came via partner", ownerId: "col-1" },
     });
     try {
       await actions.create(event as any);
@@ -84,15 +84,15 @@ describe("general-leads/new create action", () => {
 
   it("returns failure when API returns error", async () => {
     const mockFetch = createMockFetch({
-      "/api/general-leads": { status: 422, body: { error: "Source required" } },
+      "/api/general-leads": { status: 422, body: { error: "First name required" } },
     });
     vi.stubGlobal("fetch", mockFetch);
 
-    const event = mockEvent({ formData: { source: "" } });
+    const event = mockEvent({ formData: { firstName: "", lastName: "Smith" } });
     const result = await actions.create(event as any);
     expect(isActionFailure(result)).toBe(true);
     if (isActionFailure(result)) {
-      expect(result.data.error).toBe("Source required");
+      expect(result.data.error).toBe("First name required");
     }
   });
 
@@ -102,19 +102,19 @@ describe("general-leads/new create action", () => {
     });
     vi.stubGlobal("fetch", mockFetch);
 
-    const event = mockEvent({ formData: { source: "web" } });
+    const event = mockEvent({ formData: { firstName: "Jane", lastName: "Smith" } });
     const result = await actions.create(event as any);
     expect(isActionFailure(result)).toBe(true);
   });
 
-  it("creates lead with optional email and phone fields", async () => {
+  it("creates lead with optional middle name and notes", async () => {
     const mockFetch = createMockFetch({
       "/api/general-leads": { body: { data: { id: "lea-2" } } },
     });
     vi.stubGlobal("fetch", mockFetch);
 
     const event = mockEvent({
-      formData: { source: "web", email: "lead@example.com", phone: "+15551234567" },
+      formData: { firstName: "Jane", middleName: "Marie", lastName: "Smith", notes: "Some notes" },
     });
     try {
       await actions.create(event as any);

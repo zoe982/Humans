@@ -8,7 +8,7 @@ function getFormString(form: FormData, key: string): string {
   return typeof raw === "string" ? raw : "";
 }
 
-export const load = async ({ locals, cookies, params }: RequestEvent): Promise<{ signup: unknown; activities: unknown[]; colleagues: unknown[]; marketingAttribution: unknown; user: NonNullable<typeof locals.user> }> => {
+export const load = async ({ locals, cookies, params }: RequestEvent): Promise<{ signup: unknown; activities: unknown[]; colleagues: unknown[]; marketingAttribution: unknown; leadScore: Record<string, unknown> | null; emails: unknown[]; phoneNumbers: unknown[]; user: NonNullable<typeof locals.user> }> => {
   if (locals.user == null) redirect(302, "/login");
 
   const sessionToken = cookies.get("humans_session");
@@ -24,26 +24,24 @@ export const load = async ({ locals, cookies, params }: RequestEvent): Promise<{
   const signup = isObjData(signupRaw) ? signupRaw.data : null;
   if (signup == null) redirect(302, "/leads/route-signups");
 
-  // Build parallel fetch list: activities, colleagues, and optionally attribution
+  // Build parallel fetch list: activities, colleagues, emails, phones, and optionally attribution
   const signupObj = signup as Record<string, unknown>;
   const marketingAttributionId = typeof signupObj["marketing_attribution_id"] === "string" ? signupObj["marketing_attribution_id"] : null;
 
+  const headers = { Cookie: `humans_session=${sessionToken ?? ""}` };
   const parallelFetches: Promise<Response>[] = [
-    fetch(`${PUBLIC_API_URL}/api/activities?routeSignupId=${id ?? ""}`, {
-      headers: { Cookie: `humans_session=${sessionToken ?? ""}` },
-    }),
-    fetch(`${PUBLIC_API_URL}/api/colleagues`, {
-      headers: { Cookie: `humans_session=${sessionToken ?? ""}` },
-    }),
+    fetch(`${PUBLIC_API_URL}/api/activities?routeSignupId=${id ?? ""}`, { headers }),
+    fetch(`${PUBLIC_API_URL}/api/colleagues`, { headers }),
+    fetch(`${PUBLIC_API_URL}/api/lead-scores/by-parent/route_signup/${id ?? ""}`, { headers }),
+    fetch(`${PUBLIC_API_URL}/api/route-signups/${id ?? ""}/emails`, { headers }),
+    fetch(`${PUBLIC_API_URL}/api/route-signups/${id ?? ""}/phone-numbers`, { headers }),
   ];
   if (marketingAttributionId != null) {
     parallelFetches.push(
-      fetch(`${PUBLIC_API_URL}/api/marketing-attributions/${marketingAttributionId}`, {
-        headers: { Cookie: `humans_session=${sessionToken ?? ""}` },
-      }),
+      fetch(`${PUBLIC_API_URL}/api/marketing-attributions/${marketingAttributionId}`, { headers }),
     );
   }
-  const [activitiesRes, colleaguesRes, attributionRes] = await Promise.all(parallelFetches) as [Response, Response, Response | undefined];
+  const [activitiesRes, colleaguesRes, leadScoreRes, emailsRes, phoneNumbersRes, attributionRes] = await Promise.all(parallelFetches) as [Response, Response, Response, Response, Response, Response | undefined];
 
   let activities: unknown[] = [];
   if (activitiesRes.ok) {
@@ -57,13 +55,31 @@ export const load = async ({ locals, cookies, params }: RequestEvent): Promise<{
     colleagues = isListData(colleaguesRaw) ? colleaguesRaw.data : [];
   }
 
+  let leadScore: Record<string, unknown> | null = null;
+  if (leadScoreRes.ok) {
+    const lsRaw: unknown = await leadScoreRes.json();
+    leadScore = isObjData(lsRaw) ? (lsRaw.data as Record<string, unknown> | null) : null;
+  }
+
+  let emails: unknown[] = [];
+  if (emailsRes.ok) {
+    const emailsRaw: unknown = await emailsRes.json();
+    emails = isListData(emailsRaw) ? emailsRaw.data : [];
+  }
+
+  let phoneNumbers: unknown[] = [];
+  if (phoneNumbersRes.ok) {
+    const phoneNumbersRaw: unknown = await phoneNumbersRes.json();
+    phoneNumbers = isListData(phoneNumbersRaw) ? phoneNumbersRaw.data : [];
+  }
+
   let marketingAttribution: unknown = null;
   if (attributionRes != null && attributionRes.ok) {
     const attrRaw: unknown = await attributionRes.json();
     marketingAttribution = isObjData(attrRaw) ? attrRaw.data : null;
   }
 
-  return { signup, activities, colleagues, marketingAttribution, user: locals.user };
+  return { signup, activities, colleagues, marketingAttribution, leadScore, emails, phoneNumbers, user: locals.user };
 };
 
 export const actions = {
@@ -173,6 +189,90 @@ export const actions = {
     if (!res.ok) {
       const resBody: unknown = await res.json();
       return failFromApi(resBody, res.status, "Failed to convert");
+    }
+
+    return { success: true };
+  },
+
+  addEmail: async ({ request, cookies, params }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
+    const form = await request.formData();
+    const sessionToken = cookies.get("humans_session");
+    const id = params.id ?? "";
+    const email = getFormString(form, "email");
+
+    const res = await fetch(`${PUBLIC_API_URL}/api/route-signups/${id}/emails`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Cookie: `humans_session=${sessionToken ?? ""}`,
+      },
+      body: JSON.stringify({ email, routeSignupId: id }),
+    });
+
+    if (!res.ok) {
+      const resBody: unknown = await res.json();
+      return failFromApi(resBody, res.status, "Failed to add email");
+    }
+
+    return { success: true };
+  },
+
+  deleteEmail: async ({ request, cookies, params }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
+    const form = await request.formData();
+    const sessionToken = cookies.get("humans_session");
+    const id = params.id ?? "";
+    const emailId = getFormString(form, "emailId");
+
+    const res = await fetch(`${PUBLIC_API_URL}/api/route-signups/${id}/emails/${emailId}`, {
+      method: "DELETE",
+      headers: { Cookie: `humans_session=${sessionToken ?? ""}` },
+    });
+
+    if (!res.ok) {
+      const resBody: unknown = await res.json();
+      return failFromApi(resBody, res.status, "Failed to delete email");
+    }
+
+    return { success: true };
+  },
+
+  addPhoneNumber: async ({ request, cookies, params }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
+    const form = await request.formData();
+    const sessionToken = cookies.get("humans_session");
+    const id = params.id ?? "";
+    const phoneNumber = getFormString(form, "phoneNumber");
+
+    const res = await fetch(`${PUBLIC_API_URL}/api/route-signups/${id}/phone-numbers`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Cookie: `humans_session=${sessionToken ?? ""}`,
+      },
+      body: JSON.stringify({ phoneNumber, routeSignupId: id }),
+    });
+
+    if (!res.ok) {
+      const resBody: unknown = await res.json();
+      return failFromApi(resBody, res.status, "Failed to add phone number");
+    }
+
+    return { success: true };
+  },
+
+  deletePhoneNumber: async ({ request, cookies, params }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
+    const form = await request.formData();
+    const sessionToken = cookies.get("humans_session");
+    const id = params.id ?? "";
+    const phoneNumberId = getFormString(form, "phoneNumberId");
+
+    const res = await fetch(`${PUBLIC_API_URL}/api/route-signups/${id}/phone-numbers/${phoneNumberId}`, {
+      method: "DELETE",
+      headers: { Cookie: `humans_session=${sessionToken ?? ""}` },
+    });
+
+    if (!res.ok) {
+      const resBody: unknown = await res.json();
+      return failFromApi(resBody, res.status, "Failed to delete phone number");
     }
 
     return { success: true };

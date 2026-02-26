@@ -10,23 +10,16 @@ export const generalLeadStatuses = [
 ] as const;
 export type GeneralLeadStatus = (typeof generalLeadStatuses)[number];
 
-export const generalLeadSources = [
-  "whatsapp",
-  "email",
-  "direct_referral",
-] as const;
-export type GeneralLeadSource = (typeof generalLeadSources)[number];
-
 export const generalLeads = sqliteTable("general_leads", {
   id: text("id").primaryKey(),
   displayId: text("display_id").notNull().unique(),
   status: text("status", { enum: generalLeadStatuses }).notNull().default("open"),
-  source: text("source", { enum: generalLeadSources }).notNull(),
+  firstName: text("first_name").notNull(),
+  middleName: text("middle_name"),
+  lastName: text("last_name").notNull(),
   notes: text("notes"),
   rejectReason: text("reject_reason"),
   convertedHumanId: text("converted_human_id").references(() => humans.id),
-  email: text("email"),
-  phone: text("phone"),
   ownerId: text("owner_id").references(() => colleagues.id),
   createdAt: text("created_at").notNull(),
   updatedAt: text("updated_at").notNull(),

@@ -1,5 +1,5 @@
 import { eq, sql, like, or, and, desc, asc } from "drizzle-orm";
-import { generalLeads, activities, colleagues, humans } from "@humans/db/schema";
+import { generalLeads, activities, colleagues, humans, emails, phones } from "@humans/db/schema";
 import { createId } from "@humans/db";
 import { ERROR_CODES } from "@humans/shared";
 import { computeDiff, logAuditEntry } from "../lib/audit";
@@ -16,20 +16,19 @@ export async function listGeneralLeads(
   db: DB,
   page: number,
   limit: number,
-  filters: { q?: string | undefined; status?: string | undefined; source?: string | undefined; convertedHumanId?: string | undefined },
-): Promise<{ data: { convertedHumanDisplayId: string | null; convertedHumanName: string | null; id: string; displayId: string; status: string; source: string; notes: string | null; email: string | null; phone: string | null; rejectReason: string | null; convertedHumanId: string | null; ownerId: string | null; createdAt: string; updatedAt: string; ownerName: string | null }[]; meta: { page: number; limit: number; total: number } }> {
+  filters: { q?: string | undefined; status?: string | undefined; convertedHumanId?: string | undefined },
+): Promise<{ data: { convertedHumanDisplayId: string | null; convertedHumanName: string | null; id: string; displayId: string; status: string; firstName: string; middleName: string | null; lastName: string; notes: string | null; rejectReason: string | null; convertedHumanId: string | null; ownerId: string | null; createdAt: string; updatedAt: string; ownerName: string | null }[]; meta: { page: number; limit: number; total: number } }> {
   const offset = (page - 1) * limit;
   const conditions: ReturnType<typeof eq>[] = [];
 
   if (filters.status != null) conditions.push(eq(generalLeads.status, filters.status as typeof generalLeads.$inferSelect.status));
-  if (filters.source != null) conditions.push(eq(generalLeads.source, filters.source as typeof generalLeads.$inferSelect.source));
   if (filters.convertedHumanId != null) conditions.push(eq(generalLeads.convertedHumanId, filters.convertedHumanId));
   if (filters.q != null) {
     const orCondition = or(
       like(generalLeads.displayId, `%${filters.q}%`),
       like(generalLeads.notes, `%${filters.q}%`),
-      like(generalLeads.email, `%${filters.q}%`),
-      like(generalLeads.phone, `%${filters.q}%`),
+      like(generalLeads.firstName, `%${filters.q}%`),
+      like(generalLeads.lastName, `%${filters.q}%`),
     );
     if (orCondition != null) conditions.push(orCondition);
   }
@@ -44,10 +43,10 @@ export async function listGeneralLeads(
       id: generalLeads.id,
       displayId: generalLeads.displayId,
       status: generalLeads.status,
-      source: generalLeads.source,
+      firstName: generalLeads.firstName,
+      middleName: generalLeads.middleName,
+      lastName: generalLeads.lastName,
       notes: generalLeads.notes,
-      email: generalLeads.email,
-      phone: generalLeads.phone,
       rejectReason: generalLeads.rejectReason,
       convertedHumanId: generalLeads.convertedHumanId,
       ownerId: generalLeads.ownerId,
@@ -75,8 +74,6 @@ export async function listGeneralLeads(
     const convertedHuman = row.convertedHumanId != null ? convertedHumans.find((h) => h.id === row.convertedHumanId) : null;
     return {
       ...row,
-      email: row.email,
-      phone: row.phone,
       convertedHumanDisplayId: convertedHuman?.displayId ?? null,
       convertedHumanName: convertedHuman != null ? `${convertedHuman.firstName} ${convertedHuman.lastName}` : null,
     };
@@ -87,16 +84,16 @@ export async function listGeneralLeads(
 
 // ─── Detail ──────────────────────────────────────────────────────
 
-export async function getGeneralLead(db: DB, id: string): Promise<{ convertedHumanDisplayId: string | null; convertedHumanName: string | null; activities: (typeof activities.$inferSelect)[]; id: string; displayId: string; status: string; source: string; notes: string | null; email: string | null; phone: string | null; rejectReason: string | null; convertedHumanId: string | null; ownerId: string | null; createdAt: string; updatedAt: string; ownerName: string | null }> {
+export async function getGeneralLead(db: DB, id: string): Promise<{ convertedHumanDisplayId: string | null; convertedHumanName: string | null; activities: (typeof activities.$inferSelect)[]; emails: (typeof emails.$inferSelect)[]; phoneNumbers: (typeof phones.$inferSelect)[]; id: string; displayId: string; status: string; firstName: string; middleName: string | null; lastName: string; notes: string | null; rejectReason: string | null; convertedHumanId: string | null; ownerId: string | null; createdAt: string; updatedAt: string; ownerName: string | null }> {
   const rows = await db
     .select({
       id: generalLeads.id,
       displayId: generalLeads.displayId,
       status: generalLeads.status,
-      source: generalLeads.source,
+      firstName: generalLeads.firstName,
+      middleName: generalLeads.middleName,
+      lastName: generalLeads.lastName,
       notes: generalLeads.notes,
-      email: generalLeads.email,
-      phone: generalLeads.phone,
       rejectReason: generalLeads.rejectReason,
       convertedHumanId: generalLeads.convertedHumanId,
       ownerId: generalLeads.ownerId,
@@ -131,11 +128,17 @@ export async function getGeneralLead(db: DB, id: string): Promise<{ convertedHum
     .where(eq(activities.generalLeadId, id))
     .orderBy(desc(activities.activityDate));
 
+  // Linked emails and phones
+  const leadEmails = await db.select().from(emails).where(eq(emails.generalLeadId, id));
+  const leadPhones = await db.select().from(phones).where(eq(phones.generalLeadId, id));
+
   return {
     ...lead,
     convertedHumanDisplayId,
     convertedHumanName,
     activities: leadActivities,
+    emails: leadEmails,
+    phoneNumbers: leadPhones,
   };
 }
 
@@ -143,7 +146,7 @@ export async function getGeneralLead(db: DB, id: string): Promise<{ convertedHum
 
 export async function createGeneralLead(
   db: DB,
-  data: { source: string; notes?: string | undefined; email?: string | null | undefined; phone?: string | null | undefined; ownerId?: string | undefined },
+  data: { firstName: string; middleName?: string | undefined; lastName: string; notes?: string | undefined; ownerId?: string | undefined },
   colleagueId: string,
 ): Promise<{ id: string; displayId: string }> {
   const now = new Date().toISOString();
@@ -154,11 +157,11 @@ export async function createGeneralLead(
     id,
     displayId,
     status: "open",
-    source: data.source as typeof generalLeads.$inferInsert.source,
+    firstName: data.firstName,
+    middleName: data.middleName ?? null,
+    lastName: data.lastName,
     notes: data.notes ?? null,
-    email: data.email ?? null,
-    phone: data.phone ?? null,
-    ownerId: data.ownerId ?? null,
+    ownerId: data.ownerId ?? colleagueId,
     createdAt: now,
     updatedAt: now,
   });
@@ -180,7 +183,7 @@ export async function createGeneralLead(
 export async function updateGeneralLead(
   db: DB,
   id: string,
-  data: { notes?: string | undefined; email?: string | null | undefined; phone?: string | null | undefined; ownerId?: string | null | undefined },
+  data: { firstName?: string | undefined; middleName?: string | null | undefined; lastName?: string | undefined; notes?: string | undefined; ownerId?: string | null | undefined },
   colleagueId: string,
 ): Promise<{ data: typeof generalLeads.$inferSelect | undefined }> {
   const existing = await db.query.generalLeads.findFirst({
@@ -195,20 +198,25 @@ export async function updateGeneralLead(
   const newValues: Record<string, unknown> = {};
   const updateFields: Record<string, unknown> = { updatedAt: now };
 
+  if (data.firstName !== undefined) {
+    oldValues["firstName"] = existing.firstName;
+    newValues["firstName"] = data.firstName;
+    updateFields["firstName"] = data.firstName;
+  }
+  if (data.middleName !== undefined) {
+    oldValues["middleName"] = existing.middleName;
+    newValues["middleName"] = data.middleName;
+    updateFields["middleName"] = data.middleName;
+  }
+  if (data.lastName !== undefined) {
+    oldValues["lastName"] = existing.lastName;
+    newValues["lastName"] = data.lastName;
+    updateFields["lastName"] = data.lastName;
+  }
   if (data.notes !== undefined) {
     oldValues["notes"] = existing.notes;
     newValues["notes"] = data.notes;
     updateFields["notes"] = data.notes;
-  }
-  if (data.email !== undefined) {
-    oldValues["email"] = existing.email;
-    newValues["email"] = data.email;
-    updateFields["email"] = data.email;
-  }
-  if (data.phone !== undefined) {
-    oldValues["phone"] = existing.phone;
-    newValues["phone"] = data.phone;
-    updateFields["phone"] = data.phone;
   }
   if (data.ownerId !== undefined) {
     if (CLOSED_STATUSES.includes(existing.status)) {
@@ -341,6 +349,10 @@ export async function convertGeneralLead(
     updatedAt: now,
   }).where(eq(activities.generalLeadId, id));
 
+  // Add humanId to linked emails/phones (additive — keeps generalLeadId)
+  await db.update(emails).set({ humanId }).where(eq(emails.generalLeadId, id));
+  await db.update(phones).set({ humanId }).where(eq(phones.generalLeadId, id));
+
   await logAuditEntry({
     db,
     colleagueId,
@@ -372,6 +384,9 @@ export async function deleteGeneralLead(db: DB, id: string): Promise<void> {
     throw notFound(ERROR_CODES.GENERAL_LEAD_NOT_FOUND, "General lead not found");
   }
 
+  // Nullify generalLeadId on linked emails/phones
+  await db.update(emails).set({ generalLeadId: null }).where(eq(emails.generalLeadId, id));
+  await db.update(phones).set({ generalLeadId: null }).where(eq(phones.generalLeadId, id));
   // Nullify generalLeadId on linked activities
   await db.update(activities).set({ generalLeadId: null }).where(eq(activities.generalLeadId, id));
   await db.delete(generalLeads).where(eq(generalLeads.id, id));

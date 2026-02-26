@@ -8,8 +8,11 @@
   type Email = {
     id: string;
     displayId: string;
-    ownerType: string;
-    ownerId: string;
+    humanId: string | null;
+    accountId: string | null;
+    generalLeadId: string | null;
+    websiteBookingRequestId: string | null;
+    routeSignupId: string | null;
     email: string;
     labelName: string | null;
     isPrimary: boolean;
@@ -26,7 +29,10 @@
   };
 
   function ownerHref(e: Email): string {
-    return e.ownerType === "human" ? resolve(`/humans/${e.ownerId}`) : resolve(`/accounts/${e.ownerId}`);
+    if (e.humanId != null) return resolve(`/humans/${e.humanId}`);
+    if (e.accountId != null) return resolve(`/accounts/${e.accountId}`);
+    if (e.generalLeadId != null) return resolve(`/leads/general-leads/${e.generalLeadId}`);
+    return "#";
   }
 </script>
 

@@ -1,5 +1,5 @@
-import { eq, and, inArray } from "drizzle-orm";
-import { phones, humans, accounts, humanPhoneLabelsConfig, accountPhoneLabelsConfig } from "@humans/db/schema";
+import { eq, inArray } from "drizzle-orm";
+import { phones, humans, accounts, generalLeads, humanPhoneLabelsConfig, accountPhoneLabelsConfig } from "@humans/db/schema";
 import { createId } from "@humans/db";
 import { ERROR_CODES } from "@humans/shared";
 import { notFound } from "../lib/errors";
@@ -7,32 +7,47 @@ import { nextDisplayId } from "../lib/display-id";
 import { rematchActivitiesByPhone } from "./activity-rematch";
 import type { DB } from "./types";
 
-export async function listPhoneNumbers(db: DB): Promise<{ ownerName: string | null; ownerDisplayId: string | null; labelName: string | null; id: string; displayId: string; ownerType: string; ownerId: string; phoneNumber: string; labelId: string | null; hasWhatsapp: boolean; isPrimary: boolean; createdAt: string }[]> {
+function resolveOwner(
+  phone: typeof phones.$inferSelect,
+  allHumans: { id: string; displayId: string; firstName: string; lastName: string }[],
+  allAccounts: { id: string; displayId: string; name: string }[],
+  allGeneralLeads: { id: string; displayId: string; firstName: string; lastName: string }[],
+): { ownerName: string | null; ownerDisplayId: string | null } {
+  if (phone.humanId != null) {
+    const human = allHumans.find((h) => h.id === phone.humanId);
+    if (human != null) return { ownerName: `${human.firstName} ${human.lastName}`, ownerDisplayId: human.displayId };
+  }
+  if (phone.accountId != null) {
+    const account = allAccounts.find((a) => a.id === phone.accountId);
+    if (account != null) return { ownerName: account.name, ownerDisplayId: account.displayId };
+  }
+  if (phone.generalLeadId != null) {
+    const lead = allGeneralLeads.find((l) => l.id === phone.generalLeadId);
+    if (lead != null) return { ownerName: `${lead.firstName} ${lead.lastName}`, ownerDisplayId: lead.displayId };
+  }
+  return { ownerName: null, ownerDisplayId: null };
+}
+
+export async function listPhoneNumbers(db: DB): Promise<{ ownerName: string | null; ownerDisplayId: string | null; labelName: string | null; id: string; displayId: string; humanId: string | null; accountId: string | null; generalLeadId: string | null; websiteBookingRequestId: string | null; routeSignupId: string | null; phoneNumber: string; labelId: string | null; hasWhatsapp: boolean; isPrimary: boolean; createdAt: string }[]> {
   const allPhones = await db.select().from(phones);
-  const humanOwnerIds = allPhones.filter((p) => p.ownerType === "human").map((p) => p.ownerId);
-  const accountOwnerIds = allPhones.filter((p) => p.ownerType === "account").map((p) => p.ownerId);
-  const allHumans = humanOwnerIds.length > 0
-    ? await db.select().from(humans).where(inArray(humans.id, humanOwnerIds))
+  const humanIds = allPhones.flatMap((p) => p.humanId != null ? [p.humanId] : []);
+  const accountIds = allPhones.flatMap((p) => p.accountId != null ? [p.accountId] : []);
+  const generalLeadIds = allPhones.flatMap((p) => p.generalLeadId != null ? [p.generalLeadId] : []);
+  const allHumans = humanIds.length > 0
+    ? await db.select({ id: humans.id, displayId: humans.displayId, firstName: humans.firstName, lastName: humans.lastName }).from(humans).where(inArray(humans.id, humanIds))
     : [];
-  const allAccounts = accountOwnerIds.length > 0
-    ? await db.select().from(accounts).where(inArray(accounts.id, accountOwnerIds))
+  const allAccounts = accountIds.length > 0
+    ? await db.select({ id: accounts.id, displayId: accounts.displayId, name: accounts.name }).from(accounts).where(inArray(accounts.id, accountIds))
+    : [];
+  const allGeneralLeads = generalLeadIds.length > 0
+    ? await db.select({ id: generalLeads.id, displayId: generalLeads.displayId, firstName: generalLeads.firstName, lastName: generalLeads.lastName }).from(generalLeads).where(inArray(generalLeads.id, generalLeadIds))
     : [];
   const humanLabels = await db.select().from(humanPhoneLabelsConfig);
   const accountLabels = await db.select().from(accountPhoneLabelsConfig);
 
   const data = allPhones.map((p) => {
-    let ownerName: string | null = null;
-    let ownerDisplayId: string | null = null;
-    if (p.ownerType === "human") {
-      const human = allHumans.find((h) => h.id === p.ownerId);
-      ownerName = human != null ? `${human.firstName} ${human.lastName}` : null;
-      ownerDisplayId = human?.displayId ?? null;
-    } else {
-      const account = allAccounts.find((a) => a.id === p.ownerId);
-      ownerName = account?.name ?? null;
-      ownerDisplayId = account?.displayId ?? null;
-    }
-    const labels = p.ownerType === "human" ? humanLabels : accountLabels;
+    const { ownerName, ownerDisplayId } = resolveOwner(p, allHumans, allAccounts, allGeneralLeads);
+    const labels = p.humanId != null ? humanLabels : accountLabels;
     const label = p.labelId != null ? labels.find((l) => l.id === p.labelId) : null;
     return {
       ...p,
@@ -49,40 +64,31 @@ export async function listPhoneNumbersForHuman(db: DB, humanId: string): Promise
   const results = await db
     .select()
     .from(phones)
-    .where(and(eq(phones.ownerType, "human"), eq(phones.ownerId, humanId)));
+    .where(eq(phones.humanId, humanId));
   return results;
 }
 
-export async function getPhoneNumber(db: DB, id: string): Promise<{ ownerName: string | null; ownerDisplayId: string | null; labelName: string | null; id: string; displayId: string; ownerType: string; ownerId: string; phoneNumber: string; labelId: string | null; hasWhatsapp: boolean; isPrimary: boolean; createdAt: string }> {
+export async function getPhoneNumber(db: DB, id: string): Promise<{ ownerName: string | null; ownerDisplayId: string | null; labelName: string | null; id: string; displayId: string; humanId: string | null; accountId: string | null; generalLeadId: string | null; websiteBookingRequestId: string | null; routeSignupId: string | null; phoneNumber: string; labelId: string | null; hasWhatsapp: boolean; isPrimary: boolean; createdAt: string }> {
   const allPhones = await db.select().from(phones).where(eq(phones.id, id));
   const phone = allPhones[0];
   if (phone == null) {
     throw notFound(ERROR_CODES.PHONE_NUMBER_NOT_FOUND, "Phone number not found");
   }
 
-  const humanOwnerIds = phone.ownerType === "human" ? [phone.ownerId] : [];
-  const accountOwnerIds = phone.ownerType === "account" ? [phone.ownerId] : [];
-  const allHumans = humanOwnerIds.length > 0
-    ? await db.select().from(humans).where(inArray(humans.id, humanOwnerIds))
+  const allHumans = phone.humanId != null
+    ? await db.select({ id: humans.id, displayId: humans.displayId, firstName: humans.firstName, lastName: humans.lastName }).from(humans).where(eq(humans.id, phone.humanId))
     : [];
-  const allAccounts = accountOwnerIds.length > 0
-    ? await db.select().from(accounts).where(inArray(accounts.id, accountOwnerIds))
+  const allAccounts = phone.accountId != null
+    ? await db.select({ id: accounts.id, displayId: accounts.displayId, name: accounts.name }).from(accounts).where(eq(accounts.id, phone.accountId))
+    : [];
+  const allGeneralLeads = phone.generalLeadId != null
+    ? await db.select({ id: generalLeads.id, displayId: generalLeads.displayId, firstName: generalLeads.firstName, lastName: generalLeads.lastName }).from(generalLeads).where(eq(generalLeads.id, phone.generalLeadId))
     : [];
   const humanLabels = await db.select().from(humanPhoneLabelsConfig);
   const accountLabels = await db.select().from(accountPhoneLabelsConfig);
 
-  let ownerName: string | null = null;
-  let ownerDisplayId: string | null = null;
-  if (phone.ownerType === "human") {
-    const human = allHumans.find((h) => h.id === phone.ownerId);
-    ownerName = human != null ? `${human.firstName} ${human.lastName}` : null;
-    ownerDisplayId = human?.displayId ?? null;
-  } else {
-    const account = allAccounts.find((a) => a.id === phone.ownerId);
-    ownerName = account?.name ?? null;
-    ownerDisplayId = account?.displayId ?? null;
-  }
-  const labels = phone.ownerType === "human" ? humanLabels : accountLabels;
+  const { ownerName, ownerDisplayId } = resolveOwner(phone, allHumans, allAccounts, allGeneralLeads);
+  const labels = phone.humanId != null ? humanLabels : accountLabels;
   const label = phone.labelId != null ? labels.find((l) => l.id === phone.labelId) : null;
 
   return {
@@ -96,21 +102,28 @@ export async function getPhoneNumber(db: DB, id: string): Promise<{ ownerName: s
 export async function createPhoneNumber(
   db: DB,
   data: {
-    humanId: string;
+    humanId?: string | undefined;
+    accountId?: string | undefined;
+    generalLeadId?: string | undefined;
+    websiteBookingRequestId?: string | undefined;
+    routeSignupId?: string | undefined;
     phoneNumber: string;
     labelId?: string | null | undefined;
     hasWhatsapp?: boolean | undefined;
     isPrimary?: boolean | undefined;
   },
-): Promise<{ id: string; displayId: string; ownerType: "human"; ownerId: string; phoneNumber: string; labelId: string | null; hasWhatsapp: boolean; isPrimary: boolean; createdAt: string }> {
+): Promise<typeof phones.$inferSelect> {
   const now = new Date().toISOString();
   const displayId = await nextDisplayId(db, "FON");
 
   const phone = {
     id: createId(),
     displayId,
-    ownerType: "human" as const,
-    ownerId: data.humanId,
+    humanId: data.humanId ?? null,
+    accountId: data.accountId ?? null,
+    generalLeadId: data.generalLeadId ?? null,
+    websiteBookingRequestId: data.websiteBookingRequestId ?? null,
+    routeSignupId: data.routeSignupId ?? null,
     phoneNumber: data.phoneNumber,
     labelId: data.labelId ?? null,
     hasWhatsapp: data.hasWhatsapp ?? false,
@@ -120,8 +133,10 @@ export async function createPhoneNumber(
 
   await db.insert(phones).values(phone);
 
-  // Rematch unlinked activities by this phone number
-  await rematchActivitiesByPhone(db, data.humanId, data.phoneNumber);
+  // Rematch unlinked activities by this phone number (only for human-linked phones)
+  if (data.humanId != null) {
+    await rematchActivitiesByPhone(db, data.humanId, data.phoneNumber);
+  }
 
   return phone;
 }

@@ -133,10 +133,10 @@ export function resolveAuthorName(
 // --- Cached reference data (fixes subrequest limits) ---
 
 interface CachedReferenceData {
-  allEmails: { id: string; email: string; ownerType: string; ownerId: string }[];
-  allPhones: { id: string; phoneNumber: string; ownerType: string; ownerId: string }[];
+  allEmails: { id: string; email: string; humanId: string | null; accountId: string | null; generalLeadId: string | null }[];
+  allPhones: { id: string; phoneNumber: string; humanId: string | null; accountId: string | null; generalLeadId: string | null }[];
   allColleagues: { id: string; email: string; name: string }[];
-  allLeads: { id: string; email: string | null; phone: string | null }[];
+  allLeads: { id: string; firstName: string; lastName: string }[];
   allAccountHumans: { accountId: string; humanId: string }[];
   allSignups: { id: string; email?: string | null; phone?: string | null; whatsapp_phone?: string | null }[];
   allBookings: { id: string; client_email?: string | null; email_for_notifications?: string | null; phone_number?: string | null; alt_whatsapp_phone_number?: string | null }[];
@@ -156,10 +156,10 @@ async function preloadReferenceData(db: DB, supabase: SupabaseClient): Promise<C
     humanRows,
     socialIdRows,
   ] = await Promise.all([
-    db.select({ id: emails.id, email: emails.email, ownerType: emails.ownerType, ownerId: emails.ownerId }).from(emails),
-    db.select({ id: phones.id, phoneNumber: phones.phoneNumber, ownerType: phones.ownerType, ownerId: phones.ownerId }).from(phones),
+    db.select({ id: emails.id, email: emails.email, humanId: emails.humanId, accountId: emails.accountId, generalLeadId: emails.generalLeadId }).from(emails),
+    db.select({ id: phones.id, phoneNumber: phones.phoneNumber, humanId: phones.humanId, accountId: phones.accountId, generalLeadId: phones.generalLeadId }).from(phones),
     db.select({ id: colleagues.id, email: colleagues.email, name: colleagues.name }).from(colleagues),
-    db.select({ id: generalLeads.id, email: generalLeads.email, phone: generalLeads.phone }).from(generalLeads),
+    db.select({ id: generalLeads.id, firstName: generalLeads.firstName, lastName: generalLeads.lastName }).from(generalLeads),
     db.select({ accountId: accountHumans.accountId, humanId: accountHumans.humanId }).from(accountHumans),
     supabase.from("announcement_signups").select("id, email, phone, whatsapp_phone"),
     supabase.from("bookings").select("id, client_email, email_for_notifications, phone_number, alt_whatsapp_phone_number"),
@@ -234,15 +234,16 @@ function matchByEmail(cache: CachedReferenceData, emailHandle: string): MatchRes
 
   // 1. Check D1 emails table (humans)
   const matched = cache.allEmails.find(
-    (e) => e.email.toLowerCase() === lowerEmail && e.ownerType === "human",
+    (e) => e.email.toLowerCase() === lowerEmail && e.humanId != null,
   );
-  if (matched != null) {
-    const accountId = findAccountForHuman(cache, matched.ownerId);
+  if (matched?.humanId != null) {
+    const humanId = matched.humanId;
+    const accountId = findAccountForHuman(cache, humanId);
     return {
       ...NO_MATCH,
-      humanId: matched.ownerId,
+      humanId,
       accountId,
-      matchedEntity: `human:${matched.ownerId}`,
+      matchedEntity: `human:${humanId}`,
     };
   }
 
@@ -258,15 +259,16 @@ function matchByEmail(cache: CachedReferenceData, emailHandle: string): MatchRes
     };
   }
 
-  // 3. Check D1 general_leads by email
-  const matchedLead = cache.allLeads.find(
-    (l) => l.email?.toLowerCase() === lowerEmail,
+  // 3. Check D1 emails table (general leads)
+  const leadEmailMatch = cache.allEmails.find(
+    (e) => e.email.toLowerCase() === lowerEmail && e.generalLeadId != null,
   );
-  if (matchedLead != null) {
+  if (leadEmailMatch?.generalLeadId != null) {
+    const generalLeadId = leadEmailMatch.generalLeadId;
     return {
       ...NO_MATCH,
-      generalLeadId: matchedLead.id,
-      matchedEntity: `general_lead:${matchedLead.id}`,
+      generalLeadId,
+      matchedEntity: `general_lead:${generalLeadId}`,
     };
   }
 
@@ -293,15 +295,16 @@ function matchByPhone(cache: CachedReferenceData, phoneHandle: string): MatchRes
 
   // 1. Check D1 phones table (humans)
   const matched = cache.allPhones.find(
-    (p) => p.ownerType === "human" && phonesMatch(p.phoneNumber, phoneHandle),
+    (p) => p.humanId != null && phonesMatch(p.phoneNumber, phoneHandle),
   );
-  if (matched != null) {
-    const accountId = findAccountForHuman(cache, matched.ownerId);
+  if (matched?.humanId != null) {
+    const humanId = matched.humanId;
+    const accountId = findAccountForHuman(cache, humanId);
     return {
       ...NO_MATCH,
-      humanId: matched.ownerId,
+      humanId,
       accountId,
-      matchedEntity: `human:${matched.ownerId}`,
+      matchedEntity: `human:${humanId}`,
     };
   }
 
@@ -322,15 +325,16 @@ function matchByPhone(cache: CachedReferenceData, phoneHandle: string): MatchRes
     };
   }
 
-  // 3. Check D1 general_leads by phone
-  const matchedLead = cache.allLeads.find(
-    (l) => l.phone != null && phonesMatch(l.phone, phoneHandle),
+  // 3. Check D1 phones table (general leads)
+  const leadPhoneMatch = cache.allPhones.find(
+    (p) => p.generalLeadId != null && phonesMatch(p.phoneNumber, phoneHandle),
   );
-  if (matchedLead != null) {
+  if (leadPhoneMatch?.generalLeadId != null) {
+    const generalLeadId = leadPhoneMatch.generalLeadId;
     return {
       ...NO_MATCH,
-      generalLeadId: matchedLead.id,
-      matchedEntity: `general_lead:${matchedLead.id}`,
+      generalLeadId,
+      matchedEntity: `general_lead:${generalLeadId}`,
     };
   }
 
@@ -1032,13 +1036,13 @@ function debugMatchByEmail(cache: CachedReferenceData, emailHandle: string): Mat
 
   // 1. emails table (humans)
   const emailMatch = cache.allEmails.find(
-    (e) => e.email.toLowerCase() === lowerEmail && e.ownerType === "human",
+    (e) => e.email.toLowerCase() === lowerEmail && e.humanId != null,
   );
   attempts.push({
     source: "Emails table (humans)",
     searchedFor: lowerEmail,
     found: emailMatch != null,
-    detail: emailMatch != null ? `human:${emailMatch.ownerId}` : undefined,
+    detail: emailMatch != null ? `human:${emailMatch.humanId ?? ""}` : undefined,
   });
   if (emailMatch != null) return attempts;
 
@@ -1054,17 +1058,17 @@ function debugMatchByEmail(cache: CachedReferenceData, emailHandle: string): Mat
   });
   if (signup != null) return attempts;
 
-  // 3. general_leads
-  const lead = cache.allLeads.find(
-    (l) => l.email?.toLowerCase() === lowerEmail,
+  // 3. emails table (general leads)
+  const leadEmail = cache.allEmails.find(
+    (e) => e.email.toLowerCase() === lowerEmail && e.generalLeadId != null,
   );
   attempts.push({
-    source: "General leads",
+    source: "Emails table (general leads)",
     searchedFor: lowerEmail,
-    found: lead != null,
-    detail: lead != null ? `general_lead:${lead.id}` : undefined,
+    found: leadEmail != null,
+    detail: leadEmail != null ? `general_lead:${leadEmail.generalLeadId ?? ""}` : undefined,
   });
-  if (lead != null) return attempts;
+  if (leadEmail != null) return attempts;
 
   // 4. bookings
   const booking = cache.allBookings.find(
@@ -1100,13 +1104,13 @@ function debugMatchByPhone(cache: CachedReferenceData, phoneHandle: string): Mat
 
   // 1. phones table (humans)
   const phoneMatch = cache.allPhones.find(
-    (p) => p.ownerType === "human" && phonesMatch(p.phoneNumber, phoneHandle),
+    (p) => p.humanId != null && phonesMatch(p.phoneNumber, phoneHandle),
   );
   attempts.push({
     source: "Phones table (humans)",
     searchedFor: `${phoneHandle} (normalized suffix: ${suffix})`,
     found: phoneMatch != null,
-    detail: phoneMatch != null ? `human:${phoneMatch.ownerId}` : undefined,
+    detail: phoneMatch != null ? `human:${phoneMatch.humanId ?? ""}` : undefined,
   });
   if (phoneMatch != null) return attempts;
 
@@ -1127,17 +1131,17 @@ function debugMatchByPhone(cache: CachedReferenceData, phoneHandle: string): Mat
   });
   if (signup != null) return attempts;
 
-  // 3. general_leads
-  const lead = cache.allLeads.find(
-    (l) => l.phone != null && phonesMatch(l.phone, phoneHandle),
+  // 3. phones table (general leads)
+  const leadPhone = cache.allPhones.find(
+    (p) => p.generalLeadId != null && phonesMatch(p.phoneNumber, phoneHandle),
   );
   attempts.push({
-    source: "General leads (phone)",
+    source: "Phones table (general leads)",
     searchedFor: phoneHandle,
-    found: lead != null,
-    detail: lead != null ? `general_lead:${lead.id}` : undefined,
+    found: leadPhone != null,
+    detail: leadPhone != null ? `general_lead:${leadPhone.generalLeadId ?? ""}` : undefined,
   });
-  if (lead != null) return attempts;
+  if (leadPhone != null) return attempts;
 
   // 4. bookings
   const booking = cache.allBookings.find((b) => {

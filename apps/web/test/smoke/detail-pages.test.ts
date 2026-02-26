@@ -70,8 +70,11 @@ describe("Detail page smoke tests", () => {
           email: {
             id: "email-1",
             displayId: "EML-001",
-            ownerType: "human",
-            ownerId: "human-1",
+            humanId: "human-1",
+            accountId: null,
+            generalLeadId: null,
+            websiteBookingRequestId: null,
+            routeSignupId: null,
             email: "test@example.com",
             labelId: null,
             labelName: null,
@@ -99,8 +102,11 @@ describe("Detail page smoke tests", () => {
           phone: {
             id: "phone-1",
             displayId: "PHN-001",
-            ownerType: "human",
-            ownerId: "human-1",
+            humanId: "human-1",
+            accountId: null,
+            generalLeadId: null,
+            websiteBookingRequestId: null,
+            routeSignupId: null,
             phoneNumber: "+1-555-0100",
             labelId: null,
             labelName: null,
@@ -320,29 +326,33 @@ describe("Detail page smoke tests", () => {
             id: "gl-1",
             displayId: "LEA-AAA-001",
             status: "open",
-            source: "whatsapp",
+            firstName: "Test",
+            middleName: null,
+            lastName: "Lead",
             notes: null,
             rejectReason: null,
-            email: null,
-            phone: null,
             ownerName: null,
             ownerId: null,
             convertedHumanId: null,
             convertedHumanDisplayId: null,
             convertedHumanName: null,
             activities: [],
+            emails: [],
+            phoneNumbers: [],
             createdAt: "2025-01-15T10:00:00.000Z",
             updatedAt: "2025-01-15T10:00:00.000Z",
           },
           allHumans: [],
+          colleagues: [],
+          leadScore: null,
           user: { id: "u1", email: "test@example.com", name: "Test User", avatarUrl: null, role: "admin" },
           sessionToken: "test-token",
         },
         form: null,
       },
     });
-    // RecordManagementBar renders <h1>{displayId}</h1>
-    expect(screen.getByRole("heading", { name: "LEA-AAA-001" })).toBeDefined();
+    // RecordManagementBar renders <h1>{displayId} — {firstName} {lastName}</h1>
+    expect(screen.getByRole("heading", { name: "LEA-AAA-001 — Test Lead" })).toBeDefined();
   });
 
   it("Website detail page renders without error", () => {

@@ -52,7 +52,7 @@ describe("GET /api/humans/:id", () => {
     const db = getDb();
     const human = buildHuman({ firstName: "FindMe" });
     await db.insert(schema.humans).values(human);
-    const email = buildEmail({ ownerType: "human", ownerId: human.id, email: "findme@test.com" });
+    const email = buildEmail({ humanId: human.id, accountId: null, email: "findme@test.com" });
     await db.insert(schema.emails).values(email);
 
     const { token } = await createUserAndSession("agent");

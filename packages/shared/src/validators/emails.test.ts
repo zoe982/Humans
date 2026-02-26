@@ -4,21 +4,48 @@ import { createEmailSchema, updateEmailSchema } from "./emails";
 describe("createEmailSchema", () => {
   const validInput = { humanId: "h-1", email: "test@example.com" };
 
-  it("accepts valid input", () => {
+  it("accepts valid input with humanId", () => {
     const result = createEmailSchema.parse(validInput);
     expect(result.humanId).toBe("h-1");
     expect(result.email).toBe("test@example.com");
     expect(result.isPrimary).toBe(false);
   });
 
+  it("accepts valid input with accountId", () => {
+    const result = createEmailSchema.parse({ accountId: "a-1", email: "test@example.com" });
+    expect(result.accountId).toBe("a-1");
+    expect(result.email).toBe("test@example.com");
+  });
+
+  it("accepts valid input with generalLeadId", () => {
+    const result = createEmailSchema.parse({ generalLeadId: "gl-1", email: "test@example.com" });
+    expect(result.generalLeadId).toBe("gl-1");
+  });
+
+  it("accepts valid input with websiteBookingRequestId", () => {
+    const result = createEmailSchema.parse({ websiteBookingRequestId: "wbr-1", email: "test@example.com" });
+    expect(result.websiteBookingRequestId).toBe("wbr-1");
+  });
+
+  it("accepts valid input with routeSignupId", () => {
+    const result = createEmailSchema.parse({ routeSignupId: "rs-1", email: "test@example.com" });
+    expect(result.routeSignupId).toBe("rs-1");
+  });
+
+  it("accepts multiple entity IDs simultaneously", () => {
+    const result = createEmailSchema.parse({ humanId: "h-1", generalLeadId: "gl-1", email: "test@example.com" });
+    expect(result.humanId).toBe("h-1");
+    expect(result.generalLeadId).toBe("gl-1");
+  });
+
+  it("rejects when no entity ID is provided", () => {
+    expect(() => createEmailSchema.parse({ email: "test@example.com" })).toThrowError();
+  });
+
   it("accepts optional fields", () => {
     const result = createEmailSchema.parse({ ...validInput, labelId: "lbl-1", isPrimary: true });
     expect(result.labelId).toBe("lbl-1");
     expect(result.isPrimary).toBe(true);
-  });
-
-  it("rejects empty humanId", () => {
-    expect(() => createEmailSchema.parse({ ...validInput, humanId: "" })).toThrowError();
   });
 
   it("rejects invalid email format", () => {
@@ -40,11 +67,6 @@ describe("updateEmailSchema", () => {
     expect(result.email).toBe("new@example.com");
   });
 
-  it("does not include humanId (omitted from update)", () => {
-    const result = updateEmailSchema.parse({});
-    expect(result).not.toHaveProperty("humanId");
-  });
-
   it("accepts isPrimary update", () => {
     const result = updateEmailSchema.parse({ isPrimary: true });
     expect(result.isPrimary).toBe(true);
@@ -53,5 +75,11 @@ describe("updateEmailSchema", () => {
   it("accepts labelId: null to clear a label", () => {
     const result = updateEmailSchema.parse({ labelId: null });
     expect(result.labelId).toBeNull();
+  });
+
+  it("accepts nullable entity ID fields", () => {
+    const result = updateEmailSchema.parse({ humanId: null, accountId: "a-1" });
+    expect(result.humanId).toBeNull();
+    expect(result.accountId).toBe("a-1");
   });
 });

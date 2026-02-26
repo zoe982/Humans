@@ -46,8 +46,8 @@ export async function getAccountDetail(supabase: SupabaseClient, db: DB, id: str
   id: string; displayId: string; name: string; status: string; createdAt: string; updatedAt: string;
   types: { id: string; name: string }[];
   linkedHumans: { id: string; accountId: string; humanId: string; labelId: string | null; createdAt: string; humanDisplayId: string | null; humanName: string; humanStatus: string | null; labelName: string | null; emails: (typeof emails.$inferSelect)[]; phoneNumbers: (typeof phones.$inferSelect)[] }[];
-  emails: { labelName: string | null; id: string; displayId: string; ownerType: string; ownerId: string; email: string; labelId: string | null; isPrimary: boolean; createdAt: string }[];
-  phoneNumbers: { labelName: string | null; id: string; displayId: string; ownerType: string; ownerId: string; phoneNumber: string; labelId: string | null; hasWhatsapp: boolean; isPrimary: boolean; createdAt: string }[];
+  emails: ({ labelName: string | null } & typeof emails.$inferSelect)[];
+  phoneNumbers: ({ labelName: string | null } & typeof phones.$inferSelect)[];
   activities: ({ viaHumanName: string | null } & typeof activities.$inferSelect)[];
   socialIds: { platformName: string | null; id: string; displayId: string; handle: string; platformId: string | null; humanId: string | null; accountId: string | null; createdAt: string }[];
   referralCodes: { id: string; displayId: string; code: string; description: string | null; isActive: boolean }[];
@@ -79,9 +79,9 @@ export async function getAccountDetail(supabase: SupabaseClient, db: DB, id: str
     db.select().from(accountTypesConfig),
     db.select().from(accountHumans).where(eq(accountHumans.accountId, id)),
     db.select().from(accountHumanLabelsConfig),
-    db.select().from(emails).where(eq(emails.ownerId, id)),
+    db.select().from(emails).where(eq(emails.accountId, id)),
     db.select().from(accountEmailLabelsConfig),
-    db.select().from(phones).where(eq(phones.ownerId, id)),
+    db.select().from(phones).where(eq(phones.accountId, id)),
     db.select().from(accountPhoneLabelsConfig),
     db.select().from(activities).where(eq(activities.accountId, id)),
     db.select().from(socialIds).where(eq(socialIds.accountId, id)),
@@ -128,8 +128,8 @@ export async function getAccountDetail(supabase: SupabaseClient, db: DB, id: str
   if (humanIds.length > 0) {
     [allHumans, allHumanEmails, allHumanPhones, humanActivities] = await Promise.all([
       db.select().from(humans).where(inArray(humans.id, humanIds)),
-      db.select().from(emails).where(inArray(emails.ownerId, humanIds)),
-      db.select().from(phones).where(inArray(phones.ownerId, humanIds)),
+      db.select().from(emails).where(inArray(emails.humanId, humanIds)),
+      db.select().from(phones).where(inArray(phones.humanId, humanIds)),
       db.select().from(activities).where(inArray(activities.humanId, humanIds)),
     ]);
   }
@@ -148,20 +148,18 @@ export async function getAccountDetail(supabase: SupabaseClient, db: DB, id: str
       humanName: human != null ? `${human.firstName} ${human.lastName}` : "Unknown",
       humanStatus: human?.status ?? null,
       labelName: label?.name ?? null,
-      emails: allHumanEmails.filter((e) => e.ownerType === "human" && e.ownerId === lh.humanId),
-      phoneNumbers: allHumanPhones.filter((p) => p.ownerType === "human" && p.ownerId === lh.humanId),
+      emails: allHumanEmails.filter((e) => e.humanId === lh.humanId),
+      phoneNumbers: allHumanPhones.filter((p) => p.humanId === lh.humanId),
     };
   });
 
   const emailsWithLabels = accountEmails
-    .filter((e) => e.ownerType === "account")
     .map((e) => {
       const label = e.labelId != null ? emailLabelConfs.find((l) => l.id === e.labelId) : null;
       return { ...e, labelName: label?.name ?? null };
     });
 
   const phonesWithLabels = accountPhones
-    .filter((p) => p.ownerType === "account")
     .map((p) => {
       const label = p.labelId != null ? phoneLabelConfs.find((l) => l.id === p.labelId) : null;
       return { ...p, labelName: label?.name ?? null };
@@ -347,8 +345,8 @@ export async function deleteAccount(supabase: SupabaseClient, db: DB, id: string
 
   await db.delete(accountTypes).where(eq(accountTypes.accountId, id));
   await db.delete(accountHumans).where(eq(accountHumans.accountId, id));
-  await db.delete(emails).where(eq(emails.ownerId, id));
-  await db.delete(phones).where(eq(phones.ownerId, id));
+  await db.update(emails).set({ accountId: null }).where(eq(emails.accountId, id));
+  await db.update(phones).set({ accountId: null }).where(eq(phones.accountId, id));
   await db.update(socialIds).set({ accountId: null }).where(eq(socialIds.accountId, id));
   await db.update(websites).set({ accountId: null }).where(eq(websites.accountId, id));
   await supabase.from("referral_codes").update({ account_id: null }).eq("account_id", id);
@@ -360,15 +358,18 @@ export async function addAccountEmail(
   db: DB,
   accountId: string,
   data: { email: string; labelId?: string | null | undefined; isPrimary?: boolean | undefined },
-): Promise<{ id: string; displayId: string; ownerType: "account"; ownerId: string; email: string; labelId: string | null; isPrimary: boolean; createdAt: string }> {
+): Promise<typeof emails.$inferSelect> {
   const now = new Date().toISOString();
   const displayId = await nextDisplayId(db, "EML");
 
   const emailRecord = {
     id: createId(),
     displayId,
-    ownerType: "account" as const,
-    ownerId: accountId,
+    humanId: null,
+    accountId,
+    generalLeadId: null,
+    websiteBookingRequestId: null,
+    routeSignupId: null,
     email: data.email,
     labelId: data.labelId ?? null,
     isPrimary: data.isPrimary ?? false,
@@ -387,15 +388,18 @@ export async function addAccountPhone(
   db: DB,
   accountId: string,
   data: { phoneNumber: string; labelId?: string | null | undefined; hasWhatsapp?: boolean | undefined; isPrimary?: boolean | undefined },
-): Promise<{ id: string; displayId: string; ownerType: "account"; ownerId: string; phoneNumber: string; labelId: string | null; hasWhatsapp: boolean; isPrimary: boolean; createdAt: string }> {
+): Promise<typeof phones.$inferSelect> {
   const now = new Date().toISOString();
   const displayId = await nextDisplayId(db, "FON");
 
   const phoneRecord = {
     id: createId(),
     displayId,
-    ownerType: "account" as const,
-    ownerId: accountId,
+    humanId: null,
+    accountId,
+    generalLeadId: null,
+    websiteBookingRequestId: null,
+    routeSignupId: null,
     phoneNumber: data.phoneNumber,
     labelId: data.labelId ?? null,
     hasWhatsapp: data.hasWhatsapp ?? false,

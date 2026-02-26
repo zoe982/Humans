@@ -3,7 +3,6 @@
   import PageHeader from "$lib/components/PageHeader.svelte";
   import AlertBanner from "$lib/components/AlertBanner.svelte";
   import SearchableSelect from "$lib/components/SearchableSelect.svelte";
-  import { GENERAL_LEAD_SOURCE_OPTIONS } from "$lib/constants/labels";
   import { Button } from "$lib/components/ui/button";
   import { resolve } from "$app/paths";
 
@@ -29,15 +28,31 @@
   {/if}
 
   <form method="POST" action="?/create" class="space-y-6 glass-card p-6">
-    <div>
-      <label for="source" class="block text-sm font-medium text-text-secondary mb-1">Source <span class="text-red-400">*</span></label>
-      <SearchableSelect
-        options={GENERAL_LEAD_SOURCE_OPTIONS}
-        name="source"
-        id="source"
-        value=""
-        placeholder="Select source..."
-      />
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div>
+        <label for="firstName" class="block text-sm font-medium text-text-secondary mb-1">First Name <span class="text-red-400">*</span></label>
+        <input
+          id="firstName" name="firstName" type="text" required
+          class="glass-input block w-full px-3 py-2 text-sm"
+          placeholder="First name..."
+        />
+      </div>
+      <div>
+        <label for="middleName" class="block text-sm font-medium text-text-secondary mb-1">Middle Name</label>
+        <input
+          id="middleName" name="middleName" type="text"
+          class="glass-input block w-full px-3 py-2 text-sm"
+          placeholder="Middle name..."
+        />
+      </div>
+      <div>
+        <label for="lastName" class="block text-sm font-medium text-text-secondary mb-1">Last Name <span class="text-red-400">*</span></label>
+        <input
+          id="lastName" name="lastName" type="text" required
+          class="glass-input block w-full px-3 py-2 text-sm"
+          placeholder="Last name..."
+        />
+      </div>
     </div>
 
     <div>
@@ -47,24 +62,6 @@
         class="glass-input block w-full px-3 py-2 text-sm"
         placeholder="Describe the enquiry..."
       ></textarea>
-    </div>
-
-    <div>
-      <label for="email" class="block text-sm font-medium text-text-secondary mb-1">Email</label>
-      <input
-        id="email" name="email" type="email"
-        class="glass-input block w-full px-3 py-2 text-sm"
-        placeholder="Contact email..."
-      />
-    </div>
-
-    <div>
-      <label for="phone" class="block text-sm font-medium text-text-secondary mb-1">Phone</label>
-      <input
-        id="phone" name="phone" type="tel"
-        class="glass-input block w-full px-3 py-2 text-sm"
-        placeholder="Contact phone..."
-      />
     </div>
 
     <div>

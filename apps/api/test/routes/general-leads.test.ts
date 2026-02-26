@@ -39,8 +39,8 @@ describe("GET /api/general-leads", () => {
 
   it("returns list of general leads", async () => {
     const db = getDb();
-    const l1 = buildGeneralLead({ source: "email" });
-    const l2 = buildGeneralLead({ source: "whatsapp" });
+    const l1 = buildGeneralLead({ firstName: "Alice", lastName: "Smith" });
+    const l2 = buildGeneralLead({ firstName: "Bob", lastName: "Jones" });
     await db.insert(schema.generalLeads).values([l1, l2]);
 
     const { token } = await createUserAndSession("agent");
@@ -48,7 +48,7 @@ describe("GET /api/general-leads", () => {
       headers: { Cookie: sessionCookie(token) },
     });
     expect(res.status).toBe(200);
-    const body = (await res.json()) as { data: { id: string; source: string }[]; meta: { total: number } };
+    const body = (await res.json()) as { data: { id: string }[]; meta: { total: number } };
     expect(body.data).toHaveLength(2);
     expect(body.meta.total).toBe(2);
   });
@@ -68,23 +68,6 @@ describe("GET /api/general-leads", () => {
     const body = (await res.json()) as { data: { status: string }[] };
     expect(body.data).toHaveLength(1);
     expect(body.data[0]!.status).toBe("qualified");
-  });
-
-  it("filters by source", async () => {
-    const db = getDb();
-    await db.insert(schema.generalLeads).values([
-      buildGeneralLead({ source: "whatsapp" }),
-      buildGeneralLead({ source: "email" }),
-    ]);
-
-    const { token } = await createUserAndSession("agent");
-    const res = await SELF.fetch(`${BASE}?source=whatsapp`, {
-      headers: { Cookie: sessionCookie(token) },
-    });
-    expect(res.status).toBe(200);
-    const body = (await res.json()) as { data: { source: string }[] };
-    expect(body.data).toHaveLength(1);
-    expect(body.data[0]!.source).toBe("whatsapp");
   });
 
   it("filters by search query on displayId", async () => {
@@ -165,7 +148,7 @@ describe("POST /api/general-leads", () => {
     const res = await SELF.fetch(BASE, {
       method: "POST",
       headers: jsonHeaders(token),
-      body: JSON.stringify({ source: "email", notes: "Test lead" }),
+      body: JSON.stringify({ firstName: "Alice", lastName: "Smith", notes: "Test lead" }),
     });
     expect(res.status).toBe(201);
     const body = (await res.json()) as { data: { id: string; displayId: string } };
@@ -178,7 +161,7 @@ describe("POST /api/general-leads", () => {
     const res = await SELF.fetch(BASE, {
       method: "POST",
       headers: jsonHeaders(token),
-      body: JSON.stringify({ source: "whatsapp" }),
+      body: JSON.stringify({ firstName: "Bob", lastName: "Jones" }),
     });
     expect(res.status).toBe(201);
 
@@ -188,17 +171,18 @@ describe("POST /api/general-leads", () => {
     const detail = await SELF.fetch(`${BASE}/${created.id}`, {
       headers: { Cookie: sessionCookie(t2) },
     });
-    const detailBody = (await detail.json()) as { data: { status: string; source: string } };
+    const detailBody = (await detail.json()) as { data: { status: string; firstName: string; lastName: string } };
     expect(detailBody.data.status).toBe("open");
-    expect(detailBody.data.source).toBe("whatsapp");
+    expect(detailBody.data.firstName).toBe("Bob");
+    expect(detailBody.data.lastName).toBe("Jones");
   });
 
-  it("rejects invalid source", async () => {
+  it("rejects missing required name fields", async () => {
     const { token } = await createUserAndSession("agent");
     const res = await SELF.fetch(BASE, {
       method: "POST",
       headers: jsonHeaders(token),
-      body: JSON.stringify({ source: "invalid" }),
+      body: JSON.stringify({ notes: "missing name" }),
     });
     expect(res.status).toBe(400);
   });
@@ -208,7 +192,7 @@ describe("POST /api/general-leads", () => {
     const res = await SELF.fetch(BASE, {
       method: "POST",
       headers: jsonHeaders(token),
-      body: JSON.stringify({ source: "email" }),
+      body: JSON.stringify({ firstName: "Alice", lastName: "Smith" }),
     });
     expect(res.status).toBe(403);
   });
@@ -523,7 +507,7 @@ describe("Lead code generation", () => {
     const res = await SELF.fetch(BASE, {
       method: "POST",
       headers: jsonHeaders(token),
-      body: JSON.stringify({ source: "email" }),
+      body: JSON.stringify({ firstName: "Alice", lastName: "Smith" }),
     });
     expect(res.status).toBe(201);
     const body = (await res.json()) as { data: { displayId: string } };
@@ -538,14 +522,14 @@ describe("Lead code generation", () => {
     await SELF.fetch(BASE, {
       method: "POST",
       headers: jsonHeaders(token),
-      body: JSON.stringify({ source: "email" }),
+      body: JSON.stringify({ firstName: "Alice", lastName: "Smith" }),
     });
 
     // Create second
     const res2 = await SELF.fetch(BASE, {
       method: "POST",
       headers: jsonHeaders(token),
-      body: JSON.stringify({ source: "whatsapp" }),
+      body: JSON.stringify({ firstName: "Bob", lastName: "Jones" }),
     });
     expect(res2.status).toBe(201);
     const body2 = (await res2.json()) as { data: { displayId: string } };

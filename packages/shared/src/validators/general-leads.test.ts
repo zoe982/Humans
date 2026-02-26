@@ -1,7 +1,6 @@
 import { describe, it, expect } from "vitest";
 import {
   generalLeadStatuses,
-  generalLeadSources,
   createGeneralLeadSchema,
   updateGeneralLeadSchema,
   updateGeneralLeadStatusSchema,
@@ -17,89 +16,64 @@ describe("generalLeadStatuses", () => {
   });
 });
 
-describe("generalLeadSources", () => {
-  it("contains all expected sources", () => {
-    expect(generalLeadSources).toContain("whatsapp");
-    expect(generalLeadSources).toContain("email");
-    expect(generalLeadSources).toContain("direct_referral");
-  });
-});
-
 describe("createGeneralLeadSchema", () => {
   it("accepts minimal valid input", () => {
-    const result = createGeneralLeadSchema.parse({ source: "email" });
-    expect(result.source).toBe("email");
+    const result = createGeneralLeadSchema.parse({ firstName: "John", lastName: "Doe" });
+    expect(result.firstName).toBe("John");
+    expect(result.lastName).toBe("Doe");
   });
 
-  it("accepts all valid sources", () => {
-    for (const source of generalLeadSources) {
-      expect(createGeneralLeadSchema.parse({ source }).source).toBe(source);
-    }
+  it("accepts all name fields", () => {
+    const result = createGeneralLeadSchema.parse({
+      firstName: "John",
+      middleName: "Michael",
+      lastName: "Doe",
+    });
+    expect(result.firstName).toBe("John");
+    expect(result.middleName).toBe("Michael");
+    expect(result.lastName).toBe("Doe");
   });
 
   it("accepts optional notes", () => {
-    const result = createGeneralLeadSchema.parse({ source: "whatsapp", notes: "First contact via WhatsApp" });
+    const result = createGeneralLeadSchema.parse({ firstName: "Jane", lastName: "Lead", notes: "First contact via WhatsApp" });
     expect(result.notes).toBe("First contact via WhatsApp");
   });
 
-  it("accepts optional email", () => {
-    const result = createGeneralLeadSchema.parse({ source: "email", email: "lead@example.com" });
-    expect(result.email).toBe("lead@example.com");
-  });
-
-  it("accepts nullable email", () => {
-    const result = createGeneralLeadSchema.parse({ source: "email", email: null });
-    expect(result.email).toBeNull();
-  });
-
-  it("rejects invalid email format", () => {
-    expect(() => createGeneralLeadSchema.parse({ source: "email", email: "not-an-email" })).toThrowError();
-  });
-
-  it("accepts optional phone", () => {
-    const result = createGeneralLeadSchema.parse({ source: "whatsapp", phone: "+1-555-1234" });
-    expect(result.phone).toBe("+1-555-1234");
-  });
-
-  it("accepts nullable phone", () => {
-    const result = createGeneralLeadSchema.parse({ source: "email", phone: null });
-    expect(result.phone).toBeNull();
-  });
-
-  it("rejects notes over 10000 chars", () => {
-    expect(() => createGeneralLeadSchema.parse({ source: "email", notes: "a".repeat(10001) })).toThrowError();
-  });
-
-  it("rejects phone over 50 chars", () => {
-    expect(() => createGeneralLeadSchema.parse({ source: "email", phone: "1".repeat(51) })).toThrowError();
-  });
-
   it("accepts optional ownerId", () => {
-    const result = createGeneralLeadSchema.parse({ source: "email", ownerId: "col-1" });
+    const result = createGeneralLeadSchema.parse({ firstName: "Jane", lastName: "Lead", ownerId: "col-1" });
     expect(result.ownerId).toBe("col-1");
   });
 
-  it("rejects invalid source", () => {
-    expect(() => createGeneralLeadSchema.parse({ source: "invalid" })).toThrowError();
+  it("rejects missing firstName", () => {
+    expect(() => createGeneralLeadSchema.parse({ lastName: "Doe" })).toThrowError();
   });
 
-  it("rejects missing source", () => {
-    expect(() => createGeneralLeadSchema.parse({})).toThrowError();
+  it("rejects missing lastName", () => {
+    expect(() => createGeneralLeadSchema.parse({ firstName: "John" })).toThrowError();
   });
 
-  it("rejects phone with script injection", () => {
-    expect(() => createGeneralLeadSchema.parse({
-      source: "email",
-      phone: "<script>alert(1)</script>",
-    })).toThrowError();
+  it("rejects empty firstName", () => {
+    expect(() => createGeneralLeadSchema.parse({ firstName: "", lastName: "Doe" })).toThrowError();
   });
 
-  it("accepts phone with valid characters", () => {
-    const result = createGeneralLeadSchema.parse({
-      source: "email",
-      phone: "+1 (555) 123-4567",
-    });
-    expect(result.phone).toBe("+1 (555) 123-4567");
+  it("rejects empty lastName", () => {
+    expect(() => createGeneralLeadSchema.parse({ firstName: "John", lastName: "" })).toThrowError();
+  });
+
+  it("rejects firstName over 255 chars", () => {
+    expect(() => createGeneralLeadSchema.parse({ firstName: "a".repeat(256), lastName: "Doe" })).toThrowError();
+  });
+
+  it("rejects lastName over 255 chars", () => {
+    expect(() => createGeneralLeadSchema.parse({ firstName: "John", lastName: "a".repeat(256) })).toThrowError();
+  });
+
+  it("rejects middleName over 255 chars", () => {
+    expect(() => createGeneralLeadSchema.parse({ firstName: "John", middleName: "a".repeat(256), lastName: "Doe" })).toThrowError();
+  });
+
+  it("rejects notes over 10000 chars", () => {
+    expect(() => createGeneralLeadSchema.parse({ firstName: "John", lastName: "Doe", notes: "a".repeat(10001) })).toThrowError();
   });
 });
 
@@ -113,18 +87,24 @@ describe("updateGeneralLeadSchema", () => {
     expect(result.notes).toBe("Updated notes");
   });
 
-  it("accepts nullable email", () => {
-    const result = updateGeneralLeadSchema.parse({ email: null });
-    expect(result.email).toBeNull();
+  it("accepts firstName update", () => {
+    const result = updateGeneralLeadSchema.parse({ firstName: "Jane" });
+    expect(result.firstName).toBe("Jane");
   });
 
-  it("rejects invalid email format", () => {
-    expect(() => updateGeneralLeadSchema.parse({ email: "not-an-email" })).toThrowError();
+  it("accepts middleName update", () => {
+    const result = updateGeneralLeadSchema.parse({ middleName: "Marie" });
+    expect(result.middleName).toBe("Marie");
   });
 
-  it("accepts nullable phone", () => {
-    const result = updateGeneralLeadSchema.parse({ phone: null });
-    expect(result.phone).toBeNull();
+  it("accepts nullable middleName", () => {
+    const result = updateGeneralLeadSchema.parse({ middleName: null });
+    expect(result.middleName).toBeNull();
+  });
+
+  it("accepts lastName update", () => {
+    const result = updateGeneralLeadSchema.parse({ lastName: "Smith" });
+    expect(result.lastName).toBe("Smith");
   });
 
   it("accepts nullable ownerId", () => {
@@ -134,6 +114,18 @@ describe("updateGeneralLeadSchema", () => {
 
   it("rejects notes over 10000 chars", () => {
     expect(() => updateGeneralLeadSchema.parse({ notes: "a".repeat(10001) })).toThrowError();
+  });
+
+  it("rejects firstName over 255 chars", () => {
+    expect(() => updateGeneralLeadSchema.parse({ firstName: "a".repeat(256) })).toThrowError();
+  });
+
+  it("rejects empty firstName when provided", () => {
+    expect(() => updateGeneralLeadSchema.parse({ firstName: "" })).toThrowError();
+  });
+
+  it("rejects empty lastName when provided", () => {
+    expect(() => updateGeneralLeadSchema.parse({ lastName: "" })).toThrowError();
   });
 });
 

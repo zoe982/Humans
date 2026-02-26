@@ -54,15 +54,14 @@ export const actions = {
 
     const notesVal = getFormString(form, "notes");
     const ownerIdVal = getFormString(form, "ownerId");
-    const emailVal = getFormString(form, "email");
-    const phoneVal = getFormString(form, "phone");
+    const middleNameVal = getFormString(form, "middleName");
 
     const payload = {
-      source: form.get("source"),
+      firstName: getFormString(form, "firstName"),
+      middleName: middleNameVal !== "" ? middleNameVal : undefined,
+      lastName: getFormString(form, "lastName"),
       notes: notesVal !== "" ? notesVal : undefined,
       ownerId: ownerIdVal !== "" ? ownerIdVal : undefined,
-      email: emailVal !== "" ? emailVal : undefined,
-      phone: phoneVal !== "" ? phoneVal : undefined,
     };
 
     const res = await fetch(`${PUBLIC_API_URL}/api/general-leads`, {

@@ -55,5 +55,9 @@
       <h2 class="text-lg font-semibold text-text-primary">Marketing Attributions</h2>
       <p class="mt-2 text-sm text-text-secondary">View marketing attribution data linked to route signups and booking requests.</p>
     </a>
+    <a href={resolve('/reports/lead-scores')} class="glass-card p-6 hover:bg-glass-hover transition-colors">
+      <h2 class="text-lg font-semibold text-text-primary">Lead Scores</h2>
+      <p class="mt-2 text-sm text-text-secondary">Score incoming leads on fit, intent, engagement, and negatives with automatic banding.</p>
+    </a>
   </div>
 </div>

@@ -10,26 +10,19 @@ export const generalLeadStatuses = [
 
 export type GeneralLeadStatus = (typeof generalLeadStatuses)[number];
 
-export const generalLeadSources = [
-  "whatsapp",
-  "email",
-  "direct_referral",
-] as const;
-
-export type GeneralLeadSource = (typeof generalLeadSources)[number];
-
 export const createGeneralLeadSchema = z.object({
-  source: z.enum(generalLeadSources),
+  firstName: z.string().min(1).max(255),
+  middleName: z.string().max(255).optional(),
+  lastName: z.string().min(1).max(255),
   notes: z.string().max(10000).optional(),
-  email: z.string().email().nullable().optional(),
-  phone: z.string().max(50).regex(/^[\d+\-() .]*$/).nullable().optional(),
   ownerId: z.string().optional(),
 });
 
 export const updateGeneralLeadSchema = z.object({
+  firstName: z.string().min(1).max(255).optional(),
+  middleName: z.string().max(255).nullable().optional(),
+  lastName: z.string().min(1).max(255).optional(),
   notes: z.string().max(10000).optional(),
-  email: z.string().email().nullable().optional(),
-  phone: z.string().max(50).regex(/^[\d+\-() .]*$/).nullable().optional(),
   ownerId: z.string().nullable().optional(),
 });
 

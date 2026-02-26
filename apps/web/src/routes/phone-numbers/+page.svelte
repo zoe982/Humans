@@ -8,8 +8,11 @@
   type PhoneNumber = {
     id: string;
     displayId: string;
-    ownerType: string;
-    ownerId: string;
+    humanId: string | null;
+    accountId: string | null;
+    generalLeadId: string | null;
+    websiteBookingRequestId: string | null;
+    routeSignupId: string | null;
     phoneNumber: string;
     labelName: string | null;
     hasWhatsapp: boolean;
@@ -21,7 +24,10 @@
   const phoneNumbers = $derived(data.phoneNumbers as PhoneNumber[]);
 
   function ownerHref(p: PhoneNumber): string {
-    return p.ownerType === "human" ? resolve(`/humans/${p.ownerId}`) : resolve(`/accounts/${p.ownerId}`);
+    if (p.humanId != null) return resolve(`/humans/${p.humanId}`);
+    if (p.accountId != null) return resolve(`/accounts/${p.accountId}`);
+    if (p.generalLeadId != null) return resolve(`/leads/general-leads/${p.generalLeadId}`);
+    return "#";
   }
 </script>
 

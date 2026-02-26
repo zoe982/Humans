@@ -42,6 +42,8 @@ export const PERMISSIONS = {
   viewFlights: ["agent", "manager", "admin"],
   manageFlights: ["manager", "admin"],
   viewMarketingAttributions: ["agent", "manager", "admin"],
+  viewLeadScores: ["agent", "manager", "admin"],
+  manageLeadScores: ["agent", "manager", "admin"],
 } as const satisfies Record<string, readonly Role[]>;
 
 export type Permission = keyof typeof PERMISSIONS;

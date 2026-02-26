@@ -47,21 +47,22 @@ async function seedAccount(db: ReturnType<typeof getTestDb>, id = "acc-1", name 
 
 async function seedPhone(
   db: ReturnType<typeof getTestDb>,
-  id = "ph-1",
-  ownerId = "h-1",
-  phoneNumber = "+1234567890",
-  ownerType: "human" | "account" = "human",
-  labelId: string | null = null,
+  id: string,
+  phoneNumber: string,
+  opts: { humanId?: string; accountId?: string; labelId?: string | null } = {},
 ) {
   seedCounter++;
   const ts = now();
   await db.insert(schema.phones).values({
     id,
     displayId: `FON-${String(seedCounter).padStart(6, "0")}`,
-    ownerType,
-    ownerId,
+    humanId: opts.humanId ?? null,
+    accountId: opts.accountId ?? null,
+    generalLeadId: null,
+    websiteBookingRequestId: null,
+    routeSignupId: null,
     phoneNumber,
-    labelId,
+    labelId: opts.labelId ?? null,
     hasWhatsapp: false,
     isPrimary: true,
     createdAt: ts,
@@ -87,7 +88,7 @@ describe("listPhoneNumbers", () => {
   it("returns phone numbers with human names", async () => {
     const db = getTestDb();
     await seedHuman(db, "h-1", "Alice", "Smith");
-    await seedPhone(db, "ph-1", "h-1", "+1111111111");
+    await seedPhone(db, "ph-1", "+1111111111", { humanId: "h-1" });
 
     const result = await listPhoneNumbers(db);
     expect(result).toHaveLength(1);
@@ -99,14 +100,14 @@ describe("listPhoneNumbers", () => {
     const db = getTestDb();
     await seedHuman(db, "h-1", "Alice", "Smith");
     await seedHuman(db, "h-2", "Bob", "Jones");
-    await seedPhone(db, "ph-1", "h-1", "+1111111111");
-    await seedPhone(db, "ph-2", "h-2", "+2222222222");
+    await seedPhone(db, "ph-1", "+1111111111", { humanId: "h-1" });
+    await seedPhone(db, "ph-2", "+2222222222", { humanId: "h-2" });
 
     const result = await listPhoneNumbers(db);
     expect(result).toHaveLength(2);
 
-    const alice = result.find((p) => p.ownerId === "h-1");
-    const bob = result.find((p) => p.ownerId === "h-2");
+    const alice = result.find((p) => p.humanId === "h-1");
+    const bob = result.find((p) => p.humanId === "h-2");
     expect(alice!.ownerName).toBe("Alice Smith");
     expect(bob!.ownerName).toBe("Bob Jones");
   });
@@ -114,7 +115,7 @@ describe("listPhoneNumbers", () => {
   it("returns phone numbers owned by an account with account name", async () => {
     const db = getTestDb();
     await seedAccount(db, "acc-1", "Acme Corp");
-    await seedPhone(db, "ph-1", "acc-1", "+3333333333", "account");
+    await seedPhone(db, "ph-1", "+3333333333", { accountId: "acc-1" });
 
     const result = await listPhoneNumbers(db);
     expect(result).toHaveLength(1);
@@ -126,7 +127,7 @@ describe("listPhoneNumbers", () => {
     const db = getTestDb();
     await seedHuman(db, "h-1", "Alice", "Smith");
     await seedHumanPhoneLabel(db, "lbl-1", "Mobile");
-    await seedPhone(db, "ph-1", "h-1", "+1111111111", "human", "lbl-1");
+    await seedPhone(db, "ph-1", "+1111111111", { humanId: "h-1", labelId: "lbl-1" });
 
     const result = await listPhoneNumbers(db);
     expect(result).toHaveLength(1);
@@ -137,7 +138,7 @@ describe("listPhoneNumbers", () => {
     const db = getTestDb();
     await seedAccount(db, "acc-1", "Acme Corp");
     await seedAccountPhoneLabel(db, "lbl-2", "Office");
-    await seedPhone(db, "ph-1", "acc-1", "+2222222222", "account", "lbl-2");
+    await seedPhone(db, "ph-1", "+2222222222", { accountId: "acc-1", labelId: "lbl-2" });
 
     const result = await listPhoneNumbers(db);
     expect(result).toHaveLength(1);
@@ -154,7 +155,7 @@ describe("getPhoneNumber", () => {
   it("returns phone enriched with human data", async () => {
     const db = getTestDb();
     await seedHuman(db, "h-1", "Dan", "Brown");
-    await seedPhone(db, "ph-1", "h-1", "+4444444444");
+    await seedPhone(db, "ph-1", "+4444444444", { humanId: "h-1" });
 
     const result = await getPhoneNumber(db, "ph-1");
     expect(result.id).toBe("ph-1");
@@ -167,7 +168,7 @@ describe("getPhoneNumber", () => {
   it("returns phone enriched with account data", async () => {
     const db = getTestDb();
     await seedAccount(db, "acc-1", "Global Corp");
-    await seedPhone(db, "ph-1", "acc-1", "+5555555555", "account");
+    await seedPhone(db, "ph-1", "+5555555555", { accountId: "acc-1" });
 
     const result = await getPhoneNumber(db, "ph-1");
     expect(result.ownerName).toBe("Global Corp");
@@ -178,7 +179,7 @@ describe("getPhoneNumber", () => {
     const db = getTestDb();
     await seedHuman(db, "h-1", "Dan", "Brown");
     await seedHumanPhoneLabel(db, "lbl-1", "Home");
-    await seedPhone(db, "ph-1", "h-1", "+4444444444", "human", "lbl-1");
+    await seedPhone(db, "ph-1", "+4444444444", { humanId: "h-1", labelId: "lbl-1" });
 
     const result = await getPhoneNumber(db, "ph-1");
     expect(result.labelName).toBe("Home");
@@ -187,7 +188,7 @@ describe("getPhoneNumber", () => {
   it("returns null labelName for orphaned labelId", async () => {
     const db = getTestDb();
     await seedHuman(db, "h-1", "Dan", "Brown");
-    await seedPhone(db, "ph-1", "h-1", "+4444444444", "human", "nonexistent-label");
+    await seedPhone(db, "ph-1", "+4444444444", { humanId: "h-1", labelId: "nonexistent-label" });
 
     const result = await getPhoneNumber(db, "ph-1");
     expect(result.labelName).toBeNull();
@@ -199,8 +200,8 @@ describe("listPhoneNumbersForHuman", () => {
     const db = getTestDb();
     await seedHuman(db, "h-1", "Alice", "Smith");
     await seedHuman(db, "h-2", "Bob", "Jones");
-    await seedPhone(db, "ph-1", "h-1", "+1111111111");
-    await seedPhone(db, "ph-2", "h-2", "+2222222222");
+    await seedPhone(db, "ph-1", "+1111111111", { humanId: "h-1" });
+    await seedPhone(db, "ph-2", "+2222222222", { humanId: "h-2" });
 
     const result = await listPhoneNumbersForHuman(db, "h-1");
     expect(result).toHaveLength(1);
@@ -225,8 +226,7 @@ describe("createPhoneNumber", () => {
     });
 
     expect(result.id).toBeDefined();
-    expect(result.ownerId).toBe("h-1");
-    expect(result.ownerType).toBe("human");
+    expect(result.humanId).toBe("h-1");
     expect(result.phoneNumber).toBe("+9876543210");
     expect(result.hasWhatsapp).toBe(false);
     expect(result.isPrimary).toBe(false);
@@ -263,7 +263,7 @@ describe("updatePhoneNumber", () => {
   it("updates phone number fields", async () => {
     const db = getTestDb();
     await seedHuman(db, "h-1");
-    await seedPhone(db, "ph-1", "h-1", "+1111111111");
+    await seedPhone(db, "ph-1", "+1111111111", { humanId: "h-1" });
 
     const result = await updatePhoneNumber(db, "ph-1", {
       phoneNumber: "+9999999999",
@@ -286,7 +286,7 @@ describe("deletePhoneNumber", () => {
   it("deletes an existing phone number", async () => {
     const db = getTestDb();
     await seedHuman(db, "h-1");
-    await seedPhone(db, "ph-1", "h-1");
+    await seedPhone(db, "ph-1", "+1234567890", { humanId: "h-1" });
 
     await deletePhoneNumber(db, "ph-1");
 

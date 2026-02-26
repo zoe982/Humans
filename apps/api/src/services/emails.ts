@@ -1,5 +1,5 @@
 import { eq, inArray } from "drizzle-orm";
-import { emails, humans, accounts, humanEmailLabelsConfig, accountEmailLabelsConfig } from "@humans/db/schema";
+import { emails, humans, accounts, generalLeads, humanEmailLabelsConfig, accountEmailLabelsConfig } from "@humans/db/schema";
 import { createId } from "@humans/db";
 import { ERROR_CODES } from "@humans/shared";
 import { notFound } from "../lib/errors";
@@ -7,32 +7,47 @@ import { nextDisplayId } from "../lib/display-id";
 import { rematchActivitiesByEmail } from "./activity-rematch";
 import type { DB } from "./types";
 
-export async function listEmails(db: DB): Promise<{ ownerName: string | null; ownerDisplayId: string | null; labelName: string | null; id: string; displayId: string; ownerType: string; ownerId: string; email: string; labelId: string | null; isPrimary: boolean; createdAt: string }[]> {
+function resolveOwner(
+  email: typeof emails.$inferSelect,
+  allHumans: { id: string; displayId: string; firstName: string; lastName: string }[],
+  allAccounts: { id: string; displayId: string; name: string }[],
+  allGeneralLeads: { id: string; displayId: string; firstName: string; lastName: string }[],
+): { ownerName: string | null; ownerDisplayId: string | null } {
+  if (email.humanId != null) {
+    const human = allHumans.find((h) => h.id === email.humanId);
+    if (human != null) return { ownerName: `${human.firstName} ${human.lastName}`, ownerDisplayId: human.displayId };
+  }
+  if (email.accountId != null) {
+    const account = allAccounts.find((a) => a.id === email.accountId);
+    if (account != null) return { ownerName: account.name, ownerDisplayId: account.displayId };
+  }
+  if (email.generalLeadId != null) {
+    const lead = allGeneralLeads.find((l) => l.id === email.generalLeadId);
+    if (lead != null) return { ownerName: `${lead.firstName} ${lead.lastName}`, ownerDisplayId: lead.displayId };
+  }
+  return { ownerName: null, ownerDisplayId: null };
+}
+
+export async function listEmails(db: DB): Promise<{ ownerName: string | null; ownerDisplayId: string | null; labelName: string | null; id: string; displayId: string; humanId: string | null; accountId: string | null; generalLeadId: string | null; websiteBookingRequestId: string | null; routeSignupId: string | null; email: string; labelId: string | null; isPrimary: boolean; createdAt: string }[]> {
   const allEmails = await db.select().from(emails);
-  const humanOwnerIds = allEmails.filter((e) => e.ownerType === "human").map((e) => e.ownerId);
-  const accountOwnerIds = allEmails.filter((e) => e.ownerType === "account").map((e) => e.ownerId);
-  const allHumans = humanOwnerIds.length > 0
-    ? await db.select().from(humans).where(inArray(humans.id, humanOwnerIds))
+  const humanIds = allEmails.flatMap((e) => e.humanId != null ? [e.humanId] : []);
+  const accountIds = allEmails.flatMap((e) => e.accountId != null ? [e.accountId] : []);
+  const generalLeadIds = allEmails.flatMap((e) => e.generalLeadId != null ? [e.generalLeadId] : []);
+  const allHumans = humanIds.length > 0
+    ? await db.select({ id: humans.id, displayId: humans.displayId, firstName: humans.firstName, lastName: humans.lastName }).from(humans).where(inArray(humans.id, humanIds))
     : [];
-  const allAccounts = accountOwnerIds.length > 0
-    ? await db.select().from(accounts).where(inArray(accounts.id, accountOwnerIds))
+  const allAccounts = accountIds.length > 0
+    ? await db.select({ id: accounts.id, displayId: accounts.displayId, name: accounts.name }).from(accounts).where(inArray(accounts.id, accountIds))
+    : [];
+  const allGeneralLeads = generalLeadIds.length > 0
+    ? await db.select({ id: generalLeads.id, displayId: generalLeads.displayId, firstName: generalLeads.firstName, lastName: generalLeads.lastName }).from(generalLeads).where(inArray(generalLeads.id, generalLeadIds))
     : [];
   const humanLabels = await db.select().from(humanEmailLabelsConfig);
   const accountLabels = await db.select().from(accountEmailLabelsConfig);
 
   const data = allEmails.map((e) => {
-    let ownerName: string | null = null;
-    let ownerDisplayId: string | null = null;
-    if (e.ownerType === "human") {
-      const human = allHumans.find((h) => h.id === e.ownerId);
-      ownerName = human != null ? `${human.firstName} ${human.lastName}` : null;
-      ownerDisplayId = human?.displayId ?? null;
-    } else {
-      const account = allAccounts.find((a) => a.id === e.ownerId);
-      ownerName = account?.name ?? null;
-      ownerDisplayId = account?.displayId ?? null;
-    }
-    const labels = e.ownerType === "human" ? humanLabels : accountLabels;
+    const { ownerName, ownerDisplayId } = resolveOwner(e, allHumans, allAccounts, allGeneralLeads);
+    const labels = e.humanId != null ? humanLabels : accountLabels;
     const label = e.labelId != null ? labels.find((l) => l.id === e.labelId) : null;
     return {
       ...e,
@@ -45,34 +60,27 @@ export async function listEmails(db: DB): Promise<{ ownerName: string | null; ow
   return data;
 }
 
-export async function getEmail(db: DB, id: string): Promise<{ ownerName: string | null; ownerDisplayId: string | null; labelName: string | null; id: string; displayId: string; ownerType: string; ownerId: string; email: string; labelId: string | null; isPrimary: boolean; createdAt: string }> {
+export async function getEmail(db: DB, id: string): Promise<{ ownerName: string | null; ownerDisplayId: string | null; labelName: string | null; id: string; displayId: string; humanId: string | null; accountId: string | null; generalLeadId: string | null; websiteBookingRequestId: string | null; routeSignupId: string | null; email: string; labelId: string | null; isPrimary: boolean; createdAt: string }> {
   const allEmails = await db.select().from(emails).where(eq(emails.id, id));
   const email = allEmails[0];
   if (email == null) {
     throw notFound(ERROR_CODES.EMAIL_NOT_FOUND, "Email not found");
   }
 
-  const allHumans = email.ownerType === "human"
-    ? await db.select().from(humans).where(inArray(humans.id, [email.ownerId]))
+  const allHumans = email.humanId != null
+    ? await db.select({ id: humans.id, displayId: humans.displayId, firstName: humans.firstName, lastName: humans.lastName }).from(humans).where(eq(humans.id, email.humanId))
     : [];
-  const allAccounts = email.ownerType === "account"
-    ? await db.select().from(accounts).where(inArray(accounts.id, [email.ownerId]))
+  const allAccounts = email.accountId != null
+    ? await db.select({ id: accounts.id, displayId: accounts.displayId, name: accounts.name }).from(accounts).where(eq(accounts.id, email.accountId))
+    : [];
+  const allGeneralLeads = email.generalLeadId != null
+    ? await db.select({ id: generalLeads.id, displayId: generalLeads.displayId, firstName: generalLeads.firstName, lastName: generalLeads.lastName }).from(generalLeads).where(eq(generalLeads.id, email.generalLeadId))
     : [];
   const humanLabels = await db.select().from(humanEmailLabelsConfig);
   const accountLabels = await db.select().from(accountEmailLabelsConfig);
 
-  let ownerName: string | null = null;
-  let ownerDisplayId: string | null = null;
-  if (email.ownerType === "human") {
-    const human = allHumans.find((h) => h.id === email.ownerId);
-    ownerName = human != null ? `${human.firstName} ${human.lastName}` : null;
-    ownerDisplayId = human?.displayId ?? null;
-  } else {
-    const account = allAccounts.find((a) => a.id === email.ownerId);
-    ownerName = account?.name ?? null;
-    ownerDisplayId = account?.displayId ?? null;
-  }
-  const labels = email.ownerType === "human" ? humanLabels : accountLabels;
+  const { ownerName, ownerDisplayId } = resolveOwner(email, allHumans, allAccounts, allGeneralLeads);
+  const labels = email.humanId != null ? humanLabels : accountLabels;
   const label = email.labelId != null ? labels.find((l) => l.id === email.labelId) : null;
 
   return {
@@ -109,20 +117,27 @@ export async function updateEmail(
 export async function createEmail(
   db: DB,
   data: {
-    humanId: string;
+    humanId?: string | undefined;
+    accountId?: string | undefined;
+    generalLeadId?: string | undefined;
+    websiteBookingRequestId?: string | undefined;
+    routeSignupId?: string | undefined;
     email: string;
     labelId?: string | null | undefined;
     isPrimary?: boolean | undefined;
   },
-): Promise<{ id: string; displayId: string; ownerType: "human"; ownerId: string; email: string; labelId: string | null; isPrimary: boolean; createdAt: string }> {
+): Promise<typeof emails.$inferSelect> {
   const now = new Date().toISOString();
   const displayId = await nextDisplayId(db, "EML");
 
   const email = {
     id: createId(),
     displayId,
-    ownerType: "human" as const,
-    ownerId: data.humanId,
+    humanId: data.humanId ?? null,
+    accountId: data.accountId ?? null,
+    generalLeadId: data.generalLeadId ?? null,
+    websiteBookingRequestId: data.websiteBookingRequestId ?? null,
+    routeSignupId: data.routeSignupId ?? null,
     email: data.email,
     labelId: data.labelId ?? null,
     isPrimary: data.isPrimary ?? false,
@@ -131,8 +146,10 @@ export async function createEmail(
 
   await db.insert(emails).values(email);
 
-  // Rematch unlinked activities by this email address
-  await rematchActivitiesByEmail(db, data.humanId, data.email);
+  // Rematch unlinked activities by this email address (only for human-linked emails)
+  if (data.humanId != null) {
+    await rematchActivitiesByEmail(db, data.humanId, data.email);
+  }
 
   return email;
 }

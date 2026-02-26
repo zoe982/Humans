@@ -89,7 +89,7 @@ describe("listHumans", () => {
     await seedHuman(db, "h-2", "Bob", "Jones");
 
     await db.insert(schema.emails).values({
-      id: "e-1", displayId: nextDisplayId("EML"), ownerType: "human", ownerId: "h-1", email: "alice@test.com", isPrimary: true, createdAt: ts,
+      id: "e-1", displayId: nextDisplayId("EML"), humanId: "h-1", email: "alice@test.com", isPrimary: true, createdAt: ts,
     });
     await db.insert(schema.humanTypes).values({
       id: "t-1", humanId: "h-1", type: "flight_broker", createdAt: ts,
@@ -131,13 +131,13 @@ describe("getHumanDetail", () => {
     await seedHuman(db, "h-1", "Jane", "Doe");
 
     await db.insert(schema.emails).values({
-      id: "e-1", displayId: nextDisplayId("EML"), ownerType: "human", ownerId: "h-1", email: "jane@test.com", isPrimary: true, createdAt: ts,
+      id: "e-1", displayId: nextDisplayId("EML"), humanId: "h-1", email: "jane@test.com", isPrimary: true, createdAt: ts,
     });
     await db.insert(schema.humanTypes).values({
       id: "t-1", humanId: "h-1", type: "flight_broker", createdAt: ts,
     });
     await db.insert(schema.phones).values({
-      id: "p-1", displayId: nextDisplayId("FON"), ownerType: "human", ownerId: "h-1", phoneNumber: "+1234567890", hasWhatsapp: false, isPrimary: true, createdAt: ts,
+      id: "p-1", displayId: nextDisplayId("FON"), humanId: "h-1", phoneNumber: "+1234567890", hasWhatsapp: false, isPrimary: true, createdAt: ts,
     });
 
     const result = await getHumanDetail(mockSupabase(), db, "h-1");
@@ -394,7 +394,7 @@ describe("updateHuman", () => {
     await seedHuman(db, "h-1");
 
     await db.insert(schema.emails).values({
-      id: "e-1", displayId: nextDisplayId("EML"), ownerType: "human", ownerId: "h-1", email: "old@test.com", isPrimary: true, createdAt: ts,
+      id: "e-1", displayId: nextDisplayId("EML"), humanId: "h-1", email: "old@test.com", isPrimary: true, createdAt: ts,
     });
 
     await updateHuman(db, "h-1", {
@@ -490,21 +490,21 @@ describe("deleteHuman", () => {
     await seedHuman(db, "h-1");
 
     await db.insert(schema.emails).values({
-      id: "e-1", displayId: nextDisplayId("EML"), ownerType: "human", ownerId: "h-1", email: "test@test.com", isPrimary: true, createdAt: ts,
+      id: "e-1", displayId: nextDisplayId("EML"), humanId: "h-1", email: "test@test.com", isPrimary: true, createdAt: ts,
     });
     await db.insert(schema.humanTypes).values({
       id: "t-1", humanId: "h-1", type: "flight_broker", createdAt: ts,
     });
     await db.insert(schema.phones).values({
-      id: "p-1", displayId: nextDisplayId("FON"), ownerType: "human", ownerId: "h-1", phoneNumber: "+1234567890", hasWhatsapp: false, isPrimary: true, createdAt: ts,
+      id: "p-1", displayId: nextDisplayId("FON"), humanId: "h-1", phoneNumber: "+1234567890", hasWhatsapp: false, isPrimary: true, createdAt: ts,
     });
 
     await deleteHuman(mockSupabase(), db, "h-1");
 
     expect(await db.select().from(schema.humans)).toHaveLength(0);
-    expect(await db.select().from(schema.emails)).toHaveLength(0);
+    expect((await db.select().from(schema.emails))[0]!.humanId).toBeNull();
     expect(await db.select().from(schema.humanTypes)).toHaveLength(0);
-    expect(await db.select().from(schema.phones)).toHaveLength(0);
+    expect((await db.select().from(schema.phones))[0]!.humanId).toBeNull();
   });
 });
 

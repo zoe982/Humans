@@ -5,6 +5,8 @@ import {
   updateGeneralLeadStatusSchema,
   convertGeneralLeadSchema,
   updateEntityNextActionSchema,
+  createEmailSchema,
+  createPhoneNumberSchema,
   ERROR_CODES,
 } from "@humans/shared";
 import { authMiddleware } from "../middleware/auth";
@@ -19,6 +21,8 @@ import {
   convertGeneralLead,
   deleteGeneralLead,
 } from "../services/general-leads";
+import { createEmail, deleteEmail } from "../services/emails";
+import { createPhoneNumber, deletePhoneNumber } from "../services/phone-numbers";
 import { getNextAction, updateNextAction, completeNextAction } from "../services/entity-next-actions";
 import type { AppContext } from "../types";
 
@@ -37,11 +41,9 @@ generalLeadRoutes.get("/api/general-leads", requirePermission("viewGeneralLeads"
   const q = rawQ !== undefined && rawQ !== "" ? rawQ : undefined;
   const rawStatus = c.req.query("status");
   const status = rawStatus !== undefined && rawStatus !== "" ? rawStatus : undefined;
-  const rawSource = c.req.query("source");
-  const source = rawSource !== undefined && rawSource !== "" ? rawSource : undefined;
   const rawConvertedHumanId = c.req.query("convertedHumanId");
   const convertedHumanId = rawConvertedHumanId !== undefined && rawConvertedHumanId !== "" ? rawConvertedHumanId : undefined;
-  const result = await listGeneralLeads(db, page, limit, { q, status, source, convertedHumanId });
+  const result = await listGeneralLeads(db, page, limit, { q, status, convertedHumanId });
   return c.json(result);
 });
 
@@ -122,6 +124,34 @@ generalLeadRoutes.post("/api/general-leads/:id/next-action/done", requirePermiss
 
   const db = c.get("db");
   await completeNextAction(db, "general_lead", c.req.param("id"), session.colleagueId);
+  return c.json({ success: true });
+});
+
+// POST /api/general-leads/:id/emails
+generalLeadRoutes.post("/api/general-leads/:id/emails", requirePermission("manageGeneralLeads"), async (c) => {
+  const body: unknown = await c.req.json();
+  const data = createEmailSchema.parse(body);
+  const result = await createEmail(c.get("db"), { ...data, generalLeadId: c.req.param("id") });
+  return c.json({ data: result }, 201);
+});
+
+// DELETE /api/general-leads/:id/emails/:emailId
+generalLeadRoutes.delete("/api/general-leads/:id/emails/:emailId", requirePermission("manageGeneralLeads"), async (c) => {
+  await deleteEmail(c.get("db"), c.req.param("emailId"));
+  return c.json({ success: true });
+});
+
+// POST /api/general-leads/:id/phone-numbers
+generalLeadRoutes.post("/api/general-leads/:id/phone-numbers", requirePermission("manageGeneralLeads"), async (c) => {
+  const body: unknown = await c.req.json();
+  const data = createPhoneNumberSchema.parse(body);
+  const result = await createPhoneNumber(c.get("db"), { ...data, generalLeadId: c.req.param("id") });
+  return c.json({ data: result }, 201);
+});
+
+// DELETE /api/general-leads/:id/phone-numbers/:phoneId
+generalLeadRoutes.delete("/api/general-leads/:id/phone-numbers/:phoneId", requirePermission("manageGeneralLeads"), async (c) => {
+  await deletePhoneNumber(c.get("db"), c.req.param("phoneId"));
   return c.json({ success: true });
 });
 

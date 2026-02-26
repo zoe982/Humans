@@ -83,6 +83,10 @@ export const ERROR_CODES = {
 
   // Marketing Attributions
   MARKETING_ATTRIBUTION_NOT_FOUND: "MARKETING_ATTRIBUTION_NOT_FOUND",
+
+  // Lead Scores
+  LEAD_SCORE_NOT_FOUND: "LEAD_SCORE_NOT_FOUND",
+  LEAD_SCORE_INVALID_PARENT: "LEAD_SCORE_INVALID_PARENT",
 } as const;
 
 export type ErrorCode = (typeof ERROR_CODES)[keyof typeof ERROR_CODES];

@@ -159,13 +159,11 @@ export {
 
 export {
   generalLeadStatuses,
-  generalLeadSources,
   createGeneralLeadSchema,
   updateGeneralLeadSchema,
   updateGeneralLeadStatusSchema,
   convertGeneralLeadSchema,
   type GeneralLeadStatus,
-  type GeneralLeadSource,
   type CreateGeneralLeadInput,
   type UpdateGeneralLeadInput,
   type UpdateGeneralLeadStatusInput,
@@ -184,6 +182,17 @@ export {
   createDocumentSchema,
   type CreateDocumentInput,
 } from "./documents";
+
+export {
+  updateLeadScoreFlagsSchema,
+  ensureLeadScoreSchema,
+  getLeadScoreBand,
+  leadScoreParentTypes,
+  type LeadScoreParentType,
+  type LeadScoreBand,
+  type UpdateLeadScoreFlagsInput,
+  type EnsureLeadScoreInput,
+} from "./lead-scores";
 
 export {
   createAccountSchema,

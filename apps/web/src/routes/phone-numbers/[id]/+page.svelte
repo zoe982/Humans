@@ -20,8 +20,11 @@
   type Phone = {
     id: string;
     displayId: string;
-    ownerType: string;
-    ownerId: string;
+    humanId: string | null;
+    accountId: string | null;
+    generalLeadId: string | null;
+    websiteBookingRequestId: string | null;
+    routeSignupId: string | null;
     phoneNumber: string;
     labelId: string | null;
     labelName: string | null;
@@ -40,8 +43,8 @@
   // Auto-save state
   let phoneNumber = $state("");
   let labelId = $state("");
-  let ownerType = $state("human");
-  let ownerId = $state("");
+  let humanId = $state<string | null>(null);
+  let accountId = $state<string | null>(null);
   let hasWhatsapp = $state(false);
   let isPrimary = $state(false);
   let saveStatus = $state<SaveStatus>("idle");
@@ -77,8 +80,8 @@
   $effect(() => {
     phoneNumber = phone.phoneNumber;
     labelId = phone.labelId ?? "";
-    ownerType = phone.ownerType;
-    ownerId = phone.ownerId;
+    humanId = phone.humanId ?? null;
+    accountId = phone.accountId ?? null;
     hasWhatsapp = phone.hasWhatsapp;
     isPrimary = phone.isPrimary;
     if (!initialized) initialized = true;
@@ -86,7 +89,7 @@
 
   // Label options based on current owner type
   const phoneLabelOptions = $derived(
-    (ownerType === "account" ? accountPhoneLabelConfigs : humanPhoneLabelConfigs)
+    (accountId != null && humanId == null ? accountPhoneLabelConfigs : humanPhoneLabelConfigs)
       .map((l) => ({ value: l.id, label: l.name }))
   );
 
@@ -96,10 +99,13 @@
     ...allAccounts.map((a) => ({ value: `account:${a.id}`, label: `${a.displayId} ${a.name}` })),
   ]);
 
-  const selectedOwnerValue = $derived(`${ownerType}:${ownerId}`);
+  const selectedOwnerValue = $derived(
+    humanId != null ? `human:${humanId}` : accountId != null ? `account:${accountId}` : ""
+  );
 
   const ownerHref = $derived(
-    ownerType === "human" ? resolve(`/humans/${ownerId}?from=${$page.url.pathname}`) : resolve(`/accounts/${ownerId}?from=${$page.url.pathname}`)
+    humanId != null ? resolve(`/humans/${humanId}?from=${$page.url.pathname}`) :
+    accountId != null ? resolve(`/accounts/${accountId}?from=${$page.url.pathname}`) : "#"
   );
 
   onDestroy(() => autoSaver.destroy());
@@ -109,8 +115,8 @@
     autoSaver.save({
       phoneNumber,
       labelId: labelId || null,
-      ownerType,
-      ownerId,
+      humanId,
+      accountId,
       hasWhatsapp,
       isPrimary,
     });
@@ -121,8 +127,8 @@
     autoSaver.saveImmediate({
       phoneNumber,
       labelId: labelId || null,
-      ownerType,
-      ownerId,
+      humanId,
+      accountId,
       hasWhatsapp,
       isPrimary,
     });
@@ -131,11 +137,16 @@
   function handleOwnerChange(value: string) {
     const [type, id] = value.split(":");
     if (type && id) {
-      const prevOwnerType = ownerType;
-      ownerType = type;
-      ownerId = id;
-      // Reset label when owner type changes since label configs differ
-      if (type !== prevOwnerType) {
+      const wasAccount = accountId != null && humanId == null;
+      if (type === "human") {
+        humanId = id;
+        accountId = null;
+      } else {
+        accountId = id;
+        humanId = null;
+      }
+      const isAccount = accountId != null && humanId == null;
+      if (wasAccount !== isAccount) {
         labelId = "";
       }
       triggerSaveImmediate();

@@ -1,8 +1,8 @@
 <script lang="ts">
   import type { PageData, ActionData } from "./$types";
   import EntityListPage from "$lib/components/EntityListPage.svelte";
-  import { generalLeadStatusLabels, generalLeadSourceLabels } from "$lib/constants/labels";
-  import { generalLeadStatusColors, generalLeadSourceColors } from "$lib/constants/colors";
+  import { generalLeadStatusLabels } from "$lib/constants/labels";
+  import { generalLeadStatusColors } from "$lib/constants/colors";
   import { resolve } from "$app/paths";
 
   let { data, form }: { data: PageData; form: ActionData } = $props();
@@ -11,10 +11,10 @@
     id: string;
     displayId: string;
     status: string;
-    source: string;
+    firstName: string;
+    middleName: string | null;
+    lastName: string;
     notes: string | null;
-    email: string | null;
-    phone: string | null;
     ownerName: string | null;
     convertedHumanDisplayId: string | null;
     convertedHumanId: string | null;
@@ -25,16 +25,14 @@
   const allLeads = $derived(data.leads as Lead[]);
 
   let filterStatus = $state("");
-  let filterSource = $state("");
   let filterQ = $state("");
 
   const leads = $derived(
     allLeads.filter((lead) => {
       if (filterStatus && lead.status !== filterStatus) return false;
-      if (filterSource && lead.source !== filterSource) return false;
       if (filterQ) {
         const q = filterQ.trim().toLowerCase();
-        const text = [lead.displayId, lead.email, lead.phone, lead.ownerName, lead.notes]
+        const text = [lead.displayId, lead.firstName, lead.middleName, lead.lastName, lead.ownerName, lead.notes]
           .filter(Boolean)
           .join(" ")
           .toLowerCase();
@@ -54,9 +52,8 @@
   error={form?.error}
   columns={[
     { key: "displayId", label: "Lead Code" },
+    { key: "name", label: "Name" },
     { key: "status", label: "Status" },
-    { key: "source", label: "Source" },
-    { key: "email", label: "Email" },
     { key: "owner", label: "Owner" },
     { key: "notes", label: "Notes" },
     { key: "createdAt", label: "Created" },
@@ -79,21 +76,12 @@
           <option value="closed_rejected">Rejected</option>
         </select>
       </div>
-      <div>
-        <label for="source" class="block text-xs font-medium text-text-muted mb-1">Source</label>
-        <select id="source" class="glass-input px-3 py-1.5 text-sm" bind:value={filterSource}>
-          <option value="">All</option>
-          <option value="whatsapp">WhatsApp</option>
-          <option value="email">Email</option>
-          <option value="direct_referral">Direct Referral</option>
-        </select>
-      </div>
       <div class="relative flex-1 min-w-[200px]">
         <label for="q" class="block text-xs font-medium text-text-muted mb-1">Search</label>
-        <input id="q" type="text" class="glass-input w-full px-3 py-1.5 text-sm" placeholder="Code or notes..." bind:value={filterQ} />
+        <input id="q" type="text" class="glass-input w-full px-3 py-1.5 text-sm" placeholder="Code, name, or notes..." bind:value={filterQ} />
       </div>
-      {#if filterStatus || filterSource || filterQ}
-        <button type="button" class="btn-ghost text-sm" onclick={() => { filterStatus = ""; filterSource = ""; filterQ = ""; }}>Clear</button>
+      {#if filterStatus || filterQ}
+        <button type="button" class="btn-ghost text-sm" onclick={() => { filterStatus = ""; filterQ = ""; }}>Clear</button>
       {/if}
     </div>
   {/snippet}
@@ -101,6 +89,7 @@
     <td class="font-mono text-sm whitespace-nowrap">
       <a href={resolve(`/leads/general-leads/${lead.id}`)} class="text-accent hover:text-[var(--link-hover)]">{lead.displayId}</a>
     </td>
+    <td class="text-text-primary text-sm">{[lead.firstName, lead.middleName, lead.lastName].filter(Boolean).join(" ")}</td>
     <td>
       <!-- eslint-disable-next-line security/detect-object-injection -->
       <span class="glass-badge inline-flex rounded-full px-2 py-0.5 text-xs font-medium {generalLeadStatusColors[lead.status] ?? 'bg-glass text-text-secondary'}">
@@ -108,14 +97,6 @@
         {generalLeadStatusLabels[lead.status] ?? lead.status}
       </span>
     </td>
-    <td>
-      <!-- eslint-disable-next-line security/detect-object-injection -->
-      <span class="glass-badge inline-flex rounded-full px-2 py-0.5 text-xs font-medium {generalLeadSourceColors[lead.source] ?? 'bg-glass text-text-secondary'}">
-        <!-- eslint-disable-next-line security/detect-object-injection -->
-        {generalLeadSourceLabels[lead.source] ?? lead.source}
-      </span>
-    </td>
-    <td class="text-text-secondary text-sm">{lead.email ?? "\u2014"}</td>
     <td class="text-text-secondary">{lead.ownerName ?? "\u2014"}</td>
     <td class="text-text-muted max-w-xs truncate">{lead.notes ?? "\u2014"}</td>
     <td class="text-text-muted whitespace-nowrap">{new Date(lead.createdAt).toLocaleDateString()}</td>
@@ -138,17 +119,10 @@
           <!-- eslint-disable-next-line security/detect-object-injection -->
           {generalLeadStatusLabels[lead.status] ?? lead.status}
         </span>
-        <!-- eslint-disable-next-line security/detect-object-injection -->
-        <span class="glass-badge inline-flex rounded-full px-2 py-0.5 text-xs font-medium {generalLeadSourceColors[lead.source] ?? 'bg-glass text-text-secondary'}">
-          <!-- eslint-disable-next-line security/detect-object-injection -->
-          {generalLeadSourceLabels[lead.source] ?? lead.source}
-        </span>
       </div>
+      <p class="text-sm font-medium text-text-primary">{[lead.firstName, lead.middleName, lead.lastName].filter(Boolean).join(" ")}</p>
       {#if lead.ownerName}
         <p class="text-sm text-text-secondary">{lead.ownerName}</p>
-      {/if}
-      {#if lead.email}
-        <p class="text-sm text-text-secondary">{lead.email}</p>
       {/if}
       {#if lead.notes}
         <p class="text-sm text-text-muted truncate mt-1">{lead.notes}</p>

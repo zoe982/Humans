@@ -62,10 +62,10 @@ async function seedLead(
   id = "lead-1",
   overrides: Partial<{
     status: string;
-    source: string;
+    firstName: string;
+    middleName: string | null;
+    lastName: string;
     notes: string | null;
-    email: string | null;
-    phone: string | null;
     ownerId: string | null;
     convertedHumanId: string | null;
     rejectReason: string | null;
@@ -76,10 +76,10 @@ async function seedLead(
     id,
     displayId: nextDisplayId("LEA"),
     status: overrides.status ?? "open",
-    source: overrides.source ?? "email",
+    firstName: overrides.firstName ?? "Test",
+    middleName: overrides.middleName ?? null,
+    lastName: overrides.lastName ?? "Lead",
     notes: overrides.notes ?? null,
-    email: overrides.email ?? null,
-    phone: overrides.phone ?? null,
     ownerId: overrides.ownerId ?? null,
     convertedHumanId: overrides.convertedHumanId ?? null,
     rejectReason: overrides.rejectReason ?? null,
@@ -129,12 +129,11 @@ describe("listGeneralLeads", () => {
   it("returns basic lead list with owner name", async () => {
     const db = getTestDb();
     await seedColleague(db, "col-1");
-    await seedLead(db, "lead-1", { source: "direct_referral", ownerId: "col-1" });
+    await seedLead(db, "lead-1", { ownerId: "col-1" });
 
     const result = await listGeneralLeads(db, 1, 25, {});
     expect(result.data).toHaveLength(1);
     expect(result.data[0]!.id).toBe("lead-1");
-    expect(result.data[0]!.source).toBe("direct_referral");
     expect(result.data[0]!.ownerName).toBe("Test User");
   });
 
@@ -157,16 +156,6 @@ describe("listGeneralLeads", () => {
     expect(result.data[0]!.id).toBe("lead-2");
   });
 
-  it("filters by source", async () => {
-    const db = getTestDb();
-    await seedLead(db, "lead-1", { source: "email" });
-    await seedLead(db, "lead-2", { source: "direct_referral" });
-
-    const result = await listGeneralLeads(db, 1, 25, { source: "direct_referral" });
-    expect(result.data).toHaveLength(1);
-    expect(result.data[0]!.id).toBe("lead-2");
-  });
-
   it("filters by convertedHumanId", async () => {
     const db = getTestDb();
     await seedHuman(db, "h-1");
@@ -178,12 +167,12 @@ describe("listGeneralLeads", () => {
     expect(result.data[0]!.id).toBe("lead-1");
   });
 
-  it("filters by search query matching email", async () => {
+  it("filters by search query matching firstName", async () => {
     const db = getTestDb();
-    await seedLead(db, "lead-1", { email: "alice@example.com" });
-    await seedLead(db, "lead-2", { email: "bob@example.com" });
+    await seedLead(db, "lead-1", { firstName: "Alice" });
+    await seedLead(db, "lead-2", { firstName: "Bob" });
 
-    const result = await listGeneralLeads(db, 1, 25, { q: "alice" });
+    const result = await listGeneralLeads(db, 1, 25, { q: "Alice" });
     expect(result.data).toHaveLength(1);
     expect(result.data[0]!.id).toBe("lead-1");
   });
@@ -233,12 +222,12 @@ describe("getGeneralLead", () => {
 
   it("returns basic lead detail", async () => {
     const db = getTestDb();
-    await seedLead(db, "lead-1", { source: "whatsapp", email: "test@example.com" });
+    await seedLead(db, "lead-1", { firstName: "Jane", lastName: "Doe" });
 
     const result = await getGeneralLead(db, "lead-1");
     expect(result.id).toBe("lead-1");
-    expect(result.source).toBe("whatsapp");
-    expect(result.email).toBe("test@example.com");
+    expect(result.firstName).toBe("Jane");
+    expect(result.lastName).toBe("Doe");
     expect(result.status).toBe("open");
     expect(result.ownerName).toBeNull();
     expect(result.convertedHumanDisplayId).toBeNull();
@@ -300,7 +289,7 @@ describe("createGeneralLead", () => {
 
     const result = await createGeneralLead(
       db,
-      { source: "email" },
+      { firstName: "Test", lastName: "Lead" },
       "col-1",
     );
 
@@ -310,11 +299,10 @@ describe("createGeneralLead", () => {
     const rows = await db.select().from(schema.generalLeads);
     expect(rows).toHaveLength(1);
     expect(rows[0]!.status).toBe("open");
-    expect(rows[0]!.source).toBe("email");
+    expect(rows[0]!.firstName).toBe("Test");
+    expect(rows[0]!.lastName).toBe("Lead");
     expect(rows[0]!.notes).toBeNull();
-    expect(rows[0]!.email).toBeNull();
-    expect(rows[0]!.phone).toBeNull();
-    expect(rows[0]!.ownerId).toBeNull();
+    expect(rows[0]!.ownerId).toBe("col-1");
   });
 
   it("creates a lead with all optional fields", async () => {
@@ -324,10 +312,10 @@ describe("createGeneralLead", () => {
     const result = await createGeneralLead(
       db,
       {
-        source: "direct_referral",
-        notes: "Referred by John",
-        email: "lead@example.com",
-        phone: "+1234567890",
+        firstName: "John",
+        middleName: "Paul",
+        lastName: "Smith",
+        notes: "Referred by someone",
         ownerId: "col-1",
       },
       "col-1",
@@ -335,9 +323,10 @@ describe("createGeneralLead", () => {
 
     const rows = await db.select().from(schema.generalLeads);
     expect(rows).toHaveLength(1);
-    expect(rows[0]!.notes).toBe("Referred by John");
-    expect(rows[0]!.email).toBe("lead@example.com");
-    expect(rows[0]!.phone).toBe("+1234567890");
+    expect(rows[0]!.firstName).toBe("John");
+    expect(rows[0]!.middleName).toBe("Paul");
+    expect(rows[0]!.lastName).toBe("Smith");
+    expect(rows[0]!.notes).toBe("Referred by someone");
     expect(rows[0]!.ownerId).toBe("col-1");
     expect(result.displayId).toMatch(/^LEA-/);
   });
@@ -346,7 +335,7 @@ describe("createGeneralLead", () => {
     const db = getTestDb();
     await seedColleague(db, "col-1");
 
-    await createGeneralLead(db, { source: "email" }, "col-1");
+    await createGeneralLead(db, { firstName: "Test", lastName: "Lead" }, "col-1");
 
     const auditRows = await db.select().from(schema.auditLog);
     expect(auditRows).toHaveLength(1);
@@ -376,31 +365,31 @@ describe("updateGeneralLead", () => {
     expect(result.data!.notes).toBe("new notes");
   });
 
-  it("updates email field", async () => {
+  it("updates firstName field", async () => {
     const db = getTestDb();
     await seedColleague(db, "col-1");
-    await seedLead(db, "lead-1", { email: "old@example.com" });
+    await seedLead(db, "lead-1", { firstName: "Old" });
 
-    const result = await updateGeneralLead(db, "lead-1", { email: "new@example.com" }, "col-1");
-    expect(result.data!.email).toBe("new@example.com");
+    const result = await updateGeneralLead(db, "lead-1", { firstName: "New" }, "col-1");
+    expect(result.data!.firstName).toBe("New");
   });
 
-  it("updates phone field", async () => {
+  it("updates lastName field", async () => {
     const db = getTestDb();
     await seedColleague(db, "col-1");
-    await seedLead(db, "lead-1", { phone: "+1111111111" });
+    await seedLead(db, "lead-1", { lastName: "OldLast" });
 
-    const result = await updateGeneralLead(db, "lead-1", { phone: "+9999999999" }, "col-1");
-    expect(result.data!.phone).toBe("+9999999999");
+    const result = await updateGeneralLead(db, "lead-1", { lastName: "NewLast" }, "col-1");
+    expect(result.data!.lastName).toBe("NewLast");
   });
 
-  it("can set email to null", async () => {
+  it("can set middleName to null", async () => {
     const db = getTestDb();
     await seedColleague(db, "col-1");
-    await seedLead(db, "lead-1", { email: "someone@example.com" });
+    await seedLead(db, "lead-1", { middleName: "Middle" });
 
-    const result = await updateGeneralLead(db, "lead-1", { email: null }, "col-1");
-    expect(result.data!.email).toBeNull();
+    const result = await updateGeneralLead(db, "lead-1", { middleName: null }, "col-1");
+    expect(result.data!.middleName).toBeNull();
   });
 
   it("blocks owner change on a closed lead", async () => {

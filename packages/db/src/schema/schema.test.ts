@@ -7,11 +7,11 @@ import { leadSources, leadSourceCategories } from "./lead-sources";
 import { leadEvents, leadEventTypes } from "./lead-events";
 import { auditLog } from "./audit-log";
 import { humans, humanStatuses } from "./humans";
-import { emails, emailOwnerTypes } from "./emails";
+import { emails } from "./emails";
 import { emailLabelsConfig } from "./email-labels-config";
 import { humanTypes, humanTypeValues } from "./human-types";
 import { humanRouteSignups } from "./human-route-signups";
-import { phones, phoneOwnerTypes } from "./phones";
+import { phones } from "./phones";
 import { phoneLabelsConfig } from "./phone-labels-config";
 import { activities, activityTypeValues } from "./activities";
 import { geoInterests } from "./geo-interests";
@@ -240,14 +240,6 @@ describe("additional table names", () => {
 });
 
 describe("additional enum constants", () => {
-  it("emailOwnerTypes contains expected values", () => {
-    expect(emailOwnerTypes).toStrictEqual(["human", "account"]);
-  });
-
-  it("phoneOwnerTypes contains expected values", () => {
-    expect(phoneOwnerTypes).toStrictEqual(["human", "account"]);
-  });
-
   it("routeInterestFrequencyValues contains expected values", () => {
     expect(routeInterestFrequencyValues).toStrictEqual(["one_time", "repeat"]);
   });
@@ -293,8 +285,6 @@ describe("schema index re-exports", () => {
     expect(schemaIndex.routeInterestExpressions).toBeDefined();
     expect(schemaIndex.routeInterestFrequencyValues).toBeDefined();
     expect(schemaIndex.socialIds).toBeDefined();
-    expect(schemaIndex.emailOwnerTypes).toBeDefined();
-    expect(schemaIndex.phoneOwnerTypes).toBeDefined();
     expect(schemaIndex.errorLogResolutionStatuses).toBeDefined();
   });
 });

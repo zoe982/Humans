@@ -34,6 +34,7 @@ import { discountCodeRoutes } from "./routes/discount-codes";
 import { websiteRoutes } from "./routes/websites";
 import { agreementRoutes } from "./routes/agreements";
 import { marketingAttributionRoutes } from "./routes/marketing-attributions";
+import { leadScoreRoutes } from "./routes/lead-scores";
 import { opportunityCadenceRoutes } from "./routes/opportunity-cadence";
 import { clientErrorRoutes } from "./routes/client-errors";
 import { uiDataRoutes } from "./routes/ui-data";
@@ -102,6 +103,7 @@ app.route("/", websiteRoutes);
 app.route("/", clientErrorRoutes);
 app.route("/", agreementRoutes);
 app.route("/", marketingAttributionRoutes);
+app.route("/", leadScoreRoutes);
 app.route("/", uiDataRoutes);
 
 export { RealtimeHub } from "./realtime/hub";

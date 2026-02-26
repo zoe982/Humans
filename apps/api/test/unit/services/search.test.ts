@@ -62,7 +62,7 @@ describe("searchD1", () => {
     await seedHuman(db, "h-1", "Alice", "Smith");
     const ts = now();
     await db.insert(schema.emails).values({
-      id: "e-1", displayId: nextDisplayId("EML"), ownerType: "human", ownerId: "h-1", email: "alice@example.com", isPrimary: true, createdAt: ts,
+      id: "e-1", displayId: nextDisplayId("EML"), humanId: "h-1", email: "alice@example.com", isPrimary: true, createdAt: ts,
     });
 
     const result = await searchD1(db, "alice@example");
@@ -75,7 +75,7 @@ describe("searchD1", () => {
     await seedHuman(db, "h-1", "Alice", "Smith");
     const ts = now();
     await db.insert(schema.phones).values({
-      id: "p-1", displayId: nextDisplayId("FON"), ownerType: "human", ownerId: "h-1", phoneNumber: "+15551234567", hasWhatsapp: false, isPrimary: true, createdAt: ts,
+      id: "p-1", displayId: nextDisplayId("FON"), humanId: "h-1", phoneNumber: "+15551234567", hasWhatsapp: false, isPrimary: true, createdAt: ts,
     });
 
     const result = await searchD1(db, "5551234");
@@ -142,7 +142,7 @@ describe("searchD1", () => {
       id: "acc-1", displayId: nextDisplayId("ACC"), name: "Acme Corp", status: "open", createdAt: ts, updatedAt: ts,
     });
     await db.insert(schema.emails).values({
-      id: "ae-1", displayId: nextDisplayId("EML"), ownerType: "account", ownerId: "acc-1", email: "info@acme.com", isPrimary: true, createdAt: ts,
+      id: "ae-1", displayId: nextDisplayId("EML"), accountId: "acc-1", email: "info@acme.com", isPrimary: true, createdAt: ts,
     });
 
     const result = await searchD1(db, "acme.com");
@@ -154,7 +154,7 @@ describe("searchD1", () => {
     await seedHuman(db, "h-1", "Alice", "Smith");
     const ts = now();
     await db.insert(schema.emails).values({
-      id: "e-1", displayId: nextDisplayId("EML"), ownerType: "human", ownerId: "h-1", email: "alice@smith.com", isPrimary: true, createdAt: ts,
+      id: "e-1", displayId: nextDisplayId("EML"), humanId: "h-1", email: "alice@smith.com", isPrimary: true, createdAt: ts,
     });
 
     // "Alice" matches firstName and "alice" matches email
@@ -197,7 +197,7 @@ describe("searchD1", () => {
       id: "acc-1", displayId: nextDisplayId("ACC"), name: "Acme Corp", status: "open", createdAt: ts, updatedAt: ts,
     });
     await db.insert(schema.phones).values({
-      id: "p-1", displayId: nextDisplayId("FON"), ownerType: "account", ownerId: "acc-1",
+      id: "p-1", displayId: nextDisplayId("FON"), accountId: "acc-1",
       phoneNumber: "+44207000999", hasWhatsapp: false, isPrimary: true, createdAt: ts,
     });
 

@@ -33,9 +33,9 @@ const KNOWN_LIST_ALL = new Set([
   // listAccounts — lists all accounts (< 200 in this CRM)
   "accounts.ts:28:accounts",
   // listEmails — lists all emails to show admin view
-  "emails.ts:11:emails",
+  "emails.ts:32:emails",
   // listPhoneNumbers — lists all phones to show admin view
-  "phone-numbers.ts:11:phones",
+  "phone-numbers.ts:32:phones",
 ]);
 
 /**

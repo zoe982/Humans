@@ -5,11 +5,13 @@ import { load, actions } from "../../../../../src/routes/leads/general-leads/[id
 
 const sampleLead = {
   id: "lea-1",
-  source: "web",
-  status: "new",
-  email: "lead@example.com",
-  phone: "+15551234567",
+  firstName: "Jane",
+  middleName: null,
+  lastName: "Smith",
+  status: "open",
   notes: "Some notes",
+  emails: [],
+  phoneNumbers: [],
 };
 
 function makeEvent(overrides: Parameters<typeof mockEvent>[0] = {}) {
@@ -86,6 +88,33 @@ describe("general-leads/[id] load", () => {
     }
   });
 
+  it("returns leadScore when lead-scores API returns data", async () => {
+    const sampleScore = { id: "sco-1", scoreTotal: 65, scoreFit: 30, scoreIntent: 25, scoreEngagement: 15, scoreNegative: 5 };
+    mockFetch = createMockFetch({
+      "/api/general-leads/lea-1": { body: { data: sampleLead } },
+      "/api/humans": { body: { data: [] } },
+      "/api/lead-scores/by-parent/general_lead/lea-1": { body: { data: sampleScore } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent();
+    const result = await load(event as any);
+    expect(result.leadScore).toEqual(sampleScore);
+  });
+
+  it("returns null leadScore when lead-scores API returns null data", async () => {
+    mockFetch = createMockFetch({
+      "/api/general-leads/lea-1": { body: { data: sampleLead } },
+      "/api/humans": { body: { data: [] } },
+      "/api/lead-scores/by-parent/general_lead/lea-1": { body: { data: null } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent();
+    const result = await load(event as any);
+    expect(result.leadScore).toBeNull();
+  });
+
   it("returns empty allHumans when humans API fails", async () => {
     mockFetch = createMockFetch({
       "/api/general-leads/lea-1": { body: { data: sampleLead } },
@@ -130,31 +159,127 @@ describe("general-leads/[id] updateNotes action", () => {
   });
 });
 
-describe("general-leads/[id] updateContact action", () => {
+describe("general-leads/[id] addEmail action", () => {
   afterEach(() => {
     vi.unstubAllGlobals();
   });
 
-  it("returns success when contact is updated", async () => {
+  it("returns success when email is added", async () => {
     const mockFetch = createMockFetch({
-      "/api/general-leads/lea-1": { status: 200, body: {} },
+      "/api/general-leads/lea-1/emails": { status: 200, body: { data: { id: "eml-1" } } },
     });
     vi.stubGlobal("fetch", mockFetch);
 
-    const event = makeEvent({ formData: { email: "new@example.com", phone: "+15559876543" } });
-    const result = await actions.updateContact(event as any);
+    const event = makeEvent({ formData: { email: "new@example.com" } });
+    const result = await actions.addEmail(event as any);
     expect(result).toEqual({ success: true });
   });
 
   it("returns failure when API returns error", async () => {
     const mockFetch = createMockFetch({
-      "/api/general-leads/lea-1": { status: 422, body: { error: "Invalid email" } },
+      "/api/general-leads/lea-1/emails": { status: 422, body: { error: "Invalid email" } },
     });
     vi.stubGlobal("fetch", mockFetch);
 
-    const event = makeEvent({ formData: { email: "not-an-email", phone: "" } });
-    const result = await actions.updateContact(event as any);
+    const event = makeEvent({ formData: { email: "not-an-email" } });
+    const result = await actions.addEmail(event as any);
     expect(isActionFailure(result)).toBe(true);
+    if (isActionFailure(result)) {
+      expect(result.data.error).toBe("Invalid email");
+    }
+  });
+});
+
+describe("general-leads/[id] deleteEmail action", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("returns success when email is deleted", async () => {
+    const mockFetch = createMockFetch({
+      "/api/general-leads/lea-1/emails/eml-1": { status: 200, body: {} },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent({ formData: { emailId: "eml-1" } });
+    const result = await actions.deleteEmail(event as any);
+    expect(result).toEqual({ success: true });
+  });
+
+  it("returns failure when API returns error", async () => {
+    const mockFetch = createMockFetch({
+      "/api/general-leads/lea-1/emails/eml-missing": { status: 404, body: { error: "Email not found" } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent({ formData: { emailId: "eml-missing" } });
+    const result = await actions.deleteEmail(event as any);
+    expect(isActionFailure(result)).toBe(true);
+    if (isActionFailure(result)) {
+      expect(result.data.error).toBe("Email not found");
+    }
+  });
+});
+
+describe("general-leads/[id] addPhoneNumber action", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("returns success when phone number is added", async () => {
+    const mockFetch = createMockFetch({
+      "/api/general-leads/lea-1/phone-numbers": { status: 200, body: { data: { id: "fon-1" } } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent({ formData: { phoneNumber: "+15551234567" } });
+    const result = await actions.addPhoneNumber(event as any);
+    expect(result).toEqual({ success: true });
+  });
+
+  it("returns failure when API returns error", async () => {
+    const mockFetch = createMockFetch({
+      "/api/general-leads/lea-1/phone-numbers": { status: 422, body: { error: "Invalid phone number" } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent({ formData: { phoneNumber: "bad" } });
+    const result = await actions.addPhoneNumber(event as any);
+    expect(isActionFailure(result)).toBe(true);
+    if (isActionFailure(result)) {
+      expect(result.data.error).toBe("Invalid phone number");
+    }
+  });
+});
+
+describe("general-leads/[id] deletePhoneNumber action", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("returns success when phone number is deleted", async () => {
+    const mockFetch = createMockFetch({
+      "/api/general-leads/lea-1/phone-numbers/fon-1": { status: 200, body: {} },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent({ formData: { phoneNumberId: "fon-1" } });
+    const result = await actions.deletePhoneNumber(event as any);
+    expect(result).toEqual({ success: true });
+  });
+
+  it("returns failure when API returns error", async () => {
+    const mockFetch = createMockFetch({
+      "/api/general-leads/lea-1/phone-numbers/fon-missing": { status: 404, body: { error: "Phone not found" } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent({ formData: { phoneNumberId: "fon-missing" } });
+    const result = await actions.deletePhoneNumber(event as any);
+    expect(isActionFailure(result)).toBe(true);
+    if (isActionFailure(result)) {
+      expect(result.data.error).toBe("Phone not found");
+    }
   });
 });
 

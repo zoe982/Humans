@@ -68,6 +68,35 @@ describe("website-booking-requests/[id] +page.server load", () => {
     expect(result.marketingAttribution).toEqual(sampleAttr);
   });
 
+  it("returns leadScore when lead-scores API returns data", async () => {
+    const sampleScore = { id: "sco-1", scoreTotal: 80, scoreFit: 35, scoreIntent: 50, scoreEngagement: 0, scoreNegative: 5 };
+    mockFetch = createMockFetch({
+      "/api/website-booking-requests/b1/linked-humans": { body: { data: sampleLinkedHumans } },
+      "/api/website-booking-requests/b1": { body: { data: sampleBooking } },
+      "/api/activities": { body: { data: [] } },
+      "/api/lead-scores/by-parent/website_booking_request/b1": { body: { data: sampleScore } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent();
+    const result = await load(event as any);
+    expect(result.leadScore).toEqual(sampleScore);
+  });
+
+  it("returns null leadScore when lead-scores API returns null data", async () => {
+    mockFetch = createMockFetch({
+      "/api/website-booking-requests/b1/linked-humans": { body: { data: sampleLinkedHumans } },
+      "/api/website-booking-requests/b1": { body: { data: sampleBooking } },
+      "/api/activities": { body: { data: [] } },
+      "/api/lead-scores/by-parent/website_booking_request/b1": { body: { data: null } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent();
+    const result = await load(event as any);
+    expect(result.leadScore).toBeNull();
+  });
+
   it("returns empty linkedHumans when linked-humans API fails", async () => {
     mockFetch = createMockFetch({
       "/api/website-booking-requests/b1/linked-humans": { status: 500, body: { error: "fail" } },

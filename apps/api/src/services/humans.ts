@@ -61,7 +61,7 @@ export async function listHumans(db: DB, page: number, limit: number, search?: s
   const humanIds = pagedHumans.map((h) => h.id);
 
   const relatedEmails = humanIds.length > 0
-    ? await db.select().from(emails).where(inArray(emails.ownerId, humanIds))
+    ? await db.select().from(emails).where(inArray(emails.humanId, humanIds))
     : [];
   const relatedTypes = humanIds.length > 0
     ? await db.select().from(humanTypes).where(inArray(humanTypes.humanId, humanIds))
@@ -69,7 +69,7 @@ export async function listHumans(db: DB, page: number, limit: number, search?: s
 
   const data = pagedHumans.map((h) => ({
     ...h,
-    emails: relatedEmails.filter((e) => e.ownerType === "human" && e.ownerId === h.id),
+    emails: relatedEmails.filter((e) => e.humanId === h.id),
     types: relatedTypes.filter((t) => t.humanId === h.id).map((t) => t.type),
   }));
 
@@ -85,11 +85,11 @@ export async function getHumanDetail(supabase: SupabaseClient, db: DB, humanId: 
   }
 
   const [humanEmails, types, linkedSignups, linkedBookingRequests, humanPhones, humanPets, geoExpressions, routeExpressions, linkedAccountRows, emailLabelConfigs, phoneLabelConfigs, humanSocialIds, allPlatforms, humanWebsites] = await Promise.all([
-    db.select().from(emails).where(eq(emails.ownerId, human.id)),
+    db.select().from(emails).where(eq(emails.humanId, human.id)),
     db.select().from(humanTypes).where(eq(humanTypes.humanId, human.id)),
     db.select().from(humanRouteSignups).where(eq(humanRouteSignups.humanId, human.id)),
     db.select().from(humanWebsiteBookingRequests).where(eq(humanWebsiteBookingRequests.humanId, human.id)),
-    db.select().from(phones).where(eq(phones.ownerId, human.id)),
+    db.select().from(phones).where(eq(phones.humanId, human.id)),
     db.select().from(pets).where(eq(pets.humanId, human.id)),
     db.select().from(geoInterestExpressions).where(eq(geoInterestExpressions.humanId, human.id)),
     db.select().from(routeInterestExpressions).where(eq(routeInterestExpressions.humanId, human.id)),
@@ -179,13 +179,11 @@ export async function getHumanDetail(supabase: SupabaseClient, db: DB, humanId: 
   }
 
   const emailsWithLabels = humanEmails
-    .filter((e) => e.ownerType === "human")
     .map((e) => {
       const label = e.labelId != null ? emailLabelConfigs.find((l) => l.id === e.labelId) : null;
       return { ...e, labelName: label?.name ?? null };
     });
   const phoneNumbersWithLabels = humanPhones
-    .filter((p) => p.ownerType === "human")
     .map((p) => {
       const label = p.labelId != null ? phoneLabelConfigs.find((l) => l.id === p.labelId) : null;
       return { ...p, labelName: label?.name ?? null };
@@ -296,8 +294,11 @@ export async function createHuman(
     await db.insert(emails).values({
       id: createId(),
       displayId: emailDisplayId,
-      ownerType: "human",
-      ownerId: humanId,
+      humanId,
+      accountId: null,
+      generalLeadId: null,
+      websiteBookingRequestId: null,
+      routeSignupId: null,
       email: email.email,
       labelId: email.labelId ?? null,
       isPrimary: email.isPrimary ?? false,
@@ -362,14 +363,17 @@ export async function updateHuman(
   await db.update(humans).set(updateFields).where(eq(humans.id, id));
 
   if (data.emails != null) {
-    await db.delete(emails).where(eq(emails.ownerId, id));
+    await db.delete(emails).where(eq(emails.humanId, id));
     for (const email of data.emails) {
       const emailDisplayId = await nextDisplayId(db, "EML");
       await db.insert(emails).values({
         id: createId(),
         displayId: emailDisplayId,
-        ownerType: "human",
-        ownerId: id,
+        humanId: id,
+        accountId: null,
+        generalLeadId: null,
+        websiteBookingRequestId: null,
+        routeSignupId: null,
         email: email.email,
         labelId: email.labelId ?? null,
         isPrimary: email.isPrimary ?? false,
@@ -455,11 +459,11 @@ export async function deleteHuman(supabase: SupabaseClient, db: DB, id: string):
     throw notFound(ERROR_CODES.HUMAN_NOT_FOUND, "Human not found");
   }
 
-  await db.delete(emails).where(eq(emails.ownerId, id));
+  await db.update(emails).set({ humanId: null }).where(eq(emails.humanId, id));
   await db.delete(humanTypes).where(eq(humanTypes.humanId, id));
   await db.delete(humanRouteSignups).where(eq(humanRouteSignups.humanId, id));
   await db.delete(humanWebsiteBookingRequests).where(eq(humanWebsiteBookingRequests.humanId, id));
-  await db.delete(phones).where(eq(phones.ownerId, id));
+  await db.update(phones).set({ humanId: null }).where(eq(phones.humanId, id));
   await db.delete(pets).where(eq(pets.humanId, id));
   await db.delete(geoInterestExpressions).where(eq(geoInterestExpressions.humanId, id));
   await db.delete(routeInterestExpressions).where(eq(routeInterestExpressions.humanId, id));

@@ -4,18 +4,18 @@
   import AlertBanner from "$lib/components/AlertBanner.svelte";
   import RelatedListTable from "$lib/components/RelatedListTable.svelte";
   import HighlightText from "$lib/components/HighlightText.svelte";
-  import StatusBadge from "$lib/components/StatusBadge.svelte";
   import SearchableSelect from "$lib/components/SearchableSelect.svelte";
-  import * as Dialog from "$lib/components/ui/dialog";
   import { invalidateAll } from "$app/navigation";
   import { api } from "$lib/api";
   import { toast } from "svelte-sonner";
-  import { generalLeadStatusColors, generalLeadSourceColors, activityTypeColors } from "$lib/constants/colors";
-  import { generalLeadStatusLabels, generalLeadSourceLabels, activityTypeLabels, ACTIVITY_TYPE_OPTIONS } from "$lib/constants/labels";
+  import { generalLeadStatusColors, activityTypeColors } from "$lib/constants/colors";
+  import { generalLeadStatusLabels, activityTypeLabels, ACTIVITY_TYPE_OPTIONS } from "$lib/constants/labels";
   import NextActionSection from "$lib/components/NextActionSection.svelte";
   import { Button } from "$lib/components/ui/button";
   import { formatDateTime } from "$lib/utils/format";
   import { generalLeadStatuses } from "@humans/shared";
+  import { getLeadScoreBand } from "@humans/shared";
+  import LeadScoreBadge from "$lib/components/LeadScoreBadge.svelte";
   import { resolve } from "$app/paths";
   import { page } from "$app/stores";
 
@@ -31,21 +31,26 @@
   };
   type Colleague = { id: string; name: string; displayId?: string };
 
+  type Email = { id: string; displayId: string; email: string; labelId: string | null; isPrimary: boolean; createdAt: string };
+  type Phone = { id: string; displayId: string; phoneNumber: string; labelId: string | null; hasWhatsapp: boolean; isPrimary: boolean; createdAt: string };
+
   type Lead = {
     id: string;
     displayId: string;
     status: string;
-    source: string;
+    firstName: string;
+    middleName: string | null;
+    lastName: string;
     notes: string | null;
     rejectReason: string | null;
-    email: string | null;
-    phone: string | null;
     ownerName: string | null;
     ownerId: string | null;
     convertedHumanId: string | null;
     convertedHumanDisplayId: string | null;
     convertedHumanName: string | null;
     activities: Activity[];
+    emails: Email[];
+    phoneNumbers: Phone[];
     nextAction?: NextAction | null;
     createdAt: string;
     updatedAt: string;
@@ -61,29 +66,50 @@
     createdAt: string;
   };
 
-  type HumanOption = { id: string; displayId?: string; firstName: string; lastName: string };
-
   const lead = $derived(data.lead as Lead);
   const activities = $derived(lead.activities ?? []);
-  const allHumans = $derived(data.allHumans as HumanOption[]);
   const colleaguesList = $derived((data.colleagues ?? []) as Colleague[]);
   const colleagueOptions = $derived(colleaguesList.map((c) => ({ value: c.id, label: `${c.displayId ?? ""} ${c.name}`.trim() })));
   const isAdmin = $derived(data.user?.role === "admin");
   const isClosed = $derived(lead.status?.startsWith("closed_") ?? false);
   const currentColleagueId = $derived(data.user?.id ?? "");
 
-  const humanOptions = $derived(
-    allHumans.map((h) => ({
-      value: h.id,
-      label: `${h.displayId ?? ""} ${h.firstName} ${h.lastName}`.trim(),
-    }))
-  );
+  type LeadScoreSummary = {
+    id: string;
+    scoreTotal: number;
+    scoreFit: number;
+    scoreIntent: number;
+    scoreEngagement: number;
+    scoreNegative: number;
+  };
+
+  let leadScore = $state<LeadScoreSummary | null>(null);
+  $effect(() => { leadScore = data.leadScore as LeadScoreSummary | null; });
+
+  const leadScoreBand = $derived(leadScore != null ? getLeadScoreBand(leadScore.scoreTotal) : null);
+
+  // Auto-create lead score on first view if none exists
+  $effect(() => {
+    if (leadScore == null) {
+      api("/api/lead-scores/ensure", {
+        method: "POST",
+        body: JSON.stringify({ parentType: "general_lead", parentId: lead.id }),
+      }).then((result) => {
+        if (result != null && typeof result === "object" && "data" in result) {
+          leadScore = (result as { data: LeadScoreSummary }).data;
+        }
+      }).catch(() => {
+        // Silent failure — score will be created on next page load
+      });
+    }
+  });
 
   let showDeleteConfirm = $state(false);
   let showRejectDialog = $state(false);
   let rejectReason = $state("");
-  let showConvertDialog = $state(false);
-  let selectedHumanId = $state("");
+  let searchQuery = $state("");
+  let searchResults = $state<{ id: string; firstName: string; lastName: string; emails: { email: string }[] }[]>([]);
+  let searching = $state(false);
   let converting = $state(false);
 
   function formatDatetime(iso: string): string {
@@ -95,6 +121,9 @@
     // eslint-disable-next-line svelte/prefer-svelte-reactivity
     const params = new URLSearchParams();
     params.set("fromGeneralLead", lead.id);
+    params.set("firstName", lead.firstName);
+    if (lead.middleName) params.set("middleName", lead.middleName);
+    params.set("lastName", lead.lastName);
     if (lead.notes) params.set("notes", lead.notes);
     return `/humans/new?${params.toString()}`;
   }
@@ -105,7 +134,8 @@
       return;
     }
     if (newStatus === "closed_converted") {
-      showConvertDialog = true;
+      // Scroll to the Convert to Human card
+      document.getElementById("convert-to-human")?.scrollIntoView({ behavior: "smooth" });
       return;
     }
     try {
@@ -134,16 +164,32 @@
     }
   }
 
-  async function linkExistingHuman() {
-    if (!selectedHumanId) return;
+  async function searchHumans() {
+    if (searchQuery.trim().length === 0) {
+      searchResults = [];
+      return;
+    }
+    searching = true;
+    try {
+      const res = await fetch(`/api/search-humans?q=${encodeURIComponent(searchQuery)}`);
+      if (res.ok) {
+        const json = await res.json();
+        searchResults = json.humans ?? [];
+      }
+    } finally {
+      searching = false;
+    }
+  }
+
+  async function linkExistingHuman(humanId: string) {
     converting = true;
     try {
       await api(`/api/general-leads/${lead.id}/convert`, {
         method: "POST",
-        body: JSON.stringify({ humanId: selectedHumanId }),
+        body: JSON.stringify({ humanId }),
       });
-      showConvertDialog = false;
-      selectedHumanId = "";
+      searchQuery = "";
+      searchResults = [];
       toast("Lead converted successfully");
       await invalidateAll();
     } catch (err) {
@@ -155,7 +201,7 @@
 </script>
 
 <svelte:head>
-  <title>{lead.displayId} - General Lead - Humans</title>
+  <title>{lead.displayId} {lead.firstName} {lead.lastName} - General Lead</title>
 </svelte:head>
 
 <div class="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
@@ -163,7 +209,7 @@
   <RecordManagementBar
     backHref="/leads/general-leads"
     backLabel="General Leads"
-    title={lead.displayId}
+    title={`${lead.displayId} — ${[lead.firstName, lead.middleName, lead.lastName].filter(Boolean).join(" ")}`}
     status={lead.status}
     statusOptions={[...generalLeadStatuses]}
     statusColorMap={generalLeadStatusColors}
@@ -175,7 +221,6 @@
         {#if lead.status === "open"}
           <Button size="sm" onclick={() => handleStatusChange("qualified")}>Mark Qualified</Button>
         {/if}
-        <Button size="sm" onclick={() => { showConvertDialog = true; }}>Convert to Human</Button>
         <Button size="sm" variant="destructive" onclick={() => { showRejectDialog = true; }}>Close Rejected</Button>
       {/if}
     {/snippet}
@@ -207,34 +252,18 @@
     A General Lead is an unverified contact record. Convert to create a verified Human.
   </div>
 
-  <!-- Details -->
+  <!-- Metadata -->
   <div class="glass-card p-6 mt-4 mb-6">
-    <h2 class="text-lg font-semibold text-text-primary">Details</h2>
-    <dl class="mt-4 grid grid-cols-2 gap-4">
+    <h2 class="text-lg font-semibold text-text-primary">Metadata</h2>
+    <dl class="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
       <div>
-        <dt class="text-sm font-medium text-text-muted">Source</dt>
-        <dd class="mt-1">
-          <span class="glass-badge inline-flex rounded-full px-2 py-0.5 text-xs font-medium {generalLeadSourceColors[lead.source] ?? 'bg-glass text-text-secondary'}">
-            {generalLeadSourceLabels[lead.source] ?? lead.source}
-          </span>
-        </dd>
+        <dt class="text-sm font-medium text-text-muted">Name</dt>
+        <dd class="mt-1 text-sm text-text-primary">{[lead.firstName, lead.middleName, lead.lastName].filter(Boolean).join(" ")}</dd>
       </div>
       <div>
         <dt class="text-sm font-medium text-text-muted">Owner</dt>
         <dd class="mt-1 text-sm text-text-primary">{lead.ownerName ?? "—"}</dd>
       </div>
-      {#if lead.email}
-        <div>
-          <dt class="text-sm font-medium text-text-muted">Email</dt>
-          <dd class="mt-1 text-sm text-text-primary">{lead.email}</dd>
-        </div>
-      {/if}
-      {#if lead.phone}
-        <div>
-          <dt class="text-sm font-medium text-text-muted">Phone</dt>
-          <dd class="mt-1 text-sm text-text-primary">{lead.phone}</dd>
-        </div>
-      {/if}
       <div>
         <dt class="text-sm font-medium text-text-muted">Created</dt>
         <dd class="mt-1 text-sm text-text-primary">{formatDatetime(lead.createdAt)}</dd>
@@ -261,6 +290,39 @@
     </dl>
   </div>
 
+  <!-- Lead Score -->
+  {#if leadScore != null && leadScoreBand != null}
+    <div class="glass-card p-6 mb-6">
+      <div class="flex items-center justify-between">
+        <h2 class="text-lg font-semibold text-text-primary">Lead Score</h2>
+        <a href={resolve(`/reports/lead-scores/${leadScore.id}`)} class="text-sm text-accent hover:underline">
+          View Details &rarr;
+        </a>
+      </div>
+      <div class="mt-4 flex items-center gap-6 flex-wrap">
+        <LeadScoreBadge score={leadScore.scoreTotal} band={leadScoreBand} size="lg" />
+        <div class="flex gap-4 text-sm">
+          <div class="text-center">
+            <div class="text-lg font-semibold text-green-400">+{leadScore.scoreFit}</div>
+            <div class="text-text-muted">Fit</div>
+          </div>
+          <div class="text-center">
+            <div class="text-lg font-semibold text-blue-400">+{leadScore.scoreIntent}</div>
+            <div class="text-text-muted">Intent</div>
+          </div>
+          <div class="text-center">
+            <div class="text-lg font-semibold text-purple-400">+{leadScore.scoreEngagement}</div>
+            <div class="text-text-muted">Engage</div>
+          </div>
+          <div class="text-center">
+            <div class="text-lg font-semibold text-red-400">-{leadScore.scoreNegative}</div>
+            <div class="text-text-muted">Negative</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  {/if}
+
   <!-- Notes (editable) -->
   <div class="glass-card p-6 mb-6">
     <h2 class="text-lg font-semibold text-text-primary">Notes</h2>
@@ -276,33 +338,119 @@
     </form>
   </div>
 
-  <!-- Contact Info (editable) -->
-  <div class="glass-card p-6 mb-6">
-    <h2 class="text-lg font-semibold text-text-primary">Contact Info</h2>
-    <form method="POST" action="?/updateContact" class="mt-3 grid grid-cols-2 gap-4">
-      <div>
-        <label for="email" class="block text-sm font-medium text-text-muted mb-1">Email</label>
-        <input
-          id="email" name="email" type="email"
-          class="glass-input block w-full px-3 py-2 text-sm"
-          placeholder="Contact email..."
-          value={lead.email ?? ""}
-        />
-      </div>
-      <div>
-        <label for="phone" class="block text-sm font-medium text-text-muted mb-1">Phone</label>
-        <input
-          id="phone" name="phone" type="tel"
-          class="glass-input block w-full px-3 py-2 text-sm"
-          placeholder="Contact phone..."
-          value={lead.phone ?? ""}
-        />
-      </div>
-      <div class="col-span-2 flex justify-end">
-        <Button type="submit" size="sm">Save Contact</Button>
-      </div>
-    </form>
+  <!-- Emails -->
+  <div class="mb-6">
+    <RelatedListTable
+      title="Emails"
+      items={lead.emails ?? []}
+      columns={[
+        { key: "email", label: "Email", sortable: true, sortValue: (e) => e.email },
+        { key: "isPrimary", label: "Primary", sortable: false },
+      ]}
+      defaultSortKey="email"
+      searchFilter={(e, q) => e.email.toLowerCase().includes(q)}
+      emptyMessage="No emails yet."
+      addLabel="Email"
+    >
+      {#snippet row(email, searchQuery)}
+        <td class="text-sm"><HighlightText text={email.email} query={searchQuery} /></td>
+        <td>{email.isPrimary ? "Yes" : ""}</td>
+      {/snippet}
+      {#snippet addForm()}
+        <form method="POST" action="?/addEmail" class="space-y-3">
+          <div>
+            <label for="newEmail" class="block text-sm font-medium text-text-secondary">Email</label>
+            <input id="newEmail" name="email" type="email" required class="glass-input mt-1 block w-full px-3 py-2 text-sm" placeholder="Email address" />
+          </div>
+          <Button type="submit" size="sm">Add Email</Button>
+        </form>
+      {/snippet}
+    </RelatedListTable>
   </div>
+
+  <!-- Phone Numbers -->
+  <div class="mb-6">
+    <RelatedListTable
+      title="Phone Numbers"
+      items={lead.phoneNumbers ?? []}
+      columns={[
+        { key: "phoneNumber", label: "Phone Number", sortable: true, sortValue: (p) => p.phoneNumber },
+        { key: "hasWhatsapp", label: "WhatsApp", sortable: false },
+        { key: "isPrimary", label: "Primary", sortable: false },
+      ]}
+      defaultSortKey="phoneNumber"
+      searchFilter={(p, q) => p.phoneNumber.toLowerCase().includes(q)}
+      emptyMessage="No phone numbers yet."
+      addLabel="Phone Number"
+    >
+      {#snippet row(phone, searchQuery)}
+        <td class="text-sm"><HighlightText text={phone.phoneNumber} query={searchQuery} /></td>
+        <td>{phone.hasWhatsapp ? "Yes" : ""}</td>
+        <td>{phone.isPrimary ? "Yes" : ""}</td>
+      {/snippet}
+      {#snippet addForm()}
+        <form method="POST" action="?/addPhoneNumber" class="space-y-3">
+          <div>
+            <label for="newPhone" class="block text-sm font-medium text-text-secondary">Phone Number</label>
+            <input id="newPhone" name="phoneNumber" type="tel" required class="glass-input mt-1 block w-full px-3 py-2 text-sm" placeholder="Phone number" />
+          </div>
+          <Button type="submit" size="sm">Add Phone</Button>
+        </form>
+      {/snippet}
+    </RelatedListTable>
+  </div>
+
+  <!-- Convert to Human -->
+  {#if !isClosed}
+    <div id="convert-to-human" class="glass-card p-6 mb-6">
+      <h2 class="text-lg font-semibold text-text-primary">Convert to Human</h2>
+      <div class="mt-4 grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Left: Link to existing -->
+        <div>
+          <p class="text-sm font-medium text-text-secondary mb-2">Link to existing human</p>
+          <div class="flex items-center gap-2">
+            <input
+              type="text"
+              bind:value={searchQuery}
+              oninput={() => { if (searchQuery.length >= 2) searchHumans(); else searchResults = []; }}
+              placeholder="Search by name..."
+              class="glass-input flex-1 px-3 py-2 text-sm"
+            />
+          </div>
+          {#if searchResults.length > 0}
+            <ul class="mt-2 divide-y divide-glass-border rounded-xl border border-glass-border overflow-hidden">
+              {#each searchResults as human, i (i)}
+                <li class="flex items-center justify-between px-4 py-3 bg-glass hover:bg-glass-hover transition-colors">
+                  <div>
+                    <p class="text-sm font-medium text-text-primary">{human.firstName} {human.lastName}</p>
+                    {#if human.emails?.[0]}
+                      <p class="text-xs text-text-muted">{human.emails[0].email}</p>
+                    {/if}
+                  </div>
+                  <Button type="button" size="sm" disabled={converting} onclick={() => linkExistingHuman(human.id)}>
+                    {converting ? "Linking..." : "Link"}
+                  </Button>
+                </li>
+              {/each}
+            </ul>
+          {/if}
+          {#if searching}
+            <p class="mt-2 text-sm text-text-muted">Searching...</p>
+          {/if}
+        </div>
+        <!-- Right: Create new -->
+        <div>
+          <p class="text-sm font-medium text-text-secondary mb-2">Create new human</p>
+          <a
+            href={resolve(convertUrl())}
+            class="btn-primary inline-block text-sm"
+          >
+            Create New Human
+          </a>
+        </div>
+      </div>
+    </div>
+  {/if}
 
   <!-- Activities -->
   <div class="mb-6">
@@ -400,41 +548,6 @@
     </div>
   {/if}
 </div>
-
-<!-- Convert Dialog -->
-<Dialog.Root bind:open={showConvertDialog}>
-  <Dialog.Content>
-    <Dialog.Header>
-      <Dialog.Title>Convert to Human</Dialog.Title>
-      <Dialog.Description>Choose how to convert this lead into a verified human record.</Dialog.Description>
-    </Dialog.Header>
-    <div class="mt-4 space-y-4">
-      <a href={resolve(convertUrl())} class="block glass-card p-4 hover:ring-1 hover:ring-accent/40 transition">
-        <h3 class="text-sm font-semibold text-text-primary">Create New Human</h3>
-        <p class="text-xs text-text-muted mt-1">Create a brand new human record from this lead's data.</p>
-      </a>
-      <div class="glass-card p-4">
-        <h3 class="text-sm font-semibold text-text-primary">Link to Existing Human</h3>
-        <p class="text-xs text-text-muted mt-1">Associate this lead with an existing human record.</p>
-        <div class="mt-3">
-          <SearchableSelect
-            options={humanOptions}
-            name="convertHumanId"
-            id="convertHumanId"
-            emptyOption="Select a human..."
-            placeholder="Search humans..."
-            onSelect={(v) => { selectedHumanId = v; }}
-          />
-        </div>
-        <div class="mt-3 flex justify-end">
-          <Button size="sm" disabled={!selectedHumanId || converting} onclick={linkExistingHuman}>
-            {converting ? "Converting..." : "Link & Convert"}
-          </Button>
-        </div>
-      </div>
-    </div>
-  </Dialog.Content>
-</Dialog.Root>
 
 <!-- Reject Reason Dialog -->
 {#if showRejectDialog}

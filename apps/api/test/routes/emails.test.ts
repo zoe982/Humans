@@ -25,7 +25,7 @@ describe("GET /api/emails", () => {
     const db = getDb();
     const human = buildHuman({ firstName: "Alice", lastName: "Smith" });
     await db.insert(schema.humans).values(human);
-    const email = buildEmail({ ownerType: "human", ownerId: human.id, email: "alice@test.com" });
+    const email = buildEmail({ humanId: human.id, accountId: null, email: "alice@test.com" });
     await db.insert(schema.emails).values(email);
 
     const { token } = await createUserAndSession("agent");
@@ -62,10 +62,9 @@ describe("POST /api/emails", () => {
       body: JSON.stringify({ humanId: human.id, email: "new-email@test.com" }),
     });
     expect(res.status).toBe(201);
-    const body = (await res.json()) as { data: { email: string; ownerId: string; ownerType: string } };
+    const body = (await res.json()) as { data: { email: string; humanId: string } };
     expect(body.data.email).toBe("new-email@test.com");
-    expect(body.data.ownerId).toBe(human.id);
-    expect(body.data.ownerType).toBe("human");
+    expect(body.data.humanId).toBe(human.id);
   });
 
   it("returns 400 for invalid email format", async () => {
@@ -97,7 +96,7 @@ describe("DELETE /api/emails/:id", () => {
     const db = getDb();
     const human = buildHuman();
     await db.insert(schema.humans).values(human);
-    const email = buildEmail({ ownerType: "human", ownerId: human.id, email: "delete-me@test.com" });
+    const email = buildEmail({ humanId: human.id, accountId: null, email: "delete-me@test.com" });
     await db.insert(schema.emails).values(email);
 
     const { token } = await createUserAndSession("agent");

@@ -309,8 +309,11 @@ export function buildGeoInterestExpression(overrides: Partial<{
 export function buildEmail(overrides: Partial<{
   id: string;
   displayId: string;
-  ownerType: "human" | "account";
-  ownerId: string;
+  humanId: string | null;
+  accountId: string | null;
+  generalLeadId: string | null;
+  websiteBookingRequestId: string | null;
+  routeSignupId: string | null;
   email: string;
   labelId: string | null;
   isPrimary: boolean;
@@ -318,8 +321,11 @@ export function buildEmail(overrides: Partial<{
 }> = {}): {
   id: string;
   displayId: string;
-  ownerType: "human" | "account";
-  ownerId: string;
+  humanId: string | null;
+  accountId: string | null;
+  generalLeadId: string | null;
+  websiteBookingRequestId: string | null;
+  routeSignupId: string | null;
   email: string;
   labelId: string | null;
   isPrimary: boolean;
@@ -328,8 +334,11 @@ export function buildEmail(overrides: Partial<{
   return {
     id: createId(),
     displayId: nextTestDisplayId("EML"),
-    ownerType: "human" as const,
-    ownerId: createId(),
+    humanId: createId(),
+    accountId: null,
+    generalLeadId: null,
+    websiteBookingRequestId: null,
+    routeSignupId: null,
     email: `email-${createId()}@test.com`,
     labelId: null,
     isPrimary: false,
@@ -341,8 +350,11 @@ export function buildEmail(overrides: Partial<{
 export function buildPhoneNumber(overrides: Partial<{
   id: string;
   displayId: string;
-  ownerType: "human" | "account";
-  ownerId: string;
+  humanId: string | null;
+  accountId: string | null;
+  generalLeadId: string | null;
+  websiteBookingRequestId: string | null;
+  routeSignupId: string | null;
   phoneNumber: string;
   labelId: string | null;
   hasWhatsapp: boolean;
@@ -351,8 +363,11 @@ export function buildPhoneNumber(overrides: Partial<{
 }> = {}): {
   id: string;
   displayId: string;
-  ownerType: "human" | "account";
-  ownerId: string;
+  humanId: string | null;
+  accountId: string | null;
+  generalLeadId: string | null;
+  websiteBookingRequestId: string | null;
+  routeSignupId: string | null;
   phoneNumber: string;
   labelId: string | null;
   hasWhatsapp: boolean;
@@ -362,8 +377,11 @@ export function buildPhoneNumber(overrides: Partial<{
   return {
     id: createId(),
     displayId: nextTestDisplayId("FON"),
-    ownerType: "human" as const,
-    ownerId: createId(),
+    humanId: createId(),
+    accountId: null,
+    generalLeadId: null,
+    websiteBookingRequestId: null,
+    routeSignupId: null,
     phoneNumber: `+1${Math.floor(Math.random() * 9000000000 + 1000000000).toString()}`,
     labelId: null,
     hasWhatsapp: false,
@@ -558,16 +576,109 @@ export function buildLeadEvent(overrides: Partial<{
   };
 }
 
+export function buildLeadScore(overrides: Partial<{
+  id: string;
+  displayId: string;
+  generalLeadId: string | null;
+  websiteBookingRequestId: string | null;
+  routeSignupId: string | null;
+  fitMatchesCurrentWebsiteFlight: boolean;
+  fitPriceAcknowledgedOk: boolean;
+  intentDepositPaid: boolean;
+  intentPaymentDetailsSent: boolean;
+  intentRequestedPaymentDetails: boolean;
+  intentBookingSubmitted: boolean;
+  intentBookingStarted: boolean;
+  intentRouteSignupSubmitted: boolean;
+  engagementRespondedFast: boolean;
+  engagementRespondedSlow: boolean;
+  negativeNoContactMethod: boolean;
+  negativeOffNetworkRequest: boolean;
+  negativePriceObjection: boolean;
+  negativeGhostedAfterPaymentSent: boolean;
+  customerHasFlown: boolean;
+  scoreFit: number;
+  scoreIntent: number;
+  scoreEngagement: number;
+  scoreNegative: number;
+  scoreTotal: number;
+  scoreUpdatedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}> = {}): {
+  id: string;
+  displayId: string;
+  generalLeadId: string | null;
+  websiteBookingRequestId: string | null;
+  routeSignupId: string | null;
+  fitMatchesCurrentWebsiteFlight: boolean;
+  fitPriceAcknowledgedOk: boolean;
+  intentDepositPaid: boolean;
+  intentPaymentDetailsSent: boolean;
+  intentRequestedPaymentDetails: boolean;
+  intentBookingSubmitted: boolean;
+  intentBookingStarted: boolean;
+  intentRouteSignupSubmitted: boolean;
+  engagementRespondedFast: boolean;
+  engagementRespondedSlow: boolean;
+  negativeNoContactMethod: boolean;
+  negativeOffNetworkRequest: boolean;
+  negativePriceObjection: boolean;
+  negativeGhostedAfterPaymentSent: boolean;
+  customerHasFlown: boolean;
+  scoreFit: number;
+  scoreIntent: number;
+  scoreEngagement: number;
+  scoreNegative: number;
+  scoreTotal: number;
+  scoreUpdatedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+} {
+  const ts = now();
+  return {
+    id: createId(),
+    displayId: nextTestDisplayId("SCO"),
+    generalLeadId: null,
+    websiteBookingRequestId: null,
+    routeSignupId: null,
+    fitMatchesCurrentWebsiteFlight: false,
+    fitPriceAcknowledgedOk: false,
+    intentDepositPaid: false,
+    intentPaymentDetailsSent: false,
+    intentRequestedPaymentDetails: false,
+    intentBookingSubmitted: false,
+    intentBookingStarted: false,
+    intentRouteSignupSubmitted: false,
+    engagementRespondedFast: false,
+    engagementRespondedSlow: false,
+    negativeNoContactMethod: false,
+    negativeOffNetworkRequest: false,
+    negativePriceObjection: false,
+    negativeGhostedAfterPaymentSent: false,
+    customerHasFlown: false,
+    scoreFit: 0,
+    scoreIntent: 0,
+    scoreEngagement: 0,
+    scoreNegative: 0,
+    scoreTotal: 0,
+    scoreUpdatedAt: null,
+    createdAt: ts,
+    updatedAt: ts,
+    ...overrides,
+  };
+}
+
 export function buildGeneralLead(overrides: Partial<{
   id: string;
   displayId: string;
   status: string;
-  source: string;
+  firstName: string;
+  middleName: string | null;
+  lastName: string;
   notes: string | null;
   rejectReason: string | null;
   convertedHumanId: string | null;
-  email: string | null;
-  phone: string | null;
   ownerId: string | null;
   createdAt: string;
   updatedAt: string;
@@ -575,12 +686,12 @@ export function buildGeneralLead(overrides: Partial<{
   id: string;
   displayId: string;
   status: string;
-  source: string;
+  firstName: string;
+  middleName: string | null;
+  lastName: string;
   notes: string | null;
   rejectReason: string | null;
   convertedHumanId: string | null;
-  email: string | null;
-  phone: string | null;
   ownerId: string | null;
   createdAt: string;
   updatedAt: string;
@@ -590,12 +701,12 @@ export function buildGeneralLead(overrides: Partial<{
     id: createId(),
     displayId: nextTestDisplayId("LEA"),
     status: "open" as const,
-    source: "email" as const,
+    firstName: "Test",
+    middleName: null,
+    lastName: "Lead",
     notes: null,
     rejectReason: null,
     convertedHumanId: null,
-    email: null,
-    phone: null,
     ownerId: null,
     createdAt: ts,
     updatedAt: ts,

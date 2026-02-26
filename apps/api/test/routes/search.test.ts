@@ -89,7 +89,7 @@ describe("GET /api/search", () => {
     const db = getDb();
     const human = buildHuman({ firstName: "Email", lastName: "Match" });
     await db.insert(schema.humans).values(human);
-    const email = buildEmail({ ownerType: "human", ownerId: human.id, email: "findme-search@example.com" });
+    const email = buildEmail({ humanId: human.id, accountId: null, email: "findme-search@example.com" });
     await db.insert(schema.emails).values(email);
 
     const { token } = await createUserAndSession("agent");

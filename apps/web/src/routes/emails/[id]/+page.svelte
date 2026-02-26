@@ -20,8 +20,11 @@
   type Email = {
     id: string;
     displayId: string;
-    ownerType: string;
-    ownerId: string;
+    humanId: string | null;
+    accountId: string | null;
+    generalLeadId: string | null;
+    websiteBookingRequestId: string | null;
+    routeSignupId: string | null;
     email: string;
     labelId: string | null;
     labelName: string | null;
@@ -39,8 +42,8 @@
   // Auto-save state
   let emailAddress = $state("");
   let labelId = $state("");
-  let ownerType = $state("human");
-  let ownerId = $state("");
+  let humanId = $state<string | null>(null);
+  let accountId = $state<string | null>(null);
   let isPrimary = $state(false);
   let saveStatus = $state<SaveStatus>("idle");
   let initialized = $state(false);
@@ -74,15 +77,15 @@
   $effect(() => {
     emailAddress = email.email;
     labelId = email.labelId ?? "";
-    ownerType = email.ownerType;
-    ownerId = email.ownerId;
+    humanId = email.humanId ?? null;
+    accountId = email.accountId ?? null;
     isPrimary = email.isPrimary;
     if (!initialized) initialized = true;
   });
 
   // Label options based on current owner type
   const emailLabelOptions = $derived(
-    (ownerType === "account" ? accountEmailLabelConfigs : humanEmailLabelConfigs)
+    (accountId != null && humanId == null ? accountEmailLabelConfigs : humanEmailLabelConfigs)
       .map((l) => ({ value: l.id, label: l.name }))
   );
 
@@ -92,10 +95,13 @@
     ...allAccounts.map((a) => ({ value: `account:${a.id}`, label: `${a.displayId} ${a.name}` })),
   ]);
 
-  const selectedOwnerValue = $derived(`${ownerType}:${ownerId}`);
+  const selectedOwnerValue = $derived(
+    humanId != null ? `human:${humanId}` : accountId != null ? `account:${accountId}` : ""
+  );
 
   const ownerHref = $derived(
-    ownerType === "human" ? resolve(`/humans/${ownerId}?from=${$page.url.pathname}`) : resolve(`/accounts/${ownerId}?from=${$page.url.pathname}`)
+    humanId != null ? resolve(`/humans/${humanId}?from=${$page.url.pathname}`) :
+    accountId != null ? resolve(`/accounts/${accountId}?from=${$page.url.pathname}`) : "#"
   );
 
   onDestroy(() => autoSaver.destroy());
@@ -105,8 +111,8 @@
     autoSaver.save({
       email: emailAddress,
       labelId: labelId || null,
-      ownerType,
-      ownerId,
+      humanId,
+      accountId,
       isPrimary,
     });
   }
@@ -116,8 +122,8 @@
     autoSaver.saveImmediate({
       email: emailAddress,
       labelId: labelId || null,
-      ownerType,
-      ownerId,
+      humanId,
+      accountId,
       isPrimary,
     });
   }
@@ -125,11 +131,16 @@
   function handleOwnerChange(value: string) {
     const [type, id] = value.split(":");
     if (type && id) {
-      const prevOwnerType = ownerType;
-      ownerType = type;
-      ownerId = id;
-      // Reset label when owner type changes since label configs differ
-      if (type !== prevOwnerType) {
+      const wasAccount = accountId != null && humanId == null;
+      if (type === "human") {
+        humanId = id;
+        accountId = null;
+      } else {
+        accountId = id;
+        humanId = null;
+      }
+      const isAccount = accountId != null && humanId == null;
+      if (wasAccount !== isAccount) {
         labelId = "";
       }
       triggerSaveImmediate();

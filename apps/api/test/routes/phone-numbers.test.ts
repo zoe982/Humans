@@ -25,7 +25,7 @@ describe("GET /api/phone-numbers", () => {
     const db = getDb();
     const human = buildHuman({ firstName: "Alice", lastName: "Smith" });
     await db.insert(schema.humans).values(human);
-    const phone = buildPhoneNumber({ ownerType: "human", ownerId: human.id, phoneNumber: "+15551234567" });
+    const phone = buildPhoneNumber({ humanId: human.id, accountId: null, phoneNumber: "+15551234567" });
     await db.insert(schema.phones).values(phone);
 
     const { token } = await createUserAndSession("agent");
@@ -62,10 +62,9 @@ describe("POST /api/phone-numbers", () => {
       body: JSON.stringify({ humanId: human.id, phoneNumber: "+15559876543" }),
     });
     expect(res.status).toBe(201);
-    const body = (await res.json()) as { data: { phoneNumber: string; ownerId: string; ownerType: string } };
+    const body = (await res.json()) as { data: { phoneNumber: string; humanId: string } };
     expect(body.data.phoneNumber).toBe("+15559876543");
-    expect(body.data.ownerId).toBe(human.id);
-    expect(body.data.ownerType).toBe("human");
+    expect(body.data.humanId).toBe(human.id);
   });
 
   it("returns 400 for missing phone number", async () => {
@@ -98,7 +97,7 @@ describe("PATCH /api/phone-numbers/:id", () => {
     const db = getDb();
     const human = buildHuman();
     await db.insert(schema.humans).values(human);
-    const phone = buildPhoneNumber({ ownerType: "human", ownerId: human.id, phoneNumber: "+15551111111" });
+    const phone = buildPhoneNumber({ humanId: human.id, accountId: null, phoneNumber: "+15551111111" });
     await db.insert(schema.phones).values(phone);
 
     const { token } = await createUserAndSession("agent");
@@ -127,7 +126,7 @@ describe("DELETE /api/phone-numbers/:id", () => {
     const db = getDb();
     const human = buildHuman();
     await db.insert(schema.humans).values(human);
-    const phone = buildPhoneNumber({ ownerType: "human", ownerId: human.id, phoneNumber: "+15553333333" });
+    const phone = buildPhoneNumber({ humanId: human.id, accountId: null, phoneNumber: "+15553333333" });
     await db.insert(schema.phones).values(phone);
 
     const { token } = await createUserAndSession("agent");

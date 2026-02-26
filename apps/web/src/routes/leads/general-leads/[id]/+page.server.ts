@@ -12,6 +12,7 @@ export const load = async ({ locals, cookies, params }: RequestEvent): Promise<{
   user: { id: string; email: string; role: string; name: string };
   allHumans: unknown[];
   colleagues: unknown[];
+  leadScore: Record<string, unknown> | null;
 }> => {
   if (locals.user == null) redirect(302, "/login");
 
@@ -28,9 +29,10 @@ export const load = async ({ locals, cookies, params }: RequestEvent): Promise<{
   if (lead == null) redirect(302, "/leads/general-leads");
 
   const headers = { Cookie: `humans_session=${sessionToken ?? ""}` };
-  const [humansRes, colleaguesRes] = await Promise.all([
+  const [humansRes, colleaguesRes, leadScoreRes] = await Promise.all([
     fetch(`${PUBLIC_API_URL}/api/humans?limit=200`, { headers }),
     fetch(`${PUBLIC_API_URL}/api/colleagues`, { headers }),
+    fetch(`${PUBLIC_API_URL}/api/lead-scores/by-parent/general_lead/${id}`, { headers }),
   ]);
 
   let allHumans: unknown[] = [];
@@ -45,7 +47,13 @@ export const load = async ({ locals, cookies, params }: RequestEvent): Promise<{
     colleagues = isListData(raw) ? raw.data : [];
   }
 
-  return { lead, user: locals.user, allHumans, colleagues };
+  let leadScore: Record<string, unknown> | null = null;
+  if (leadScoreRes.ok) {
+    const raw: unknown = await leadScoreRes.json();
+    leadScore = isObjData(raw) ? (raw.data as Record<string, unknown> | null) : null;
+  }
+
+  return { lead, user: locals.user, allHumans, colleagues, leadScore };
 };
 
 export const actions = {
@@ -71,28 +79,85 @@ export const actions = {
     return { success: true };
   },
 
-  updateContact: async ({ request, cookies, params }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
+  addEmail: async ({ request, cookies, params }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
     const form = await request.formData();
     const sessionToken = cookies.get("humans_session");
     const id = params.id ?? "";
     const email = formStr(form.get("email"));
-    const phone = formStr(form.get("phone"));
 
-    const res = await fetch(`${PUBLIC_API_URL}/api/general-leads/${id}`, {
-      method: "PATCH",
+    const res = await fetch(`${PUBLIC_API_URL}/api/general-leads/${id}/emails`, {
+      method: "POST",
       headers: {
         "Content-Type": "application/json",
         Cookie: `humans_session=${sessionToken ?? ""}`,
       },
-      body: JSON.stringify({
-        email: email !== "" ? email : null,
-        phone: phone !== "" ? phone : null,
-      }),
+      body: JSON.stringify({ email, generalLeadId: id }),
     });
 
     if (!res.ok) {
       const resBody: unknown = await res.json();
-      return failFromApi(resBody, res.status, "Failed to update contact info");
+      return failFromApi(resBody, res.status, "Failed to add email");
+    }
+
+    return { success: true };
+  },
+
+  deleteEmail: async ({ request, cookies, params }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
+    const form = await request.formData();
+    const sessionToken = cookies.get("humans_session");
+    const id = params.id ?? "";
+    const emailId = formStr(form.get("emailId"));
+
+    const res = await fetch(`${PUBLIC_API_URL}/api/general-leads/${id}/emails/${emailId}`, {
+      method: "DELETE",
+      headers: { Cookie: `humans_session=${sessionToken ?? ""}` },
+    });
+
+    if (!res.ok) {
+      const resBody: unknown = await res.json();
+      return failFromApi(resBody, res.status, "Failed to delete email");
+    }
+
+    return { success: true };
+  },
+
+  addPhoneNumber: async ({ request, cookies, params }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
+    const form = await request.formData();
+    const sessionToken = cookies.get("humans_session");
+    const id = params.id ?? "";
+    const phoneNumber = formStr(form.get("phoneNumber"));
+
+    const res = await fetch(`${PUBLIC_API_URL}/api/general-leads/${id}/phone-numbers`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Cookie: `humans_session=${sessionToken ?? ""}`,
+      },
+      body: JSON.stringify({ phoneNumber, generalLeadId: id }),
+    });
+
+    if (!res.ok) {
+      const resBody: unknown = await res.json();
+      return failFromApi(resBody, res.status, "Failed to add phone number");
+    }
+
+    return { success: true };
+  },
+
+  deletePhoneNumber: async ({ request, cookies, params }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
+    const form = await request.formData();
+    const sessionToken = cookies.get("humans_session");
+    const id = params.id ?? "";
+    const phoneNumberId = formStr(form.get("phoneNumberId"));
+
+    const res = await fetch(`${PUBLIC_API_URL}/api/general-leads/${id}/phone-numbers/${phoneNumberId}`, {
+      method: "DELETE",
+      headers: { Cookie: `humans_session=${sessionToken ?? ""}` },
+    });
+
+    if (!res.ok) {
+      const resBody: unknown = await res.json();
+      return failFromApi(resBody, res.status, "Failed to delete phone number");
     }
 
     return { success: true };
