@@ -47,14 +47,12 @@
   let originCityValue = $state("");
   let originCountryValue = $state("");
   let originCityResults = $state<CityResult[]>([]);
-  let originCityLoading = $state(false);
   let originDebounceTimer: ReturnType<typeof setTimeout> | undefined;
 
   // Destination fields
   let destCityValue = $state("");
   let destCountryValue = $state("");
   let destCityResults = $state<CityResult[]>([]);
-  let destCityLoading = $state(false);
   let destDebounceTimer: ReturnType<typeof setTimeout> | undefined;
 
   function searchCities(q: string, target: "origin" | "dest") {
@@ -65,9 +63,6 @@
       else destCityResults = [];
       return;
     }
-    if (target === "origin") originCityLoading = true;
-    else destCityLoading = true;
-
     const newTimer = setTimeout(async () => {
       try {
         const res = await fetch(`${apiUrl}/api/route-interests/cities?q=${encodeURIComponent(q)}`, {
@@ -82,9 +77,6 @@
       } catch {
         if (target === "origin") originCityResults = [];
         else destCityResults = [];
-      } finally {
-        if (target === "origin") originCityLoading = false;
-        else destCityLoading = false;
       }
     }, 300);
 

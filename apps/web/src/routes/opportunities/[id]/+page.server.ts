@@ -44,6 +44,7 @@ export const load = async ({ locals, cookies, params }: RequestEvent): Promise<{
 
   const roleConfigs = configs["opportunity-human-roles"] ?? [];
 
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- fetchObj/fetchList generics resolve to any without schema options
   const [bookingRequestsRaw, cadenceConfigs] = await Promise.all([
     fetchObj(`${PUBLIC_API_URL}/api/opportunities/${id}/booking-requests`, token),
     fetchList(`${PUBLIC_API_URL}/api/opportunity-cadence`, token),

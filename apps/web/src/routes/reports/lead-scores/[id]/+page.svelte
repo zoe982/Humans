@@ -4,7 +4,6 @@
   import LeadScoreBadge from "$lib/components/LeadScoreBadge.svelte";
   import { resolve } from "$app/paths";
   import { api } from "$lib/api";
-  import { invalidateAll } from "$app/navigation";
   import { getLeadScoreBand } from "@humans/shared";
 
   let { data }: { data: PageData } = $props();

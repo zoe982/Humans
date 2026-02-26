@@ -65,7 +65,7 @@
   });
 
   let pendingDeleteId = $state<string | null>(null);
-  let deleteFormEl = $state<HTMLFormElement>();
+  let deleteFormEl: HTMLFormElement;
 
   const formResult = $derived(form as FormResult);
 

@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { invalidateAll } from "$app/navigation";
   import type { PageData, ActionData } from "./$types";
   import RecordManagementBar from "$lib/components/RecordManagementBar.svelte";
   import SearchableSelect from "$lib/components/SearchableSelect.svelte";
@@ -8,7 +7,6 @@
   import ConfirmDialog from "$lib/components/ConfirmDialog.svelte";
   import { toast } from "svelte-sonner";
   import { createAutoSaver, type SaveStatus } from "$lib/autosave";
-  import { api } from "$lib/api";
   import { onDestroy } from "svelte";
   import { resolve } from "$app/paths";
   import { page } from "$app/stores";
@@ -56,12 +54,6 @@
     { value: "11", label: "11 - November" },
     { value: "12", label: "12 - December" },
   ];
-
-  function monthLabel(m: number | null): string {
-    if (m == null) return "";
-    const opt = MONTH_OPTIONS.find((o) => o.value === String(m));
-    return opt?.label ?? String(m);
-  }
 
   // Editable fields
   let frequency = $state("one_time");
