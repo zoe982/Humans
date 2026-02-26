@@ -124,7 +124,7 @@
   }
 </script>
 
-<ConfettiOverlay active={showConfetti} />
+<ConfettiOverlay trigger={showConfetti} />
 
 <div class="mt-6 {naLocked ? 'glass-card-locked' : 'glass-card-hero'} p-8 space-y-4 transition-all duration-300">
   <div class="flex items-center justify-between">
