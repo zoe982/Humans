@@ -577,3 +577,31 @@ describe("accounts/[id] addActivity action", () => {
     expect(isActionFailure(result)).toBe(true);
   });
 });
+
+describe("accounts/[id] addAgreement action", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("returns success when agreement is created", async () => {
+    const mockFetch = createMockFetch({
+      "/api/agreements": { body: { data: { id: "agr-1" } } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent({ formData: { title: "New Agreement" } });
+    const result = await actions.addAgreement(event as any);
+    expect(result).toEqual({ success: true });
+  });
+
+  it("returns failure when API returns error", async () => {
+    const mockFetch = createMockFetch({
+      "/api/agreements": { status: 422, body: { error: "Title required" } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent({ formData: { title: "" } });
+    const result = await actions.addAgreement(event as any);
+    expect(isActionFailure(result)).toBe(true);
+  });
+});

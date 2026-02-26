@@ -5,8 +5,11 @@
   import { generalLeadStatusColors } from "$lib/constants/colors";
   import { resolve } from "$app/paths";
   import { enhance } from "$app/forms";
+  import { Loader2 } from "lucide-svelte";
 
   let { data, form }: { data: PageData; form: ActionData } = $props();
+
+  let importing = $state(false);
 
   type Lead = {
     id: string;
@@ -117,7 +120,9 @@
               method="POST"
               action="?/importFromFront"
               use:enhance={() => {
+                importing = true;
                 return async ({ result, update }) => {
+                  importing = false;
                   if (result.type === "redirect" || (result.type === "success")) {
                     closeImportPopover();
                   }
@@ -136,8 +141,12 @@
                   onkeydown={handleImportKeydown}
                   autocomplete="off"
                   spellcheck={false}
+                  disabled={importing}
                 />
-                <button type="submit" class="btn-primary shrink-0 py-1.5 px-3 text-sm">
+                <button type="submit" class="btn-primary shrink-0 py-1.5 px-3 text-sm" disabled={importing}>
+                  {#if importing}
+                    <Loader2 size={14} class="inline animate-spin -mt-0.5 mr-1" />
+                  {/if}
                   Import
                 </button>
               </div>

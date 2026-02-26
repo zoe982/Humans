@@ -383,16 +383,18 @@
       title="Phone Numbers"
       items={lead.phoneNumbers ?? []}
       columns={[
+        { key: "displayId", label: "ID", sortable: true, sortValue: (p) => p.displayId },
         { key: "phoneNumber", label: "Phone Number", sortable: true, sortValue: (p) => p.phoneNumber },
         { key: "hasWhatsapp", label: "WhatsApp", sortable: false },
         { key: "isPrimary", label: "Primary", sortable: false },
       ]}
       defaultSortKey="phoneNumber"
-      searchFilter={(p, q) => p.phoneNumber.toLowerCase().includes(q)}
+      searchFilter={(p, q) => p.phoneNumber.toLowerCase().includes(q) || p.displayId.toLowerCase().includes(q)}
       emptyMessage="No phone numbers yet."
       addLabel="Phone Number"
     >
       {#snippet row(phone, searchQuery)}
+        <td class="font-mono text-sm whitespace-nowrap"><a href={resolve(`/phone-numbers/${phone.id}?from=${$page.url.pathname}`)} class="text-accent hover:text-[var(--link-hover)]">{phone.displayId}</a></td>
         <td class="text-sm"><HighlightText text={phone.phoneNumber} query={searchQuery} /></td>
         <td>{phone.hasWhatsapp ? "Yes" : ""}</td>
         <td>{phone.isPrimary ? "Yes" : ""}</td>

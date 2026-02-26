@@ -276,3 +276,171 @@ describe("route-signups/[id] convertToHuman action", () => {
     }
   });
 });
+
+describe("route-signups/[id] addEmail action", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("returns success when email is added", async () => {
+    const mockFetch = createMockFetch({
+      "/api/route-signups/rs-1/emails": { body: { data: { id: "eml-1" } } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent({ formData: { email: "new@example.com" } });
+    const result = await actions.addEmail(event as any);
+    expect(result).toEqual({ success: true });
+  });
+
+  it("returns failure when API returns error", async () => {
+    const mockFetch = createMockFetch({
+      "/api/route-signups/rs-1/emails": { status: 422, body: { error: "Invalid email" } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent({ formData: { email: "bad" } });
+    const result = await actions.addEmail(event as any);
+    expect(isActionFailure(result)).toBe(true);
+  });
+});
+
+describe("route-signups/[id] deleteEmail action", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("returns success when email is deleted", async () => {
+    const mockFetch = createMockFetch({
+      "/api/route-signups/rs-1/emails/eml-1": { body: {} },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent({ formData: { emailId: "eml-1" } });
+    const result = await actions.deleteEmail(event as any);
+    expect(result).toEqual({ success: true });
+  });
+
+  it("returns failure when API returns error", async () => {
+    const mockFetch = createMockFetch({
+      "/api/route-signups/rs-1/emails/eml-1": { status: 500, body: { error: "Server error" } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent({ formData: { emailId: "eml-1" } });
+    const result = await actions.deleteEmail(event as any);
+    expect(isActionFailure(result)).toBe(true);
+  });
+});
+
+describe("route-signups/[id] addPhoneNumber action", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("returns success when phone number is added", async () => {
+    const mockFetch = createMockFetch({
+      "/api/route-signups/rs-1/phone-numbers": { body: { data: { id: "fon-1" } } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent({ formData: { phoneNumber: "+15551234567" } });
+    const result = await actions.addPhoneNumber(event as any);
+    expect(result).toEqual({ success: true });
+  });
+
+  it("returns failure when API returns error", async () => {
+    const mockFetch = createMockFetch({
+      "/api/route-signups/rs-1/phone-numbers": { status: 422, body: { error: "Invalid phone" } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent({ formData: { phoneNumber: "bad" } });
+    const result = await actions.addPhoneNumber(event as any);
+    expect(isActionFailure(result)).toBe(true);
+  });
+});
+
+describe("route-signups/[id] deletePhoneNumber action", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("returns success when phone number is deleted", async () => {
+    const mockFetch = createMockFetch({
+      "/api/route-signups/rs-1/phone-numbers/fon-1": { body: {} },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent({ formData: { phoneNumberId: "fon-1" } });
+    const result = await actions.deletePhoneNumber(event as any);
+    expect(result).toEqual({ success: true });
+  });
+
+  it("returns failure when API returns error", async () => {
+    const mockFetch = createMockFetch({
+      "/api/route-signups/rs-1/phone-numbers/fon-1": { status: 500, body: { error: "Server error" } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent({ formData: { phoneNumberId: "fon-1" } });
+    const result = await actions.deletePhoneNumber(event as any);
+    expect(isActionFailure(result)).toBe(true);
+  });
+});
+
+describe("route-signups/[id] addSocialId action", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("returns success when social ID is added", async () => {
+    const mockFetch = createMockFetch({
+      "/api/route-signups/rs-1/social-ids": { body: { data: { id: "soc-1" } } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent({ formData: { handle: "@user", platformId: "plat-1" } });
+    const result = await actions.addSocialId(event as any);
+    expect(result).toEqual({ success: true });
+  });
+
+  it("returns failure when API returns error", async () => {
+    const mockFetch = createMockFetch({
+      "/api/route-signups/rs-1/social-ids": { status: 422, body: { error: "Handle required" } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent({ formData: { handle: "", platformId: "plat-1" } });
+    const result = await actions.addSocialId(event as any);
+    expect(isActionFailure(result)).toBe(true);
+  });
+});
+
+describe("route-signups/[id] deleteSocialId action", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("returns success when social ID is deleted", async () => {
+    const mockFetch = createMockFetch({
+      "/api/route-signups/rs-1/social-ids/soc-1": { body: {} },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent({ formData: { socialIdId: "soc-1" } });
+    const result = await actions.deleteSocialId(event as any);
+    expect(result).toEqual({ success: true });
+  });
+
+  it("returns failure when API returns error", async () => {
+    const mockFetch = createMockFetch({
+      "/api/route-signups/rs-1/social-ids/soc-1": { status: 500, body: { error: "Server error" } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent({ formData: { socialIdId: "soc-1" } });
+    const result = await actions.deleteSocialId(event as any);
+    expect(isActionFailure(result)).toBe(true);
+  });
+});

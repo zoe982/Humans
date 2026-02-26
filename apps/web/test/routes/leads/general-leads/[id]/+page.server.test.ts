@@ -62,6 +62,24 @@ describe("general-leads/[id] load", () => {
     expect(result.allHumans).toEqual([{ id: "h-1", firstName: "Jane", lastName: "Smith" }]);
   });
 
+  it("returns phone numbers with displayId in lead data", async () => {
+    const leadWithPhones = {
+      ...sampleLead,
+      phoneNumbers: [
+        { id: "ph-1", displayId: "FON-AAA-001", phoneNumber: "+1234567890", hasWhatsapp: true, isPrimary: false, labelId: null, labelName: null },
+      ],
+    };
+    const phoneMockFetch = createMockFetch({
+      "/api/general-leads/lea-1": { body: { data: leadWithPhones } },
+      "/api/humans": { body: { data: [] } },
+    });
+    vi.stubGlobal("fetch", phoneMockFetch);
+    const event = makeEvent();
+    const result = await load(event as any);
+    expect(result.lead.phoneNumbers[0].displayId).toBe("FON-AAA-001");
+    expect(result.lead.phoneNumbers[0].phoneNumber).toBe("+1234567890");
+  });
+
   it("returns the authenticated user", async () => {
     const event = makeEvent({ user: { id: "u-1", email: "agent@test.com", role: "agent", name: "Test Agent" } });
     const result = await load(event as any);

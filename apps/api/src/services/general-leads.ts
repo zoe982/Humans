@@ -568,16 +568,21 @@ export async function importLeadFromFront(
     .set({ frontConversationId: conversationId })
     .where(eq(generalLeads.id, lead.id));
 
-  // 8. Link contact
+  // 8. Classify channel and link contact
+  const firstMsg = allMessages.find((m) => !m.is_draft);
+  const activityType = classifyChannel(undefined, contactHandle, firstMsg?.type);
+
   if (contactHandle.includes("@")) {
     await createEmail(db, { generalLeadId: lead.id, email: contactHandle });
   } else if (/^\+?\d[\d\s-]{6,}$/.test(contactHandle)) {
-    await createPhoneNumber(db, { generalLeadId: lead.id, phoneNumber: contactHandle });
+    await createPhoneNumber(db, {
+      generalLeadId: lead.id,
+      phoneNumber: contactHandle,
+      hasWhatsapp: activityType === "whatsapp_message",
+    });
   }
 
   // 9. Import activities
-  const firstMsg = allMessages.find((m) => !m.is_draft);
-  const activityType = classifyChannel(undefined, contactHandle, firstMsg?.type);
   let activitiesImported = 0;
 
   for (const message of allMessages) {

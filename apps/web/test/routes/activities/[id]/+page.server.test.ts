@@ -349,3 +349,71 @@ describe("activities/[id] load routeSignups and websiteBookingRequests", () => {
     }
   });
 });
+
+describe("activities/[id] linkOpportunity action", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("returns success when opportunity is linked", async () => {
+    const mockFetch = createMockFetch({
+      "/api/activities/a-1/opportunities": { body: { data: {} } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent({ formData: { opportunityId: "opp-1" } });
+    const result = await actions.linkOpportunity(event as any);
+    expect(result).toEqual({ success: true });
+  });
+
+  it("returns failure when opportunityId is missing", async () => {
+    const mockFetch = createMockFetch({});
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent({ formData: { opportunityId: "" } });
+    const result = await actions.linkOpportunity(event as any);
+    expect(isActionFailure(result)).toBe(true);
+    if (isActionFailure(result)) {
+      expect(result.data.error).toContain("opportunity");
+    }
+  });
+
+  it("returns failure when API returns error", async () => {
+    const mockFetch = createMockFetch({
+      "/api/activities/a-1/opportunities": { status: 422, body: { error: "Already linked" } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent({ formData: { opportunityId: "opp-1" } });
+    const result = await actions.linkOpportunity(event as any);
+    expect(isActionFailure(result)).toBe(true);
+  });
+});
+
+describe("activities/[id] unlinkOpportunity action", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("returns success when opportunity is unlinked", async () => {
+    const mockFetch = createMockFetch({
+      "/api/activities/a-1/opportunities/link-1": { body: {} },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent({ formData: { linkId: "link-1" } });
+    const result = await actions.unlinkOpportunity(event as any);
+    expect(result).toEqual({ success: true });
+  });
+
+  it("returns failure when API returns error", async () => {
+    const mockFetch = createMockFetch({
+      "/api/activities/a-1/opportunities/link-1": { status: 404, body: { error: "Link not found" } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent({ formData: { linkId: "link-1" } });
+    const result = await actions.unlinkOpportunity(event as any);
+    expect(isActionFailure(result)).toBe(true);
+  });
+});

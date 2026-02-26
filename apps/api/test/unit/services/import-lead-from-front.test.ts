@@ -222,6 +222,7 @@ describe("importLeadFromFront", () => {
     const phoneRows = await db.select().from(schema.phones);
     expect(phoneRows).toHaveLength(1);
     expect(phoneRows[0]!.phoneNumber).toBe("+1234567890");
+    expect(phoneRows[0]!.hasWhatsapp).toBe(true);
 
     const emailRows = await db.select().from(schema.emails);
     expect(emailRows).toHaveLength(0);
