@@ -125,6 +125,20 @@ describe("error handler — HTTPException code mapping", () => {
     expect(body.error).toBe("Invalid or expired session");
   });
 
+  it("maps 'Invalid session data' to AUTH_INVALID_SESSION", async () => {
+    const app = createTestApp();
+    app.get("/invalid-session-data", () => {
+      throw new HTTPException(401, { message: "Invalid session data" });
+    });
+
+    const res = await app.request("/invalid-session-data");
+    expect(res.status).toBe(401);
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- ApiErrorResponse is the documented contract shape
+    const body = (await res.json()) as ApiErrorResponse;
+    expect(body.code).toBe("AUTH_INVALID_SESSION");
+    expect(body.error).toBe("Invalid session data");
+  });
+
   it("maps 'Insufficient permissions' to AUTH_INSUFFICIENT_PERMS", async () => {
     const app = createTestApp();
     app.get("/no-perms", () => {

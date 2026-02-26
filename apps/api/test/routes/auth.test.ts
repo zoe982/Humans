@@ -4,6 +4,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { createUserAndSession, sessionCookie, getDb } from "../helpers";
 import * as schema from "@humans/db/schema";
 import { buildColleague } from "@humans/test-utils";
+import { SESSION_REFRESH_THRESHOLD_SECONDS } from "@humans/shared";
 
 describe("GET /auth/google/login", () => {
   it("redirects to Google OAuth", async () => {
@@ -298,5 +299,35 @@ describe("GET /auth/me", () => {
     expect(body.user?.id).toBe(user.id);
     expect(body.user?.email).toBe(user.email);
     expect(body.user?.role).toBe("manager");
+  });
+
+  it("preserves all session fields (email, role) during sliding refresh", async () => {
+    const { user, token } = await createUserAndSession("manager");
+
+    // Overwrite the session with a stale refreshedAt to trigger a sliding refresh
+    await env.SESSIONS.put(
+      `session:${token}`,
+      JSON.stringify({
+        colleagueId: user.id,
+        email: user.email,
+        role: "manager",
+        refreshedAt: Date.now() - (SESSION_REFRESH_THRESHOLD_SECONDS * 1000 + 60_000),
+      }),
+    );
+
+    const res = await SELF.fetch("http://localhost/auth/me", {
+      headers: { Cookie: sessionCookie(token) },
+    });
+    expect(res.status).toBe(200);
+
+    const raw = await env.SESSIONS.get(`session:${token}`);
+    const refreshedSession = JSON.parse(raw ?? "{}") as {
+      colleagueId?: string;
+      email?: string;
+      role?: string;
+      refreshedAt?: number;
+    };
+    expect(refreshedSession.email).toBe(user.email);
+    expect(refreshedSession.role).toBe("manager");
   });
 });

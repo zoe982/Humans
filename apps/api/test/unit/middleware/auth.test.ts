@@ -103,6 +103,16 @@ describe("auth middleware — KV failure modes", () => {
     expect(res.status).toBe(401);
   });
 
+  it("deletes corrupt session from KV when data fails schema validation", async () => {
+    kv.get.mockResolvedValueOnce(JSON.stringify({ colleagueId: "c1" }));
+    const app = createTestApp(kv);
+    const res = await app.request("/api/test", {
+      headers: { Cookie: "humans_session=tok-corrupt" },
+    });
+    expect(res.status).toBe(401);
+    expect(kv.delete).toHaveBeenCalledWith("session:tok-corrupt");
+  });
+
   it("proceeds normally when session refresh KV.put throws", async () => {
     // Session is old enough to trigger a refresh
     const staleSession = {

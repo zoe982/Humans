@@ -20,7 +20,7 @@ const googleUserSchema = z.object({
   name: z.string(),
   picture: z.string(),
 });
-const meSessionSchema = z.object({ colleagueId: z.string(), ip: z.string().optional(), refreshedAt: z.number().optional() });
+const meSessionSchema = z.object({ colleagueId: z.string(), ip: z.string().optional(), refreshedAt: z.number().optional() }).passthrough();
 
 const auth = new Hono<AppContext>();
 

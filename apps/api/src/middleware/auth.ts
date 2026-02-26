@@ -35,6 +35,7 @@ export const authMiddleware = createMiddleware<AppContext>(async (c, next) => {
   try {
     session = sessionSchema.parse(JSON.parse(sessionJson) as unknown);
   } catch {
+    void c.env.SESSIONS.delete(`session:${sessionToken}`);
     throw new HTTPException(401, { message: "Invalid session data" });
   }
 

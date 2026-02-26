@@ -6,12 +6,13 @@ import { AppError, type ApiErrorResponse } from "../lib/errors";
 import { logError } from "../lib/logger";
 import { persistError } from "../lib/error-logger";
 import type { AppContext } from "../types";
-import type { StatusCode } from "hono/utils/http-status";
+import type { ContentfulStatusCode } from "hono/utils/http-status";
 
 /** Map known HTTPException messages to error codes. */
 const httpMessageToCode: ReadonlyMap<string, ErrorCode> = new Map([
   ["Authentication required", ERROR_CODES.AUTH_REQUIRED],
   ["Invalid or expired session", ERROR_CODES.AUTH_INVALID_SESSION],
+  ["Invalid session data", ERROR_CODES.AUTH_INVALID_SESSION],
   ["Insufficient permissions", ERROR_CODES.AUTH_INSUFFICIENT_PERMS],
 ]);
 
@@ -22,7 +23,7 @@ export const errorHandler: ErrorHandler<AppContext> = (err, c) => {
   const userId = c.get("session")?.colleagueId;
 
   let code: ErrorCode;
-  let status: StatusCode;
+  let status: ContentfulStatusCode;
   let message: string;
   let details: unknown = null;
   let stack: string | undefined;
@@ -62,6 +63,5 @@ export const errorHandler: ErrorHandler<AppContext> = (err, c) => {
   const clientMessage = status === 500 ? "An internal error occurred" : message;
 
   const body: ApiErrorResponse = { error: clientMessage, code, requestId, details };
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- status is always a valid content status in our error paths
-  return c.json(body, status as import("hono/utils/http-status").ContentfulStatusCode);
+  return c.json(body, status);
 };
