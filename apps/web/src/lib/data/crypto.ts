@@ -22,8 +22,9 @@ export async function deriveKey(
     ["deriveKey"],
   );
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return crypto.subtle.deriveKey(
-    { name: "PBKDF2", salt, iterations: PBKDF2_ITERATIONS, hash: "SHA-256" },
+    { name: "PBKDF2", salt: salt as any, iterations: PBKDF2_ITERATIONS, hash: "SHA-256" },
     keyMaterial,
     { name: "AES-GCM", length: AES_KEY_LENGTH },
     true,
@@ -37,8 +38,9 @@ export async function encrypt(
 ): Promise<{ iv: Uint8Array; ciphertext: ArrayBuffer }> {
   const iv = crypto.getRandomValues(new Uint8Array(IV_LENGTH));
   const encoded = new TextEncoder().encode(JSON.stringify(data));
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const ciphertext = await crypto.subtle.encrypt(
-    { name: "AES-GCM", iv },
+    { name: "AES-GCM", iv: iv as any },
     key,
     encoded,
   );

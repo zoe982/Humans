@@ -27,45 +27,46 @@ interface SchemaOptions<S extends z.ZodTypeAny> {
   schemaName: string;
 }
 
-export async function fetchList<S extends z.ZodTypeAny>(
+export async function fetchList(url: string, sessionToken: string): Promise<unknown[]>;
+export async function fetchList<S extends z.ZodTypeAny>(url: string, sessionToken: string, options: SchemaOptions<S>): Promise<z.infer<S>[]>;
+export async function fetchList(
   url: string,
   sessionToken: string,
-  options?: SchemaOptions<S>,
-): Promise<S extends z.ZodTypeAny ? z.infer<S>[] : unknown[]> {
+  options?: SchemaOptions<z.ZodTypeAny>,
+): Promise<unknown[]> {
   const res = await fetch(url, { headers: authHeaders(sessionToken) });
   if (!res.ok) return [];
   const raw: unknown = await res.json().catch(() => null);
   if (!isListData(raw)) return [];
   if (options !== undefined) {
-    /* eslint-disable @typescript-eslint/no-unsafe-return -- z.infer<S> is inherently unresolvable in generic context */
-    return raw.data.map((item) =>
+    return raw.data.map((item: unknown) =>
       validateResponse(options.schema, item, {
         url,
         schemaName: options.schemaName,
         strict: import.meta.env.DEV,
       }),
-    );
-    /* eslint-enable @typescript-eslint/no-unsafe-return */
+    ) as unknown[];
   }
   return raw.data;
 }
 
-export async function fetchObj<S extends z.ZodTypeAny>(
+export async function fetchObj(url: string, sessionToken: string): Promise<Record<string, unknown> | null>;
+export async function fetchObj<S extends z.ZodTypeAny>(url: string, sessionToken: string, options: SchemaOptions<S>): Promise<z.infer<S> | null>;
+export async function fetchObj(
   url: string,
   sessionToken: string,
-  options?: SchemaOptions<S>,
-): Promise<(S extends z.ZodTypeAny ? z.infer<S> : Record<string, unknown>) | null> {
+  options?: SchemaOptions<z.ZodTypeAny>,
+): Promise<unknown | null> {
   const res = await fetch(url, { headers: authHeaders(sessionToken) });
   if (!res.ok) return null;
   const raw: unknown = await res.json().catch(() => null);
   if (!isObjData(raw)) return null;
   if (options !== undefined) {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-return -- z.infer<S> is inherently unresolvable in generic context
     return validateResponse(options.schema, raw.data, {
       url,
       schemaName: options.schemaName,
       strict: import.meta.env.DEV,
-    });
+    }) as unknown;
   }
   return raw.data;
 }

@@ -371,7 +371,7 @@
   >
     {#snippet actions()}
       <div class="flex gap-1">
-        {#each account.types as t, tIdx (tIdx)}
+        {#each (account?.types ?? []) as t, tIdx (tIdx)}
           <span class="glass-badge inline-flex rounded-full px-2 py-0.5 text-xs font-medium badge-purple">
             {t.name}
           </span>
