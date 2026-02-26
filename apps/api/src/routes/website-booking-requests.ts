@@ -89,7 +89,7 @@ websiteBookingRequestRoutes.get(
     await ensureDisplayIds(supabase, db, data);
 
     // Fetch lead scores from D1
-    const bookingIds = data.map((b: { id: string }) => b.id);
+    const bookingIds = data.map((b) => String(b.id));
     let enriched: ({ id: string } & Record<string, unknown>)[] = data;
     if (bookingIds.length > 0) {
       const scores = await db
@@ -101,9 +101,9 @@ websiteBookingRequestRoutes.get(
         .where(inArray(leadScores.websiteBookingRequestId, bookingIds));
 
       const scoreMap = new Map(scores.map((r) => [r.websiteBookingRequestId, r.scoreTotal]));
-      enriched = data.map((b: { id: string }) => ({
+      enriched = data.map((b) => ({
         ...b,
-        scoreTotal: scoreMap.get(b.id) ?? null,
+        scoreTotal: scoreMap.get(String(b.id)) ?? null,
       }));
     }
 

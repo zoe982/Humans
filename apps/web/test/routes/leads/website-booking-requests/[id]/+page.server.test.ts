@@ -548,3 +548,88 @@ describe("website-booking-requests/[id] actions.deleteSocialId", () => {
     expect(isActionFailure(result)).toBe(true);
   });
 });
+
+describe("website-booking-requests/[id] actions.updateSourceChannel", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("returns success when source/channel are updated", async () => {
+    const mockFetch = createMockFetch({
+      "/api/website-booking-requests/b1": { body: { data: sampleBooking } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent({ formData: { source: "Referral", channel: "Phone" } });
+    const result = await actions.updateSourceChannel(event as any);
+    expect(result).toEqual({ success: true });
+    expect(mockFetch).toHaveBeenCalledWith(
+      expect.stringContaining("/api/website-booking-requests/b1"),
+      expect.objectContaining({ method: "PATCH" }),
+    );
+  });
+
+  it("sends null for empty source/channel", async () => {
+    const mockFetch = createMockFetch({
+      "/api/website-booking-requests/b1": { body: { data: sampleBooking } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent({ formData: { source: "", channel: "" } });
+    const result = await actions.updateSourceChannel(event as any);
+    expect(result).toEqual({ success: true });
+
+    const patchCall = mockFetch.mock.calls.find(
+      (c: unknown[]) => typeof c[1] === "object" && (c[1] as RequestInit).method === "PATCH",
+    );
+    const body = JSON.parse((patchCall as unknown[])[1]
+      ? ((patchCall as unknown[])[1] as RequestInit).body as string
+      : "{}") as Record<string, unknown>;
+    expect(body["crm_source"]).toBeNull();
+    expect(body["crm_channel"]).toBeNull();
+  });
+
+  it("returns action failure when API returns error", async () => {
+    const mockFetch = createMockFetch({
+      "/api/website-booking-requests/b1": { status: 422, body: { error: "Invalid source" } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent({ formData: { source: "Unknown", channel: "Fax" } });
+    const result = await actions.updateSourceChannel(event as any);
+    expect(isActionFailure(result)).toBe(true);
+  });
+});
+
+describe("website-booking-requests/[id] load returns leadSources and leadChannels", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("returns leadSources and leadChannels from config", async () => {
+    const mockFetch = createMockFetch({
+      "account-config/batch": {
+        body: {
+          data: {
+            "lead-sources": [{ id: "ls-1", name: "Referral", createdAt: "2026-01-01T00:00:00.000Z" }],
+            "lead-channels": [{ id: "lc-1", name: "Phone", createdAt: "2026-01-01T00:00:00.000Z" }],
+            "social-id-platforms": [],
+          },
+        },
+      },
+      "/api/website-booking-requests/b1/linked-humans": { body: { data: sampleLinkedHumans } },
+      "/api/website-booking-requests/b1": { body: { data: sampleBooking } },
+      "/api/activities": { body: { data: [] } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent();
+    const result = await load(event as any);
+    expect(result.leadSources).toEqual([
+      { id: "ls-1", name: "Referral", createdAt: "2026-01-01T00:00:00.000Z" },
+    ]);
+    expect(result.leadChannels).toEqual([
+      { id: "lc-1", name: "Phone", createdAt: "2026-01-01T00:00:00.000Z" },
+    ]);
+  });
+});

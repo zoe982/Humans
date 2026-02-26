@@ -439,3 +439,77 @@ describe("general-leads/[id] delete action", () => {
     }
   });
 });
+
+describe("general-leads/[id] updateSourceChannel action", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("returns success when source/channel are updated", async () => {
+    const mockFetch = createMockFetch({
+      "/api/general-leads/lea-1": { status: 200, body: {} },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent({ formData: { source: "Google Ads", channel: "Email" } });
+    const result = await actions.updateSourceChannel(event as any);
+    expect(result).toEqual({ success: true });
+  });
+
+  it("sends null for empty source/channel", async () => {
+    const mockFetch = createMockFetch({
+      "/api/general-leads/lea-1": { status: 200, body: {} },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent({ formData: { source: "", channel: "" } });
+    const result = await actions.updateSourceChannel(event as any);
+    expect(result).toEqual({ success: true });
+
+    const patchCall = mockFetch.mock.calls.find(
+      (call: unknown[]) => typeof call[0] === "string" && (call[0] as string).includes("/api/general-leads/lea-1"),
+    ) as [string, RequestInit] | undefined;
+    expect(patchCall).toBeDefined();
+    const sentBody = JSON.parse(patchCall![1].body as string) as { source: unknown; channel: unknown };
+    expect(sentBody).toEqual({ source: null, channel: null });
+  });
+
+  it("returns failure when API returns error", async () => {
+    const mockFetch = createMockFetch({
+      "/api/general-leads/lea-1": { status: 400, body: { error: "Failed" } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent({ formData: { source: "bad", channel: "bad" } });
+    const result = await actions.updateSourceChannel(event as any);
+    expect(isActionFailure(result)).toBe(true);
+  });
+});
+
+describe("general-leads/[id] load returns leadSources and leadChannels", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("returns leadSources and leadChannels from config", async () => {
+    const mockFetch = createMockFetch({
+      "account-config/batch": {
+        body: {
+          data: {
+            "social-id-platforms": [],
+            "lead-sources": [{ id: "ls1", name: "Google Ads", createdAt: "2025-01-01" }],
+            "lead-channels": [{ id: "lc1", name: "Email", createdAt: "2025-01-01" }],
+          },
+        },
+      },
+      "/api/general-leads/lea-1": { body: { data: sampleLead } },
+      "/api/humans": { body: { data: [] } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent();
+    const result = await load(event as any);
+    expect(result.leadSources).toEqual([{ id: "ls1", name: "Google Ads", createdAt: "2025-01-01" }]);
+    expect(result.leadChannels).toEqual([{ id: "lc1", name: "Email", createdAt: "2025-01-01" }]);
+  });
+});

@@ -444,3 +444,79 @@ describe("route-signups/[id] deleteSocialId action", () => {
     expect(isActionFailure(result)).toBe(true);
   });
 });
+
+describe("route-signups/[id] updateSourceChannel action", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("returns success when source/channel are updated", async () => {
+    const mockFetch = createMockFetch({
+      "/api/route-signups/rs-1": { body: { data: {} } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent({ formData: { source: "Meta Ads", channel: "WhatsApp" } });
+    const result = await actions.updateSourceChannel(event as any);
+    expect(result).toEqual({ success: true });
+  });
+
+  it("sends null for empty source/channel", async () => {
+    const mockFetch = createMockFetch({
+      "/api/route-signups/rs-1": { body: { data: {} } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent({ formData: { source: "", channel: "" } });
+    const result = await actions.updateSourceChannel(event as any);
+    expect(result).toEqual({ success: true });
+
+    const patchCall = mockFetch.mock.calls.find(
+      (c: unknown[]) => typeof c[1] === "object" && (c[1] as RequestInit).method === "PATCH",
+    );
+    const body = JSON.parse((patchCall as unknown[])[1]
+      ? ((patchCall as unknown[])[1] as RequestInit).body as string
+      : "{}") as { crm_source: unknown; crm_channel: unknown };
+    expect(body.crm_source).toBeNull();
+    expect(body.crm_channel).toBeNull();
+  });
+
+  it("returns failure when API returns error", async () => {
+    const mockFetch = createMockFetch({
+      "/api/route-signups/rs-1": { status: 400, body: { error: "Bad request" } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent({ formData: { source: "Google", channel: "Email" } });
+    const result = await actions.updateSourceChannel(event as any);
+    expect(isActionFailure(result)).toBe(true);
+  });
+});
+
+describe("route-signups/[id] load returns leadSources and leadChannels", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("returns leadSources and leadChannels from config", async () => {
+    const mockFetch = createMockFetch({
+      "/api/route-signups/rs-1": { body: { data: sampleSignup } },
+      "/api/activities?routeSignupId=rs-1": { body: { data: [] } },
+      "account-config/batch": {
+        body: {
+          data: {
+            "social-id-platforms": [],
+            "lead-sources": [{ id: "ls1", name: "Google Ads", createdAt: "2025-01-01" }],
+            "lead-channels": [{ id: "lc1", name: "Email", createdAt: "2025-01-01" }],
+          },
+        },
+      },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent();
+    const result = await load(event as any);
+    expect(result.leadSources).toEqual([{ id: "ls1", name: "Google Ads", createdAt: "2025-01-01" }]);
+    expect(result.leadChannels).toEqual([{ id: "lc1", name: "Email", createdAt: "2025-01-01" }]);
+  });
+});

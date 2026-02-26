@@ -108,7 +108,7 @@ routeSignupRoutes.get("/api/route-signups", requirePermission("viewRouteSignups"
   await ensureDisplayIds(supabase, db, data);
 
   // Fetch last activity dates from D1
-  const signupIds = data.map((s: { id: string }) => s.id);
+  const signupIds = data.map((s) => String(s.id));
   let enriched: ({ id: string } & Record<string, unknown>)[] = data;
   if (signupIds.length > 0) {
     const lastDates = await db
@@ -121,14 +121,14 @@ routeSignupRoutes.get("/api/route-signups", requirePermission("viewRouteSignups"
       .groupBy(activities.routeSignupId);
 
     const dateMap = new Map(lastDates.map((r) => [r.routeSignupId, r.lastActivityDate]));
-    enriched = data.map((s: { id: string }) => ({
+    enriched = data.map((s) => ({
       ...s,
-      lastActivityDate: dateMap.get(s.id) ?? null,
+      lastActivityDate: dateMap.get(String(s.id)) ?? null,
     }));
   }
 
   // Fetch lead scores from D1
-  const enrichedIds = enriched.map((s: { id: string }) => s.id);
+  const enrichedIds = enriched.map((s) => s.id);
   if (enrichedIds.length > 0) {
     const scores = await db
       .select({
@@ -139,7 +139,7 @@ routeSignupRoutes.get("/api/route-signups", requirePermission("viewRouteSignups"
       .where(inArray(leadScores.routeSignupId, enrichedIds));
 
     const scoreMap = new Map(scores.map((r) => [r.routeSignupId, r.scoreTotal]));
-    enriched = enriched.map((s: { id: string }) => ({
+    enriched = enriched.map((s) => ({
       ...s,
       scoreTotal: scoreMap.get(s.id) ?? null,
     }));

@@ -61,6 +61,30 @@ describe("admin/account-config +page.server", () => {
       expect(result.humanPhoneLabels).toEqual([{ id: "6", name: "Mobile" }]);
     });
 
+    it("returns leadSources and leadChannels on successful load", async () => {
+      mockFetch = createMockFetch({
+        "account-config/batch": mockBatchConfigResponse({
+          "account-types": [],
+          "account-human-labels": [],
+          "account-email-labels": [],
+          "account-phone-labels": [],
+          "human-email-labels": [],
+          "human-phone-labels": [],
+          "opportunity-human-roles": [],
+          "human-relationship-labels": [],
+          "lead-sources": [{ id: "ls-1", name: "Google Ads" }],
+          "lead-channels": [{ id: "lc-1", name: "Paid Search" }],
+        }),
+      });
+      vi.stubGlobal("fetch", mockFetch);
+
+      const event = mockEvent({ user: { id: "u1", email: "admin@b.com", role: "admin", name: "Admin" } });
+      const result = await load(event as any);
+
+      expect(result.leadSources).toEqual([{ id: "ls-1", name: "Google Ads" }]);
+      expect(result.leadChannels).toEqual([{ id: "lc-1", name: "Paid Search" }]);
+    });
+
     it("returns empty arrays when API returns errors", async () => {
       mockFetch = createMockFetch({
         "account-config/batch": { status: 500, body: { error: "Internal error" } },
@@ -835,6 +859,204 @@ describe("admin/account-config +page.server", () => {
 
         const event = mockEvent({ formData: { id: "at-1", name: "" } });
         const result = await actions.renameAgreementType(event as any);
+
+        expect(isActionFailure(result)).toBe(true);
+        if (isActionFailure(result)) {
+          expect(result.status).toBe(400);
+        }
+      });
+    });
+
+    describe("createLeadSource", () => {
+      it("creates a lead source successfully", async () => {
+        mockFetch = createMockFetch({
+          "lead-sources": { body: { data: { id: "1", name: "Google Ads" } } },
+        });
+        vi.stubGlobal("fetch", mockFetch);
+
+        const event = mockEvent({ formData: { name: "Google Ads" } });
+        const result = await actions.createLeadSource(event as any);
+
+        expect(result).toEqual({ success: true });
+        expect(mockFetch).toHaveBeenCalledWith(
+          expect.stringContaining("lead-sources"),
+          expect.objectContaining({ method: "POST" }),
+        );
+      });
+
+      it("returns failure when API errors", async () => {
+        mockFetch = createMockFetch({
+          "lead-sources": { status: 409, body: { error: "Already exists" } },
+        });
+        vi.stubGlobal("fetch", mockFetch);
+
+        const event = mockEvent({ formData: { name: "Duplicate" } });
+        const result = await actions.createLeadSource(event as any);
+
+        expect(isActionFailure(result)).toBe(true);
+        if (isActionFailure(result)) {
+          expect(result.status).toBe(409);
+        }
+      });
+    });
+
+    describe("deleteLeadSource", () => {
+      it("deletes a lead source successfully", async () => {
+        mockFetch = createMockFetch({
+          "lead-sources": { body: {} },
+        });
+        vi.stubGlobal("fetch", mockFetch);
+
+        const event = mockEvent({ formData: { id: "ls-1" } });
+        const result = await actions.deleteLeadSource(event as any);
+
+        expect(result).toEqual({ success: true });
+        expect(mockFetch).toHaveBeenCalledWith(
+          expect.stringContaining("lead-sources/ls-1"),
+          expect.objectContaining({ method: "DELETE" }),
+        );
+      });
+
+      it("returns failure when API errors", async () => {
+        mockFetch = createMockFetch({
+          "lead-sources": { status: 404, body: { error: "Not found" } },
+        });
+        vi.stubGlobal("fetch", mockFetch);
+
+        const event = mockEvent({ formData: { id: "bad-id" } });
+        const result = await actions.deleteLeadSource(event as any);
+
+        expect(isActionFailure(result)).toBe(true);
+        if (isActionFailure(result)) {
+          expect(result.status).toBe(404);
+        }
+      });
+    });
+
+    describe("renameLeadSource", () => {
+      it("renames a lead source successfully", async () => {
+        mockFetch = createMockFetch({
+          "lead-sources": { body: { success: true } },
+        });
+        vi.stubGlobal("fetch", mockFetch);
+
+        const event = mockEvent({ formData: { id: "ls-1", name: "Updated Name" } });
+        const result = await actions.renameLeadSource(event as any);
+
+        expect(result).toEqual({ success: true });
+        expect(mockFetch).toHaveBeenCalledWith(
+          expect.stringContaining("lead-sources/ls-1"),
+          expect.objectContaining({ method: "PATCH" }),
+        );
+      });
+
+      it("returns failure when API errors", async () => {
+        mockFetch = createMockFetch({
+          "lead-sources": { status: 400, body: { error: "Invalid name" } },
+        });
+        vi.stubGlobal("fetch", mockFetch);
+
+        const event = mockEvent({ formData: { id: "ls-1", name: "" } });
+        const result = await actions.renameLeadSource(event as any);
+
+        expect(isActionFailure(result)).toBe(true);
+        if (isActionFailure(result)) {
+          expect(result.status).toBe(400);
+        }
+      });
+    });
+
+    describe("createLeadChannel", () => {
+      it("creates a lead channel successfully", async () => {
+        mockFetch = createMockFetch({
+          "lead-channels": { body: { data: { id: "1", name: "Paid Search" } } },
+        });
+        vi.stubGlobal("fetch", mockFetch);
+
+        const event = mockEvent({ formData: { name: "Paid Search" } });
+        const result = await actions.createLeadChannel(event as any);
+
+        expect(result).toEqual({ success: true });
+        expect(mockFetch).toHaveBeenCalledWith(
+          expect.stringContaining("lead-channels"),
+          expect.objectContaining({ method: "POST" }),
+        );
+      });
+
+      it("returns failure when API errors", async () => {
+        mockFetch = createMockFetch({
+          "lead-channels": { status: 409, body: { error: "Already exists" } },
+        });
+        vi.stubGlobal("fetch", mockFetch);
+
+        const event = mockEvent({ formData: { name: "Duplicate" } });
+        const result = await actions.createLeadChannel(event as any);
+
+        expect(isActionFailure(result)).toBe(true);
+        if (isActionFailure(result)) {
+          expect(result.status).toBe(409);
+        }
+      });
+    });
+
+    describe("deleteLeadChannel", () => {
+      it("deletes a lead channel successfully", async () => {
+        mockFetch = createMockFetch({
+          "lead-channels": { body: {} },
+        });
+        vi.stubGlobal("fetch", mockFetch);
+
+        const event = mockEvent({ formData: { id: "lc-1" } });
+        const result = await actions.deleteLeadChannel(event as any);
+
+        expect(result).toEqual({ success: true });
+        expect(mockFetch).toHaveBeenCalledWith(
+          expect.stringContaining("lead-channels/lc-1"),
+          expect.objectContaining({ method: "DELETE" }),
+        );
+      });
+
+      it("returns failure when API errors", async () => {
+        mockFetch = createMockFetch({
+          "lead-channels": { status: 404, body: { error: "Not found" } },
+        });
+        vi.stubGlobal("fetch", mockFetch);
+
+        const event = mockEvent({ formData: { id: "bad-id" } });
+        const result = await actions.deleteLeadChannel(event as any);
+
+        expect(isActionFailure(result)).toBe(true);
+        if (isActionFailure(result)) {
+          expect(result.status).toBe(404);
+        }
+      });
+    });
+
+    describe("renameLeadChannel", () => {
+      it("renames a lead channel successfully", async () => {
+        mockFetch = createMockFetch({
+          "lead-channels": { body: { success: true } },
+        });
+        vi.stubGlobal("fetch", mockFetch);
+
+        const event = mockEvent({ formData: { id: "lc-1", name: "Updated Name" } });
+        const result = await actions.renameLeadChannel(event as any);
+
+        expect(result).toEqual({ success: true });
+        expect(mockFetch).toHaveBeenCalledWith(
+          expect.stringContaining("lead-channels/lc-1"),
+          expect.objectContaining({ method: "PATCH" }),
+        );
+      });
+
+      it("returns failure when API errors", async () => {
+        mockFetch = createMockFetch({
+          "lead-channels": { status: 400, body: { error: "Invalid name" } },
+        });
+        vi.stubGlobal("fetch", mockFetch);
+
+        const event = mockEvent({ formData: { id: "lc-1", name: "" } });
+        const result = await actions.renameLeadChannel(event as any);
 
         expect(isActionFailure(result)).toBe(true);
         if (isActionFailure(result)) {
