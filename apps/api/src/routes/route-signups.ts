@@ -109,7 +109,7 @@ routeSignupRoutes.get("/api/route-signups", requirePermission("viewRouteSignups"
 
   // Fetch last activity dates from D1
   const signupIds = data.map((s: { id: string }) => s.id);
-  let enriched = data;
+  let enriched: ({ id: string } & Record<string, unknown>)[] = data;
   if (signupIds.length > 0) {
     const lastDates = await db
       .select({

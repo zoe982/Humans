@@ -90,7 +90,7 @@ websiteBookingRequestRoutes.get(
 
     // Fetch lead scores from D1
     const bookingIds = data.map((b: { id: string }) => b.id);
-    let enriched = data;
+    let enriched: ({ id: string } & Record<string, unknown>)[] = data;
     if (bookingIds.length > 0) {
       const scores = await db
         .select({
