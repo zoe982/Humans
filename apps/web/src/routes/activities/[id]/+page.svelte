@@ -314,6 +314,9 @@
           placeholder="Search humans..."
           onSelect={(v) => { humanId = v; triggerSaveImmediate(); }}
         />
+        {#if humanId}
+          <a href={resolve(`/humans/${humanId}?from=${$page.url.pathname}`)} class="mt-1 inline-block text-sm text-accent hover:text-[var(--link-hover)]">View Human</a>
+        {/if}
       </div>
       <div>
         <label for="accountId" class="block text-sm font-medium text-text-secondary">Linked Account</label>
@@ -326,6 +329,9 @@
           placeholder="Search accounts..."
           onSelect={(v) => { accountId = v; triggerSaveImmediate(); }}
         />
+        {#if accountId}
+          <a href={resolve(`/accounts/${accountId}?from=${$page.url.pathname}`)} class="mt-1 inline-block text-sm text-accent hover:text-[var(--link-hover)]">View Account</a>
+        {/if}
       </div>
     </div>
 

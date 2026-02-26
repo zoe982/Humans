@@ -8,6 +8,7 @@
   import { activityTypeColors } from "$lib/constants/colors";
   import { activityTypeLabels } from "$lib/constants/labels";
   import { parseActivityContent, splitEmailSignature } from "$lib/utils/activity-helpers";
+  import { page } from "$app/stores";
   import { resolve } from "$app/paths";
 
   type GeoExpr = { city?: string | null; country?: string | null };
@@ -350,7 +351,7 @@
             <div class="flex items-center gap-2 min-w-0">
               <!-- Display ID link -->
               <a
-                href={resolve(`/activities/${activity.id}`)}
+                href={resolve(`/activities/${activity.id}?from=${$page.url.pathname}`)}
                 class="font-mono text-xs shrink-0 activity-id-link"
                 style="color: var(--color-text-muted); opacity: 0.5; transition: opacity 0.2s, color 0.2s;"
                 onmouseenter={(e) => {
