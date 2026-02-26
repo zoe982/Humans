@@ -42,8 +42,8 @@ leadScoreRoutes.get("/api/lead-scores", requirePermission("viewLeadScores"), sup
   result.data = assertUniqueIds(result.data, "lead-scores", c);
 
   // Enrich BOR/ROU parent display IDs from Supabase
-  const borIds = result.data.filter((s) => s.websiteBookingRequestId != null && s.parentDisplayId == null).map((s) => s.websiteBookingRequestId as string);
-  const rouIds = result.data.filter((s) => s.routeSignupId != null && s.parentDisplayId == null).map((s) => s.routeSignupId as string);
+  const borIds = result.data.flatMap((s) => s.websiteBookingRequestId != null && s.parentDisplayId == null ? [s.websiteBookingRequestId] : []);
+  const rouIds = result.data.flatMap((s) => s.routeSignupId != null && s.parentDisplayId == null ? [s.routeSignupId] : []);
 
   const supabase = c.get("supabase");
   if (borIds.length > 0) {
