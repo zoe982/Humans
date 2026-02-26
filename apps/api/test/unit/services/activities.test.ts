@@ -288,6 +288,27 @@ describe("createActivity", () => {
     expect(rows).toHaveLength(1);
   });
 
+  it("rejects duplicate frontId with conflict error", async () => {
+    const db = getTestDb();
+    await seedColleague(db);
+
+    await createActivity(db, { activityDate: now(), frontId: "front-dup-1" }, "col-1");
+
+    await expect(
+      createActivity(db, { activityDate: now(), frontId: "front-dup-1" }, "col-1"),
+    ).rejects.toThrowError("Activity with Front ID front-dup-1 already exists");
+  });
+
+  it("allows duplicate null frontId (no conflict)", async () => {
+    const db = getTestDb();
+    await seedColleague(db);
+
+    await createActivity(db, { activityDate: now(), frontId: null }, "col-1");
+    const second = await createActivity(db, { activityDate: now(), frontId: null }, "col-1");
+    expect(second.id).toBeDefined();
+    expect(second.frontId).toBeNull();
+  });
+
   it("creates activity with all optional fields", async () => {
     const db = getTestDb();
     await seedColleague(db);

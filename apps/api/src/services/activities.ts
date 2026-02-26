@@ -2,7 +2,7 @@ import { eq, and, gte, lte, sql, desc, like, or, inArray } from "drizzle-orm";
 import { activities, humans, accounts, colleagues, geoInterestExpressions, geoInterests, routeInterestExpressions, routeInterests, activityOpportunities, opportunities } from "@humans/db/schema";
 import { createId } from "@humans/db";
 import { ERROR_CODES } from "@humans/shared";
-import { notFound } from "../lib/errors";
+import { notFound, conflict } from "../lib/errors";
 import { nextDisplayId } from "../lib/display-id";
 import type { DB } from "./types";
 
@@ -275,6 +275,15 @@ export async function createActivity(
   },
   colleagueId: string,
 ): Promise<{ id: string; displayId: string; type: string; subject: string; body: string | null; notes: string | null; activityDate: string; humanId: string | null; accountId: string | null; routeSignupId: string | null; websiteBookingRequestId: string | null; generalLeadId: string | null; opportunityId: string | null; gmailId: string | null; frontId: string | null; frontConversationId: string | null; direction: string | null; syncRunId: string | null; colleagueId: string; createdAt: string; updatedAt: string }> {
+  if (data.frontId != null) {
+    const existing = await db.query.activities.findFirst({
+      where: eq(activities.frontId, data.frontId),
+    });
+    if (existing != null) {
+      throw conflict(ERROR_CODES.ACTIVITY_DUPLICATE_FRONT_ID, `Activity with Front ID ${data.frontId} already exists`);
+    }
+  }
+
   const now = new Date().toISOString();
   const displayId = await nextDisplayId(db, "ACT");
 
