@@ -5,8 +5,6 @@
   import { resolve } from "$app/paths";
   import { goto } from "$app/navigation";
   import { page } from "$app/stores";
-  import { getLeadScoreBand } from "@humans/shared";
-
   let { data }: { data: PageData } = $props();
 
   type Score = {
@@ -31,12 +29,6 @@
     general_lead: "General Lead",
     website_booking_request: "Booking Request",
     route_signup: "Route Signup",
-  };
-
-  const parentTypePrefix: Record<string, string> = {
-    general_lead: "LEA",
-    website_booking_request: "BOR",
-    route_signup: "ROU",
   };
 
   function parentLink(s: Score): string {
