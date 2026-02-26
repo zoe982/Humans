@@ -25,8 +25,7 @@ export const load = async ({ locals, cookies, params }: RequestEvent): Promise<{
   if (signup == null) redirect(302, "/leads/route-signups");
 
   // Build parallel fetch list: activities, colleagues, emails, phones, and optionally attribution
-  const signupObj = signup as Record<string, unknown>;
-  const marketingAttributionId = typeof signupObj["marketing_attribution_id"] === "string" ? signupObj["marketing_attribution_id"] : null;
+  const marketingAttributionId = typeof signup["marketing_attribution_id"] === "string" ? signup["marketing_attribution_id"] : null;
 
   const headers = { Cookie: `humans_session=${sessionToken ?? ""}` };
   const parallelFetches: Promise<Response>[] = [
@@ -41,7 +40,7 @@ export const load = async ({ locals, cookies, params }: RequestEvent): Promise<{
       fetch(`${PUBLIC_API_URL}/api/marketing-attributions/${marketingAttributionId}`, { headers }),
     );
   }
-  const [activitiesRes, colleaguesRes, leadScoreRes, emailsRes, phoneNumbersRes, attributionRes] = await Promise.all(parallelFetches) as [Response, Response, Response, Response, Response, Response | undefined];
+  const [activitiesRes, colleaguesRes, leadScoreRes, emailsRes, phoneNumbersRes, attributionRes] = await Promise.all(parallelFetches);
 
   let activities: unknown[] = [];
   if (activitiesRes.ok) {
@@ -58,7 +57,7 @@ export const load = async ({ locals, cookies, params }: RequestEvent): Promise<{
   let leadScore: Record<string, unknown> | null = null;
   if (leadScoreRes.ok) {
     const lsRaw: unknown = await leadScoreRes.json();
-    leadScore = isObjData(lsRaw) ? (lsRaw.data as Record<string, unknown> | null) : null;
+    leadScore = isObjData(lsRaw) ? lsRaw.data : null;
   }
 
   let emails: unknown[] = [];
@@ -74,7 +73,7 @@ export const load = async ({ locals, cookies, params }: RequestEvent): Promise<{
   }
 
   let marketingAttribution: unknown = null;
-  if (attributionRes != null && attributionRes.ok) {
+  if (attributionRes?.ok === true) {
     const attrRaw: unknown = await attributionRes.json();
     marketingAttribution = isObjData(attrRaw) ? attrRaw.data : null;
   }

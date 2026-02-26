@@ -433,7 +433,7 @@ export interface FrontConversation {
   subject: string;
   recipient?: { handle: string; name?: string };
   last_message?: { created_at: number };
-  _links?: { related?: { messages?: { href: string } } };
+  _links?: { related?: { messages?: string } };
 }
 
 export interface FrontPaginatedResponse<T> {
@@ -1235,12 +1235,11 @@ export async function debugUnmatchedContact(
     frontToken,
   ), "conversation");
 
-  // Fetch messages via the conversation's messages link
+  // Fetch messages via the conversation's messages link (Front returns plain URL string)
   const links = isRecord(conversation["_links"]) ? conversation["_links"] : undefined;
   const related = links !== undefined && isRecord(links["related"]) ? links["related"] : undefined;
-  const messagesLink = related !== undefined && isRecord(related["messages"]) ? related["messages"] : undefined;
-  const messagesHref = messagesLink !== undefined && typeof messagesLink["href"] === "string"
-    ? messagesLink["href"]
+  const messagesHref = related !== undefined && typeof related["messages"] === "string"
+    ? related["messages"]
     : `https://api2.frontapp.com/conversations/${conversationId}/messages`;
 
   const messagesResponse = assertResultsArray<FrontMessage>(await frontFetch(

@@ -84,7 +84,7 @@
   type MarketingAttr = {
     id: string;
     crmDisplayId: string | null;
-    [key: string]: unknown;
+    [key: string]: string | null | Record<string, unknown>;
   };
 
   type CrmEmail = { id: string; email: string; isPrimary: boolean | null };
@@ -127,8 +127,7 @@
     customerHasFlown: boolean;
   };
 
-  let leadScore = $state<LeadScoreFull | null>(null);
-  $effect(() => { leadScore = data.leadScore as LeadScoreFull | null; });
+  let leadScore = $derived(data.leadScore as LeadScoreFull | null);
 
   // Auto-create lead score on first view if none exists
   $effect(() => {
@@ -320,7 +319,7 @@
           {marketingAttribution.crmDisplayId ?? "View"}
         </a>
       </div>
-      <MarketingAttributionCard attribution={marketingAttribution as any} />
+      <MarketingAttributionCard attribution={marketingAttribution} />
     {:else}
       <h2 class="text-lg font-semibold text-text-primary">Marketing Attribution</h2>
       <p class="mt-3 text-sm text-text-muted italic">No marketing attribution linked.</p>

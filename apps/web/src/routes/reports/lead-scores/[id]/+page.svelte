@@ -40,13 +40,8 @@
     updatedAt: string;
   };
 
-  let score = $state(data.score as LeadScore);
+  let score = $derived(data.score as LeadScore);
   const parentEntity = $derived(data.parentEntity as Record<string, unknown> | null);
-
-  // Keep in sync with server data
-  $effect(() => {
-    score = data.score as LeadScore;
-  });
 
   const band = $derived(getLeadScoreBand(score.scoreTotal));
   const parentType = $derived(
@@ -64,12 +59,12 @@
         ? "Booking Request"
         : "Route Signup",
   );
-  const parentHref = $derived(
+  const parentPath = $derived(
     parentType === "general_lead"
-      ? resolve(`/leads/general-leads/${parentId}`)
+      ? `/leads/general-leads/${parentId}`
       : parentType === "website_booking_request"
-        ? resolve(`/leads/website-booking-requests/${parentId}`)
-        : resolve(`/leads/route-signups/${parentId}`),
+        ? `/leads/website-booking-requests/${parentId}`
+        : `/leads/route-signups/${parentId}`,
   );
 
   let saving = $state(false);
@@ -141,7 +136,7 @@
     <div class="glass-card p-6 mb-6">
       <div class="flex items-center justify-between mb-4">
         <h2 class="text-lg font-semibold text-text-primary">{parentLabel}</h2>
-        <a href={parentHref} class="text-sm text-accent hover:underline">
+        <a href={resolve(parentPath)} class="text-sm text-accent hover:underline">
           View {parentLabel} &rarr;
         </a>
       </div>
@@ -220,7 +215,7 @@
     <div class="glass-card p-4 mb-6">
       <div class="flex items-center justify-between">
         <span class="text-sm text-text-muted">{parentLabel}</span>
-        <a href={parentHref} class="text-accent hover:underline text-sm">
+        <a href={resolve(parentPath)} class="text-accent hover:underline text-sm">
           View {parentLabel} &rarr;
         </a>
       </div>

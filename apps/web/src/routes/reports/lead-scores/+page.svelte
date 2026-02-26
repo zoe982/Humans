@@ -5,6 +5,7 @@
   import { resolve } from "$app/paths";
   import { goto } from "$app/navigation";
   import { page } from "$app/stores";
+  import { SvelteURLSearchParams } from "svelte/reactivity";
   let { data }: { data: PageData } = $props();
 
   type Score = {
@@ -31,10 +32,10 @@
     route_signup: "Route Signup",
   };
 
-  function parentLink(s: Score): string {
-    if (s.parentType === "general_lead") return resolve(`/leads/general-leads/${s.parentId}`);
-    if (s.parentType === "website_booking_request") return resolve(`/leads/website-booking-requests/${s.parentId}`);
-    return resolve(`/leads/route-signups/${s.parentId}`);
+  function parentPath(s: Score): string {
+    if (s.parentType === "general_lead") return `/leads/general-leads/${s.parentId}`;
+    if (s.parentType === "website_booking_request") return `/leads/website-booking-requests/${s.parentId}`;
+    return `/leads/route-signups/${s.parentId}`;
   }
 
   // Filter state from URL
@@ -42,7 +43,7 @@
   const currentParentType = $derived($page.url.searchParams.get("parentType") ?? "");
 
   function setFilter(key: string, value: string) {
-    const params = new URLSearchParams($page.url.searchParams);
+    const params = new SvelteURLSearchParams($page.url.searchParams);
     if (value === "") {
       params.delete(key);
     } else {
@@ -50,6 +51,7 @@
     }
     params.delete("page"); // Reset to page 1 on filter change
     const qs = params.toString();
+    // eslint-disable-next-line svelte/no-navigation-without-resolve
     goto(`${$page.url.pathname}${qs !== "" ? `?${qs}` : ""}`, { replaceState: true, invalidateAll: true });
   }
 </script>
@@ -136,7 +138,7 @@
               </a>
             </td>
             <td class="py-3 pr-4">
-              <a href={parentLink(score)} class="text-accent hover:underline font-mono text-sm" onclick={(e) => e.stopPropagation()}>
+              <a href={resolve(parentPath(score))} class="text-accent hover:underline font-mono text-sm" onclick={(e) => e.stopPropagation()}>
                 {score.parentDisplayId ?? score.parentId.slice(0, 8) + "..."}
               </a>
             </td>

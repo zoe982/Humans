@@ -1,8 +1,10 @@
 import { and, eq, ne, sql, inArray, desc, like, or } from "drizzle-orm";
 import {
   humans,
+  humanStatuses,
   emails,
   humanTypes,
+  humanTypeValues,
   humanRouteSignups,
   humanWebsiteBookingRequests,
   phones,
@@ -22,6 +24,7 @@ import {
   humanRelationships,
   humanRelationshipLabelsConfig,
 } from "@humans/db/schema";
+import type { HumanStatus, HumanType } from "@humans/db/schema";
 import { createId } from "@humans/db";
 import { ERROR_CODES } from "@humans/shared";
 import { computeDiff, logAuditEntry } from "../lib/audit";
@@ -35,6 +38,25 @@ import { listGeneralLeads } from "./general-leads";
 import { listAgreements } from "./agreements";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { DB } from "./types";
+
+const humanStatusesSet = new Set<string>(humanStatuses);
+const humanTypeValuesSet = new Set<string>(humanTypeValues);
+
+function isHumanStatus(value: string): value is HumanStatus {
+  return humanStatusesSet.has(value);
+}
+
+function toHumanStatus(value: string): HumanStatus {
+  return isHumanStatus(value) ? value : "open";
+}
+
+function isHumanType(value: string): value is HumanType {
+  return humanTypeValuesSet.has(value);
+}
+
+function toHumanType(value: string): HumanType {
+  return isHumanType(value) ? value : "client";
+}
 
 export async function listHumans(db: DB, page: number, limit: number, search?: string): Promise<{ data: { emails: (typeof emails.$inferSelect)[]; types: string[]; id: string; displayId: string; firstName: string; middleName: string | null; lastName: string; status: string; createdAt: string; updatedAt: string }[]; meta: { page: number; limit: number; total: number } }> {
   const offset = (page - 1) * limit;
@@ -284,7 +306,7 @@ export async function createHuman(
     firstName: data.firstName,
     middleName: data.middleName ?? null,
     lastName: data.lastName,
-    status: (data.status ?? "open") as typeof humans.$inferInsert.status,
+    status: toHumanStatus(data.status ?? "open"),
     createdAt: now,
     updatedAt: now,
   });
@@ -310,7 +332,7 @@ export async function createHuman(
     await db.insert(humanTypes).values({
       id: createId(),
       humanId,
-      type: type as typeof humanTypes.$inferInsert.type,
+      type: toHumanType(type),
       createdAt: now,
     });
   }
@@ -388,7 +410,7 @@ export async function updateHuman(
       await db.insert(humanTypes).values({
         id: createId(),
         humanId: id,
-        type: type as typeof humanTypes.$inferInsert.type,
+        type: toHumanType(type),
         createdAt: now,
       });
     }
@@ -430,7 +452,7 @@ export async function updateHumanStatus(db: DB, id: string, status: string, coll
   const oldStatus = existing.status;
   await db
     .update(humans)
-    .set({ status: status as typeof humans.$inferInsert.status, updatedAt: new Date().toISOString() })
+    .set({ status: toHumanStatus(status), updatedAt: new Date().toISOString() })
     .where(eq(humans.id, id));
 
   let auditEntryId: string | undefined;

@@ -213,7 +213,6 @@ describe("api", () => {
       let hrefSet = "";
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- Object.getPrototypeOf returns any
       const locationProto = Object.getPrototypeOf(window.location);
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument -- locationProto typed as any from getPrototypeOf
       const origHrefDescriptor = Object.getOwnPropertyDescriptor(locationProto, "href");
       Object.defineProperty(window.location, "href", {
         get() { return hrefSet; },

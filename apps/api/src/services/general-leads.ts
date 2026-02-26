@@ -1,5 +1,6 @@
 import { eq, sql, like, or, and, desc, asc } from "drizzle-orm";
-import { generalLeads, activities, colleagues, humans, emails, phones } from "@humans/db/schema";
+import { generalLeads, generalLeadStatuses, activities, colleagues, humans, emails, phones } from "@humans/db/schema";
+import type { GeneralLeadStatus } from "@humans/db/schema";
 import { createId } from "@humans/db";
 import { ERROR_CODES } from "@humans/shared";
 import { computeDiff, logAuditEntry } from "../lib/audit";
@@ -20,6 +21,16 @@ import {
 } from "./front-sync";
 import type { DB } from "./types";
 
+const generalLeadStatusesSet = new Set<string>(generalLeadStatuses);
+
+function isGeneralLeadStatus(value: string): value is GeneralLeadStatus {
+  return generalLeadStatusesSet.has(value);
+}
+
+function toGeneralLeadStatus(value: string): GeneralLeadStatus {
+  return isGeneralLeadStatus(value) ? value : "open";
+}
+
 const CLOSED_STATUSES = ["closed_converted", "closed_rejected", "closed_no_response"];
 
 // ─── List ────────────────────────────────────────────────────────
@@ -33,7 +44,7 @@ export async function listGeneralLeads(
   const offset = (page - 1) * limit;
   const conditions: ReturnType<typeof eq>[] = [];
 
-  if (filters.status != null) conditions.push(eq(generalLeads.status, filters.status as typeof generalLeads.$inferSelect.status));
+  if (filters.status != null) conditions.push(eq(generalLeads.status, toGeneralLeadStatus(filters.status)));
   if (filters.convertedHumanId != null) conditions.push(eq(generalLeads.convertedHumanId, filters.convertedHumanId));
   if (filters.q != null) {
     const orCondition = or(
@@ -440,10 +451,19 @@ export async function importLeadFromFront(
   let conversationId: string;
   if (frontId.startsWith("msg_")) {
     const msgData = await frontFetch(`https://api2.frontapp.com/messages/${frontId}`, frontToken);
-    if (!isRecord(msgData) || typeof msgData["conversation_id"] !== "string") {
+    // Front API returns _links.related.conversation as a plain URL string
+    const links = isRecord(msgData) && isRecord(msgData["_links"]) ? msgData["_links"] : undefined;
+    const related = links !== undefined && isRecord(links["related"]) ? links["related"] : undefined;
+    const convUrl = related !== undefined && typeof related["conversation"] === "string" ? related["conversation"] : undefined;
+    if (convUrl === undefined) {
       throw badRequest(ERROR_CODES.VALIDATION_FAILED, "Could not resolve message to conversation");
     }
-    conversationId = msgData["conversation_id"];
+    const urlParts = convUrl.split("/");
+    const extractedId = urlParts[urlParts.length - 1] ?? "";
+    if (!extractedId.startsWith("cnv_")) {
+      throw badRequest(ERROR_CODES.VALIDATION_FAILED, "Could not resolve message to conversation");
+    }
+    conversationId = extractedId;
   } else if (frontId.startsWith("cnv_")) {
     conversationId = frontId;
   } else {

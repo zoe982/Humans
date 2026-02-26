@@ -1,8 +1,19 @@
 import { desc, eq, and, gte, lte, lt } from "drizzle-orm";
-import { errorLog } from "@humans/db/schema";
+import { errorLog, errorLogResolutionStatuses } from "@humans/db/schema";
+import type { ErrorLogResolutionStatus } from "@humans/db/schema";
 import { ERROR_CODES } from "@humans/shared";
 import { notFound } from "../lib/errors";
 import type { DB } from "./types";
+
+const resolutionStatusesSet = new Set<string>(errorLogResolutionStatuses);
+
+function isResolutionStatus(value: string): value is ErrorLogResolutionStatus {
+  return resolutionStatusesSet.has(value);
+}
+
+function toResolutionStatus(value: string): ErrorLogResolutionStatus {
+  return isResolutionStatus(value) ? value : "open";
+}
 
 interface ErrorLogFilters {
   limit: number;
@@ -22,7 +33,7 @@ export async function listErrorLogEntries(db: DB, filters: ErrorLogFilters): Pro
   if (filters.path != null) conditions.push(eq(errorLog.path, filters.path));
   if (filters.dateFrom != null) conditions.push(gte(errorLog.createdAt, filters.dateFrom));
   if (filters.dateTo != null) conditions.push(lte(errorLog.createdAt, filters.dateTo));
-  if (filters.resolutionStatus != null) conditions.push(eq(errorLog.resolutionStatus, filters.resolutionStatus as typeof errorLog.$inferSelect.resolutionStatus));
+  if (filters.resolutionStatus != null) conditions.push(eq(errorLog.resolutionStatus, toResolutionStatus(filters.resolutionStatus)));
 
   let results;
   if (conditions.length > 0) {
@@ -66,7 +77,7 @@ export async function updateErrorLogResolution(db: DB, id: string, resolutionSta
     throw notFound(ERROR_CODES.ERROR_LOG_NOT_FOUND, "Error log entry not found");
   }
 
-  const typedStatus = resolutionStatus as typeof errorLog.$inferSelect.resolutionStatus;
+  const typedStatus = toResolutionStatus(resolutionStatus);
   await db.update(errorLog).set({ resolutionStatus: typedStatus }).where(eq(errorLog.id, id));
 
   return { ...entry, resolutionStatus: typedStatus };

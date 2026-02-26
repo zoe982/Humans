@@ -22,11 +22,11 @@ export const load = async ({ locals, cookies, params }: RequestEvent): Promise<{
   if (score == null) redirect(302, "/reports/lead-scores");
 
   // Fetch the parent entity for context
-  const scoreObj = score as Record<string, unknown>;
-  const parentType = scoreObj.generalLeadId != null ? "general_lead"
-    : scoreObj.websiteBookingRequestId != null ? "website_booking_request"
+  const parentType = score["generalLeadId"] != null ? "general_lead"
+    : score["websiteBookingRequestId"] != null ? "website_booking_request"
     : "route_signup";
-  const parentId = (scoreObj.generalLeadId ?? scoreObj.websiteBookingRequestId ?? scoreObj.routeSignupId) as string;
+  const rawParentId = score["generalLeadId"] ?? score["websiteBookingRequestId"] ?? score["routeSignupId"];
+  const parentId = typeof rawParentId === "string" ? rawParentId : "";
 
   const parentApiPath = parentType === "general_lead" ? `/api/general-leads/${parentId}`
     : parentType === "website_booking_request" ? `/api/website-booking-requests/${parentId}`
@@ -38,7 +38,7 @@ export const load = async ({ locals, cookies, params }: RequestEvent): Promise<{
     if (parentRes.ok) {
       const parentRaw: unknown = await parentRes.json();
       if (isObjData(parentRaw)) {
-        parentEntity = { ...(parentRaw.data as Record<string, unknown>), type: parentType };
+        parentEntity = { ...parentRaw.data, type: parentType };
       }
     }
   } catch {

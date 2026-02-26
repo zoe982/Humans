@@ -1,10 +1,21 @@
 import { eq, desc } from "drizzle-orm";
-import { colleagues, auditLog } from "@humans/db/schema";
+import { colleagues, roles, auditLog } from "@humans/db/schema";
+import type { Role } from "@humans/db/schema";
 import { createId } from "@humans/db";
 import { ERROR_CODES } from "@humans/shared";
 import { notFound, conflict } from "../lib/errors";
 import { nextDisplayId } from "../lib/display-id";
 import type { DB } from "./types";
+
+const rolesSet = new Set<string>(roles);
+
+function isRole(value: string): value is Role {
+  return rolesSet.has(value);
+}
+
+function toRole(value: string): Role {
+  return isRole(value) ? value : "viewer";
+}
 
 export async function listColleagues(db: DB): Promise<(typeof colleagues.$inferSelect)[]> {
   const allColleagues = await db.select().from(colleagues);
@@ -54,14 +65,14 @@ export async function createColleague(
     name: displayName,
     avatarUrl: null,
     googleId: null,
-    role: data.role as typeof colleagues.$inferInsert.role,
+    role: toRole(data.role),
     isActive: true,
     createdAt: now,
     updatedAt: now,
   };
 
   await db.insert(colleagues).values(newColleague);
-  return { ...newColleague, role: newColleague.role as string };
+  return { ...newColleague };
 }
 
 export async function updateColleague(

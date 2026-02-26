@@ -1,10 +1,21 @@
 import { eq, and, gte, lte, sql, desc, like, or, inArray } from "drizzle-orm";
-import { activities, humans, accounts, colleagues, geoInterestExpressions, geoInterests, routeInterestExpressions, routeInterests, activityOpportunities, opportunities } from "@humans/db/schema";
+import { activities, activityTypeValues, humans, accounts, colleagues, geoInterestExpressions, geoInterests, routeInterestExpressions, routeInterests, activityOpportunities, opportunities } from "@humans/db/schema";
+import type { ActivityType } from "@humans/db/schema";
 import { createId } from "@humans/db";
 import { ERROR_CODES } from "@humans/shared";
 import { notFound, conflict } from "../lib/errors";
 import { nextDisplayId } from "../lib/display-id";
 import type { DB } from "./types";
+
+const activityTypeValuesSet = new Set<string>(activityTypeValues);
+
+function isActivityType(value: string): value is ActivityType {
+  return activityTypeValuesSet.has(value);
+}
+
+function toActivityType(value: string): ActivityType {
+  return isActivityType(value) ? value : "email";
+}
 
 interface ActivityFilters {
   humanId?: string | undefined;
@@ -290,7 +301,7 @@ export async function createActivity(
   const activity = {
     id: createId(),
     displayId,
-    type: (data.type ?? "email") as typeof activities.$inferInsert.type,
+    type: toActivityType(data.type ?? "email"),
     subject: data.subject ?? "",
     body: data.notes ?? null,
     notes: data.notes ?? null,
@@ -312,7 +323,7 @@ export async function createActivity(
   };
 
   await db.insert(activities).values(activity);
-  return { ...activity, type: activity.type as string };
+  return { ...activity };
 }
 
 export async function updateActivity(

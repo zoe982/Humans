@@ -97,8 +97,7 @@
     customerHasFlown: boolean;
   };
 
-  let leadScore = $state<LeadScoreFull | null>(null);
-  $effect(() => { leadScore = data.leadScore as LeadScoreFull | null; });
+  let leadScore = $derived(data.leadScore as LeadScoreFull | null);
 
   // Auto-create lead score on first view if none exists
   $effect(() => {

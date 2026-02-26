@@ -1,38 +1,7 @@
 <script lang="ts">
-  type Attribution = {
-    ftUtmSource: string | null;
-    ltUtmSource: string | null;
-    ftUtmMedium: string | null;
-    ltUtmMedium: string | null;
-    ftUtmCampaign: string | null;
-    ltUtmCampaign: string | null;
-    ftUtmContent: string | null;
-    ltUtmContent: string | null;
-    ftUtmTerm: string | null;
-    ltUtmTerm: string | null;
-    ftLandingPageUrl: string | null;
-    ltLandingPageUrl: string | null;
-    ftReferrerUrl: string | null;
-    ltReferrerUrl: string | null;
-    ftGclid: string | null;
-    ltGclid: string | null;
-    ftGbraid: string | null;
-    ltGbraid: string | null;
-    ftWbraid: string | null;
-    ltWbraid: string | null;
-    ftFbclid: string | null;
-    ltFbclid: string | null;
-    ftFbp: string | null;
-    ltFbp: string | null;
-    ftFbc: string | null;
-    ltFbc: string | null;
-    ftLiFatId: string | null;
-    ltLiFatId: string | null;
-    ftCapturedAt: string | null;
-    ltCapturedAt: string | null;
-    firstTouch: Record<string, unknown> | null;
-    lastTouch: Record<string, unknown> | null;
-  };
+  import { SvelteSet } from "svelte/reactivity";
+
+  type Attribution = Record<string, unknown>;
 
   let { attribution }: { attribution: Attribution } = $props();
 
@@ -58,36 +27,45 @@
   // Filter to only rows where at least one side is non-null
   const visibleFields = $derived(
     knownFields.filter(([, ftKey, ltKey]) =>
+      // eslint-disable-next-line security/detect-object-injection
       attribution[ftKey] != null || attribution[ltKey] != null
     )
   );
 
   // Covered keys for dynamic fallback
-  const coveredFtKeys = new Set([
+  const coveredFtKeys = new SvelteSet([
     "ftUtmSource", "ftUtmMedium", "ftUtmCampaign", "ftUtmContent", "ftUtmTerm",
     "ftLandingPageUrl", "ftReferrerUrl", "ftGclid", "ftGbraid", "ftWbraid",
     "ftFbclid", "ftFbp", "ftFbc", "ftLiFatId", "ftCapturedAt",
   ]);
-  const coveredLtKeys = new Set([
+  const coveredLtKeys = new SvelteSet([
     "ltUtmSource", "ltUtmMedium", "ltUtmCampaign", "ltUtmContent", "ltUtmTerm",
     "ltLandingPageUrl", "ltReferrerUrl", "ltGclid", "ltGbraid", "ltWbraid",
     "ltFbclid", "ltFbp", "ltFbc", "ltLiFatId", "ltCapturedAt",
   ]);
 
+  function toEntries(val: unknown): [string, unknown][] {
+    if (typeof val !== "object" || val === null) return [];
+     
+    return Object.entries(val as Record<string, unknown>);
+  }
+
+  function lookupKey(obj: unknown, key: string): unknown {
+    if (typeof obj !== "object" || obj === null) return undefined;
+    // eslint-disable-next-line security/detect-object-injection -- narrowed to non-null object above
+    return (obj as Record<string, unknown>)[key];
+  }
+
   // Extra keys from firstTouch/lastTouch JSONB not already covered
   const extraFtEntries = $derived(
-    attribution.firstTouch != null
-      ? Object.entries(attribution.firstTouch).filter(([k]) => !coveredFtKeys.has(k))
-      : []
+    toEntries(attribution.firstTouch).filter(([k]) => !coveredFtKeys.has(k))
   );
   const extraLtEntries = $derived(
-    attribution.lastTouch != null
-      ? Object.entries(attribution.lastTouch).filter(([k]) => !coveredLtKeys.has(k))
-      : []
+    toEntries(attribution.lastTouch).filter(([k]) => !coveredLtKeys.has(k))
   );
   // Merge extra keys from both sides
   const extraKeys = $derived(() => {
-    const keys = new Set<string>();
+    const keys = new SvelteSet<string>();
     for (const [k] of extraFtEntries) keys.add(k);
     for (const [k] of extraLtEntries) keys.add(k);
     return [...keys];
@@ -122,20 +100,26 @@
     </thead>
     <tbody>
       {#each visibleFields as [label, ftKey, ltKey], i (i)}
+        <!-- eslint-disable-next-line security/detect-object-injection -->
+        {@const ftVal = attribution[ftKey]}
+        <!-- eslint-disable-next-line security/detect-object-injection -->
+        {@const ltVal = attribution[ltKey]}
         <tr class="border-b border-glass-border/50">
           <td class="py-2 pr-4 text-text-muted font-medium">{label}</td>
           <td class="py-2 pr-4 text-text-primary break-all">
-            {#if isUrl(attribution[ftKey])}
-              <a href={String(attribution[ftKey])} target="_blank" rel="noopener noreferrer" class="text-accent hover:text-[var(--link-hover)] underline">{formatValue(attribution[ftKey])}</a>
+            {#if isUrl(ftVal)}
+              <!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
+              <a href={String(ftVal)} target="_blank" rel="noopener noreferrer" class="text-accent hover:text-[var(--link-hover)] underline">{formatValue(ftVal)}</a>
             {:else}
-              {formatValue(attribution[ftKey])}
+              {formatValue(ftVal)}
             {/if}
           </td>
           <td class="py-2 text-text-primary break-all">
-            {#if isUrl(attribution[ltKey])}
-              <a href={String(attribution[ltKey])} target="_blank" rel="noopener noreferrer" class="text-accent hover:text-[var(--link-hover)] underline">{formatValue(attribution[ltKey])}</a>
+            {#if isUrl(ltVal)}
+              <!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
+              <a href={String(ltVal)} target="_blank" rel="noopener noreferrer" class="text-accent hover:text-[var(--link-hover)] underline">{formatValue(ltVal)}</a>
             {:else}
-              {formatValue(attribution[ltKey])}
+              {formatValue(ltVal)}
             {/if}
           </td>
         </tr>
@@ -143,8 +127,8 @@
       {#each extraKeys() as key, i (i)}
         <tr class="border-b border-glass-border/50">
           <td class="py-2 pr-4 text-text-muted font-medium">{key}</td>
-          <td class="py-2 pr-4 text-text-primary break-all">{formatValue(attribution.firstTouch?.[key])}</td>
-          <td class="py-2 text-text-primary break-all">{formatValue(attribution.lastTouch?.[key])}</td>
+          <td class="py-2 pr-4 text-text-primary break-all">{formatValue(lookupKey(attribution.firstTouch, key))}</td>
+          <td class="py-2 text-text-primary break-all">{formatValue(lookupKey(attribution.lastTouch, key))}</td>
         </tr>
       {/each}
     </tbody>

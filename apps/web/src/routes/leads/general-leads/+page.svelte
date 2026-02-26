@@ -27,7 +27,8 @@
 
   let filterStatus = $state("");
   let filterQ = $state("");
-  let showImportForm = $state(false);
+  let showImportPopover = $state(false);
+  let importInputEl = $state<HTMLInputElement | undefined>(undefined);
 
   const leads = $derived(
     allLeads.filter((lead) => {
@@ -43,6 +44,22 @@
       return true;
     }),
   );
+
+  function openImportPopover() {
+    showImportPopover = true;
+    // Focus the input on the next frame once it is mounted
+    requestAnimationFrame(() => {
+      importInputEl?.focus();
+    });
+  }
+
+  function closeImportPopover() {
+    showImportPopover = false;
+  }
+
+  function handleImportKeydown(e: KeyboardEvent) {
+    if (e.key === "Escape") closeImportPopover();
+  }
 </script>
 
 <EntityListPage
@@ -65,32 +82,77 @@
   canDelete={data.userRole === "admin"}
 >
   {#snippet headerAction()}
-    <div class="flex gap-2">
-      <button type="button" class="btn-secondary" onclick={() => { showImportForm = !showImportForm; }}>
-        Import from Front
-      </button>
+    <div class="flex items-center gap-2">
+      <!-- Import from Front — ghost button with anchored popover -->
+      <div class="relative">
+        <button
+          type="button"
+          class="btn-ghost"
+          onclick={openImportPopover}
+          aria-expanded={showImportPopover}
+          aria-haspopup="true"
+        >
+          Import from Front
+        </button>
+
+        {#if showImportPopover}
+          <!-- Backdrop to catch outside clicks -->
+          <div
+            class="fixed inset-0 z-10"
+            role="presentation"
+            onclick={closeImportPopover}
+            onkeydown={handleImportKeydown}
+          ></div>
+
+          <!-- Popover panel — anchored to the button, z-20 above backdrop -->
+          <div
+            class="absolute right-0 top-full mt-2 z-20 glass-popover glass-dropdown-animate w-72 p-4"
+            role="dialog"
+            aria-label="Import from Front"
+          >
+            <p class="text-xs font-medium text-text-secondary mb-3">
+              Import a Front conversation or message as a lead
+            </p>
+            <form
+              method="POST"
+              action="?/importFromFront"
+              use:enhance={() => {
+                return async ({ result, update }) => {
+                  if (result.type === "redirect" || (result.type === "success")) {
+                    closeImportPopover();
+                  }
+                  await update();
+                };
+              }}
+            >
+              <div class="flex gap-2 items-center">
+                <input
+                  bind:this={importInputEl}
+                  id="frontId"
+                  name="frontId"
+                  type="text"
+                  class="glass-input flex-1 min-w-0 py-1.5 text-sm font-mono"
+                  placeholder="msg_xxx or cnv_xxx"
+                  onkeydown={handleImportKeydown}
+                  autocomplete="off"
+                  spellcheck={false}
+                />
+                <button type="submit" class="btn-primary shrink-0 py-1.5 px-3 text-sm">
+                  Import
+                </button>
+              </div>
+              {#if form?.importError}
+                <p class="mt-2 text-xs text-[#fca5a5]">{form.importError}</p>
+              {/if}
+            </form>
+          </div>
+        {/if}
+      </div>
+
       <a href={resolve("/leads/general-leads/new")} class="btn-primary">New Lead</a>
     </div>
   {/snippet}
   {#snippet searchForm()}
-    {#if showImportForm}
-      <div class="mt-4 mb-4 glass-card p-4">
-        <form method="POST" action="?/importFromFront" use:enhance>
-          <div class="flex flex-wrap gap-3 items-end">
-            <div class="flex-1 min-w-[250px]">
-              <label for="frontId" class="block text-xs font-medium text-text-muted mb-1">Front Message or Conversation ID</label>
-              <input id="frontId" name="frontId" type="text" class="glass-input w-full px-3 py-1.5 text-sm" placeholder="msg_xxx or cnv_xxx" />
-            </div>
-            <button type="submit" class="btn-primary text-sm">Import</button>
-            <button type="button" class="btn-ghost text-sm" onclick={() => { showImportForm = false; }}>Cancel</button>
-          </div>
-          <p class="text-xs text-text-muted mt-2">Paste a Front message ID (msg_xxx) or conversation ID (cnv_xxx) to import the contact as a lead with all messages as activities.</p>
-        </form>
-        {#if form?.importError}
-          <div class="mt-2 text-sm text-red-400">{form.importError}</div>
-        {/if}
-      </div>
-    {/if}
     <div class="mt-4 mb-6 flex flex-wrap gap-3 items-end">
       <div>
         <label for="status" class="block text-xs font-medium text-text-muted mb-1">Status</label>

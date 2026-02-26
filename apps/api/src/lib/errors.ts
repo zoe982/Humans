@@ -1,5 +1,5 @@
 import type { ErrorCode } from "@humans/shared";
-import type { StatusCode } from "hono/utils/http-status";
+import type { ContentfulStatusCode } from "hono/utils/http-status";
 
 /**
  * Structured application error.
@@ -8,7 +8,7 @@ import type { StatusCode } from "hono/utils/http-status";
 export class AppError extends Error {
   constructor(
     public readonly code: ErrorCode,
-    public readonly status: StatusCode,
+    public readonly status: ContentfulStatusCode,
     message: string,
     public readonly details?: unknown,
   ) {

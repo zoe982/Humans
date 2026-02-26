@@ -12,7 +12,7 @@ function isScoreListResponse(value: unknown): value is ScoreListResponse {
     typeof value === "object" &&
     value !== null &&
     "data" in value &&
-    Array.isArray((value as ScoreListResponse).data) &&
+    Array.isArray((value as { data: unknown }).data) &&
     "meta" in value
   );
 }

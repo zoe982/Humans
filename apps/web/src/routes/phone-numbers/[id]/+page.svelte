@@ -210,6 +210,7 @@
       <div class="mt-4 space-y-2">
         {#each relationships as rel, i (i)}
           <div class="text-sm">
+            <!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
             <a href={rel.href} class="text-accent hover:text-[var(--link-hover)] font-mono">{rel.displayId}</a>
             {#if rel.name}
               <span class="text-text-secondary ml-1">({rel.name})</span>

@@ -1,8 +1,18 @@
 import { eq } from "drizzle-orm";
-import { leadSources, leadEvents, type LeadEventType } from "@humans/db/schema";
+import { leadSources, leadSourceCategories, leadEvents, type LeadEventType, type LeadSourceCategory } from "@humans/db/schema";
 import { createId } from "@humans/db";
 import { nextDisplayId } from "../lib/display-id";
 import type { DB } from "./types";
+
+const leadSourceCategoriesSet = new Set<string>(leadSourceCategories);
+
+function isLeadSourceCategory(value: string): value is LeadSourceCategory {
+  return leadSourceCategoriesSet.has(value);
+}
+
+function toLeadSourceCategory(value: unknown): LeadSourceCategory {
+  return typeof value === "string" && isLeadSourceCategory(value) ? value : "direct";
+}
 
 export async function listLeadSources(db: DB): Promise<(typeof leadSources.$inferSelect)[]> {
   const sources = await db.select().from(leadSources);
@@ -19,17 +29,18 @@ export async function createLeadSource(
   const now = new Date().toISOString();
   const displayId = await nextDisplayId(db, "LES");
 
-  const newSource = {
+  const insertRecord: typeof leadSources.$inferInsert = {
     id: createId(),
     displayId,
-    ...data,
+    name: data.name,
+    category: toLeadSourceCategory(data["category"]),
     isActive: true,
     createdAt: now,
     updatedAt: now,
   };
 
-  await db.insert(leadSources).values(newSource as typeof leadSources.$inferInsert);
-  return newSource;
+  await db.insert(leadSources).values(insertRecord);
+  return { ...insertRecord, ...data };
 }
 
 export async function listLeadEvents(db: DB, humanId?: string): Promise<(typeof leadEvents.$inferSelect)[]> {
@@ -58,18 +69,23 @@ export async function createLeadEvent(
 ): Promise<Record<string, unknown>> {
   const displayId = await nextDisplayId(db, "LED");
 
-  const newEvent = {
+  const rawMetadata = data.metadata;
+  const metadata: Record<string, unknown> | null =
+    rawMetadata != null && typeof rawMetadata === "object" && !Array.isArray(rawMetadata)
+      ? Object.fromEntries(Object.entries(rawMetadata))
+      : null;
+
+  const insertRecord: typeof leadEvents.$inferInsert = {
     id: createId(),
     displayId,
-    ...data,
     humanId: data.humanId,
     eventType: data.eventType,
     notes: data.notes ?? null,
-    metadata: (data.metadata ?? null) as Record<string, unknown> | null,
+    metadata,
     createdByColleagueId: colleagueId ?? null,
     createdAt: new Date().toISOString(),
   };
 
-  await db.insert(leadEvents).values(newEvent as typeof leadEvents.$inferInsert);
-  return newEvent;
+  await db.insert(leadEvents).values(insertRecord);
+  return { ...insertRecord, ...data };
 }

@@ -44,21 +44,18 @@ export const load = async ({ locals, cookies, params }: RequestEvent): Promise<{
   const fullRes = await fetch(`${PUBLIC_API_URL}/api/humans/${id}/full`, { headers });
   if (!fullRes.ok) redirect(302, "/humans");
   const fullRaw: unknown = await fullRes.json();
-  const fullData = isObjData(fullRaw) ? (fullRaw.data as Record<string, unknown>) : null;
+  const fullData = isObjData(fullRaw) ? fullRaw.data : null;
   if (fullData == null) redirect(302, "/humans");
 
-  const human = fullData.human as Record<string, unknown> | null;
-  if (human == null) redirect(302, "/humans");
+  const humanRaw = fullData.human;
+  if (typeof humanRaw !== "object" || humanRaw === null) redirect(302, "/humans");
+  const human: Record<string, unknown> = Object.fromEntries(Object.entries(humanRaw));
 
-  const activitiesResult = fullData.activities as { data: unknown[] } | undefined;
-  const activities = activitiesResult?.data ?? [];
-  const opportunitiesResult = fullData.opportunities as { data: unknown[] } | undefined;
-  const humanOpportunities = opportunitiesResult?.data ?? [];
-  const generalLeadsResult = fullData.generalLeads as { data: unknown[] } | undefined;
-  const generalLeads = generalLeadsResult?.data ?? [];
-  const humanRelationships = (fullData.relationships ?? []) as unknown[];
-  const agreementsResult = fullData.agreements as { data: unknown[] } | undefined;
-  const humanAgreements = agreementsResult?.data ?? [];
+  const activities = isListData(fullData.activities) ? fullData.activities.data : [];
+  const humanOpportunities = isListData(fullData.opportunities) ? fullData.opportunities.data : [];
+  const generalLeads = isListData(fullData.generalLeads) ? fullData.generalLeads.data : [];
+  const humanRelationships = Array.isArray(fullData.relationships) ? fullData.relationships : [];
+  const humanAgreements = isListData(fullData.agreements) ? fullData.agreements.data : [];
 
   // Helper: fetch + consume body immediately to release connection
   async function fetchList(url: string): Promise<unknown[]> {
@@ -90,7 +87,7 @@ export const load = async ({ locals, cookies, params }: RequestEvent): Promise<{
   if (dropdownRes.ok) {
     const dropdownRaw: unknown = await dropdownRes.json();
     if (isObjData(dropdownRaw)) {
-      const dd = dropdownRaw.data as Record<string, unknown>;
+      const dd = dropdownRaw.data;
       allAccounts = Array.isArray(dd.accounts) ? dd.accounts : [];
       allHumans = Array.isArray(dd.humans) ? dd.humans : [];
       allDiscountCodes = Array.isArray(dd.discountCodes) ? dd.discountCodes : [];
@@ -100,19 +97,25 @@ export const load = async ({ locals, cookies, params }: RequestEvent): Promise<{
   // Derive convertedFromLead from the first general lead (backwards compat)
   const firstLead = generalLeads[0];
   const convertedFromLead = firstLead != null && typeof firstLead === "object" && "id" in firstLead && "displayId" in firstLead
-    ? { id: String((firstLead as Record<string, unknown>).id), displayId: String((firstLead as Record<string, unknown>).displayId) }
+    ? { id: String(firstLead.id), displayId: String(firstLead.displayId) }
     : null;
 
   // Enrich linked route signups with Supabase data
   interface SupabaseSignup { id: string; display_id?: string | null; first_name?: string | null; last_name?: string | null; origin?: string | null; destination?: string | null }
-  const humanData = human as {
-    linkedRouteSignups?: { id: string; routeSignupId: string; linkedAt: string }[];
-    linkedWebsiteBookingRequests?: { id: string; websiteBookingRequestId: string; linkedAt: string }[];
-  };
+  interface LinkedRouteSignup { id: string; routeSignupId: string; linkedAt: string }
+  interface LinkedBookingRequest { id: string; websiteBookingRequestId: string; linkedAt: string }
+  function isLinkedRouteSignup(v: unknown): v is LinkedRouteSignup {
+    return typeof v === "object" && v !== null && "id" in v && "routeSignupId" in v && "linkedAt" in v;
+  }
+  function isLinkedBookingRequest(v: unknown): v is LinkedBookingRequest {
+    return typeof v === "object" && v !== null && "id" in v && "websiteBookingRequestId" in v && "linkedAt" in v;
+  }
+  const linkedRouteSignupsRaw = Array.isArray(human.linkedRouteSignups) ? human.linkedRouteSignups : [];
+  const linkedBookingRequestsRaw = Array.isArray(human.linkedWebsiteBookingRequests) ? human.linkedWebsiteBookingRequests : [];
   function isSupabaseSignup(v: unknown): v is SupabaseSignup {
     return typeof v === "object" && v !== null && "id" in v;
   }
-  const enrichedLinkedSignups = (humanData.linkedRouteSignups ?? []).map((link) => {
+  const enrichedLinkedSignups = linkedRouteSignupsRaw.filter(isLinkedRouteSignup).map((link) => {
     const signupRaw = allRouteSignups.find((s) => isSupabaseSignup(s) && s.id === link.routeSignupId);
     const signup = isSupabaseSignup(signupRaw) ? signupRaw : null;
     const joinedName = signup != null ? [signup.first_name, signup.last_name].filter(Boolean).join(" ") : "";
@@ -130,7 +133,7 @@ export const load = async ({ locals, cookies, params }: RequestEvent): Promise<{
   function isSupabaseBooking(v: unknown): v is SupabaseBooking {
     return typeof v === "object" && v !== null && "id" in v;
   }
-  const enrichedLinkedBookingRequests = (humanData.linkedWebsiteBookingRequests ?? []).map((link) => {
+  const enrichedLinkedBookingRequests = linkedBookingRequestsRaw.filter(isLinkedBookingRequest).map((link) => {
     const bookingRaw = allBookingRequests.find((b) => isSupabaseBooking(b) && b.id === link.websiteBookingRequestId);
     const booking = isSupabaseBooking(bookingRaw) ? bookingRaw : null;
     const joinedName = booking != null ? [booking.first_name, booking.last_name].filter(Boolean).join(" ") : "";
@@ -203,7 +206,7 @@ export const actions = {
 
     let activityId: string | undefined;
     if (isObjData(resBody)) {
-      activityId = (resBody.data as { id?: string }).id;
+      activityId = typeof resBody.data.id === "string" ? resBody.data.id : undefined;
     }
 
     // Create geo-interest expressions from JSON array
@@ -841,7 +844,7 @@ export const actions = {
     }
 
     const createBody: unknown = await createRes.json();
-    const newAccountId = isObjData(createBody) ? (createBody.data as { id?: string }).id : undefined;
+    const newAccountId = isObjData(createBody) && typeof createBody.data.id === "string" ? createBody.data.id : undefined;
 
     if (newAccountId == null) {
       return fail(500, { error: "Failed to get new account ID" });
@@ -1067,7 +1070,7 @@ export const actions = {
     // Upload file if present
     const file = form.get("file");
     if (file instanceof File && file.size > 0 && isObjData(resBody)) {
-      const agreementId = (resBody.data as { id?: string }).id;
+      const agreementId = typeof resBody.data.id === "string" ? resBody.data.id : undefined;
       if (agreementId != null && agreementId !== "") {
         const uploadForm = new FormData();
         uploadForm.append("file", file);

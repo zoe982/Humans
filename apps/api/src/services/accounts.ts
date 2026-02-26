@@ -1,6 +1,7 @@
 import { eq, inArray } from "drizzle-orm";
 import {
   accounts,
+  accountStatuses,
   accountTypes,
   accountTypesConfig,
   accountHumans,
@@ -15,6 +16,7 @@ import {
   socialIdPlatformsConfig,
   websites,
 } from "@humans/db/schema";
+import type { AccountStatus } from "@humans/db/schema";
 import { createId } from "@humans/db";
 import { ERROR_CODES } from "@humans/shared";
 import { computeDiff, logAuditEntry } from "../lib/audit";
@@ -23,6 +25,16 @@ import { assertUniqueIds } from "../lib/assert-unique-ids";
 import { nextDisplayId } from "../lib/display-id";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { DB } from "./types";
+
+const accountStatusesSet = new Set<string>(accountStatuses);
+
+function isAccountStatus(value: string): value is AccountStatus {
+  return accountStatusesSet.has(value);
+}
+
+function toAccountStatus(value: string): AccountStatus {
+  return isAccountStatus(value) ? value : "open";
+}
 
 export async function listAccounts(db: DB): Promise<{ data: { id: string; displayId: string; name: string; status: string; createdAt: string; updatedAt: string; types: { id: string; name: string }[] }[] }> {
   const allAccounts = await db.select().from(accounts);
@@ -212,7 +224,7 @@ export async function createAccount(
     id: accountId,
     displayId,
     name: data.name,
-    status: (data.status ?? "open") as typeof accounts.$inferInsert.status,
+    status: toAccountStatus(data.status ?? "open"),
     createdAt: now,
     updatedAt: now,
   });
@@ -313,7 +325,7 @@ export async function updateAccountStatus(
   const oldStatus = existing.status;
   await db
     .update(accounts)
-    .set({ status: status as typeof accounts.$inferInsert.status, updatedAt: new Date().toISOString() })
+    .set({ status: toAccountStatus(status), updatedAt: new Date().toISOString() })
     .where(eq(accounts.id, id));
 
   // Audit log
