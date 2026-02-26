@@ -11,7 +11,7 @@ const mockApi = vi.mocked(api);
 
 // ── Shared fixture ────────────────────────────────────────────────────────────
 
-type LeadScoreFull = {
+interface LeadScoreFull {
   id: string;
   scoreTotal: number;
   scoreFit: number;
@@ -33,7 +33,7 @@ type LeadScoreFull = {
   negativePriceObjection: boolean;
   negativeGhostedAfterPaymentSent: boolean;
   customerHasFlown: boolean;
-};
+}
 
 const defaultLeadScore: LeadScoreFull = {
   id: "ls-1",
@@ -337,7 +337,7 @@ describe("LeadScoreInlineFlags", () => {
     renderComponent();
     const checkboxes = screen.getAllByRole("checkbox");
     for (const cb of checkboxes) {
-      expect((cb as HTMLInputElement).checked).toBe(false);
+      expect(cb instanceof HTMLInputElement && cb.checked).toBe(false);
     }
   });
 
@@ -347,44 +347,44 @@ describe("LeadScoreInlineFlags", () => {
     renderComponent({
       leadScore: { ...defaultLeadScore, fitMatchesCurrentWebsiteFlight: true },
     });
-    const checkboxes = screen.getAllByRole("checkbox") as HTMLInputElement[];
+    const checkboxes = screen.getAllByRole("checkbox");
     // First checkbox is fitMatchesCurrentWebsiteFlight
-    expect(checkboxes[0]?.checked).toBe(true);
+    expect(checkboxes[0] instanceof HTMLInputElement && checkboxes[0].checked).toBe(true);
   });
 
   it("renders fitPriceAcknowledgedOk checkbox as checked when flag is true", () => {
     renderComponent({
       leadScore: { ...defaultLeadScore, fitPriceAcknowledgedOk: true },
     });
-    const checkboxes = screen.getAllByRole("checkbox") as HTMLInputElement[];
-    expect(checkboxes[1]?.checked).toBe(true);
+    const checkboxes = screen.getAllByRole("checkbox");
+    expect(checkboxes[1] instanceof HTMLInputElement && checkboxes[1].checked).toBe(true);
   });
 
   it("renders intentDepositPaid checkbox as checked when flag is true", () => {
     renderComponent({
       leadScore: { ...defaultLeadScore, intentDepositPaid: true },
     });
-    const checkboxes = screen.getAllByRole("checkbox") as HTMLInputElement[];
+    const checkboxes = screen.getAllByRole("checkbox");
     // intentDepositPaid is in column 2, checkbox index 4 (after 2 fit + 2 engagement)
-    expect(checkboxes[4]?.checked).toBe(true);
+    expect(checkboxes[4] instanceof HTMLInputElement && checkboxes[4].checked).toBe(true);
   });
 
   it("renders customerHasFlown checkbox as checked when flag is true", () => {
     renderComponent({
       leadScore: { ...defaultLeadScore, customerHasFlown: true },
     });
-    const checkboxes = screen.getAllByRole("checkbox") as HTMLInputElement[];
+    const checkboxes = screen.getAllByRole("checkbox");
     // Last checkbox is customerHasFlown
-    expect(checkboxes[14]?.checked).toBe(true);
+    expect(checkboxes[14] instanceof HTMLInputElement && checkboxes[14].checked).toBe(true);
   });
 
   it("renders negativeNoContactMethod checkbox as checked when flag is true", () => {
     renderComponent({
       leadScore: { ...defaultLeadScore, negativeNoContactMethod: true },
     });
-    const checkboxes = screen.getAllByRole("checkbox") as HTMLInputElement[];
+    const checkboxes = screen.getAllByRole("checkbox");
     // negativeNoContactMethod: index 10 (after 2 fit + 6 intent + 2 engagement)
-    expect(checkboxes[10]?.checked).toBe(true);
+    expect(checkboxes[10] instanceof HTMLInputElement && checkboxes[10].checked).toBe(true);
   });
 
   it("renders multiple checked checkboxes when multiple flags are true", () => {
@@ -396,8 +396,8 @@ describe("LeadScoreInlineFlags", () => {
         negativeNoContactMethod: true,
       },
     });
-    const checkboxes = screen.getAllByRole("checkbox") as HTMLInputElement[];
-    const checkedCount = checkboxes.filter((cb) => cb.checked).length;
+    const checkboxes = screen.getAllByRole("checkbox");
+    const checkedCount = checkboxes.filter((cb) => cb instanceof HTMLInputElement && cb.checked).length;
     expect(checkedCount).toBe(3);
   });
 
@@ -454,12 +454,20 @@ describe("LeadScoreInlineFlags", () => {
 
   // ── Toggle interaction ────────────────────────────────────────────────────
 
+  /** Get a checkbox by index, throwing if not found (getAllByRole guarantees results). */
+  function getCheckbox(checkboxes: HTMLElement[], index: number): HTMLElement {
+    // eslint-disable-next-line security/detect-object-injection -- test helper with controlled index
+    const el = checkboxes[index];
+    if (el === undefined) throw new Error("Checkbox at index " + String(index) + " not found");
+    return el;
+  }
+
   it("calls api() with correct PATCH URL and payload when a checkbox is clicked", async () => {
     mockApi.mockResolvedValue({ data: { ...defaultLeadScore, fitMatchesCurrentWebsiteFlight: true } });
     renderComponent();
 
     const checkboxes = screen.getAllByRole("checkbox");
-    await fireEvent.click(checkboxes[0] as HTMLElement);
+    await fireEvent.click(getCheckbox(checkboxes, 0));
 
     expect(mockApi).toHaveBeenCalledWith(
       "/api/lead-scores/ls-1/flags",
@@ -475,7 +483,7 @@ describe("LeadScoreInlineFlags", () => {
     renderComponent();
 
     const checkboxes = screen.getAllByRole("checkbox");
-    await fireEvent.click(checkboxes[1] as HTMLElement);
+    await fireEvent.click(getCheckbox(checkboxes, 1));
 
     expect(mockApi).toHaveBeenCalledWith(
       "/api/lead-scores/ls-1/flags",
@@ -491,7 +499,7 @@ describe("LeadScoreInlineFlags", () => {
     renderComponent();
 
     const checkboxes = screen.getAllByRole("checkbox");
-    await fireEvent.click(checkboxes[14] as HTMLElement);
+    await fireEvent.click(getCheckbox(checkboxes, 14));
 
     expect(mockApi).toHaveBeenCalledWith(
       "/api/lead-scores/ls-1/flags",
@@ -507,7 +515,7 @@ describe("LeadScoreInlineFlags", () => {
     renderComponent({ leadScore: { ...defaultLeadScore, id: "ls-99" } });
 
     const checkboxes = screen.getAllByRole("checkbox");
-    await fireEvent.click(checkboxes[0] as HTMLElement);
+    await fireEvent.click(getCheckbox(checkboxes, 0));
 
     expect(mockApi).toHaveBeenCalledWith(
       "/api/lead-scores/ls-99/flags",
@@ -520,10 +528,11 @@ describe("LeadScoreInlineFlags", () => {
     mockApi.mockResolvedValue({ data: updatedScore });
 
     const onScoreUpdate = vi.fn();
+    // eslint-disable-next-line @typescript-eslint/strict-void-return -- render return unused in test
     renderComponent({ onScoreUpdate });
 
     const checkboxes = screen.getAllByRole("checkbox");
-    await fireEvent.click(checkboxes[0] as HTMLElement);
+    await fireEvent.click(getCheckbox(checkboxes, 0));
 
     await waitFor(() => {
       expect(onScoreUpdate).toHaveBeenCalledOnce();
@@ -535,10 +544,11 @@ describe("LeadScoreInlineFlags", () => {
     mockApi.mockResolvedValue({ something: "else" });
 
     const onScoreUpdate = vi.fn();
+    // eslint-disable-next-line @typescript-eslint/strict-void-return -- render return unused in test
     renderComponent({ onScoreUpdate });
 
     const checkboxes = screen.getAllByRole("checkbox");
-    await fireEvent.click(checkboxes[0] as HTMLElement);
+    await fireEvent.click(getCheckbox(checkboxes, 0));
 
     await waitFor(() => {
       expect(onScoreUpdate).not.toHaveBeenCalled();
@@ -549,10 +559,11 @@ describe("LeadScoreInlineFlags", () => {
     mockApi.mockResolvedValue(null);
 
     const onScoreUpdate = vi.fn();
+    // eslint-disable-next-line @typescript-eslint/strict-void-return -- render return unused in test
     renderComponent({ onScoreUpdate });
 
     const checkboxes = screen.getAllByRole("checkbox");
-    await fireEvent.click(checkboxes[0] as HTMLElement);
+    await fireEvent.click(getCheckbox(checkboxes, 0));
 
     await waitFor(() => {
       expect(onScoreUpdate).not.toHaveBeenCalled();
@@ -564,14 +575,14 @@ describe("LeadScoreInlineFlags", () => {
     mockApi.mockResolvedValue({ data: updatedScore });
     renderComponent();
 
-    const checkboxes = screen.getAllByRole("checkbox") as HTMLInputElement[];
-    expect(checkboxes[0]?.checked).toBe(false);
+    const checkboxes = screen.getAllByRole("checkbox");
+    expect(getCheckbox(checkboxes, 0) instanceof HTMLInputElement && getCheckbox(checkboxes, 0).checked).toBe(false);
 
-    await fireEvent.click(checkboxes[0] as HTMLElement);
+    await fireEvent.click(getCheckbox(checkboxes, 0));
 
     await waitFor(() => {
-      const updated = screen.getAllByRole("checkbox") as HTMLInputElement[];
-      expect(updated[0]?.checked).toBe(true);
+      const updated = screen.getAllByRole("checkbox");
+      expect(getCheckbox(updated, 0) instanceof HTMLInputElement && getCheckbox(updated, 0).checked).toBe(true);
     });
   });
 
@@ -582,13 +593,13 @@ describe("LeadScoreInlineFlags", () => {
     mockApi.mockReturnValue(new Promise((resolve) => { resolveApi = resolve; }));
     renderComponent();
 
-    const checkboxes = screen.getAllByRole("checkbox") as HTMLInputElement[];
-    await fireEvent.click(checkboxes[0] as HTMLElement);
+    const checkboxes = screen.getAllByRole("checkbox");
+    await fireEvent.click(getCheckbox(checkboxes, 0));
 
     // While api() hasn't resolved, all checkboxes must be disabled
-    const disabledCheckboxes = screen.getAllByRole("checkbox") as HTMLInputElement[];
+    const disabledCheckboxes = screen.getAllByRole("checkbox");
     for (const cb of disabledCheckboxes) {
-      expect(cb.disabled).toBe(true);
+      expect(cb instanceof HTMLInputElement && cb.disabled).toBe(true);
     }
 
     // Resolve to clean up
@@ -599,13 +610,13 @@ describe("LeadScoreInlineFlags", () => {
     mockApi.mockResolvedValue({ data: defaultLeadScore });
     renderComponent();
 
-    const checkboxes = screen.getAllByRole("checkbox") as HTMLInputElement[];
-    await fireEvent.click(checkboxes[0] as HTMLElement);
+    const checkboxes = screen.getAllByRole("checkbox");
+    await fireEvent.click(getCheckbox(checkboxes, 0));
 
     await waitFor(() => {
-      const afterCheckboxes = screen.getAllByRole("checkbox") as HTMLInputElement[];
+      const afterCheckboxes = screen.getAllByRole("checkbox");
       for (const cb of afterCheckboxes) {
-        expect(cb.disabled).toBe(false);
+        expect(cb instanceof HTMLInputElement && cb.disabled).toBe(false);
       }
     });
   });
@@ -614,13 +625,13 @@ describe("LeadScoreInlineFlags", () => {
     mockApi.mockRejectedValue(new Error("Network error"));
     renderComponent();
 
-    const checkboxes = screen.getAllByRole("checkbox") as HTMLInputElement[];
-    await fireEvent.click(checkboxes[0] as HTMLElement);
+    const checkboxes = screen.getAllByRole("checkbox");
+    await fireEvent.click(getCheckbox(checkboxes, 0));
 
     await waitFor(() => {
-      const afterCheckboxes = screen.getAllByRole("checkbox") as HTMLInputElement[];
+      const afterCheckboxes = screen.getAllByRole("checkbox");
       for (const cb of afterCheckboxes) {
-        expect(cb.disabled).toBe(false);
+        expect(cb instanceof HTMLInputElement && cb.disabled).toBe(false);
       }
     });
   });
