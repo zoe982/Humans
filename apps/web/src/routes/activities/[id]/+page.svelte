@@ -209,8 +209,8 @@
     { id: "created", field: "Created", value: formatDateTime(activity.createdAt) },
     { id: "updated", field: "Updated", value: formatDateTime(activity.updatedAt) },
     { id: "createdBy", field: "Created by", value: isFrontSynced ? "Front.com Sync" : (activity.ownerName ? `${activity.ownerName} (${activity.ownerDisplayId})` : "—") },
-    ...(activity.frontId ? [{ id: "frontId", field: "Front Message ID", value: activity.frontId }] : []),
-    ...(activity.frontConversationId ? [{ id: "frontConversationId", field: "Front Conversation ID", value: activity.frontConversationId }] : []),
+    { id: "frontId", field: "Front Message ID", value: activity.frontId ?? "—" },
+    { id: "frontConversationId", field: "Front Conversation ID", value: activity.frontConversationId ?? "—" },
   ]);
 </script>
 
@@ -233,48 +233,68 @@
     <AlertBanner type="error" message={form.error} />
   {/if}
 
-  <!-- Card 1: Details (Type, Owner, Activity Date) -->
-  <div class="glass-card p-6 space-y-6">
-    <div class="flex items-center gap-3">
-      <h2 class="text-lg font-semibold text-text-primary">Details</h2>
-      <SaveIndicator status={saveStatus} />
+  <!-- Details + Metadata two-column layout -->
+  <div class="grid gap-6 lg:grid-cols-2">
+    <!-- Card 1: Details (Type, Owner, Activity Date) -->
+    <div class="glass-card p-6 space-y-6">
+      <div class="flex items-center gap-3">
+        <h2 class="text-lg font-semibold text-text-primary">Details</h2>
+        <SaveIndicator status={saveStatus} />
+      </div>
+
+      <div class="grid gap-4">
+        <div>
+          <label for="type" class="block text-sm font-medium text-text-secondary">Type</label>
+          <SearchableSelect
+            options={ACTIVITY_TYPE_OPTIONS}
+            name="type"
+            id="type"
+            value={type}
+            placeholder="Select type..."
+            onSelect={(v) => { type = v; triggerSaveImmediate(); }}
+          />
+        </div>
+        <div>
+          <label for="ownerId" class="block text-sm font-medium text-text-secondary">Owner</label>
+          <SearchableSelect
+            options={colleagueOptions}
+            name="ownerId"
+            id="ownerId"
+            value={ownerId}
+            emptyOption="— None —"
+            placeholder="Search colleagues..."
+            onSelect={(v) => { ownerId = v; triggerSaveImmediate(); }}
+          />
+        </div>
+        <div>
+          <label for="activityDate" class="block text-sm font-medium text-text-secondary">Activity Date</label>
+          <input
+            id="activityDate"
+            type="datetime-local"
+            bind:value={activityDate}
+            onchange={() => { if (!isFrontSynced) triggerSaveImmediate(); }}
+            disabled={isFrontSynced}
+            class="glass-input mt-1 block w-full {isFrontSynced ? 'opacity-50 cursor-not-allowed' : ''}"
+          />
+        </div>
+      </div>
     </div>
 
-    <div class="grid gap-4 sm:grid-cols-3">
-      <div>
-        <label for="type" class="block text-sm font-medium text-text-secondary">Type</label>
-        <SearchableSelect
-          options={ACTIVITY_TYPE_OPTIONS}
-          name="type"
-          id="type"
-          value={type}
-          placeholder="Select type..."
-          onSelect={(v) => { type = v; triggerSaveImmediate(); }}
-        />
-      </div>
-      <div>
-        <label for="ownerId" class="block text-sm font-medium text-text-secondary">Owner</label>
-        <SearchableSelect
-          options={colleagueOptions}
-          name="ownerId"
-          id="ownerId"
-          value={ownerId}
-          emptyOption="— None —"
-          placeholder="Search colleagues..."
-          onSelect={(v) => { ownerId = v; triggerSaveImmediate(); }}
-        />
-      </div>
-      <div>
-        <label for="activityDate" class="block text-sm font-medium text-text-secondary">Activity Date</label>
-        <input
-          id="activityDate"
-          type="datetime-local"
-          bind:value={activityDate}
-          onchange={() => { if (!isFrontSynced) triggerSaveImmediate(); }}
-          disabled={isFrontSynced}
-          class="glass-input mt-1 block w-full {isFrontSynced ? 'opacity-50 cursor-not-allowed' : ''}"
-        />
-      </div>
+    <!-- Card 2: Metadata -->
+    <div>
+      <RelatedListTable
+        title="Metadata"
+        items={metadataItems}
+        columns={[
+          { key: "field", label: "Field" },
+          { key: "value", label: "Value" },
+        ]}
+      >
+        {#snippet row(item, _searchQuery)}
+          <td class="text-sm font-medium text-text-secondary">{item.field}</td>
+          <td class="text-sm text-text-primary">{item.value}</td>
+        {/snippet}
+      </RelatedListTable>
     </div>
   </div>
 
@@ -573,23 +593,6 @@
         {:else}
           <p class="text-sm text-text-muted">Link a human to this activity first to add route-interest expressions.</p>
         {/if}
-      {/snippet}
-    </RelatedListTable>
-  </div>
-
-  <!-- Metadata -->
-  <div class="mt-6">
-    <RelatedListTable
-      title="Metadata"
-      items={metadataItems}
-      columns={[
-        { key: "field", label: "Field" },
-        { key: "value", label: "Value" },
-      ]}
-    >
-      {#snippet row(item, _searchQuery)}
-        <td class="text-sm font-medium text-text-secondary">{item.field}</td>
-        <td class="text-sm text-text-primary">{item.value}</td>
       {/snippet}
     </RelatedListTable>
   </div>
