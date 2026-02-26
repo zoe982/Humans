@@ -1,5 +1,5 @@
 import { eq, sql, like, or, and, desc, asc } from "drizzle-orm";
-import { generalLeads, generalLeadStatuses, activities, colleagues, humans, emails, phones } from "@humans/db/schema";
+import { generalLeads, generalLeadStatuses, activities, colleagues, humans, emails, phones, socialIds, socialIdPlatformsConfig } from "@humans/db/schema";
 import type { GeneralLeadStatus } from "@humans/db/schema";
 import { createId } from "@humans/db";
 import { ERROR_CODES } from "@humans/shared";
@@ -107,7 +107,7 @@ export async function listGeneralLeads(
 
 // ─── Detail ──────────────────────────────────────────────────────
 
-export async function getGeneralLead(db: DB, id: string): Promise<{ convertedHumanDisplayId: string | null; convertedHumanName: string | null; activities: (typeof activities.$inferSelect)[]; emails: (typeof emails.$inferSelect)[]; phoneNumbers: (typeof phones.$inferSelect)[]; id: string; displayId: string; status: string; firstName: string; middleName: string | null; lastName: string; notes: string | null; rejectReason: string | null; convertedHumanId: string | null; ownerId: string | null; createdAt: string; updatedAt: string; ownerName: string | null }> {
+export async function getGeneralLead(db: DB, id: string): Promise<{ convertedHumanDisplayId: string | null; convertedHumanName: string | null; activities: (typeof activities.$inferSelect)[]; emails: (typeof emails.$inferSelect)[]; phoneNumbers: (typeof phones.$inferSelect)[]; socialIds: ((typeof socialIds.$inferSelect) & { platformName: string | null })[]; id: string; displayId: string; status: string; firstName: string; middleName: string | null; lastName: string; notes: string | null; rejectReason: string | null; convertedHumanId: string | null; ownerId: string | null; createdAt: string; updatedAt: string; ownerName: string | null }> {
   const rows = await db
     .select({
       id: generalLeads.id,
@@ -151,9 +151,19 @@ export async function getGeneralLead(db: DB, id: string): Promise<{ convertedHum
     .where(eq(activities.generalLeadId, id))
     .orderBy(desc(activities.activityDate));
 
-  // Linked emails and phones
+  // Linked emails, phones, and social IDs
   const leadEmails = await db.select().from(emails).where(eq(emails.generalLeadId, id));
   const leadPhones = await db.select().from(phones).where(eq(phones.generalLeadId, id));
+  const leadSocialIds = await db.select().from(socialIds).where(eq(socialIds.generalLeadId, id));
+
+  // Enrich social IDs with platform names
+  const allPlatforms = leadSocialIds.length > 0
+    ? await db.select().from(socialIdPlatformsConfig)
+    : [];
+  const enrichedSocialIds = leadSocialIds.map((s) => {
+    const platform = s.platformId != null ? allPlatforms.find((p) => p.id === s.platformId) : null;
+    return { ...s, platformName: platform?.name ?? null };
+  });
 
   return {
     ...lead,
@@ -162,6 +172,7 @@ export async function getGeneralLead(db: DB, id: string): Promise<{ convertedHum
     activities: leadActivities,
     emails: leadEmails,
     phoneNumbers: leadPhones,
+    socialIds: enrichedSocialIds,
   };
 }
 
@@ -372,9 +383,10 @@ export async function convertGeneralLead(
     updatedAt: now,
   }).where(eq(activities.generalLeadId, id));
 
-  // Add humanId to linked emails/phones (additive — keeps generalLeadId)
+  // Add humanId to linked emails/phones/social-ids (additive — keeps generalLeadId)
   await db.update(emails).set({ humanId }).where(eq(emails.generalLeadId, id));
   await db.update(phones).set({ humanId }).where(eq(phones.generalLeadId, id));
+  await db.update(socialIds).set({ humanId }).where(eq(socialIds.generalLeadId, id));
 
   await logAuditEntry({
     db,
@@ -407,9 +419,10 @@ export async function deleteGeneralLead(db: DB, id: string): Promise<void> {
     throw notFound(ERROR_CODES.GENERAL_LEAD_NOT_FOUND, "General lead not found");
   }
 
-  // Nullify generalLeadId on linked emails/phones
+  // Nullify generalLeadId on linked emails/phones/social-ids
   await db.update(emails).set({ generalLeadId: null }).where(eq(emails.generalLeadId, id));
   await db.update(phones).set({ generalLeadId: null }).where(eq(phones.generalLeadId, id));
+  await db.update(socialIds).set({ generalLeadId: null }).where(eq(socialIds.generalLeadId, id));
   // Nullify generalLeadId on linked activities
   await db.update(activities).set({ generalLeadId: null }).where(eq(activities.generalLeadId, id));
   await db.delete(generalLeads).where(eq(generalLeads.id, id));

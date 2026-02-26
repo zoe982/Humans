@@ -1,22 +1,22 @@
 import { redirect } from "@sveltejs/kit";
 import type { RequestEvent, ActionFailure } from "@sveltejs/kit";
 import { PUBLIC_API_URL } from "$env/static/public";
-import { isObjData, isListData, failFromApi } from "$lib/server/api";
+import { isObjData, isListData, failFromApi, fetchConfigs, authHeaders } from "$lib/server/api";
 
 function getFormString(form: FormData, key: string): string {
   const raw = form.get(key);
   return typeof raw === "string" ? raw : "";
 }
 
-export const load = async ({ locals, cookies, params }: RequestEvent): Promise<{ booking: unknown; activities: unknown[]; colleagues: unknown[]; linkedHumans: unknown[]; marketingAttribution: unknown; leadScore: Record<string, unknown> | null; emails: unknown[]; phoneNumbers: unknown[]; user: NonNullable<typeof locals.user> }> => {
+export const load = async ({ locals, cookies, params }: RequestEvent): Promise<{ booking: unknown; activities: unknown[]; colleagues: unknown[]; linkedHumans: unknown[]; marketingAttribution: unknown; leadScore: Record<string, unknown> | null; emails: unknown[]; phoneNumbers: unknown[]; socialIds: unknown[]; platformConfigs: unknown[]; user: NonNullable<typeof locals.user> }> => {
   if (locals.user == null) redirect(302, "/login");
 
-  const sessionToken = cookies.get("humans_session");
+  const sessionToken = cookies.get("humans_session") ?? "";
   const id = params.id;
 
   // Fetch single booking request
   const bookingRes = await fetch(`${PUBLIC_API_URL}/api/website-booking-requests/${id ?? ""}`, {
-    headers: { Cookie: `humans_session=${sessionToken ?? ""}` },
+    headers: authHeaders(sessionToken),
   });
 
   if (!bookingRes.ok) redirect(302, "/leads/website-booking-requests");
@@ -24,10 +24,10 @@ export const load = async ({ locals, cookies, params }: RequestEvent): Promise<{
   const booking = isObjData(bookingRaw) ? bookingRaw.data : null;
   if (booking == null) redirect(302, "/leads/website-booking-requests");
 
-  // Build parallel fetch list: activities, colleagues, linked humans, emails, phones, and optionally attribution
+  // Build parallel fetch list: activities, colleagues, linked humans, emails, phones, social-ids, and optionally attribution
   const marketingAttributionId = typeof booking["marketing_attribution_id"] === "string" ? booking["marketing_attribution_id"] : null;
 
-  const headers = { Cookie: `humans_session=${sessionToken ?? ""}` };
+  const headers = authHeaders(sessionToken);
   const parallelFetches: Promise<Response>[] = [
     fetch(`${PUBLIC_API_URL}/api/activities?websiteBookingRequestId=${id ?? ""}&include=linkedEntities`, { headers }),
     fetch(`${PUBLIC_API_URL}/api/colleagues`, { headers }),
@@ -35,13 +35,14 @@ export const load = async ({ locals, cookies, params }: RequestEvent): Promise<{
     fetch(`${PUBLIC_API_URL}/api/lead-scores/by-parent/website_booking_request/${id ?? ""}`, { headers }),
     fetch(`${PUBLIC_API_URL}/api/website-booking-requests/${id ?? ""}/emails`, { headers }),
     fetch(`${PUBLIC_API_URL}/api/website-booking-requests/${id ?? ""}/phone-numbers`, { headers }),
+    fetch(`${PUBLIC_API_URL}/api/website-booking-requests/${id ?? ""}/social-ids`, { headers }),
   ];
   if (marketingAttributionId != null) {
     parallelFetches.push(
       fetch(`${PUBLIC_API_URL}/api/marketing-attributions/${marketingAttributionId}`, { headers }),
     );
   }
-  const [activitiesRes, colleaguesRes, linkedHumansRes, leadScoreRes, emailsRes, phoneNumbersRes, attributionRes] = await Promise.all(parallelFetches);
+  const [activitiesRes, colleaguesRes, linkedHumansRes, leadScoreRes, emailsRes, phoneNumbersRes, socialIdsRes, attributionRes] = await Promise.all(parallelFetches);
 
   let activities: unknown[] = [];
   if (activitiesRes.ok) {
@@ -79,13 +80,21 @@ export const load = async ({ locals, cookies, params }: RequestEvent): Promise<{
     phoneNumbers = isListData(phoneNumbersRaw) ? phoneNumbersRaw.data : [];
   }
 
+  let socialIds: unknown[] = [];
+  if (socialIdsRes.ok) {
+    const socialIdsRaw: unknown = await socialIdsRes.json();
+    socialIds = isListData(socialIdsRaw) ? socialIdsRaw.data : [];
+  }
+
   let marketingAttribution: unknown = null;
   if (attributionRes?.ok === true) {
     const attrRaw: unknown = await attributionRes.json();
     marketingAttribution = isObjData(attrRaw) ? attrRaw.data : null;
   }
 
-  return { booking, activities, colleagues, linkedHumans, marketingAttribution, leadScore, emails, phoneNumbers, user: locals.user };
+  const configs = await fetchConfigs(sessionToken, ["social-id-platforms"]);
+
+  return { booking, activities, colleagues, linkedHumans, marketingAttribution, leadScore, emails, phoneNumbers, socialIds, platformConfigs: configs["social-id-platforms"] ?? [], user: locals.user };
 };
 
 export const actions = {
@@ -301,6 +310,52 @@ export const actions = {
     if (!res.ok) {
       const resBody: unknown = await res.json();
       return failFromApi(resBody, res.status, "Failed to delete phone number");
+    }
+
+    return { success: true };
+  },
+
+  addSocialId: async ({ request, cookies, params }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
+    const form = await request.formData();
+    const sessionToken = cookies.get("humans_session");
+    const id = params.id ?? "";
+    const handle = getFormString(form, "handle");
+    const platformId = getFormString(form, "platformId");
+
+    const payload: Record<string, string> = { handle, websiteBookingRequestId: id };
+    if (platformId !== "") payload["platformId"] = platformId;
+
+    const res = await fetch(`${PUBLIC_API_URL}/api/website-booking-requests/${id}/social-ids`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Cookie: `humans_session=${sessionToken ?? ""}`,
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!res.ok) {
+      const resBody: unknown = await res.json();
+      return failFromApi(resBody, res.status, "Failed to add social ID");
+    }
+
+    return { success: true };
+  },
+
+  deleteSocialId: async ({ request, cookies, params }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
+    const form = await request.formData();
+    const sessionToken = cookies.get("humans_session");
+    const id = params.id ?? "";
+    const socialIdId = getFormString(form, "socialIdId");
+
+    const res = await fetch(`${PUBLIC_API_URL}/api/website-booking-requests/${id}/social-ids/${socialIdId}`, {
+      method: "DELETE",
+      headers: { Cookie: `humans_session=${sessionToken ?? ""}` },
+    });
+
+    if (!res.ok) {
+      const resBody: unknown = await res.json();
+      return failFromApi(resBody, res.status, "Failed to delete social ID");
     }
 
     return { success: true };

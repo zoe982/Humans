@@ -89,4 +89,37 @@ it("exports createLeadSourceSchema", () => {
   it("exports linkAccountHumanSchema", () => {
     expect(validators.linkAccountHumanSchema).toBeDefined();
   });
+
+  it("exports response schema wrappers", () => {
+    expect(validators.paginationMetaSchema).toBeDefined();
+    expect(validators.listResponse).toBeDefined();
+    expect(validators.detailResponse).toBeDefined();
+    expect(validators.successResponseSchema).toBeDefined();
+  });
+
+  it("exports human response schemas", () => {
+    expect(validators.humanListItemSchema).toBeDefined();
+    expect(validators.humanDetailSchema).toBeDefined();
+    expect(validators.emailResponseSchema).toBeDefined();
+  });
+
+  it("exports activity response schemas", () => {
+    expect(validators.activityListItemSchema).toBeDefined();
+    expect(validators.activityDetailSchema).toBeDefined();
+  });
+
+  it("exports account response schemas", () => {
+    expect(validators.accountListItemSchema).toBeDefined();
+    expect(validators.accountDetailSchema).toBeDefined();
+  });
+
+  it("exports opportunity response schemas", () => {
+    expect(validators.opportunityListItemSchema).toBeDefined();
+    expect(validators.opportunityDetailSchema).toBeDefined();
+  });
+
+  it("exports general lead response schemas", () => {
+    expect(validators.generalLeadListItemSchema).toBeDefined();
+    expect(validators.generalLeadDetailSchema).toBeDefined();
+  });
 });

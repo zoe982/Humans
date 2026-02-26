@@ -1,53 +1,39 @@
 import { redirect } from "@sveltejs/kit";
 import type { RequestEvent, ActionFailure } from "@sveltejs/kit";
 import { PUBLIC_API_URL } from "$env/static/public";
-import { isObjData, isListData, failFromApi } from "$lib/server/api";
+import { isObjData, isListData, failFromApi, fetchConfigs, authHeaders } from "$lib/server/api";
 
 function formStr(value: FormDataEntryValue | null): string {
   return typeof value === "string" ? value : "";
 }
 
 export const load = async ({ locals, cookies, params }: RequestEvent): Promise<{
-  lead: Record<string, unknown>;
+  lead: GeneralLeadDetail;
   activities: unknown[];
   user: { id: string; email: string; role: string; name: string };
   allHumans: unknown[];
   colleagues: unknown[];
   leadScore: Record<string, unknown> | null;
+  platformConfigs: unknown[];
 }> => {
   if (locals.user == null) redirect(302, "/login");
 
-  const sessionToken = cookies.get("humans_session");
+  const sessionToken = cookies.get("humans_session") ?? "";
   const id = params.id ?? "";
 
-  const leadRes = await fetch(`${PUBLIC_API_URL}/api/general-leads/${id}`, {
-    headers: { Cookie: `humans_session=${sessionToken ?? ""}` },
+  const lead = await fetchObj(`${PUBLIC_API_URL}/api/general-leads/${id}`, sessionToken, {
+    schema: generalLeadDetailSchema,
+    schemaName: "generalLeadDetail",
   });
-
-  if (!leadRes.ok) redirect(302, "/leads/general-leads");
-  const leadRaw: unknown = await leadRes.json();
-  const lead = isObjData(leadRaw) ? leadRaw.data : null;
   if (lead == null) redirect(302, "/leads/general-leads");
 
-  const headers = { Cookie: `humans_session=${sessionToken ?? ""}` };
-  const [humansRes, colleaguesRes, leadScoreRes, activitiesRes] = await Promise.all([
-    fetch(`${PUBLIC_API_URL}/api/humans?limit=200`, { headers }),
-    fetch(`${PUBLIC_API_URL}/api/colleagues`, { headers }),
-    fetch(`${PUBLIC_API_URL}/api/lead-scores/by-parent/general_lead/${id}`, { headers }),
-    fetch(`${PUBLIC_API_URL}/api/activities?generalLeadId=${id}&include=linkedEntities`, { headers }),
+  const [allHumans, colleagues, leadScoreRes, activities, configs] = await Promise.all([
+    fetchList(`${PUBLIC_API_URL}/api/humans?limit=200`, sessionToken),
+    fetchList(`${PUBLIC_API_URL}/api/colleagues`, sessionToken),
+    fetch(`${PUBLIC_API_URL}/api/lead-scores/by-parent/general_lead/${id}`, { headers: authHeaders(sessionToken) }),
+    fetchList(`${PUBLIC_API_URL}/api/activities?generalLeadId=${id}&include=linkedEntities`, sessionToken),
+    fetchConfigs(sessionToken, ["social-id-platforms"]),
   ]);
-
-  let allHumans: unknown[] = [];
-  if (humansRes.ok) {
-    const raw: unknown = await humansRes.json();
-    allHumans = isListData(raw) ? raw.data : [];
-  }
-
-  let colleagues: unknown[] = [];
-  if (colleaguesRes.ok) {
-    const raw: unknown = await colleaguesRes.json();
-    colleagues = isListData(raw) ? raw.data : [];
-  }
 
   let leadScore: Record<string, unknown> | null = null;
   if (leadScoreRes.ok) {
@@ -55,13 +41,7 @@ export const load = async ({ locals, cookies, params }: RequestEvent): Promise<{
     leadScore = isObjData(raw) ? (raw.data as Record<string, unknown> | null) : null;
   }
 
-  let activities: unknown[] = [];
-  if (activitiesRes.ok) {
-    const raw: unknown = await activitiesRes.json();
-    activities = isListData(raw) ? raw.data : [];
-  }
-
-  return { lead, activities, user: locals.user, allHumans, colleagues, leadScore };
+  return { lead, activities, user: locals.user, allHumans, colleagues, leadScore, platformConfigs: configs["social-id-platforms"] ?? [] };
 };
 
 export const actions = {
@@ -166,6 +146,52 @@ export const actions = {
     if (!res.ok) {
       const resBody: unknown = await res.json();
       return failFromApi(resBody, res.status, "Failed to delete phone number");
+    }
+
+    return { success: true };
+  },
+
+  addSocialId: async ({ request, cookies, params }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
+    const form = await request.formData();
+    const sessionToken = cookies.get("humans_session");
+    const id = params.id ?? "";
+    const handle = formStr(form.get("handle"));
+    const platformId = formStr(form.get("platformId"));
+
+    const payload: Record<string, string> = { handle, generalLeadId: id };
+    if (platformId !== "") payload["platformId"] = platformId;
+
+    const res = await fetch(`${PUBLIC_API_URL}/api/general-leads/${id}/social-ids`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Cookie: `humans_session=${sessionToken ?? ""}`,
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!res.ok) {
+      const resBody: unknown = await res.json();
+      return failFromApi(resBody, res.status, "Failed to add social ID");
+    }
+
+    return { success: true };
+  },
+
+  deleteSocialId: async ({ request, cookies, params }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
+    const form = await request.formData();
+    const sessionToken = cookies.get("humans_session");
+    const id = params.id ?? "";
+    const socialIdId = formStr(form.get("socialIdId"));
+
+    const res = await fetch(`${PUBLIC_API_URL}/api/general-leads/${id}/social-ids/${socialIdId}`, {
+      method: "DELETE",
+      headers: { Cookie: `humans_session=${sessionToken ?? ""}` },
+    });
+
+    if (!res.ok) {
+      const resBody: unknown = await res.json();
+      return failFromApi(resBody, res.status, "Failed to delete social ID");
     }
 
     return { success: true };

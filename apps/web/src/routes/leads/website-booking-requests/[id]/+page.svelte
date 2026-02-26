@@ -95,6 +95,8 @@
 
   type CrmEmail = { id: string; email: string; isPrimary: boolean | null };
   type CrmPhoneNumber = { id: string; phoneNumber: string; isPrimary: boolean | null };
+  type SocialId = { id: string; displayId: string; handle: string; platformId: string | null; platformName: string | null; createdAt: string };
+  type PlatformConfig = { id: string; name: string };
 
   const booking = $derived(data.booking as Booking);
   const marketingAttribution = $derived(data.marketingAttribution as MarketingAttr | null);
@@ -108,6 +110,8 @@
   const currentColleagueId = $derived(data.user?.id ?? "");
   const crmEmails = $derived((data.emails ?? []) as CrmEmail[]);
   const crmPhoneNumbers = $derived((data.phoneNumbers ?? []) as CrmPhoneNumber[]);
+  const socialIds = $derived((data.socialIds ?? []) as SocialId[]);
+  const platformConfigs = $derived((data.platformConfigs ?? []) as PlatformConfig[]);
 
   type LeadScoreFull = {
     id: string;
@@ -572,6 +576,54 @@
             <input id="newPhoneNumber" name="phoneNumber" type="tel" required class="glass-input mt-1 block w-full px-3 py-2 text-sm" placeholder="Phone number" />
           </div>
           <Button type="submit" size="sm">Add Phone Number</Button>
+        </form>
+      {/snippet}
+    </RelatedListTable>
+  </div>
+
+  <!-- Social IDs -->
+  <div class="mb-6">
+    <RelatedListTable
+      title="Social IDs"
+      items={socialIds}
+      columns={[
+        { key: "handle", label: "Handle", sortable: true, sortValue: (s) => s.handle },
+        { key: "platformName", label: "Platform", sortable: true, sortValue: (s) => s.platformName ?? "" },
+        { key: "delete", label: "", headerClass: "w-10" },
+      ]}
+      defaultSortKey="handle"
+      searchFilter={(s, q) => s.handle.toLowerCase().includes(q) || (s.platformName ?? "").toLowerCase().includes(q)}
+      emptyMessage="No social IDs yet."
+      addLabel="Social ID"
+    >
+      {#snippet row(socialId, searchQuery)}
+        <td class="text-sm"><HighlightText text={socialId.handle} query={searchQuery} /></td>
+        <td class="text-sm">{socialId.platformName ?? "—"}</td>
+        <td>
+          <form method="POST" action="?/deleteSocialId">
+            <input type="hidden" name="socialIdId" value={socialId.id} />
+            <button type="submit" class="flex items-center justify-center w-7 h-7 rounded-lg text-text-muted hover:text-destructive-foreground hover:bg-destructive transition-colors duration-150" aria-label="Delete social ID">
+              <Trash2 size={14} />
+            </button>
+          </form>
+        </td>
+      {/snippet}
+      {#snippet addForm()}
+        <form method="POST" action="?/addSocialId" class="space-y-3">
+          <div>
+            <label for="newSocialHandle" class="block text-sm font-medium text-text-secondary">Handle</label>
+            <input id="newSocialHandle" name="handle" type="text" required class="glass-input mt-1 block w-full px-3 py-2 text-sm" placeholder="@username or profile URL" />
+          </div>
+          <div>
+            <label for="newSocialPlatform" class="block text-sm font-medium text-text-secondary">Platform</label>
+            <SearchableSelect
+              options={platformConfigs.map((p) => ({ value: p.id, label: p.name }))}
+              name="platformId"
+              id="newSocialPlatform"
+              placeholder="Select platform..."
+            />
+          </div>
+          <Button type="submit" size="sm">Add Social ID</Button>
         </form>
       {/snippet}
     </RelatedListTable>

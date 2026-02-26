@@ -17,6 +17,9 @@
   type ConfigItem = { id: string; name: string };
   type HumanListItem = { id: string; firstName: string; lastName: string; displayId: string };
   type AccountListItem = { id: string; name: string; displayId: string };
+  type GeneralLeadListItem = { id: string; firstName: string; lastName: string; displayId: string };
+  type BookingRequestListItem = { id: string; first_name: string | null; last_name: string | null; crm_display_id: string | null };
+  type RouteSignupListItem = { id: string; first_name: string | null; last_name: string | null; display_id: string | null };
   type SocialId = {
     id: string;
     displayId: string;
@@ -27,18 +30,30 @@
     humanName: string | null;
     accountId: string | null;
     accountName: string | null;
+    generalLeadId: string | null;
+    generalLeadName: string | null;
+    websiteBookingRequestId: string | null;
+    websiteBookingRequestName: string | null;
+    routeSignupId: string | null;
+    routeSignupName: string | null;
   };
 
   const socialId = $derived(data.socialId as SocialId);
   const platformConfigs = $derived(data.platformConfigs as ConfigItem[]);
   const allHumans = $derived(data.allHumans as HumanListItem[]);
   const allAccounts = $derived(data.allAccounts as AccountListItem[]);
+  const allGeneralLeads = $derived(data.allGeneralLeads as GeneralLeadListItem[]);
+  const allBookingRequests = $derived(data.allBookingRequests as BookingRequestListItem[]);
+  const allRouteSignups = $derived(data.allRouteSignups as RouteSignupListItem[]);
 
   // Auto-save state
   let handle = $state("");
   let platformId = $state("");
   let humanId = $state("");
   let accountId = $state("");
+  let generalLeadId = $state("");
+  let websiteBookingRequestId = $state("");
+  let routeSignupId = $state("");
   let saveStatus = $state<SaveStatus>("idle");
   let initialized = $state(false);
 
@@ -74,6 +89,9 @@
     platformId = socialId.platformId ?? "";
     humanId = socialId.humanId ?? "";
     accountId = socialId.accountId ?? "";
+    generalLeadId = socialId.generalLeadId ?? "";
+    websiteBookingRequestId = socialId.websiteBookingRequestId ?? "";
+    routeSignupId = socialId.routeSignupId ?? "";
     if (!initialized) initialized = true;
   });
 

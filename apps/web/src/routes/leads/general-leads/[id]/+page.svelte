@@ -32,6 +32,8 @@
 
   type Email = { id: string; displayId: string; email: string; labelId: string | null; isPrimary: boolean; createdAt: string };
   type Phone = { id: string; displayId: string; phoneNumber: string; labelId: string | null; hasWhatsapp: boolean; isPrimary: boolean; createdAt: string };
+  type SocialId = { id: string; displayId: string; handle: string; platformId: string | null; platformName: string | null; createdAt: string };
+  type PlatformConfig = { id: string; name: string };
 
   type Lead = {
     id: string;
@@ -50,6 +52,7 @@
     activities: Activity[];
     emails: Email[];
     phoneNumbers: Phone[];
+    socialIds: SocialId[];
     nextAction?: NextAction | null;
     createdAt: string;
     updatedAt: string;
@@ -72,6 +75,7 @@
 
   const lead = $derived(data.lead as Lead);
   let activities = $state<Activity[]>(data.activities as Activity[]);
+  const platformConfigs = $derived((data.platformConfigs ?? []) as PlatformConfig[]);
   const colleaguesList = $derived((data.colleagues ?? []) as Colleague[]);
   const colleagueOptions = $derived(colleaguesList.map((c) => ({ value: c.id, label: `${c.displayId ?? ""} ${c.name}`.trim() })));
   const isAdmin = $derived(data.user?.role === "admin");
@@ -400,6 +404,45 @@
             <input id="newPhone" name="phoneNumber" type="tel" required class="glass-input mt-1 block w-full px-3 py-2 text-sm" placeholder="Phone number" />
           </div>
           <Button type="submit" size="sm">Add Phone</Button>
+        </form>
+      {/snippet}
+    </RelatedListTable>
+  </div>
+
+  <!-- Social IDs -->
+  <div class="mb-6">
+    <RelatedListTable
+      title="Social IDs"
+      items={lead.socialIds ?? []}
+      columns={[
+        { key: "handle", label: "Handle", sortable: true, sortValue: (s) => s.handle },
+        { key: "platformName", label: "Platform", sortable: true, sortValue: (s) => s.platformName ?? "" },
+      ]}
+      defaultSortKey="handle"
+      searchFilter={(s, q) => s.handle.toLowerCase().includes(q) || (s.platformName ?? "").toLowerCase().includes(q)}
+      emptyMessage="No social IDs yet."
+      addLabel="Social ID"
+    >
+      {#snippet row(socialId, searchQuery)}
+        <td class="text-sm"><HighlightText text={socialId.handle} query={searchQuery} /></td>
+        <td class="text-sm">{socialId.platformName ?? "—"}</td>
+      {/snippet}
+      {#snippet addForm()}
+        <form method="POST" action="?/addSocialId" class="space-y-3">
+          <div>
+            <label for="newHandle" class="block text-sm font-medium text-text-secondary">Handle</label>
+            <input id="newHandle" name="handle" type="text" required class="glass-input mt-1 block w-full px-3 py-2 text-sm" placeholder="@username or profile URL" />
+          </div>
+          <div>
+            <label for="newPlatformId" class="block text-sm font-medium text-text-secondary">Platform</label>
+            <SearchableSelect
+              options={platformConfigs.map((p) => ({ value: p.id, label: p.name }))}
+              name="platformId"
+              id="newPlatformId"
+              placeholder="Select platform..."
+            />
+          </div>
+          <Button type="submit" size="sm">Add Social ID</Button>
         </form>
       {/snippet}
     </RelatedListTable>

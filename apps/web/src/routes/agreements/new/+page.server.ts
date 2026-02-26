@@ -2,6 +2,7 @@ import { redirect, fail } from "@sveltejs/kit";
 import type { RequestEvent, ActionFailure } from "@sveltejs/kit";
 import { PUBLIC_API_URL } from "$env/static/public";
 import { fetchList, fetchConfigs, failFromApi } from "$lib/server/api";
+import { humanListItemSchema, accountListItemSchema } from "@humans/shared";
 
 function isDataWithId(value: unknown): value is { data: { id: string } } {
   return typeof value === "object" && value !== null && "data" in value;

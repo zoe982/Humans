@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { updateWebsiteBookingRequestSchema, updateEntityNextActionSchema, createEmailSchema, createPhoneNumberSchema, ERROR_CODES } from "@humans/shared";
+import { updateWebsiteBookingRequestSchema, updateEntityNextActionSchema, createEmailSchema, createPhoneNumberSchema, createSocialIdSchema, ERROR_CODES } from "@humans/shared";
 import { authMiddleware } from "../middleware/auth";
 import { requirePermission } from "../middleware/rbac";
 import { supabaseMiddleware } from "../middleware/supabase";
@@ -10,6 +10,7 @@ import { getNextAction, updateNextAction, completeNextAction } from "../services
 import { getLinkedHumansForBookingRequest } from "../services/humans";
 import { createEmail, deleteEmail } from "../services/emails";
 import { createPhoneNumber, deletePhoneNumber } from "../services/phone-numbers";
+import { createSocialId, deleteSocialId, listSocialIdsForEntity } from "../services/social-ids";
 import type { AppContext } from "../types";
 import type { DB } from "../services/types";
 
@@ -252,6 +253,38 @@ websiteBookingRequestRoutes.delete(
   requirePermission("manageWebsiteBookingRequests"),
   async (c) => {
     await deletePhoneNumber(c.get("db"), c.req.param("phoneId"));
+    return c.json({ success: true });
+  },
+);
+
+// GET /api/website-booking-requests/:id/social-ids
+websiteBookingRequestRoutes.get(
+  "/api/website-booking-requests/:id/social-ids",
+  requirePermission("viewWebsiteBookingRequests"),
+  async (c) => {
+    const data = await listSocialIdsForEntity(c.get("db"), "websiteBookingRequestId", c.req.param("id"));
+    return c.json({ data });
+  },
+);
+
+// POST /api/website-booking-requests/:id/social-ids
+websiteBookingRequestRoutes.post(
+  "/api/website-booking-requests/:id/social-ids",
+  requirePermission("manageWebsiteBookingRequests"),
+  async (c) => {
+    const body: unknown = await c.req.json();
+    const data = createSocialIdSchema.parse(body);
+    const result = await createSocialId(c.get("db"), { ...data, websiteBookingRequestId: c.req.param("id") });
+    return c.json({ data: result }, 201);
+  },
+);
+
+// DELETE /api/website-booking-requests/:id/social-ids/:socialIdId
+websiteBookingRequestRoutes.delete(
+  "/api/website-booking-requests/:id/social-ids/:socialIdId",
+  requirePermission("manageWebsiteBookingRequests"),
+  async (c) => {
+    await deleteSocialId(c.get("db"), c.req.param("socialIdId"));
     return c.json({ success: true });
   },
 );

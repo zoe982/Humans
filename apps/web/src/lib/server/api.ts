@@ -2,6 +2,8 @@ import { fail } from "@sveltejs/kit";
 import type { ActionFailure } from "@sveltejs/kit";
 import { PUBLIC_API_URL } from "$env/static/public";
 import { extractApiErrorInfo } from "$lib/api";
+import { validateResponse } from "$lib/server/validate-response";
+import type { z } from "zod";
 
 export function isListData(value: unknown): value is { data: unknown[] } {
   return typeof value === "object" && value !== null && "data" in value && Array.isArray((value as { data: unknown }).data);
@@ -20,18 +22,52 @@ export function authHeaders(sessionToken: string): { Cookie: string } {
   return { Cookie: `humans_session=${sessionToken}` };
 }
 
-export async function fetchList(url: string, sessionToken: string): Promise<unknown[]> {
-  const res = await fetch(url, { headers: authHeaders(sessionToken) });
-  if (!res.ok) return [];
-  const raw: unknown = await res.json();
-  return isListData(raw) ? raw.data : [];
+interface SchemaOptions<S extends z.ZodTypeAny> {
+  schema: S;
+  schemaName: string;
 }
 
-export async function fetchObj(url: string, sessionToken: string): Promise<Record<string, unknown> | null> {
+export async function fetchList<S extends z.ZodTypeAny>(
+  url: string,
+  sessionToken: string,
+  options?: SchemaOptions<S>,
+): Promise<S extends z.ZodTypeAny ? z.infer<S>[] : unknown[]> {
+  const res = await fetch(url, { headers: authHeaders(sessionToken) });
+  if (!res.ok) return [];
+  const raw: unknown = await res.json().catch(() => null);
+  if (!isListData(raw)) return [];
+  if (options !== undefined) {
+    /* eslint-disable @typescript-eslint/no-unsafe-return -- z.infer<S> is inherently unresolvable in generic context */
+    return raw.data.map((item) =>
+      validateResponse(options.schema, item, {
+        url,
+        schemaName: options.schemaName,
+        strict: import.meta.env.DEV,
+      }),
+    );
+    /* eslint-enable @typescript-eslint/no-unsafe-return */
+  }
+  return raw.data;
+}
+
+export async function fetchObj<S extends z.ZodTypeAny>(
+  url: string,
+  sessionToken: string,
+  options?: SchemaOptions<S>,
+): Promise<(S extends z.ZodTypeAny ? z.infer<S> : Record<string, unknown>) | null> {
   const res = await fetch(url, { headers: authHeaders(sessionToken) });
   if (!res.ok) return null;
-  const raw: unknown = await res.json();
-  return isObjData(raw) ? raw.data : null;
+  const raw: unknown = await res.json().catch(() => null);
+  if (!isObjData(raw)) return null;
+  if (options !== undefined) {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return -- z.infer<S> is inherently unresolvable in generic context
+    return validateResponse(options.schema, raw.data, {
+      url,
+      schemaName: options.schemaName,
+      strict: import.meta.env.DEV,
+    });
+  }
+  return raw.data;
 }
 
 type BatchConfigResult = Record<string, unknown[]>;

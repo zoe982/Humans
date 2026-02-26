@@ -1,0 +1,106 @@
+import { z } from "zod";
+
+const geoInterestExpressionSchema = z.object({
+  id: z.string(),
+  activityId: z.string().nullable(),
+  humanId: z.string().nullable(),
+  geoInterestId: z.string(),
+  createdAt: z.string(),
+  city: z.string().nullable(),
+  country: z.string().nullable(),
+}).passthrough();
+
+const routeInterestExpressionSchema = z.object({
+  id: z.string(),
+  activityId: z.string().nullable(),
+  humanId: z.string().nullable(),
+  routeInterestId: z.string(),
+  createdAt: z.string(),
+  originCity: z.string().nullable(),
+  originCountry: z.string().nullable(),
+  destinationCity: z.string().nullable(),
+  destinationCountry: z.string().nullable(),
+}).passthrough();
+
+const linkedOpportunitySchema = z.object({
+  id: z.string(),
+  activityId: z.string(),
+  opportunityId: z.string(),
+  displayId: z.string(),
+  stage: z.string(),
+  createdAt: z.string(),
+}).passthrough();
+
+export const activityListItemSchema = z.object({
+  id: z.string(),
+  displayId: z.string(),
+  type: z.string(),
+  subject: z.string(),
+  body: z.string().nullable(),
+  notes: z.string().nullable(),
+  activityDate: z.string(),
+  humanId: z.string().nullable(),
+  accountId: z.string().nullable(),
+  routeSignupId: z.string().nullable(),
+  websiteBookingRequestId: z.string().nullable(),
+  opportunityId: z.string().nullable(),
+  generalLeadId: z.string().nullable(),
+  gmailId: z.string().nullable(),
+  frontId: z.string().nullable(),
+  frontConversationId: z.string().nullable(),
+  frontContactHandle: z.string().nullable(),
+  direction: z.string().nullable(),
+  syncRunId: z.string().nullable(),
+  senderName: z.string().nullable(),
+  colleagueId: z.string().nullable(),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+  humanName: z.string().nullable(),
+  humanDisplayId: z.string().nullable(),
+  accountName: z.string().nullable(),
+  ownerId: z.string().nullable(),
+  ownerName: z.string().nullable(),
+  ownerDisplayId: z.string().nullable(),
+  geoInterestExpressions: z.array(geoInterestExpressionSchema).optional(),
+  routeInterestExpressions: z.array(routeInterestExpressionSchema).optional(),
+  linkedOpportunities: z.array(linkedOpportunitySchema).optional(),
+}).passthrough();
+
+export type ActivityListItem = z.infer<typeof activityListItemSchema>;
+
+export const activityDetailSchema = z.object({
+  id: z.string(),
+  displayId: z.string(),
+  type: z.string(),
+  subject: z.string(),
+  body: z.string().nullable(),
+  notes: z.string().nullable(),
+  activityDate: z.string(),
+  humanId: z.string().nullable(),
+  accountId: z.string().nullable(),
+  routeSignupId: z.string().nullable(),
+  websiteBookingRequestId: z.string().nullable(),
+  opportunityId: z.string().nullable(),
+  generalLeadId: z.string().nullable(),
+  gmailId: z.string().nullable(),
+  frontId: z.string().nullable(),
+  frontConversationId: z.string().nullable(),
+  frontContactHandle: z.string().nullable(),
+  direction: z.string().nullable(),
+  syncRunId: z.string().nullable(),
+  senderName: z.string().nullable(),
+  colleagueId: z.string().nullable(),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+  humanName: z.string().nullable(),
+  humanDisplayId: z.string().nullable(),
+  accountName: z.string().nullable(),
+  ownerId: z.string().nullable(),
+  ownerName: z.string().nullable(),
+  ownerDisplayId: z.string().nullable(),
+  geoInterestExpressions: z.array(geoInterestExpressionSchema),
+  routeInterestExpressions: z.array(routeInterestExpressionSchema),
+  linkedOpportunities: z.array(linkedOpportunitySchema),
+}).passthrough();
+
+export type ActivityDetail = z.infer<typeof activityDetailSchema>;

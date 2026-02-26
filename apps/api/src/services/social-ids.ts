@@ -176,6 +176,7 @@ export async function listSocialIdsForEntity(
   column: "generalLeadId" | "websiteBookingRequestId" | "routeSignupId",
   entityId: string,
 ): Promise<{ id: string; displayId: string; handle: string; platformId: string | null; platformName: string | null; createdAt: string }[]> {
+  // eslint-disable-next-line security/detect-object-injection -- column is a typed union, not user input
   const rows = await db.select().from(socialIds).where(eq(socialIds[column], entityId));
   const allPlatforms = await db.select().from(socialIdPlatformsConfig);
 

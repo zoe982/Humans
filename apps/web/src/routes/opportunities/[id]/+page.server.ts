@@ -1,14 +1,15 @@
 import { redirect } from "@sveltejs/kit";
 import type { RequestEvent, ActionFailure } from "@sveltejs/kit";
 import { PUBLIC_API_URL } from "$env/static/public";
-import { isObjData, isListData, failFromApi, fetchConfigs, authHeaders } from "$lib/server/api";
+import { failFromApi, fetchConfigs, fetchList, fetchObj } from "$lib/server/api";
+import { opportunityDetailSchema, type OpportunityDetail } from "@humans/shared";
 
 function formStr(value: FormDataEntryValue | null): string {
   return typeof value === "string" ? value : "";
 }
 
 export const load = async ({ locals, cookies, params }: RequestEvent): Promise<{
-  opportunity: Record<string, unknown>;
+  opportunity: OpportunityDetail;
   colleagues: unknown[];
   allHumans: unknown[];
   allPets: unknown[];
@@ -24,46 +25,28 @@ export const load = async ({ locals, cookies, params }: RequestEvent): Promise<{
 
   const sessionToken = cookies.get("humans_session");
   const id = params.id ?? "";
-
-  const oppRes = await fetch(`${PUBLIC_API_URL}/api/opportunities/${id}`, {
-    headers: { Cookie: `humans_session=${sessionToken ?? ""}` },
-  });
-
-  if (!oppRes.ok) redirect(302, "/opportunities");
-  const oppRaw: unknown = await oppRes.json();
-  const opportunity = isObjData(oppRaw) ? oppRaw.data : null;
-  if (opportunity == null) redirect(302, "/opportunities");
-
   const token = sessionToken ?? "";
-  const headers = authHeaders(token);
-  async function fetchList(url: string): Promise<unknown[]> {
-    const res = await fetch(url, { headers });
-    if (!res.ok) return [];
-    const raw: unknown = await res.json();
-    return isListData(raw) ? raw.data : [];
-  }
 
-  async function fetchObj(url: string): Promise<Record<string, unknown> | null> {
-    const res = await fetch(url, { headers });
-    if (!res.ok) return null;
-    const raw: unknown = await res.json();
-    return isObjData(raw) ? raw.data : null;
-  }
+  const opportunity = await fetchObj(`${PUBLIC_API_URL}/api/opportunities/${id}`, token, {
+    schema: opportunityDetailSchema,
+    schemaName: "opportunityDetail",
+  });
+  if (opportunity == null) redirect(302, "/opportunities");
 
   // Batch: configs + data in one round
   const [configs, colleagues, allHumans, allPets, flightSummary] = await Promise.all([
     fetchConfigs(token, ["opportunity-human-roles"]),
-    fetchList(`${PUBLIC_API_URL}/api/colleagues`),
-    fetchList(`${PUBLIC_API_URL}/api/humans?limit=200`),
-    fetchList(`${PUBLIC_API_URL}/api/pets`),
-    fetchList(`${PUBLIC_API_URL}/api/flights/summary`),
+    fetchList(`${PUBLIC_API_URL}/api/colleagues`, token),
+    fetchList(`${PUBLIC_API_URL}/api/humans?limit=200`, token),
+    fetchList(`${PUBLIC_API_URL}/api/pets`, token),
+    fetchList(`${PUBLIC_API_URL}/api/flights/summary`, token),
   ]);
 
   const roleConfigs = configs["opportunity-human-roles"] ?? [];
 
   const [bookingRequestsRaw, cadenceConfigs] = await Promise.all([
-    fetchObj(`${PUBLIC_API_URL}/api/opportunities/${id}/booking-requests`),
-    fetchList(`${PUBLIC_API_URL}/api/opportunity-cadence`),
+    fetchObj(`${PUBLIC_API_URL}/api/opportunities/${id}/booking-requests`, token),
+    fetchList(`${PUBLIC_API_URL}/api/opportunity-cadence`, token),
   ]);
 
   const bookingRequests = bookingRequestsRaw != null

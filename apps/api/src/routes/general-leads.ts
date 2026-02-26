@@ -7,6 +7,7 @@ import {
   updateEntityNextActionSchema,
   createEmailSchema,
   createPhoneNumberSchema,
+  createSocialIdSchema,
   importFromFrontSchema,
   ERROR_CODES,
 } from "@humans/shared";
@@ -25,6 +26,7 @@ import {
 } from "../services/general-leads";
 import { createEmail, deleteEmail } from "../services/emails";
 import { createPhoneNumber, deletePhoneNumber } from "../services/phone-numbers";
+import { createSocialId, deleteSocialId, listSocialIdsForEntity } from "../services/social-ids";
 import { getNextAction, updateNextAction, completeNextAction } from "../services/entity-next-actions";
 import type { AppContext } from "../types";
 
@@ -174,6 +176,26 @@ generalLeadRoutes.post("/api/general-leads/:id/phone-numbers", requirePermission
 // DELETE /api/general-leads/:id/phone-numbers/:phoneId
 generalLeadRoutes.delete("/api/general-leads/:id/phone-numbers/:phoneId", requirePermission("manageGeneralLeads"), async (c) => {
   await deletePhoneNumber(c.get("db"), c.req.param("phoneId"));
+  return c.json({ success: true });
+});
+
+// GET /api/general-leads/:id/social-ids
+generalLeadRoutes.get("/api/general-leads/:id/social-ids", requirePermission("viewGeneralLeads"), async (c) => {
+  const data = await listSocialIdsForEntity(c.get("db"), "generalLeadId", c.req.param("id"));
+  return c.json({ data });
+});
+
+// POST /api/general-leads/:id/social-ids
+generalLeadRoutes.post("/api/general-leads/:id/social-ids", requirePermission("manageGeneralLeads"), async (c) => {
+  const body: unknown = await c.req.json();
+  const data = createSocialIdSchema.parse(body);
+  const result = await createSocialId(c.get("db"), { ...data, generalLeadId: c.req.param("id") });
+  return c.json({ data: result }, 201);
+});
+
+// DELETE /api/general-leads/:id/social-ids/:socialIdId
+generalLeadRoutes.delete("/api/general-leads/:id/social-ids/:socialIdId", requirePermission("manageGeneralLeads"), async (c) => {
+  await deleteSocialId(c.get("db"), c.req.param("socialIdId"));
   return c.json({ success: true });
 });
 

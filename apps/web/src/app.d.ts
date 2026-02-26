@@ -8,6 +8,14 @@ declare module '$env/static/public' {
   export const PUBLIC_API_URL: string;
 }
 
+// Widen $app/paths resolve() to accept plain strings with query params.
+// SvelteKit's typed routing rejects dynamic template literals like
+// `/emails/${id}?from=${path}` because the union doesn't cover all
+// query param combinations. The runtime accepts any string.
+declare module '$app/paths' {
+  export function resolve(path: string): string;
+}
+
 declare global {
   namespace App {
     interface Error {

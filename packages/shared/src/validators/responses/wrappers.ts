@@ -8,14 +8,18 @@ export const paginationMetaSchema = z.object({
 
 export type PaginationMeta = z.infer<typeof paginationMetaSchema>;
 
-export function listResponse<T extends z.ZodTypeAny>(itemSchema: T) {
+export function listResponse<T extends z.ZodTypeAny>(
+  itemSchema: T,
+): z.ZodObject<{ data: z.ZodArray<T>; meta: typeof paginationMetaSchema }> {
   return z.object({
     data: z.array(itemSchema),
     meta: paginationMetaSchema,
   });
 }
 
-export function detailResponse<T extends z.ZodTypeAny>(itemSchema: T) {
+export function detailResponse<T extends z.ZodTypeAny>(
+  itemSchema: T,
+): z.ZodObject<{ data: T }> {
   return z.object({
     data: itemSchema,
   });

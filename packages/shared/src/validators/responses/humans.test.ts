@@ -3,6 +3,9 @@ import {
   humanListItemSchema,
   humanDetailSchema,
   emailResponseSchema,
+  type EmailResponse,
+  type HumanListItem,
+  type HumanDetail,
 } from "./humans";
 
 describe("emailResponseSchema", () => {
@@ -21,19 +24,20 @@ describe("emailResponseSchema", () => {
   };
 
   it("accepts valid email response", () => {
-    const result = emailResponseSchema.parse(validEmail);
+    const result: EmailResponse = emailResponseSchema.parse(validEmail);
     expect(result.email).toBe("test@example.com");
     expect(result.isPrimary).toBe(true);
   });
 
   it("rejects missing email field", () => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { email: _, ...noEmail } = validEmail;
     expect(() => emailResponseSchema.parse(noEmail)).toThrowError();
   });
 
   it("allows extra fields via passthrough", () => {
-    const result = emailResponseSchema.parse({ ...validEmail, labelName: "Work" });
-    expect((result as Record<string, unknown>).labelName).toBe("Work");
+    const result: EmailResponse = emailResponseSchema.parse({ ...validEmail, labelName: "Work" });
+    expect(result["labelName"]).toBe("Work");
   });
 });
 
@@ -52,14 +56,14 @@ describe("humanListItemSchema", () => {
   };
 
   it("accepts valid human list item", () => {
-    const result = humanListItemSchema.parse(validListItem);
+    const result: HumanListItem = humanListItemSchema.parse(validListItem);
     expect(result.firstName).toBe("Alice");
     expect(result.emails).toStrictEqual([]);
     expect(result.types).toStrictEqual([]);
   });
 
   it("accepts list item with emails and types", () => {
-    const result = humanListItemSchema.parse({
+    const result: HumanListItem = humanListItemSchema.parse({
       ...validListItem,
       emails: [{
         id: "eml-1",
@@ -77,7 +81,9 @@ describe("humanListItemSchema", () => {
       types: ["client", "partner"],
     });
     expect(result.emails).toHaveLength(1);
-    expect(result.emails[0].email).toBe("test@example.com");
+    const firstEmail = result.emails[0];
+    expect(firstEmail).toBeDefined();
+    expect(firstEmail?.email).toBe("test@example.com");
     expect(result.types).toStrictEqual(["client", "partner"]);
   });
 
@@ -86,8 +92,8 @@ describe("humanListItemSchema", () => {
   });
 
   it("allows extra fields via passthrough", () => {
-    const result = humanListItemSchema.parse({ ...validListItem, futureField: "ok" });
-    expect((result as Record<string, unknown>).futureField).toBe("ok");
+    const result: HumanListItem = humanListItemSchema.parse({ ...validListItem, futureField: "ok" });
+    expect(result["futureField"]).toBe("ok");
   });
 });
 
@@ -117,18 +123,19 @@ describe("humanDetailSchema", () => {
   };
 
   it("accepts valid human detail", () => {
-    const result = humanDetailSchema.parse(validDetail);
+    const result: HumanDetail = humanDetailSchema.parse(validDetail);
     expect(result.firstName).toBe("Alice");
     expect(result.phoneNumbers).toStrictEqual([]);
   });
 
   it("rejects missing nested arrays", () => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { phoneNumbers: _, ...noPhones } = validDetail;
     expect(() => humanDetailSchema.parse(noPhones)).toThrowError();
   });
 
   it("allows extra fields via passthrough", () => {
-    const result = humanDetailSchema.parse({ ...validDetail, futureField: "ok" });
-    expect((result as Record<string, unknown>).futureField).toBe("ok");
+    const result: HumanDetail = humanDetailSchema.parse({ ...validDetail, futureField: "ok" });
+    expect(result["futureField"]).toBe("ok");
   });
 });

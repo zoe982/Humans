@@ -3,7 +3,7 @@ import type { RequestEvent } from "@sveltejs/kit";
 import { PUBLIC_API_URL } from "$env/static/public";
 import { isObjData, isListData, fetchConfigs, authHeaders } from "$lib/server/api";
 
-export const load = async ({ locals, cookies, params }: RequestEvent): Promise<{ socialId: Record<string, unknown>; platformConfigs: unknown[]; allHumans: unknown[]; allAccounts: unknown[] }> => {
+export const load = async ({ locals, cookies, params }: RequestEvent): Promise<{ socialId: Record<string, unknown>; platformConfigs: unknown[]; allHumans: unknown[]; allAccounts: unknown[]; allGeneralLeads: unknown[]; allBookingRequests: unknown[]; allRouteSignups: unknown[] }> => {
   if (locals.user == null) redirect(302, "/login");
 
   const sessionToken = cookies.get("humans_session") ?? "";
@@ -19,10 +19,13 @@ export const load = async ({ locals, cookies, params }: RequestEvent): Promise<{
   if (socialId == null) redirect(302, "/social-ids");
 
   const headers = authHeaders(sessionToken);
-  const [configs, humansRes, accountsRes] = await Promise.all([
+  const [configs, humansRes, accountsRes, generalLeadsRes, bookingRequestsRes, routeSignupsRes] = await Promise.all([
     fetchConfigs(sessionToken, ["social-id-platforms"]),
     fetch(`${PUBLIC_API_URL}/api/humans`, { headers }),
     fetch(`${PUBLIC_API_URL}/api/accounts`, { headers }),
+    fetch(`${PUBLIC_API_URL}/api/general-leads`, { headers }),
+    fetch(`${PUBLIC_API_URL}/api/website-booking-requests?limit=10000`, { headers }),
+    fetch(`${PUBLIC_API_URL}/api/route-signups?limit=10000`, { headers }),
   ]);
 
   const parseList = async (res: Response): Promise<unknown[]> => {
@@ -31,9 +34,12 @@ export const load = async ({ locals, cookies, params }: RequestEvent): Promise<{
     return isListData(raw) ? raw.data : [];
   };
 
-  const [allHumans, allAccounts] = await Promise.all([
+  const [allHumans, allAccounts, allGeneralLeads, allBookingRequests, allRouteSignups] = await Promise.all([
     parseList(humansRes),
     parseList(accountsRes),
+    parseList(generalLeadsRes),
+    parseList(bookingRequestsRes),
+    parseList(routeSignupsRes),
   ]);
 
   return {
@@ -41,5 +47,8 @@ export const load = async ({ locals, cookies, params }: RequestEvent): Promise<{
     platformConfigs: configs["social-id-platforms"] ?? [],
     allHumans,
     allAccounts,
+    allGeneralLeads,
+    allBookingRequests,
+    allRouteSignups,
   };
 };

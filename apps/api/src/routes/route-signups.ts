@@ -2,7 +2,7 @@ import { Hono } from "hono";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { sql, inArray } from "drizzle-orm";
 import { activities } from "@humans/db/schema";
-import { updateRouteSignupSchema, updateEntityNextActionSchema, createEmailSchema, createPhoneNumberSchema, ERROR_CODES } from "@humans/shared";
+import { updateRouteSignupSchema, updateEntityNextActionSchema, createEmailSchema, createPhoneNumberSchema, createSocialIdSchema, ERROR_CODES } from "@humans/shared";
 import { authMiddleware } from "../middleware/auth";
 import { requirePermission } from "../middleware/rbac";
 import { supabaseMiddleware } from "../middleware/supabase";
@@ -12,6 +12,7 @@ import { nextDisplayId } from "../lib/display-id";
 import { getNextAction, updateNextAction, completeNextAction } from "../services/entity-next-actions";
 import { createEmail, deleteEmail } from "../services/emails";
 import { createPhoneNumber, deletePhoneNumber } from "../services/phone-numbers";
+import { createSocialId, deleteSocialId, listSocialIdsForEntity } from "../services/social-ids";
 import type { AppContext } from "../types";
 import type { DB } from "../services/types";
 
@@ -246,6 +247,26 @@ routeSignupRoutes.post("/api/route-signups/:id/phone-numbers", requirePermission
 // DELETE /api/route-signups/:id/phone-numbers/:phoneId
 routeSignupRoutes.delete("/api/route-signups/:id/phone-numbers/:phoneId", requirePermission("manageRouteSignups"), async (c) => {
   await deletePhoneNumber(c.get("db"), c.req.param("phoneId"));
+  return c.json({ success: true });
+});
+
+// GET /api/route-signups/:id/social-ids
+routeSignupRoutes.get("/api/route-signups/:id/social-ids", requirePermission("viewRouteSignups"), async (c) => {
+  const data = await listSocialIdsForEntity(c.get("db"), "routeSignupId", c.req.param("id"));
+  return c.json({ data });
+});
+
+// POST /api/route-signups/:id/social-ids
+routeSignupRoutes.post("/api/route-signups/:id/social-ids", requirePermission("manageRouteSignups"), async (c) => {
+  const body: unknown = await c.req.json();
+  const data = createSocialIdSchema.parse(body);
+  const result = await createSocialId(c.get("db"), { ...data, routeSignupId: c.req.param("id") });
+  return c.json({ data: result }, 201);
+});
+
+// DELETE /api/route-signups/:id/social-ids/:socialIdId
+routeSignupRoutes.delete("/api/route-signups/:id/social-ids/:socialIdId", requirePermission("manageRouteSignups"), async (c) => {
+  await deleteSocialId(c.get("db"), c.req.param("socialIdId"));
   return c.json({ success: true });
 });
 
