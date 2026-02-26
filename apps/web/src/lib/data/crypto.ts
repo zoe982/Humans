@@ -22,7 +22,7 @@ export async function deriveKey(
     ["deriveKey"],
   );
 
-  const saltBuf = salt.buffer.slice(salt.byteOffset, salt.byteOffset + salt.byteLength);
+  const saltBuf: ArrayBuffer = salt.buffer.slice(salt.byteOffset, salt.byteOffset + salt.byteLength) as ArrayBuffer;
   return crypto.subtle.deriveKey(
     { name: "PBKDF2", salt: saltBuf, iterations: PBKDF2_ITERATIONS, hash: "SHA-256" },
     keyMaterial,
@@ -39,7 +39,7 @@ export async function encrypt(
   const iv = crypto.getRandomValues(new Uint8Array(IV_LENGTH));
   const encoded = new TextEncoder().encode(JSON.stringify(data));
   const ciphertext = await crypto.subtle.encrypt(
-    { name: "AES-GCM", iv: iv.buffer as ArrayBuffer },
+    { name: "AES-GCM", iv: iv.buffer },
     key,
     encoded,
   );
