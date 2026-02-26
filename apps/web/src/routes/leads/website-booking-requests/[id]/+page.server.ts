@@ -8,7 +8,7 @@ function getFormString(form: FormData, key: string): string {
   return typeof raw === "string" ? raw : "";
 }
 
-export const load = async ({ locals, cookies, params }: RequestEvent): Promise<{ booking: unknown; activities: unknown[]; colleagues: unknown[]; linkedHumans: unknown[]; marketingAttribution: unknown; leadScore: Record<string, unknown> | null; emails: unknown[]; phoneNumbers: unknown[]; socialIds: unknown[]; platformConfigs: unknown[]; user: NonNullable<typeof locals.user> }> => {
+export const load = async ({ locals, cookies, params }: RequestEvent): Promise<{ booking: unknown; activities: unknown[]; colleagues: unknown[]; linkedHumans: unknown[]; marketingAttribution: unknown; leadScore: Record<string, unknown> | null; emails: unknown[]; phoneNumbers: unknown[]; socialIds: unknown[]; platformConfigs: unknown[]; leadSources: unknown[]; leadChannels: unknown[]; user: NonNullable<typeof locals.user> }> => {
   if (locals.user == null) redirect(302, "/login");
 
   const sessionToken = cookies.get("humans_session") ?? "";
@@ -92,9 +92,9 @@ export const load = async ({ locals, cookies, params }: RequestEvent): Promise<{
     marketingAttribution = isObjData(attrRaw) ? attrRaw.data : null;
   }
 
-  const configs = await fetchConfigs(sessionToken, ["social-id-platforms"]);
+  const configs = await fetchConfigs(sessionToken, ["social-id-platforms", "lead-sources", "lead-channels"]);
 
-  return { booking, activities, colleagues, linkedHumans, marketingAttribution, leadScore, emails, phoneNumbers, socialIds, platformConfigs: configs["social-id-platforms"] ?? [], user: locals.user };
+  return { booking, activities, colleagues, linkedHumans, marketingAttribution, leadScore, emails, phoneNumbers, socialIds, platformConfigs: configs["social-id-platforms"] ?? [], leadSources: configs["lead-sources"] ?? [], leadChannels: configs["lead-channels"] ?? [], user: locals.user };
 };
 
 export const actions = {
@@ -136,6 +136,34 @@ export const actions = {
     if (!res.ok) {
       const resBody: unknown = await res.json();
       return failFromApi(resBody, res.status, "Failed to update note");
+    }
+
+    return { success: true };
+  },
+
+
+  updateSourceChannel: async ({ request, cookies, params }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
+    const form = await request.formData();
+    const sessionToken = cookies.get("humans_session");
+
+    const source = form.get("source");
+    const channel = form.get("channel");
+
+    const res = await fetch(`${PUBLIC_API_URL}/api/website-booking-requests/${params.id ?? ""}`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        Cookie: `humans_session=${sessionToken ?? ""}`,
+      },
+      body: JSON.stringify({
+        crm_source: source === "" ? null : source,
+        crm_channel: channel === "" ? null : channel,
+      }),
+    });
+
+    if (!res.ok) {
+      const resBody: unknown = await res.json();
+      return failFromApi(resBody, res.status, "Failed to update source/channel");
     }
 
     return { success: true };

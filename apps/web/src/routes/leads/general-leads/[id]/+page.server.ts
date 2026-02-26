@@ -16,6 +16,8 @@ export const load = async ({ locals, cookies, params }: RequestEvent): Promise<{
   colleagues: unknown[];
   leadScore: Record<string, unknown> | null;
   platformConfigs: unknown[];
+  leadSources: unknown[];
+  leadChannels: unknown[];
 }> => {
   if (locals.user == null) redirect(302, "/login");
 
@@ -33,7 +35,7 @@ export const load = async ({ locals, cookies, params }: RequestEvent): Promise<{
     fetchList(`${PUBLIC_API_URL}/api/colleagues`, sessionToken),
     fetch(`${PUBLIC_API_URL}/api/lead-scores/by-parent/general_lead/${id}`, { headers: authHeaders(sessionToken) }),
     fetchList(`${PUBLIC_API_URL}/api/activities?generalLeadId=${id}&include=linkedEntities`, sessionToken),
-    fetchConfigs(sessionToken, ["social-id-platforms"]),
+    fetchConfigs(sessionToken, ["social-id-platforms", "lead-sources", "lead-channels"]),
   ]);
 
   let leadScore: Record<string, unknown> | null = null;
@@ -42,7 +44,7 @@ export const load = async ({ locals, cookies, params }: RequestEvent): Promise<{
     leadScore = isObjData(raw) ? (raw.data as Record<string, unknown> | null) : null;
   }
 
-  return { lead, activities, user: locals.user, allHumans, colleagues, leadScore, platformConfigs: configs["social-id-platforms"] ?? [] };
+  return { lead, activities, user: locals.user, allHumans, colleagues, leadScore, platformConfigs: configs["social-id-platforms"] ?? [], leadSources: configs["lead-sources"] ?? [], leadChannels: configs["lead-channels"] ?? [] };
 };
 
 export const actions = {
@@ -254,6 +256,34 @@ export const actions = {
     if (!res.ok) {
       const resBody: unknown = await res.json();
       return failFromApi(resBody, res.status, "Failed to create activity");
+    }
+
+    return { success: true };
+  },
+
+
+  updateSourceChannel: async ({ request, cookies, params }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
+    const form = await request.formData();
+    const sessionToken = cookies.get("humans_session");
+    const id = params.id ?? "";
+    const source = form.get("source");
+    const channel = form.get("channel");
+
+    const res = await fetch(`${PUBLIC_API_URL}/api/general-leads/${id}`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        Cookie: `humans_session=${sessionToken ?? ""}`,
+      },
+      body: JSON.stringify({
+        source: source === "" ? null : source,
+        channel: channel === "" ? null : channel,
+      }),
+    });
+
+    if (!res.ok) {
+      const resBody: unknown = await res.json();
+      return failFromApi(resBody, res.status, "Failed to update source/channel");
     }
 
     return { success: true };

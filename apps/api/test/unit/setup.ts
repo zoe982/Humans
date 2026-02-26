@@ -83,6 +83,8 @@ const MIGRATION_STATEMENTS = [
     \`converted_human_id\` text REFERENCES \`humans\`(\`id\`),
     \`owner_id\` text REFERENCES \`colleagues\`(\`id\`),
     \`front_conversation_id\` text,
+    \`source\` text,
+    \`channel\` text,
     \`created_at\` text NOT NULL,
     \`updated_at\` text NOT NULL
   )`,
@@ -141,6 +143,16 @@ const MIGRATION_STATEMENTS = [
     \`counter\` integer NOT NULL DEFAULT 0
   )`,
   `CREATE TABLE IF NOT EXISTS \`opportunity_human_roles_config\` (
+    \`id\` text PRIMARY KEY NOT NULL,
+    \`name\` text NOT NULL UNIQUE,
+    \`created_at\` text NOT NULL
+  )`,
+  `CREATE TABLE IF NOT EXISTS \`lead_sources_config\` (
+    \`id\` text PRIMARY KEY NOT NULL,
+    \`name\` text NOT NULL UNIQUE,
+    \`created_at\` text NOT NULL
+  )`,
+  `CREATE TABLE IF NOT EXISTS \`lead_channels_config\` (
     \`id\` text PRIMARY KEY NOT NULL,
     \`name\` text NOT NULL UNIQUE,
     \`created_at\` text NOT NULL
@@ -616,6 +628,8 @@ const CLEANUP_TABLES = [
   "human_phone_labels_config",
   "account_human_labels_config",
   "account_types_config",
+  "lead_sources_config",
+  "lead_channels_config",
   "agreement_types_config",
   "email_labels_config",
   "phone_labels_config",

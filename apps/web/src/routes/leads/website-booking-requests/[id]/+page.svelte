@@ -21,7 +21,11 @@
   import { page } from "$app/stores";
   import { Trash2 } from "lucide-svelte";
 
+  type ConfigItem = { id: string; name: string };
   let { data, form }: { data: PageData; form: ActionData } = $props();
+
+  const leadSources = $derived(data.leadSources as ConfigItem[]);
+  const leadChannels = $derived(data.leadChannels as ConfigItem[]);
 
   type NextAction = {
     id: string;
@@ -336,6 +340,36 @@
       />
     </div>
   {/if}
+
+  <!-- Source & Channel -->
+  <div class="glass-card p-6 mt-4 mb-6">
+    <h2 class="text-lg font-semibold text-text-primary">Source & Channel</h2>
+    <form method="POST" action="?/updateSourceChannel" class="mt-3">
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label for="sourceSelect" class="block text-sm font-medium text-text-secondary mb-1">Source</label>
+          <select id="sourceSelect" name="source" class="glass-input block w-full px-3 py-2 text-sm">
+            <option value="">-- None --</option>
+            {#each leadSources as src, i (i)}
+              <option value={src.name} selected={booking.crm_source === src.name}>{src.name}</option>
+            {/each}
+          </select>
+        </div>
+        <div>
+          <label for="channelSelect" class="block text-sm font-medium text-text-secondary mb-1">Channel</label>
+          <select id="channelSelect" name="channel" class="glass-input block w-full px-3 py-2 text-sm">
+            <option value="">-- None --</option>
+            {#each leadChannels as ch, i (i)}
+              <option value={ch.name} selected={booking.crm_channel === ch.name}>{ch.name}</option>
+            {/each}
+          </select>
+        </div>
+      </div>
+      <div class="mt-3 flex justify-end">
+        <Button type="submit" size="sm">Save</Button>
+      </div>
+    </form>
+  </div>
 
   <!-- Metadata -->
   <div class="glass-card p-6 mb-6">
