@@ -65,7 +65,6 @@
   });
 
   let pendingDeleteId = $state<string | null>(null);
-  let deleteFormEl = $state<HTMLFormElement>();
 
   const formResult = $derived(form as FormResult);
 
@@ -313,7 +312,4 @@
     </div>
   </div>
 
-  <form method="POST" action="?/delete" bind:this={deleteFormEl} class="hidden">
-    <input type="hidden" name="id" value={pendingDeleteId ?? ""} />
-  </form>
 {/if}

@@ -39,13 +39,15 @@ export async function fetchList(
   const raw: unknown = await res.json().catch(() => null);
   if (!isListData(raw)) return [];
   if (options !== undefined) {
+    /* eslint-disable @typescript-eslint/no-unsafe-return -- validateResponse returns z.infer<T> which resolves to any in generic context */
     return raw.data.map((item: unknown) =>
       validateResponse(options.schema, item, {
         url,
         schemaName: options.schemaName,
         strict: import.meta.env.DEV,
       }),
-    ) as unknown[];
+    );
+    /* eslint-enable @typescript-eslint/no-unsafe-return */
   }
   return raw.data;
 }
@@ -56,7 +58,7 @@ export async function fetchObj(
   url: string,
   sessionToken: string,
   options?: SchemaOptions<z.ZodTypeAny>,
-): Promise<unknown | null> {
+): Promise<unknown> {
   const res = await fetch(url, { headers: authHeaders(sessionToken) });
   if (!res.ok) return null;
   const raw: unknown = await res.json().catch(() => null);

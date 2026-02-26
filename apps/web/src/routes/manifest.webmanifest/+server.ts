@@ -3,7 +3,6 @@ import type { RequestHandler } from "./$types";
 
 export const GET: RequestHandler = () => {
   // __BUILD_TIMESTAMP__ is injected at build time via vite.config.ts define
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
   const v: string = __BUILD_TIMESTAMP__;
   return json({
     name: "Humans CRM",
