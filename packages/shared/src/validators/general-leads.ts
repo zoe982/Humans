@@ -45,7 +45,12 @@ export const convertGeneralLeadSchema = z.object({
   humanId: z.string(),
 });
 
+export const importFromFrontSchema = z.object({
+  frontId: z.string().min(1).max(100),
+});
+
 export type CreateGeneralLeadInput = z.infer<typeof createGeneralLeadSchema>;
 export type UpdateGeneralLeadInput = z.infer<typeof updateGeneralLeadSchema>;
 export type UpdateGeneralLeadStatusInput = z.infer<typeof updateGeneralLeadStatusSchema>;
 export type ConvertGeneralLeadInput = z.infer<typeof convertGeneralLeadSchema>;
+export type ImportFromFrontInput = z.infer<typeof importFromFrontSchema>;

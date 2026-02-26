@@ -168,6 +168,8 @@ export {
   type UpdateGeneralLeadInput,
   type UpdateGeneralLeadStatusInput,
   type ConvertGeneralLeadInput,
+  importFromFrontSchema,
+  type ImportFromFrontInput,
 } from "./general-leads";
 
 export {

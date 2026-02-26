@@ -6,6 +6,18 @@ import { computeDiff, logAuditEntry } from "../lib/audit";
 import { notFound, badRequest } from "../lib/errors";
 import { nextDisplayId } from "../lib/display-id";
 import { completeNextAction } from "./entity-next-actions";
+import { createEmail } from "./emails";
+import { createPhoneNumber } from "./phone-numbers";
+import {
+  frontFetch,
+  classifyChannel,
+  resolveAuthorName,
+  assertPaginated,
+  isFrontConversation,
+  isRecord,
+  type FrontMessage,
+  type FrontConversation,
+} from "./front-sync";
 import type { DB } from "./types";
 
 const CLOSED_STATUSES = ["closed_converted", "closed_rejected", "closed_no_response"];
@@ -390,4 +402,203 @@ export async function deleteGeneralLead(db: DB, id: string): Promise<void> {
   // Nullify generalLeadId on linked activities
   await db.update(activities).set({ generalLeadId: null }).where(eq(activities.generalLeadId, id));
   await db.delete(generalLeads).where(eq(generalLeads.id, id));
+}
+
+// ─── Import from Front ──────────────────────────────────────────
+
+export interface ImportFromFrontResult {
+  lead: { id: string; displayId: string };
+  activitiesImported: number;
+  contactHandle: string | null;
+  contactName: string | null;
+}
+
+/**
+ * Parse a contact name string into firstName and lastName.
+ * "John Doe" → { firstName: "John", lastName: "Doe" }
+ * "John Michael Doe" → { firstName: "John", lastName: "Michael Doe" }
+ * "Madonna" → { firstName: "Madonna", lastName: "(unknown)" }
+ */
+function parseName(name: string): { firstName: string; lastName: string } {
+  const parts = name.trim().split(/\s+/);
+  if (parts.length === 0 || (parts.length === 1 && parts[0] === "")) {
+    return { firstName: "(unknown)", lastName: "(unknown)" };
+  }
+  if (parts.length === 1) {
+    return { firstName: parts[0]!, lastName: "(unknown)" };
+  }
+  return { firstName: parts[0]!, lastName: parts.slice(1).join(" ") };
+}
+
+export async function importLeadFromFront(
+  db: DB,
+  frontId: string,
+  frontToken: string,
+  colleagueId: string,
+): Promise<ImportFromFrontResult> {
+  // 1. Resolve to conversation ID
+  let conversationId: string;
+  if (frontId.startsWith("msg_")) {
+    const msgData = await frontFetch(`https://api2.frontapp.com/messages/${frontId}`, frontToken);
+    if (!isRecord(msgData) || typeof msgData["conversation_id"] !== "string") {
+      throw badRequest(ERROR_CODES.VALIDATION_FAILED, "Could not resolve message to conversation");
+    }
+    conversationId = msgData["conversation_id"];
+  } else if (frontId.startsWith("cnv_")) {
+    conversationId = frontId;
+  } else {
+    throw badRequest(ERROR_CODES.VALIDATION_FAILED, "Invalid Front ID format: must start with msg_ or cnv_");
+  }
+
+  // 2. Duplicate check
+  const existing = await db
+    .select({ id: generalLeads.id, displayId: generalLeads.displayId })
+    .from(generalLeads)
+    .where(eq(generalLeads.frontConversationId, conversationId))
+    .limit(1);
+  if (existing.length > 0) {
+    throw badRequest(
+      ERROR_CODES.FRONT_IMPORT_ALREADY_EXISTS,
+      `Conversation already imported as ${existing[0]!.displayId}`,
+    );
+  }
+
+  // 3. Fetch conversation
+  const convRaw = await frontFetch(`https://api2.frontapp.com/conversations/${conversationId}`, frontToken);
+  if (!isFrontConversation(convRaw)) {
+    throw badRequest(ERROR_CODES.VALIDATION_FAILED, "Invalid conversation response from Front");
+  }
+  const conversation: FrontConversation = convRaw;
+
+  // 4. Fetch messages
+  const messagesUrl = `https://api2.frontapp.com/conversations/${conversationId}/messages`;
+  const msgResponse = assertPaginated<FrontMessage>(await frontFetch(messagesUrl, frontToken), "messages");
+  const allMessages = msgResponse._results;
+
+  // Paginate if needed
+  let nextUrl = msgResponse._pagination.next;
+  while (nextUrl != null) {
+    const nextPage = assertPaginated<FrontMessage>(await frontFetch(nextUrl, frontToken), "messages page");
+    allMessages.push(...nextPage._results);
+    nextUrl = nextPage._pagination.next;
+  }
+
+  // 5. Extract contact — conversation.recipient; if colleague, fall through
+  let contactHandle = conversation.recipient?.handle ?? "";
+  let contactName = conversation.recipient?.name ?? null;
+
+  // Load all colleagues for resolveAuthorName and colleague detection
+  const allColleagues = await db
+    .select({ id: colleagues.id, email: colleagues.email, name: colleagues.name })
+    .from(colleagues);
+
+  if (contactHandle !== "") {
+    const isColleague = allColleagues.some(
+      (c) => c.email.toLowerCase() === contactHandle.toLowerCase(),
+    );
+    if (isColleague) {
+      // Fall through to message recipients to find external contact
+      for (const message of allMessages) {
+        for (const r of message.recipients) {
+          if (r.role === "to") {
+            const recipientIsColleague = allColleagues.some(
+              (c) => c.email.toLowerCase() === r.handle.toLowerCase(),
+            );
+            if (!recipientIsColleague) {
+              contactHandle = r.handle;
+              contactName = r.name ?? null;
+              break;
+            }
+          }
+        }
+        if (contactHandle !== conversation.recipient?.handle) break;
+      }
+    }
+  }
+
+  if (contactHandle === "") {
+    throw badRequest(ERROR_CODES.FRONT_IMPORT_NO_CONTACT, "No contact found on conversation");
+  }
+
+  // 6. Parse name
+  const displayName = contactName ?? contactHandle;
+  const { firstName, lastName } = parseName(displayName);
+
+  // 7. Create lead
+  const lead = await createGeneralLead(db, { firstName, lastName }, colleagueId);
+
+  // Set frontConversationId
+  await db
+    .update(generalLeads)
+    .set({ frontConversationId: conversationId })
+    .where(eq(generalLeads.id, lead.id));
+
+  // 8. Link contact
+  if (contactHandle.includes("@")) {
+    await createEmail(db, { generalLeadId: lead.id, email: contactHandle });
+  } else if (/^\+?\d[\d\s-]{6,}$/.test(contactHandle)) {
+    await createPhoneNumber(db, { generalLeadId: lead.id, phoneNumber: contactHandle });
+  }
+
+  // 9. Import activities
+  const firstMsg = allMessages.find((m) => !m.is_draft);
+  const activityType = classifyChannel(undefined, contactHandle, firstMsg?.type);
+  let activitiesImported = 0;
+
+  for (const message of allMessages) {
+    if (message.is_draft) continue;
+
+    const direction = message.is_inbound ? "Inbound" : "Outbound";
+    const authorInfo = resolveAuthorName(message, conversation, allColleagues);
+    const noteLines: string[] = [];
+    noteLines.push(`${direction} from ${authorInfo}`);
+    if (message.text !== "") {
+      noteLines.push(message.text);
+    } else if (message.blurb !== "") {
+      noteLines.push(message.blurb);
+    }
+
+    const subject =
+      conversation.subject !== ""
+        ? conversation.subject
+        : `${activityType === "email" ? "Email" : activityType === "whatsapp_message" ? "WhatsApp" : "Social"} conversation`;
+    const activityDate = new Date(message.created_at * 1000).toISOString();
+    const displayId = await nextDisplayId(db, "ACT");
+
+    const activity = {
+      id: createId(),
+      displayId,
+      type: activityType,
+      subject: subject.slice(0, 500),
+      body: message.text !== "" ? message.text : message.blurb !== "" ? message.blurb : null,
+      notes: noteLines.join("\n"),
+      activityDate,
+      humanId: null,
+      accountId: null,
+      routeSignupId: null,
+      websiteBookingRequestId: null,
+      generalLeadId: lead.id,
+      gmailId: null,
+      frontId: message.id,
+      frontConversationId: conversationId,
+      frontContactHandle: contactHandle,
+      senderName: authorInfo !== "Unknown" ? authorInfo : null,
+      direction: message.is_inbound ? "inbound" : "outbound",
+      syncRunId: null,
+      colleagueId: null,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    await db.insert(activities).values(activity).onConflictDoNothing();
+    activitiesImported++;
+  }
+
+  // 10. Return
+  return {
+    lead: { id: lead.id, displayId: lead.displayId },
+    activitiesImported,
+    contactHandle,
+    contactName,
+  };
 }

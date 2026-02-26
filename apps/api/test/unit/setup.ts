@@ -82,6 +82,7 @@ const MIGRATION_STATEMENTS = [
     \`reject_reason\` text,
     \`converted_human_id\` text REFERENCES \`humans\`(\`id\`),
     \`owner_id\` text REFERENCES \`colleagues\`(\`id\`),
+    \`front_conversation_id\` text,
     \`created_at\` text NOT NULL,
     \`updated_at\` text NOT NULL
   )`,
@@ -567,6 +568,7 @@ const MIGRATION_STATEMENTS = [
   `CREATE INDEX IF NOT EXISTS \`documents_entity_type_entity_id_idx\` ON \`documents\` (\`entity_type\`, \`entity_id\`)`,
   `CREATE INDEX IF NOT EXISTS \`documents_key_idx\` ON \`documents\` (\`key\`)`,
   `CREATE UNIQUE INDEX IF NOT EXISTS \`activities_front_id_unique\` ON \`activities\` (\`front_id\`) WHERE \`front_id\` IS NOT NULL`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS \`general_leads_front_conversation_id_unique\` ON \`general_leads\` (\`front_conversation_id\`) WHERE \`front_conversation_id\` IS NOT NULL`,
 ];
 
 // Clean tables in FK-safe order (children first)

@@ -411,11 +411,11 @@ function matchContact(
 
 // --- Front API helpers ---
 
-interface FrontPagination {
+export interface FrontPagination {
   next?: string | null;
 }
 
-interface FrontMessage {
+export interface FrontMessage {
   id: string;
   type: string;
   is_inbound: boolean;
@@ -428,7 +428,7 @@ interface FrontMessage {
   recipients: { handle: string; role: string; name?: string }[];
 }
 
-interface FrontConversation {
+export interface FrontConversation {
   id: string;
   subject: string;
   recipient?: { handle: string; name?: string };
@@ -436,12 +436,12 @@ interface FrontConversation {
   _links?: { related?: { messages?: { href: string } } };
 }
 
-interface FrontPaginatedResponse<T> {
+export interface FrontPaginatedResponse<T> {
   _results: T[];
   _pagination: FrontPagination;
 }
 
-async function frontFetch(url: string, token: string): Promise<unknown> {
+export async function frontFetch(url: string, token: string): Promise<unknown> {
   const res = await fetch(url, {
     headers: {
       Authorization: `Bearer ${token}`,
@@ -484,11 +484,11 @@ export interface UnmatchedContact {
   messageCount: number;
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
+export function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === "object" && !Array.isArray(value);
 }
 
-function isFrontConversation(value: unknown): value is FrontConversation {
+export function isFrontConversation(value: unknown): value is FrontConversation {
   return isRecord(value) && typeof value["id"] === "string";
 }
 
@@ -499,7 +499,7 @@ function isPaginated<T>(value: unknown): value is FrontPaginatedResponse<T> {
   return true;
 }
 
-function assertPaginated<T>(raw: unknown, label: string): FrontPaginatedResponse<T> {
+export function assertPaginated<T>(raw: unknown, label: string): FrontPaginatedResponse<T> {
   if (!isPaginated<T>(raw)) {
     throw new Error(`Invalid Front API paginated response: ${label}`);
   }

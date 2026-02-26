@@ -5,6 +5,7 @@ import {
   updateGeneralLeadSchema,
   updateGeneralLeadStatusSchema,
   convertGeneralLeadSchema,
+  importFromFrontSchema,
 } from "./general-leads";
 
 describe("generalLeadStatuses", () => {
@@ -196,5 +197,29 @@ describe("convertGeneralLeadSchema", () => {
 
   it("rejects missing humanId", () => {
     expect(() => convertGeneralLeadSchema.parse({})).toThrowError();
+  });
+});
+
+describe("importFromFrontSchema", () => {
+  it("accepts a valid message ID", () => {
+    const result = importFromFrontSchema.parse({ frontId: "msg_abc123" });
+    expect(result.frontId).toBe("msg_abc123");
+  });
+
+  it("accepts a valid conversation ID", () => {
+    const result = importFromFrontSchema.parse({ frontId: "cnv_xyz789" });
+    expect(result.frontId).toBe("cnv_xyz789");
+  });
+
+  it("rejects empty string", () => {
+    expect(() => importFromFrontSchema.parse({ frontId: "" })).toThrowError();
+  });
+
+  it("rejects missing frontId", () => {
+    expect(() => importFromFrontSchema.parse({})).toThrowError();
+  });
+
+  it("rejects frontId over 100 chars", () => {
+    expect(() => importFromFrontSchema.parse({ frontId: "a".repeat(101) })).toThrowError();
   });
 });

@@ -1,4 +1,5 @@
-import { sqliteTable, text } from "drizzle-orm/sqlite-core";
+import { sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
+import { sql } from "drizzle-orm";
 import { colleagues } from "./colleagues";
 import { humans } from "./humans";
 
@@ -21,6 +22,11 @@ export const generalLeads = sqliteTable("general_leads", {
   rejectReason: text("reject_reason"),
   convertedHumanId: text("converted_human_id").references(() => humans.id),
   ownerId: text("owner_id").references(() => colleagues.id),
+  frontConversationId: text("front_conversation_id"),
   createdAt: text("created_at").notNull(),
   updatedAt: text("updated_at").notNull(),
-});
+}, (table) => [
+  uniqueIndex("general_leads_front_conversation_id_unique")
+    .on(table.frontConversationId)
+    .where(sql`front_conversation_id IS NOT NULL`),
+]);
