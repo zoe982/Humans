@@ -24,6 +24,8 @@ export const updateGeneralLeadSchema = z.object({
   lastName: z.string().min(1).max(255).optional(),
   notes: z.string().max(10000).optional(),
   ownerId: z.string().nullable().optional(),
+  source: z.string().max(255).nullable().optional(),
+  channel: z.string().max(255).nullable().optional(),
 });
 
 export const updateGeneralLeadStatusSchema = z

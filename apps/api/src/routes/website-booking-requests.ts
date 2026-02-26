@@ -7,7 +7,7 @@ import { authMiddleware } from "../middleware/auth";
 import { requirePermission } from "../middleware/rbac";
 import { supabaseMiddleware } from "../middleware/supabase";
 import { internal, notFound, badRequest } from "../lib/errors";
-import { nextDisplayId } from "../lib/display-id";
+import { nextDisplayIdBatch } from "../lib/display-id";
 import { getNextAction, updateNextAction, completeNextAction } from "../services/entity-next-actions";
 import { getLinkedHumansForBookingRequest } from "../services/humans";
 import { createEmail, deleteEmail, listEmailsForEntity } from "../services/emails";
@@ -34,18 +34,30 @@ async function ensureDisplayIds(
   db: DB,
   rows: unknown[],
 ): Promise<void> {
-  for (const row of rows) {
-    if (!isRecord(row)) continue;
-    if (row["crm_display_id"] == null) {
-      const displayId = await nextDisplayId(db, "BOR");
-      const { error } = await supabase
-        .from("bookings")
-        .update({ crm_display_id: displayId })
-        .eq("id", row["id"]);
-      if (error === null) {
-        row["crm_display_id"] = displayId;
-      }
-    }
+  const missing = rows.filter(
+    (row): row is Record<string, unknown> =>
+      isRecord(row) && row["crm_display_id"] == null,
+  );
+  if (missing.length === 0) return;
+
+  const ids = await nextDisplayIdBatch(db, "BOR", missing.length);
+
+  // Concurrency-limited Supabase updates (3 at a time)
+  for (let i = 0; i < missing.length; i += 3) {
+    const batch = missing.slice(i, i + 3);
+    await Promise.all(
+      batch.map(async (row, j) => {
+        const displayId = ids[i + j];
+        if (displayId === undefined) return;
+        const { error } = await supabase
+          .from("bookings")
+          .update({ crm_display_id: displayId })
+          .eq("id", row["id"]);
+        if (error === null) {
+          row["crm_display_id"] = displayId;
+        }
+      }),
+    );
   }
 }
 
@@ -65,7 +77,7 @@ websiteBookingRequestRoutes.get(
 
     const { data, error, count } = await supabase
       .from("bookings")
-      .select("*", { count: "exact" })
+      .select("id, crm_display_id, first_name, middle_name, last_name, client_email, origin_city, destination_city, travel_date, status, deposit_status, inserted_at", { count: "exact" })
       .order("inserted_at", { ascending: false })
       .range(from, to);
 
@@ -151,6 +163,8 @@ websiteBookingRequestRoutes.patch(
     const updateFields: Record<string, unknown> = {};
     if (parsed.data.crm_note !== undefined) updateFields["crm_note"] = parsed.data.crm_note;
     if (parsed.data.status !== undefined) updateFields["status"] = parsed.data.status;
+    if (parsed.data.crm_source !== undefined) updateFields["crm_source"] = parsed.data.crm_source;
+    if (parsed.data.crm_channel !== undefined) updateFields["crm_channel"] = parsed.data.crm_channel;
 
     if (Object.keys(updateFields).length === 0) {
       throw badRequest(ERROR_CODES.NO_FIELDS_TO_UPDATE, "No fields to update");

@@ -26,7 +26,7 @@ export const load = async ({
     }
   }
 
-  const bookings = await fetchEntityList(fetch, "/api/website-booking-requests?limit=10000", sessionToken);
+  const bookings = await fetchEntityList(fetch, "/api/website-booking-requests?limit=500", sessionToken);
 
   if (browser) {
     const store = getStore("website-booking-requests");

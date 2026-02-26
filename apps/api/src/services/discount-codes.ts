@@ -2,7 +2,7 @@ import { inArray, eq } from "drizzle-orm";
 import { humans, accounts } from "@humans/db/schema";
 import { ERROR_CODES } from "@humans/shared";
 import { notFound } from "../lib/errors";
-import { nextDisplayId } from "../lib/display-id";
+import { nextDisplayIdBatch } from "../lib/display-id";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { DB } from "./types";
 
@@ -48,17 +48,27 @@ async function ensureDiscountCodeDisplayIds(
   db: DB,
   rows: SupabaseDiscountCode[],
 ): Promise<void> {
-  for (const row of rows) {
-    if (row.crm_display_id == null) {
-      const displayId = await nextDisplayId(db, "DIS");
-      const { error } = await supabase
-        .from("discount_codes")
-        .update({ crm_display_id: displayId })
-        .eq("id", row.id);
-      if (error == null) {
-        row.crm_display_id = displayId;
-      }
-    }
+  const missing = rows.filter((r) => r.crm_display_id == null);
+  if (missing.length === 0) return;
+
+  const ids = await nextDisplayIdBatch(db, "DIS", missing.length);
+
+  // Concurrency-limited Supabase updates (3 at a time)
+  for (let i = 0; i < missing.length; i += 3) {
+    const batch = missing.slice(i, i + 3);
+    await Promise.all(
+      batch.map(async (row, j) => {
+        const displayId = ids[i + j];
+        if (displayId === undefined) return;
+        const { error } = await supabase
+          .from("discount_codes")
+          .update({ crm_display_id: displayId })
+          .eq("id", row.id);
+        if (error == null) {
+          row.crm_display_id = displayId;
+        }
+      }),
+    );
   }
 }
 

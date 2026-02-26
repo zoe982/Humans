@@ -18,6 +18,8 @@
   const opportunityHumanRoles = $derived(data.opportunityHumanRoles as ConfigItem[]);
   const humanRelationshipLabels = $derived(data.humanRelationshipLabels as ConfigItem[]);
   const agreementTypes = $derived(data.agreementTypes as ConfigItem[]);
+  const leadSources = $derived(data.leadSources as ConfigItem[]);
+  const leadChannels = $derived(data.leadChannels as ConfigItem[]);
 
   let editingId: string | null = $state(null);
   let editingName: string = $state("");
@@ -425,6 +427,90 @@
       {/if}
       <form method="POST" action="?/createHumanRelationshipLabel" class="flex gap-2">
         <input name="name" type="text" required placeholder="New relationship label..." class="glass-input flex-1 px-3 py-2 text-sm" />
+        <Button type="submit" size="sm">Add</Button>
+      </form>
+    </div>
+
+    <!-- Lead Sources -->
+    <div class="glass-card p-5">
+      <h2 class="text-lg font-semibold text-text-primary mb-4">Lead Sources</h2>
+      {#if leadSources.length === 0}
+        <p class="text-text-muted text-sm mb-4">No lead sources yet.</p>
+      {:else}
+        <div class="space-y-2 mb-4">
+          {#each leadSources as item, i (i)}
+            <div class="flex items-center justify-between p-3 rounded-lg bg-glass hover:bg-glass-hover transition-colors">
+              {#if editingId === item.id}
+                <form method="POST" action="?/renameLeadSource" use:enhance={() => { return async ({ update }) => { cancelEdit(); await update(); }; }} class="flex items-center gap-2 flex-1 mr-2">
+                  <input type="hidden" name="id" value={item.id} />
+                  <input
+                    name="name"
+                    type="text"
+                    required
+                    bind:value={editingName}
+                    class="glass-input flex-1 px-2 py-1 text-sm"
+                    onkeydown={(e: KeyboardEvent) => { if (e.key === "Escape") cancelEdit(); }}
+                  />
+                  <button type="submit" class="text-accent hover:opacity-80 text-sm">Save</button>
+                  <button type="button" onclick={cancelEdit} class="text-text-muted hover:opacity-80 text-sm">Cancel</button>
+                </form>
+              {:else}
+                <button type="button" onclick={() => startEdit(item)} class="text-sm text-text-primary hover:text-accent transition-colors text-left flex-1 mr-2" title="Click to edit">
+                  {item.name}
+                </button>
+                <form method="POST" action="?/deleteLeadSource">
+                  <input type="hidden" name="id" value={item.id} />
+                  <button type="submit" class="text-destructive-foreground hover:opacity-80 text-sm">Remove</button>
+                </form>
+              {/if}
+            </div>
+          {/each}
+        </div>
+      {/if}
+      <form method="POST" action="?/createLeadSource" class="flex gap-2">
+        <input name="name" type="text" required placeholder="New lead source..." class="glass-input flex-1 px-3 py-2 text-sm" />
+        <Button type="submit" size="sm">Add</Button>
+      </form>
+    </div>
+
+    <!-- Lead Channels -->
+    <div class="glass-card p-5">
+      <h2 class="text-lg font-semibold text-text-primary mb-4">Lead Channels</h2>
+      {#if leadChannels.length === 0}
+        <p class="text-text-muted text-sm mb-4">No lead channels yet.</p>
+      {:else}
+        <div class="space-y-2 mb-4">
+          {#each leadChannels as item, i (i)}
+            <div class="flex items-center justify-between p-3 rounded-lg bg-glass hover:bg-glass-hover transition-colors">
+              {#if editingId === item.id}
+                <form method="POST" action="?/renameLeadChannel" use:enhance={() => { return async ({ update }) => { cancelEdit(); await update(); }; }} class="flex items-center gap-2 flex-1 mr-2">
+                  <input type="hidden" name="id" value={item.id} />
+                  <input
+                    name="name"
+                    type="text"
+                    required
+                    bind:value={editingName}
+                    class="glass-input flex-1 px-2 py-1 text-sm"
+                    onkeydown={(e: KeyboardEvent) => { if (e.key === "Escape") cancelEdit(); }}
+                  />
+                  <button type="submit" class="text-accent hover:opacity-80 text-sm">Save</button>
+                  <button type="button" onclick={cancelEdit} class="text-text-muted hover:opacity-80 text-sm">Cancel</button>
+                </form>
+              {:else}
+                <button type="button" onclick={() => startEdit(item)} class="text-sm text-text-primary hover:text-accent transition-colors text-left flex-1 mr-2" title="Click to edit">
+                  {item.name}
+                </button>
+                <form method="POST" action="?/deleteLeadChannel">
+                  <input type="hidden" name="id" value={item.id} />
+                  <button type="submit" class="text-destructive-foreground hover:opacity-80 text-sm">Remove</button>
+                </form>
+              {/if}
+            </div>
+          {/each}
+        </div>
+      {/if}
+      <form method="POST" action="?/createLeadChannel" class="flex gap-2">
+        <input name="name" type="text" required placeholder="New lead channel..." class="glass-input flex-1 px-3 py-2 text-sm" />
         <Button type="submit" size="sm">Add</Button>
       </form>
     </div>

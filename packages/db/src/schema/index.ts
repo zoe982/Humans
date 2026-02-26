@@ -85,3 +85,5 @@ export {
 } from "./agreements";
 export { documents } from "./documents";
 export { leadScores } from "./lead-scores";
+export { leadSourcesConfig } from "./lead-sources-config";
+export { leadChannelsConfig } from "./lead-channels-config";

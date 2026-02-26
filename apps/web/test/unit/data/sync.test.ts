@@ -91,7 +91,7 @@ describe("sync", () => {
       await syncEntity("humans");
 
       expect(mockApi).toHaveBeenCalledWith("/api/humans", {
-        params: { limit: "10000" },
+        params: { limit: "500" },
       });
 
       const store = getStore("humans");
@@ -248,13 +248,47 @@ describe("sync", () => {
   });
 
   describe("syncAll", () => {
-    it("syncs all registered entity types", async () => {
+    it("uses syncIfStale so SSR-prefetched data is not re-fetched", async () => {
+      // Mark all stores as fresh so syncIfStale skips them
+      mockIsStale.mockReturnValue(false);
+
+      await syncAll();
+
+      // No API calls because all stores are fresh
+      expect(mockApi).not.toHaveBeenCalled();
+    });
+
+    it("fetches stale entities via syncIfStale", async () => {
+      mockIsStale.mockReturnValue(true);
       mockApi.mockResolvedValue({ data: [], total: 0 });
 
       await syncAll();
 
       // Should have called api for each registered entity type
       expect(mockApi.mock.calls.length).toBeGreaterThanOrEqual(7);
+    });
+
+    it("serializes Supabase-backed entities after D1 entities", async () => {
+      const callOrder: string[] = [];
+      mockIsStale.mockReturnValue(true);
+      mockApi.mockImplementation(async (path: string) => {
+        callOrder.push(path);
+        return { data: [], total: 0 };
+      });
+
+      await syncAll();
+
+      // Supabase entities should appear after all D1 entities
+      const supabasePaths = ["/api/flights", "/api/route-signups", "/api/website-booking-requests"];
+      const d1Paths = callOrder.filter((p) => !supabasePaths.includes(p));
+      const supabaseCalls = callOrder.filter((p) => supabasePaths.includes(p));
+
+      // All D1 calls should come before any Supabase call
+      if (d1Paths.length > 0 && supabaseCalls.length > 0) {
+        const lastD1Index = Math.max(...d1Paths.map((p) => callOrder.indexOf(p)));
+        const firstSupabaseIndex = Math.min(...supabaseCalls.map((p) => callOrder.indexOf(p)));
+        expect(firstSupabaseIndex).toBeGreaterThan(lastD1Index);
+      }
     });
   });
 

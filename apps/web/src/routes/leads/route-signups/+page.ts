@@ -26,7 +26,7 @@ export const load = async ({
     }
   }
 
-  const signups = await fetchEntityList(fetch, "/api/route-signups?limit=10000", sessionToken);
+  const signups = await fetchEntityList(fetch, "/api/route-signups?limit=500", sessionToken);
 
   if (browser) {
     const store = getStore("route-signups");

@@ -48,8 +48,8 @@ export function initRealtime(userId: string, sessionToken: string): void {
 
   socket.addEventListener("open", () => {
     if (hasConnectedBefore) {
-      // Reconnected after disconnect — resync all stores
-      void syncAll();
+      // Reconnected after disconnect — debounce to avoid rapid reconnect storms
+      setTimeout(() => void syncAll(), 2000);
     }
     hasConnectedBefore = true;
   });

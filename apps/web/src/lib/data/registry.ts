@@ -13,6 +13,12 @@ const ENTITY_REGISTRY: Record<string, string> = {
 
 export const ENTITY_TYPES = Object.keys(ENTITY_REGISTRY);
 
+export const SUPABASE_ENTITIES = new Set([
+  "flights",
+  "route-signups",
+  "website-booking-requests",
+]);
+
 export function getApiPath(entityType: string): string | null {
   // eslint-disable-next-line security/detect-object-injection
   return ENTITY_REGISTRY[entityType] ?? null;

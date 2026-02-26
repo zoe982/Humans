@@ -1,7 +1,7 @@
 import { browser } from "$app/environment";
 import { api, ApiRequestError } from "$lib/api";
 import { isStale, clearCache } from "./cache";
-import { getApiPath, ENTITY_TYPES } from "./registry";
+import { getApiPath, ENTITY_TYPES, SUPABASE_ENTITIES } from "./registry";
 import { getStore } from "./stores.svelte";
 
 function isEntityListResponse(value: unknown): value is { data: { id: string }[] } {
@@ -32,7 +32,7 @@ export async function syncEntity(entityType: string): Promise<void> {
   store.setLoading(true);
 
   try {
-    const raw = await api(path, { params: { limit: "10000" } });
+    const raw = await api(path, { params: { limit: "500" } });
     if (isEntityListResponse(raw)) {
       store.setItems(raw.data);
     }
@@ -55,7 +55,18 @@ export async function syncIfStale(
 }
 
 export async function syncAll(): Promise<void> {
-  await Promise.all(ENTITY_TYPES.map(async (et) => syncEntity(et)));
+  const d1Entities = ENTITY_TYPES.filter((et) => !SUPABASE_ENTITIES.has(et));
+  const supabaseEntities = ENTITY_TYPES.filter((et) =>
+    SUPABASE_ENTITIES.has(et),
+  );
+
+  // D1 entities in parallel (no external connections)
+  await Promise.all(d1Entities.map(async (et) => syncIfStale(et)));
+
+  // Supabase entities sequentially (respect connection limit)
+  for (const et of supabaseEntities) {
+    await syncIfStale(et);
+  }
 }
 
 export async function fetchSingleRecord(

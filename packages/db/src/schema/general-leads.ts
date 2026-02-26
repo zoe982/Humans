@@ -23,6 +23,8 @@ export const generalLeads = sqliteTable("general_leads", {
   convertedHumanId: text("converted_human_id").references(() => humans.id),
   ownerId: text("owner_id").references(() => colleagues.id),
   frontConversationId: text("front_conversation_id"),
+  source: text("source"),
+  channel: text("channel"),
   createdAt: text("created_at").notNull(),
   updatedAt: text("updated_at").notNull(),
 }, (table) => [

@@ -8,7 +8,7 @@ import { authMiddleware } from "../middleware/auth";
 import { requirePermission } from "../middleware/rbac";
 import { supabaseMiddleware } from "../middleware/supabase";
 import { internal, notFound } from "../lib/errors";
-import { nextDisplayId } from "../lib/display-id";
+import { nextDisplayIdBatch } from "../lib/display-id";
 import type { AppContext } from "../types";
 import type { DB } from "../services/types";
 
@@ -30,18 +30,30 @@ async function ensureFlightDisplayIds(
   db: DB,
   rows: unknown[],
 ): Promise<void> {
-  for (const row of rows) {
-    if (!isRecord(row)) continue;
-    if (row["crm_display_id"] == null) {
-      const displayId = await nextDisplayId(db, "FLY");
-      const { error } = await supabase
-        .from("flights")
-        .update({ crm_display_id: displayId })
-        .eq("id", row["id"]);
-      if (error === null) {
-        row["crm_display_id"] = displayId;
-      }
-    }
+  const missing = rows.filter(
+    (row): row is Record<string, unknown> =>
+      isRecord(row) && row["crm_display_id"] == null,
+  );
+  if (missing.length === 0) return;
+
+  const ids = await nextDisplayIdBatch(db, "FLY", missing.length);
+
+  // Concurrency-limited Supabase updates (3 at a time)
+  for (let i = 0; i < missing.length; i += 3) {
+    const batch = missing.slice(i, i + 3);
+    await Promise.all(
+      batch.map(async (row, j) => {
+        const displayId = ids[i + j];
+        if (displayId === undefined) return;
+        const { error } = await supabase
+          .from("flights")
+          .update({ crm_display_id: displayId })
+          .eq("id", row["id"]);
+        if (error === null) {
+          row["crm_display_id"] = displayId;
+        }
+      }),
+    );
   }
 }
 
@@ -61,7 +73,7 @@ flightRoutes.get(
 
     const { data, error, count } = await supabase
       .from("flights")
-      .select("*", { count: "exact" })
+      .select("id, crm_display_id, origin_city, destination_city, flight_date, available_seats, capacity_human_seats, capacity_pet_seats, ticket_price_eur, visible", { count: "exact" })
       .order("flight_date", { ascending: false })
       .range(from, to);
 

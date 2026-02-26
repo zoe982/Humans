@@ -8,7 +8,7 @@ import { requirePermission } from "../middleware/rbac";
 import { supabaseMiddleware } from "../middleware/supabase";
 import { internal, notFound, badRequest } from "../lib/errors";
 import { sanitizePostgrestValue } from "../lib/supabase-sanitize";
-import { nextDisplayId } from "../lib/display-id";
+import { nextDisplayIdBatch } from "../lib/display-id";
 import { getNextAction, updateNextAction, completeNextAction } from "../services/entity-next-actions";
 import { createEmail, deleteEmail, listEmailsForEntity } from "../services/emails";
 import { createPhoneNumber, deletePhoneNumber, listPhoneNumbersForEntity } from "../services/phone-numbers";
@@ -34,18 +34,30 @@ async function ensureDisplayIds(
   db: DB,
   rows: unknown[],
 ): Promise<void> {
-  for (const row of rows) {
-    if (!isRecord(row)) continue;
-    if (row["display_id"] == null) {
-      const displayId = await nextDisplayId(db, "ROU");
-      const { error } = await supabase
-        .from("announcement_signups")
-        .update({ display_id: displayId })
-        .eq("id", row["id"]);
-      if (error === null) {
-        row["display_id"] = displayId;
-      }
-    }
+  const missing = rows.filter(
+    (row): row is Record<string, unknown> =>
+      isRecord(row) && row["display_id"] == null,
+  );
+  if (missing.length === 0) return;
+
+  const ids = await nextDisplayIdBatch(db, "ROU", missing.length);
+
+  // Concurrency-limited Supabase updates (3 at a time)
+  for (let i = 0; i < missing.length; i += 3) {
+    const batch = missing.slice(i, i + 3);
+    await Promise.all(
+      batch.map(async (row, j) => {
+        const displayId = ids[i + j];
+        if (displayId === undefined) return;
+        const { error } = await supabase
+          .from("announcement_signups")
+          .update({ display_id: displayId })
+          .eq("id", row["id"]);
+        if (error === null) {
+          row["display_id"] = displayId;
+        }
+      }),
+    );
   }
 }
 
@@ -68,7 +80,7 @@ routeSignupRoutes.get("/api/route-signups", requirePermission("viewRouteSignups"
 
   let query = supabase
     .from("announcement_signups")
-    .select("*", { count: "exact" });
+    .select("id, display_id, first_name, middle_name, last_name, email, origin, destination, status, note, inserted_at, consent, newsletter_opt_in", { count: "exact" });
 
   if (status !== "") query = query.eq("status", status);
   if (origin !== "") query = query.ilike("origin", `%${sanitizePostgrestValue(origin)}%`);
@@ -170,6 +182,8 @@ routeSignupRoutes.patch("/api/route-signups/:id", requirePermission("manageRoute
   const updateFields: Record<string, unknown> = {};
   if (parsed.data.status !== undefined) updateFields["status"] = parsed.data.status;
   if (parsed.data.note !== undefined) updateFields["note"] = parsed.data.note;
+  if (parsed.data.crm_source !== undefined) updateFields["crm_source"] = parsed.data.crm_source;
+  if (parsed.data.crm_channel !== undefined) updateFields["crm_channel"] = parsed.data.crm_channel;
 
   if (Object.keys(updateFields).length === 0) {
     throw badRequest(ERROR_CODES.NO_FIELDS_TO_UPDATE, "No fields to update");

@@ -41,6 +41,8 @@ export const load = async ({ locals, cookies }: RequestEvent): Promise<{
   opportunityHumanRoles: unknown[];
   humanRelationshipLabels: unknown[];
   agreementTypes: unknown[];
+  leadSources: unknown[];
+  leadChannels: unknown[];
 }> => {
   if (locals.user == null) redirect(302, "/login");
   if (locals.user.role !== "admin") redirect(302, "/dashboard");
@@ -59,6 +61,8 @@ export const load = async ({ locals, cookies }: RequestEvent): Promise<{
     opportunityHumanRoles: configs["opportunity-human-roles"] ?? [],
     humanRelationshipLabels: configs["human-relationship-labels"] ?? [],
     agreementTypes: configs["agreement-types"] ?? [],
+    leadSources: configs["lead-sources"] ?? [],
+    leadChannels: configs["lead-channels"] ?? [],
   };
 };
 
@@ -404,4 +408,79 @@ export const actions = {
 
   renameAgreementType: async ({ request, cookies }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> =>
     renameConfig(request, cookies, "agreement-types"),
+  createLeadSource: async ({ request, cookies }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
+    const form = await request.formData();
+    const sessionToken = cookies.get("humans_session") ?? "";
+    const name = getFormString(form, "name");
+
+    const res = await fetch(`${PUBLIC_API_URL}/api/admin/account-config/lead-sources`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Cookie: `humans_session=${sessionToken}` },
+      body: JSON.stringify({ name }),
+    });
+
+    if (!res.ok) {
+      const resBody: unknown = await res.json().catch(() => ({}));
+      return failFromApi(resBody, res.status, "Failed to create");
+    }
+    return { success: true };
+  },
+
+  deleteLeadSource: async ({ request, cookies }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
+    const form = await request.formData();
+    const sessionToken = cookies.get("humans_session") ?? "";
+    const id = getFormString(form, "id");
+
+    const res = await fetch(`${PUBLIC_API_URL}/api/admin/account-config/lead-sources/${id}`, {
+      method: "DELETE",
+      headers: { Cookie: `humans_session=${sessionToken}` },
+    });
+
+    if (!res.ok) {
+      const resBody: unknown = await res.json().catch(() => ({}));
+      return failFromApi(resBody, res.status, "Failed to delete");
+    }
+    return { success: true };
+  },
+
+  renameLeadSource: async ({ request, cookies }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> =>
+    renameConfig(request, cookies, "lead-sources"),
+
+  createLeadChannel: async ({ request, cookies }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
+    const form = await request.formData();
+    const sessionToken = cookies.get("humans_session") ?? "";
+    const name = getFormString(form, "name");
+
+    const res = await fetch(`${PUBLIC_API_URL}/api/admin/account-config/lead-channels`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Cookie: `humans_session=${sessionToken}` },
+      body: JSON.stringify({ name }),
+    });
+
+    if (!res.ok) {
+      const resBody: unknown = await res.json().catch(() => ({}));
+      return failFromApi(resBody, res.status, "Failed to create");
+    }
+    return { success: true };
+  },
+
+  deleteLeadChannel: async ({ request, cookies }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
+    const form = await request.formData();
+    const sessionToken = cookies.get("humans_session") ?? "";
+    const id = getFormString(form, "id");
+
+    const res = await fetch(`${PUBLIC_API_URL}/api/admin/account-config/lead-channels/${id}`, {
+      method: "DELETE",
+      headers: { Cookie: `humans_session=${sessionToken}` },
+    });
+
+    if (!res.ok) {
+      const resBody: unknown = await res.json().catch(() => ({}));
+      return failFromApi(resBody, res.status, "Failed to delete");
+    }
+    return { success: true };
+  },
+
+  renameLeadChannel: async ({ request, cookies }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> =>
+    renameConfig(request, cookies, "lead-channels"),
 };

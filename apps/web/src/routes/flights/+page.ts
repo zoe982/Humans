@@ -26,7 +26,7 @@ export const load = async ({
     }
   }
 
-  const flights = await fetchEntityList(fetch, "/api/flights?limit=10000", sessionToken);
+  const flights = await fetchEntityList(fetch, "/api/flights?limit=500", sessionToken);
 
   if (browser) {
     const store = getStore("flights");

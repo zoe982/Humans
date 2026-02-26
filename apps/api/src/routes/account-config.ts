@@ -11,6 +11,8 @@ import {
   opportunityHumanRolesConfig,
   humanRelationshipLabelsConfig,
   agreementTypesConfig,
+  leadSourcesConfig,
+  leadChannelsConfig,
 } from "@humans/db/schema";
 import { createId } from "@humans/db";
 import { createConfigItemSchema, updateConfigItemSchema } from "@humans/shared";
@@ -31,6 +33,8 @@ const configTableMap = {
   "opportunity-human-roles": opportunityHumanRolesConfig,
   "human-relationship-labels": humanRelationshipLabelsConfig,
   "agreement-types": agreementTypesConfig,
+  "lead-sources": leadSourcesConfig,
+  "lead-channels": leadChannelsConfig,
 } as const;
 
 type ConfigType = keyof typeof configTableMap;
@@ -51,6 +55,8 @@ function getConfigTable(configType: ConfigType): (typeof configTableMap)[ConfigT
     case "opportunity-human-roles": return opportunityHumanRolesConfig;
     case "human-relationship-labels": return humanRelationshipLabelsConfig;
     case "agreement-types": return agreementTypesConfig;
+    case "lead-sources": return leadSourcesConfig;
+    case "lead-channels": return leadChannelsConfig;
   }
 }
 

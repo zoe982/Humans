@@ -122,6 +122,8 @@ export async function getGeneralLead(db: DB, id: string): Promise<{ convertedHum
       rejectReason: generalLeads.rejectReason,
       convertedHumanId: generalLeads.convertedHumanId,
       ownerId: generalLeads.ownerId,
+      source: generalLeads.source,
+      channel: generalLeads.channel,
       createdAt: generalLeads.createdAt,
       updatedAt: generalLeads.updatedAt,
       ownerName: colleagues.name,
@@ -219,7 +221,7 @@ export async function createGeneralLead(
 export async function updateGeneralLead(
   db: DB,
   id: string,
-  data: { firstName?: string | undefined; middleName?: string | null | undefined; lastName?: string | undefined; notes?: string | undefined; ownerId?: string | null | undefined },
+  data: { firstName?: string | undefined; middleName?: string | null | undefined; lastName?: string | undefined; notes?: string | undefined; ownerId?: string | null | undefined; source?: string | null | undefined; channel?: string | null | undefined },
   colleagueId: string,
 ): Promise<{ data: typeof generalLeads.$inferSelect | undefined }> {
   const existing = await db.query.generalLeads.findFirst({
@@ -261,6 +263,16 @@ export async function updateGeneralLead(
     oldValues["ownerId"] = existing.ownerId;
     newValues["ownerId"] = data.ownerId;
     updateFields["ownerId"] = data.ownerId;
+  }
+  if (data.source !== undefined) {
+    oldValues["source"] = existing.source;
+    newValues["source"] = data.source;
+    updateFields["source"] = data.source;
+  }
+  if (data.channel !== undefined) {
+    oldValues["channel"] = existing.channel;
+    newValues["channel"] = data.channel;
+    updateFields["channel"] = data.channel;
   }
 
   await db.update(generalLeads).set(updateFields).where(eq(generalLeads.id, id));

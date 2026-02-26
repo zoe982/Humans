@@ -24,8 +24,8 @@ export const load = async ({ locals, cookies, params }: RequestEvent): Promise<{
     fetch(`${PUBLIC_API_URL}/api/humans`, { headers }),
     fetch(`${PUBLIC_API_URL}/api/accounts`, { headers }),
     fetch(`${PUBLIC_API_URL}/api/general-leads`, { headers }),
-    fetch(`${PUBLIC_API_URL}/api/website-booking-requests?limit=10000`, { headers }),
-    fetch(`${PUBLIC_API_URL}/api/route-signups?limit=10000`, { headers }),
+    fetch(`${PUBLIC_API_URL}/api/website-booking-requests?limit=500`, { headers }),
+    fetch(`${PUBLIC_API_URL}/api/route-signups?limit=500`, { headers }),
   ]);
 
   const parseList = async (res: Response): Promise<unknown[]> => {
