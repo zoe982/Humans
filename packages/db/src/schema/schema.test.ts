@@ -32,6 +32,12 @@ import { socialIds } from "./social-ids";
 import { opportunityHumans } from "./opportunity-humans";
 import { opportunityPets } from "./opportunity-pets";
 import { websites } from "./websites";
+import { activityOpportunities } from "./activity-opportunities";
+import { agreements, agreementStatuses } from "./agreements";
+import { documents } from "./documents";
+import { entityNextActions, entityNextActionTypes } from "./entity-next-actions";
+import { generalLeads, generalLeadStatuses } from "./general-leads";
+import { leadScores } from "./lead-scores";
 
 describe("schema tables", () => {
   it("colleagues table has correct name", () => {
@@ -286,5 +292,119 @@ describe("schema index re-exports", () => {
     expect(schemaIndex.routeInterestFrequencyValues).toBeDefined();
     expect(schemaIndex.socialIds).toBeDefined();
     expect(schemaIndex.errorLogResolutionStatuses).toBeDefined();
+  });
+});
+
+describe("activities schema", () => {
+  it("activities table has a conditional unique index on front_id", () => {
+    const config = getTableConfig(activities);
+    expect(config.indexes.length).toBeGreaterThanOrEqual(1);
+    const frontIdIndex = config.indexes.find((idx) =>
+      idx.config.name === "activities_front_id_unique",
+    );
+    expect(frontIdIndex).toBeDefined();
+  });
+});
+
+describe("activityOpportunities schema", () => {
+  it("activityOpportunities table has correct name", () => {
+    expect(getTableName(activityOpportunities)).toBe("activity_opportunities");
+  });
+
+  it("activityOpportunities table has 3 indexes", () => {
+    const config = getTableConfig(activityOpportunities);
+    expect(config.indexes.length).toBe(3);
+  });
+});
+
+describe("agreements schema", () => {
+  it("agreements table has correct name", () => {
+    expect(getTableName(agreements)).toBe("agreements");
+  });
+
+  it("agreements table has 2 indexes", () => {
+    const config = getTableConfig(agreements);
+    expect(config.indexes.length).toBe(2);
+  });
+
+  it("agreementStatuses contains expected values", () => {
+    expect(agreementStatuses).toStrictEqual(["open", "active", "closed_inactive"]);
+  });
+});
+
+describe("documents schema", () => {
+  it("documents table has correct name", () => {
+    expect(getTableName(documents)).toBe("documents");
+  });
+
+  it("documents table has 2 indexes", () => {
+    const config = getTableConfig(documents);
+    expect(config.indexes.length).toBe(2);
+  });
+});
+
+describe("entityNextActions schema", () => {
+  it("entityNextActions table has correct name", () => {
+    expect(getTableName(entityNextActions)).toBe("entity_next_actions");
+  });
+
+  it("entityNextActions table has a unique index on entity_type and entity_id", () => {
+    const config = getTableConfig(entityNextActions);
+    expect(config.indexes.length).toBe(1);
+    const uniqueIdx = config.indexes.find((idx) =>
+      idx.config.name === "entity_next_actions_entity_type_entity_id_unique",
+    );
+    expect(uniqueIdx).toBeDefined();
+  });
+
+  it("entityNextActionTypes contains expected values", () => {
+    expect(entityNextActionTypes).toStrictEqual([
+      "route_signup",
+      "general_lead",
+      "website_booking_request",
+    ]);
+  });
+});
+
+describe("generalLeads schema", () => {
+  it("generalLeads table has correct name", () => {
+    expect(getTableName(generalLeads)).toBe("general_leads");
+  });
+
+  it("generalLeads table has a conditional unique index on front_conversation_id", () => {
+    const config = getTableConfig(generalLeads);
+    expect(config.indexes.length).toBeGreaterThanOrEqual(1);
+    const frontConvIdx = config.indexes.find((idx) =>
+      idx.config.name === "general_leads_front_conversation_id_unique",
+    );
+    expect(frontConvIdx).toBeDefined();
+  });
+
+  it("generalLeadStatuses contains expected values", () => {
+    expect(generalLeadStatuses).toStrictEqual([
+      "open",
+      "qualified",
+      "closed_converted",
+      "closed_rejected",
+    ]);
+  });
+});
+
+describe("leadScores schema", () => {
+  it("leadScores table has correct name", () => {
+    expect(getTableName(leadScores)).toBe("lead_scores");
+  });
+
+  it("leadScores table has 4 indexes", () => {
+    const config = getTableConfig(leadScores);
+    expect(config.indexes.length).toBe(4);
+  });
+
+  it("leadScores table has a unique index on general_lead_id", () => {
+    const config = getTableConfig(leadScores);
+    const uniqueIdx = config.indexes.find((idx) =>
+      idx.config.name === "lead_scores_general_lead_id_unique",
+    );
+    expect(uniqueIdx).toBeDefined();
   });
 });
