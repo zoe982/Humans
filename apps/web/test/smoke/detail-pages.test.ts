@@ -249,6 +249,7 @@ describe("Detail page smoke tests", () => {
           allHumans: [],
           allAccounts: [],
           allGeneralLeads: [],
+          allBookingRequests: [],
           allRouteSignups: [],
           user: { id: "u1", email: "test@example.com", name: "Test User", avatarUrl: null, role: "admin" },
           sessionToken: "test-token",
