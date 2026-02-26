@@ -51,7 +51,7 @@ export async function decrypt(
   iv: Uint8Array,
   ciphertext: ArrayBuffer,
 ): Promise<unknown> {
-  const ivBuf = iv.buffer.slice(iv.byteOffset, iv.byteOffset + iv.byteLength);
+  const ivBuf: ArrayBuffer = iv.buffer.slice(iv.byteOffset, iv.byteOffset + iv.byteLength) as ArrayBuffer;
   const decrypted = await crypto.subtle.decrypt(
     { name: "AES-GCM", iv: ivBuf },
     key,
