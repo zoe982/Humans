@@ -1,0 +1,15 @@
+{
+  "extends": "./tsconfig.json",
+  "exclude": [
+    "node_modules/**",
+    "test/**",
+    "src/**/*.test.ts",
+    "src/**/*.test.js",
+    "src/service-worker.js",
+    "src/service-worker/**/*.js",
+    "src/service-worker.ts",
+    "src/service-worker/**/*.ts",
+    "src/service-worker.d.ts",
+    "src/service-worker/**/*.d.ts"
+  ]
+}

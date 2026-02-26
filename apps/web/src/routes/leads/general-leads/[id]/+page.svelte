@@ -407,52 +407,45 @@
 
   <!-- Convert to Human -->
   {#if !isClosed}
-    <div id="convert-to-human" class="glass-card p-6 mb-6">
-      <h2 class="text-lg font-semibold text-text-primary">Convert to Human</h2>
-      <div class="mt-4 grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <!-- Left: Link to existing -->
-        <div>
-          <p class="text-sm font-medium text-text-secondary mb-2">Link to existing human</p>
-          <div class="flex items-center gap-2">
-            <input
-              type="text"
-              bind:value={searchQuery}
-              oninput={() => { if (searchQuery.length >= 2) searchHumans(); else searchResults = []; }}
-              placeholder="Search by name..."
-              class="glass-input flex-1 px-3 py-2 text-sm"
-            />
-          </div>
-          {#if searchResults.length > 0}
-            <ul class="mt-2 divide-y divide-glass-border rounded-xl border border-glass-border overflow-hidden">
-              {#each searchResults as human, i (i)}
-                <li class="flex items-center justify-between px-4 py-3 bg-glass hover:bg-glass-hover transition-colors">
-                  <div>
-                    <p class="text-sm font-medium text-text-primary">{human.firstName} {human.lastName}</p>
-                    {#if human.emails?.[0]}
-                      <p class="text-xs text-text-muted">{human.emails[0].email}</p>
-                    {/if}
-                  </div>
-                  <Button type="button" size="sm" disabled={converting} onclick={() => linkExistingHuman(human.id)}>
-                    {converting ? "Linking..." : "Link"}
-                  </Button>
-                </li>
-              {/each}
-            </ul>
-          {/if}
+    <div id="convert-to-human" class="glass-card p-3 mb-6">
+      <div class="relative">
+        <div class="flex items-center gap-3">
+          <span class="text-sm font-medium text-text-muted whitespace-nowrap shrink-0">Convert to Human</span>
+          <span class="text-glass-border shrink-0" aria-hidden="true">|</span>
+          <input
+            type="text"
+            bind:value={searchQuery}
+            oninput={() => { if (searchQuery.length >= 2) searchHumans(); else searchResults = []; }}
+            placeholder="Search by name to link existing..."
+            class="glass-input flex-1 px-3 py-2 text-sm"
+          />
           {#if searching}
-            <p class="mt-2 text-sm text-text-muted">Searching...</p>
+            <span class="text-xs text-text-muted whitespace-nowrap shrink-0">Searching...</span>
           {/if}
-        </div>
-        <!-- Right: Create new -->
-        <div>
-          <p class="text-sm font-medium text-text-secondary mb-2">Create new human</p>
           <a
             href={resolve(convertUrl())}
-            class="btn-primary inline-block text-sm"
+            class="btn-primary inline-block text-sm whitespace-nowrap shrink-0"
           >
             Create New Human
           </a>
         </div>
+        {#if searchResults.length > 0}
+          <ul class="absolute left-0 right-0 top-full mt-1 z-10 divide-y divide-glass-border rounded-xl border border-glass-border overflow-hidden" style="background: var(--glass-popover, rgba(20,55,90,0.92)); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);">
+            {#each searchResults as human, i (i)}
+              <li class="flex items-center justify-between px-4 py-3 hover:bg-glass-hover transition-colors duration-150">
+                <div>
+                  <p class="text-sm font-medium text-text-primary">{human.firstName} {human.lastName}</p>
+                  {#if human.emails?.[0]}
+                    <p class="text-xs text-text-muted">{human.emails[0].email}</p>
+                  {/if}
+                </div>
+                <Button type="button" size="sm" disabled={converting} onclick={() => linkExistingHuman(human.id)}>
+                  {converting ? "Linking..." : "Link"}
+                </Button>
+              </li>
+            {/each}
+          </ul>
+        {/if}
       </div>
     </div>
   {/if}

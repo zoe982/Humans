@@ -7,7 +7,7 @@
     "dev": "vite dev",
     "build": "vite build",
     "preview": "vite preview",
-    "typecheck": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
+    "typecheck": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.check.json",
     "lint": "eslint src/",
     "test": "vitest run",
     "test:e2e": "playwright test"
@@ -34,6 +34,7 @@
     "@testing-library/svelte": "^5.2.0",
     "@vitest/coverage-istanbul": "~2.1.8",
     "axe-core": "^4.11.1",
+    "csstype": "^3.2.3",
     "fake-indexeddb": "^6.2.5",
     "happy-dom": "^16.0.0",
     "jsdom": "^28.1.0",
