@@ -1,11 +1,9 @@
 import { describe, it, expect } from "vitest";
 import {
   generalLeadStatuses,
-  generalLeadStages,
   createGeneralLeadSchema,
   updateGeneralLeadSchema,
   updateGeneralLeadStatusSchema,
-  updateGeneralLeadStageSchema,
   convertGeneralLeadSchema,
   importFromFrontSchema,
 } from "./general-leads";
@@ -13,13 +11,14 @@ import {
 describe("generalLeadStatuses", () => {
   it("contains all expected statuses", () => {
     expect(generalLeadStatuses).toContain("open");
+    expect(generalLeadStatuses).toContain("pending_response");
     expect(generalLeadStatuses).toContain("qualified");
+    expect(generalLeadStatuses).toContain("closed_lost");
     expect(generalLeadStatuses).toContain("closed_converted");
-    expect(generalLeadStatuses).toContain("closed_rejected");
   });
 
-  it("contains closed_no_response status", () => {
-    expect(generalLeadStatuses).toContain("closed_no_response");
+  it("has exactly 5 statuses", () => {
+    expect(generalLeadStatuses).toHaveLength(5);
   });
 });
 
@@ -137,51 +136,56 @@ describe("updateGeneralLeadSchema", () => {
 });
 
 describe("updateGeneralLeadStatusSchema", () => {
-  it("accepts open status without rejectReason", () => {
+  it("accepts open status", () => {
     const result = updateGeneralLeadStatusSchema.parse({ status: "open" });
     expect(result.status).toBe("open");
   });
 
-  it("accepts qualified status without rejectReason", () => {
+  it("accepts pending_response status", () => {
+    const result = updateGeneralLeadStatusSchema.parse({ status: "pending_response" });
+    expect(result.status).toBe("pending_response");
+  });
+
+  it("accepts qualified status", () => {
     const result = updateGeneralLeadStatusSchema.parse({ status: "qualified" });
     expect(result.status).toBe("qualified");
   });
 
-  it("accepts closed_converted without rejectReason", () => {
+  it("accepts closed_converted without lossReason", () => {
     const result = updateGeneralLeadStatusSchema.parse({ status: "closed_converted" });
     expect(result.status).toBe("closed_converted");
   });
 
-  it("rejects closed_rejected without rejectReason", () => {
-    expect(() => updateGeneralLeadStatusSchema.parse({ status: "closed_rejected" })).toThrowError();
+  it("rejects closed_lost without lossReason", () => {
+    expect(() => updateGeneralLeadStatusSchema.parse({ status: "closed_lost" })).toThrowError();
   });
 
-  it("rejects closed_rejected with empty string rejectReason", () => {
+  it("rejects closed_lost with empty string lossReason", () => {
     expect(() =>
-      updateGeneralLeadStatusSchema.parse({ status: "closed_rejected", rejectReason: "" })
+      updateGeneralLeadStatusSchema.parse({ status: "closed_lost", lossReason: "" })
     ).toThrowError();
   });
 
-  it("rejects closed_rejected with whitespace-only rejectReason", () => {
+  it("rejects closed_lost with whitespace-only lossReason", () => {
     expect(() =>
-      updateGeneralLeadStatusSchema.parse({ status: "closed_rejected", rejectReason: "   " })
+      updateGeneralLeadStatusSchema.parse({ status: "closed_lost", lossReason: "   " })
     ).toThrowError();
   });
 
-  it("accepts closed_rejected with valid rejectReason", () => {
+  it("accepts closed_lost with valid lossReason", () => {
     const result = updateGeneralLeadStatusSchema.parse({
-      status: "closed_rejected",
-      rejectReason: "Client went with a competitor",
+      status: "closed_lost",
+      lossReason: "Price/Budget",
     });
-    expect(result.status).toBe("closed_rejected");
-    expect(result.rejectReason).toBe("Client went with a competitor");
+    expect(result.status).toBe("closed_lost");
+    expect(result.lossReason).toBe("Price/Budget");
   });
 
-  it("rejects rejectReason over 5000 chars", () => {
+  it("rejects lossReason over 255 chars", () => {
     expect(() =>
       updateGeneralLeadStatusSchema.parse({
-        status: "closed_rejected",
-        rejectReason: "a".repeat(5001),
+        status: "closed_lost",
+        lossReason: "a".repeat(256),
       })
     ).toThrowError();
   });
@@ -194,37 +198,12 @@ describe("updateGeneralLeadStatusSchema", () => {
     expect(() => updateGeneralLeadStatusSchema.parse({})).toThrowError();
   });
 
-  it("accepts lossReason with closed_rejected status", () => {
+  it("accepts lossReason with non-closed status (optional, ignored)", () => {
     const result = updateGeneralLeadStatusSchema.parse({
-      status: "closed_rejected",
-      rejectReason: "Not interested",
-      lossReason: "Price/Budget",
+      status: "open",
+      lossReason: "Some reason",
     });
-    expect(result.lossReason).toBe("Price/Budget");
-  });
-
-  it("accepts closed_rejected without lossReason (optional)", () => {
-    const result = updateGeneralLeadStatusSchema.parse({
-      status: "closed_rejected",
-      rejectReason: "Not interested",
-    });
-    expect(result.status).toBe("closed_rejected");
-  });
-
-  it("accepts closed_no_response with lossReason", () => {
-    const result = updateGeneralLeadStatusSchema.parse({
-      status: "closed_no_response",
-      lossReason: "No Response",
-    });
-    expect(result.lossReason).toBe("No Response");
-  });
-
-  it("rejects lossReason over 255 chars", () => {
-    expect(() => updateGeneralLeadStatusSchema.parse({
-      status: "closed_rejected",
-      rejectReason: "reason",
-      lossReason: "a".repeat(256),
-    })).toThrowError();
+    expect(result.lossReason).toBe("Some reason");
   });
 });
 
@@ -260,49 +239,5 @@ describe("importFromFrontSchema", () => {
 
   it("rejects frontId over 100 chars", () => {
     expect(() => importFromFrontSchema.parse({ frontId: "a".repeat(101) })).toThrowError();
-  });
-});
-
-describe("generalLeadStages", () => {
-  it("contains all expected stages", () => {
-    expect(generalLeadStages).toContain("open");
-    expect(generalLeadStages).toContain("pending_response");
-    expect(generalLeadStages).toContain("qualified");
-    expect(generalLeadStages).toContain("closed_lost");
-    expect(generalLeadStages).toContain("closed_converted");
-  });
-
-  it("has exactly 5 stages", () => {
-    expect(generalLeadStages).toHaveLength(5);
-  });
-});
-
-describe("updateGeneralLeadStageSchema", () => {
-  it("accepts valid stage open", () => {
-    const result = updateGeneralLeadStageSchema.parse({ stage: "open" });
-    expect(result.stage).toBe("open");
-  });
-
-  it("accepts pending_response stage", () => {
-    const result = updateGeneralLeadStageSchema.parse({ stage: "pending_response" });
-    expect(result.stage).toBe("pending_response");
-  });
-
-  it("accepts closed_lost stage", () => {
-    const result = updateGeneralLeadStageSchema.parse({ stage: "closed_lost" });
-    expect(result.stage).toBe("closed_lost");
-  });
-
-  it("accepts closed_converted stage", () => {
-    const result = updateGeneralLeadStageSchema.parse({ stage: "closed_converted" });
-    expect(result.stage).toBe("closed_converted");
-  });
-
-  it("rejects invalid stage", () => {
-    expect(() => updateGeneralLeadStageSchema.parse({ stage: "invalid" })).toThrowError();
-  });
-
-  it("rejects missing stage", () => {
-    expect(() => updateGeneralLeadStageSchema.parse({})).toThrowError();
   });
 });

@@ -94,9 +94,9 @@
         {/if}
       </div>
       {#if searchResults.length > 0}
-        <ul class="absolute left-0 right-0 top-full mt-1 z-50 divide-y divide-glass-border rounded-xl border border-glass-border overflow-hidden" style="background: var(--glass-popover, rgba(20,55,90,0.92)); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);">
+        <ul class="glass-popover glass-dropdown-animate absolute left-0 right-0 top-full mt-1 z-50 max-h-[16rem] overflow-y-auto py-1.5">
           {#each searchResults as human, i (i)}
-            <li class="flex items-center justify-between px-4 py-3 hover:bg-glass-hover transition-colors duration-150">
+            <li class="glass-dropdown-item flex items-center justify-between">
               <div>
                 <p class="text-sm font-medium text-text-primary">{human.firstName} {human.lastName}</p>
                 {#if human.emails?.[0]}

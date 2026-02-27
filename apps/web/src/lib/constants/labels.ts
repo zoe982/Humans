@@ -92,15 +92,6 @@ export const balanceStatusLabels: Record<string, string> = {
 /** General lead status display labels */
 export const generalLeadStatusLabels: Record<string, string> = {
   open: "Open",
-  qualified: "Qualified",
-  closed_converted: "Converted",
-  closed_rejected: "Rejected",
-  closed_no_response: "No Response",
-};
-
-/** General lead stage display labels */
-export const generalLeadStageLabels: Record<string, string> = {
-  open: "Open",
   pending_response: "Pending Response",
   qualified: "Qualified",
   closed_lost: "Closed - Lost",

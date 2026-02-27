@@ -2,22 +2,13 @@ import { z } from "zod";
 
 export const generalLeadStatuses = [
   "open",
-  "qualified",
-  "closed_converted",
-  "closed_rejected",
-  "closed_no_response",
-] as const;
-
-export type GeneralLeadStatus = (typeof generalLeadStatuses)[number];
-
-export const generalLeadStages = [
-  "open",
   "pending_response",
   "qualified",
   "closed_lost",
   "closed_converted",
 ] as const;
-export type GeneralLeadStage = (typeof generalLeadStages)[number];
+
+export type GeneralLeadStatus = (typeof generalLeadStatuses)[number];
 
 export const createGeneralLeadSchema = z.object({
   firstName: z.string().min(1).max(255),
@@ -40,23 +31,17 @@ export const updateGeneralLeadSchema = z.object({
 export const updateGeneralLeadStatusSchema = z
   .object({
     status: z.enum(generalLeadStatuses),
-    rejectReason: z.string().max(5000).optional(),
     lossReason: z.string().max(255).optional(),
   })
   .superRefine((data, ctx) => {
-    if (data.status === "closed_rejected" && (data.rejectReason == null || data.rejectReason.trim() === "")) {
+    if (data.status === "closed_lost" && (data.lossReason == null || data.lossReason.trim() === "")) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        path: ["rejectReason"],
-        message: "Reject reason is required when closing as rejected",
+        path: ["lossReason"],
+        message: "Loss reason is required when closing as lost",
       });
     }
   });
-
-export const updateGeneralLeadStageSchema = z.object({
-  stage: z.enum(generalLeadStages),
-});
-export type UpdateGeneralLeadStageInput = z.infer<typeof updateGeneralLeadStageSchema>;
 
 export const convertGeneralLeadSchema = z.object({
   humanId: z.string(),

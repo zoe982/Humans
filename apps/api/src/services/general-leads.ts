@@ -1,6 +1,6 @@
 import { eq, sql, like, or, and, desc, asc } from "drizzle-orm";
-import { generalLeads, generalLeadStatuses, generalLeadStages, activities, colleagues, humans, emails, phones, socialIds, socialIdPlatformsConfig, leadScores } from "@humans/db/schema";
-import type { GeneralLeadStatus, GeneralLeadStage } from "@humans/db/schema";
+import { generalLeads, generalLeadStatuses, activities, colleagues, humans, emails, phones, socialIds, socialIdPlatformsConfig, leadScores } from "@humans/db/schema";
+import type { GeneralLeadStatus } from "@humans/db/schema";
 import { createId } from "@humans/db";
 import { ERROR_CODES } from "@humans/shared";
 import { computeDiff, logAuditEntry } from "../lib/audit";
@@ -27,12 +27,6 @@ function isGeneralLeadStatus(value: string): value is GeneralLeadStatus {
   return generalLeadStatusesSet.has(value);
 }
 
-const generalLeadStagesSet = new Set<string>(generalLeadStages);
-
-function isGeneralLeadStage(value: string): value is GeneralLeadStage {
-  return generalLeadStagesSet.has(value);
-}
-
 function hasDuplicateDetails(d: unknown): d is { existingId: string } {
   return (
     d != null &&
@@ -46,7 +40,7 @@ function toGeneralLeadStatus(value: string): GeneralLeadStatus {
   return isGeneralLeadStatus(value) ? value : "open";
 }
 
-const CLOSED_STATUSES = ["closed_converted", "closed_rejected", "closed_no_response"];
+const CLOSED_STATUSES = ["closed_converted", "closed_lost"];
 
 // ─── List ────────────────────────────────────────────────────────
 
@@ -81,7 +75,6 @@ export async function listGeneralLeads(
       id: generalLeads.id,
       displayId: generalLeads.displayId,
       status: generalLeads.status,
-      stage: generalLeads.stage,
       firstName: generalLeads.firstName,
       middleName: generalLeads.middleName,
       lastName: generalLeads.lastName,
@@ -132,7 +125,6 @@ export async function getGeneralLead(db: DB, id: string): Promise<{ convertedHum
       id: generalLeads.id,
       displayId: generalLeads.displayId,
       status: generalLeads.status,
-      stage: generalLeads.stage,
       firstName: generalLeads.firstName,
       middleName: generalLeads.middleName,
       lastName: generalLeads.lastName,
@@ -339,18 +331,15 @@ export async function updateGeneralLeadStatus(
     throw badRequest(ERROR_CODES.GENERAL_LEAD_INVALID_STATUS_TRANSITION, "Cannot change status of a closed lead");
   }
 
-  // closed_rejected requires rejectReason
-  if (data.status === "closed_rejected") {
-    if (data.rejectReason == null || data.rejectReason.trim() === "") {
-      throw badRequest(ERROR_CODES.GENERAL_LEAD_REJECT_REASON_REQUIRED, "Reject reason is required for closed_rejected");
+  // closed_lost requires lossReason
+  if (data.status === "closed_lost") {
+    if (data.lossReason == null || data.lossReason.trim() === "") {
+      throw badRequest(ERROR_CODES.GENERAL_LEAD_LOSS_REASON_REQUIRED, "Loss reason is required for closed_lost");
     }
   }
 
   const now = new Date().toISOString();
   const updateFields: Record<string, unknown> = { status: data.status, updatedAt: now };
-  if (data.rejectReason != null) {
-    updateFields["rejectReason"] = data.rejectReason;
-  }
   if (data.lossReason !== undefined) {
     updateFields["lossReason"] = data.lossReason;
   }
@@ -372,46 +361,6 @@ export async function updateGeneralLeadStatus(
   // Clear next action when transitioning to a closed status
   if (CLOSED_STATUSES.includes(data.status)) {
     await completeNextAction(db, "general_lead", id, colleagueId);
-  }
-
-  const updated = await db.query.generalLeads.findFirst({
-    where: eq(generalLeads.id, id),
-  });
-  return { data: updated };
-}
-
-// ─── Stage ───────────────────────────────────────────────────────
-
-export async function updateGeneralLeadStage(
-  db: DB,
-  id: string,
-  data: { stage: string },
-  colleagueId: string,
-): Promise<{ data: typeof generalLeads.$inferSelect | undefined }> {
-  const existing = await db.query.generalLeads.findFirst({
-    where: eq(generalLeads.id, id),
-  });
-  if (existing == null) {
-    throw notFound(ERROR_CODES.GENERAL_LEAD_NOT_FOUND, "General lead not found");
-  }
-
-  if (!isGeneralLeadStage(data.stage)) {
-    throw badRequest(ERROR_CODES.VALIDATION_FAILED, "Invalid stage value");
-  }
-
-  const now = new Date().toISOString();
-  await db.update(generalLeads).set({ stage: data.stage, updatedAt: now }).where(eq(generalLeads.id, id));
-
-  const diff = computeDiff({ stage: existing.stage }, { stage: data.stage });
-  if (diff != null) {
-    await logAuditEntry({
-      db,
-      colleagueId,
-      action: "STAGE_CHANGE",
-      entityType: "general_lead",
-      entityId: id,
-      changes: diff,
-    });
   }
 
   const updated = await db.query.generalLeads.findFirst({

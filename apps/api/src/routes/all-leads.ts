@@ -26,7 +26,6 @@ allLeadRoutes.get("/api/leads/all", requirePermission("viewGeneralLeads"), async
         id: generalLeads.id,
         displayId: generalLeads.displayId,
         status: generalLeads.status,
-        stage: generalLeads.stage,
         firstName: generalLeads.firstName,
         middleName: generalLeads.middleName,
         lastName: generalLeads.lastName,
@@ -91,7 +90,6 @@ allLeadRoutes.get("/api/leads/all", requirePermission("viewGeneralLeads"), async
     displayId: string;
     leadType: "general_lead" | "route_signup" | "website_booking_request";
     status: string;
-    stage: string | null;
     firstName: string;
     middleName: string | null;
     lastName: string;
@@ -110,7 +108,6 @@ allLeadRoutes.get("/api/leads/all", requirePermission("viewGeneralLeads"), async
       displayId: gl.displayId,
       leadType: "general_lead",
       status: gl.status,
-      stage: gl.stage,
       firstName: gl.firstName,
       middleName: gl.middleName,
       lastName: gl.lastName,
@@ -128,7 +125,6 @@ allLeadRoutes.get("/api/leads/all", requirePermission("viewGeneralLeads"), async
       displayId: rs.display_id != null ? String(rs.display_id) : "",
       leadType: "route_signup",
       status: String(rs.status ?? "open"),
-      stage: null,
       firstName: String(rs.first_name ?? ""),
       middleName: rs.middle_name != null ? String(rs.middle_name) : null,
       lastName: String(rs.last_name ?? ""),
@@ -146,7 +142,6 @@ allLeadRoutes.get("/api/leads/all", requirePermission("viewGeneralLeads"), async
       displayId: br.crm_display_id != null ? String(br.crm_display_id) : "",
       leadType: "website_booking_request",
       status: String(br.status ?? "open"),
-      stage: null,
       firstName: String(br.first_name ?? ""),
       middleName: br.middle_name != null ? String(br.middle_name) : null,
       lastName: String(br.last_name ?? ""),

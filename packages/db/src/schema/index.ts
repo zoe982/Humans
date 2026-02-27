@@ -64,8 +64,6 @@ export {
   generalLeads,
   generalLeadStatuses,
   type GeneralLeadStatus,
-  generalLeadStages,
-  type GeneralLeadStage,
 } from "./general-leads";
 export { opportunityHumans } from "./opportunity-humans";
 export { opportunityPets } from "./opportunity-pets";

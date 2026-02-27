@@ -64,15 +64,6 @@ export const roleLabelBadgeColor = "badge-orange";
 /** General lead status badge colors */
 export const generalLeadStatusColors: Record<string, string> = {
   open: "badge-blue",
-  qualified: "badge-yellow",
-  closed_converted: "badge-green",
-  closed_rejected: "badge-red",
-  closed_no_response: "badge-yellow",
-};
-
-/** General lead stage badge colors */
-export const generalLeadStageColors: Record<string, string> = {
-  open: "badge-blue",
   pending_response: "badge-yellow",
   qualified: "badge-yellow",
   closed_lost: "badge-red",
