@@ -12,6 +12,9 @@
   import RelatedListTable from "$lib/components/RelatedListTable.svelte";
   import { resolve } from "$app/paths";
   import { page } from "$app/stores";
+  import { Trash2 } from "lucide-svelte";
+  import { opportunityStageColors } from "$lib/constants/colors";
+  import { opportunityStageLabels } from "$lib/constants/labels";
 
   let { data }: { data: PageData } = $props();
 
@@ -28,9 +31,32 @@
     ownerName: string | null;
     ownerDisplayId: string | null;
   };
+  type PetOpportunity = {
+    linkId: string;
+    id: string;
+    displayId: string;
+    stage: string;
+    primaryHumanName: string | null;
+    createdAt: string;
+  };
+  type OpportunityListItem = { id: string; displayId: string; stage: string };
 
   const pet = $derived(data.pet as Pet);
   const allHumans = $derived(data.allHumans as HumanListItem[]);
+  const petOpportunities = $derived(data.petOpportunities as PetOpportunity[]);
+  const allOpportunities = $derived(data.allOpportunities as OpportunityListItem[]);
+
+  const linkedOppIds = $derived(new Set(petOpportunities.map((o) => o.id)));
+  const availableOpportunityOptions = $derived(
+    allOpportunities
+      .filter((o) => !linkedOppIds.has(o.id))
+      .map((o) => ({
+        value: o.id,
+        label: `${o.displayId} — ${opportunityStageLabels[o.stage] ?? o.stage}`,
+      }))
+  );
+
+  let oppSelectKey = $state(0);
 
   // Auto-save state
   let petName = $state("");
@@ -229,6 +255,69 @@
         placeholder="Add notes about this pet..."
       ></textarea>
     </div>
+  </div>
+
+  <!-- Opportunities -->
+  <div class="mt-6">
+    <RelatedListTable
+      title="Opportunities"
+      items={petOpportunities}
+      columns={[
+        { key: "displayId", label: "ID" },
+        { key: "stage", label: "Stage", sortable: true, sortValue: (o) => o.stage },
+        { key: "primaryHuman", label: "Primary Human" },
+        { key: "actions", label: "" },
+      ]}
+      defaultSortKey="stage"
+      defaultSortDirection="asc"
+      searchFilter={(o, q) => o.displayId.toLowerCase().includes(q) || (opportunityStageLabels[o.stage] ?? o.stage).toLowerCase().includes(q) || (o.primaryHumanName ?? "").toLowerCase().includes(q)}
+      emptyMessage="No linked opportunities."
+      addLabel="Opportunity"
+    >
+      {#snippet row(opp, _searchQuery)}
+        <td class="font-mono text-sm whitespace-nowrap">
+          <a href={resolve(`/opportunities/${opp.id}?from=${$page.url.pathname}`)} class="text-accent hover:text-[var(--link-hover)]">{opp.displayId}</a>
+        </td>
+        <td>
+          <!-- eslint-disable-next-line security/detect-object-injection -->
+          <span class="glass-badge inline-flex rounded-full px-2 py-0.5 text-xs font-medium {opportunityStageColors[opp.stage] ?? 'bg-glass text-text-secondary'}">
+            {opportunityStageLabels[opp.stage] ?? opp.stage}
+          </span>
+        </td>
+        <td class="text-sm text-text-secondary">{opp.primaryHumanName ?? "—"}</td>
+        <td class="text-right">
+          <form method="POST" action="?/unlinkOpportunity" class="inline">
+            <input type="hidden" name="opportunityId" value={opp.id} />
+            <input type="hidden" name="linkId" value={opp.linkId} />
+            <button type="submit" class="p-1 text-text-muted hover:text-red-400 transition-colors" title="Unlink opportunity">
+              <Trash2 class="h-4 w-4" />
+            </button>
+          </form>
+        </td>
+      {/snippet}
+      {#snippet addForm()}
+        <form method="POST" action="?/linkOpportunity" class="space-y-3">
+          <input type="hidden" name="petHumanId" value={pet.humanId ?? ""} />
+          {#key oppSelectKey}
+            <SearchableSelect
+              options={availableOpportunityOptions}
+              name="opportunityId"
+              id="oppSelect"
+              emptyOption="Select an opportunity..."
+              placeholder="Search opportunities..."
+              onSelect={() => { oppSelectKey++; }}
+            />
+          {/key}
+          <div class="flex items-center gap-3">
+            <button type="submit" class="btn-primary text-sm px-3 py-1.5">Link Opportunity</button>
+            <span class="text-text-muted text-xs">or</span>
+            <a href={resolve(`/opportunities/new?humanId=${pet.humanId ?? ""}&petId=${pet.id}`)} class="text-sm text-accent hover:text-[var(--link-hover)]">
+              Create New Opportunity
+            </a>
+          </div>
+        </form>
+      {/snippet}
+    </RelatedListTable>
   </div>
 
   <!-- Change History -->

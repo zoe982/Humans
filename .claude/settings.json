@@ -13,6 +13,11 @@
             "type": "command",
             "command": ".claude/hooks/block-subagent-tests.sh",
             "timeout": 5000
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/inject-tdd-prompt.sh",
+            "timeout": 5000
           }
         ]
       },

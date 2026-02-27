@@ -1,5 +1,5 @@
-import { eq, sql } from "drizzle-orm";
-import { pets, humans } from "@humans/db/schema";
+import { eq, sql, inArray, and } from "drizzle-orm";
+import { pets, humans, opportunityPets, opportunities, opportunityHumans, opportunityHumanRolesConfig } from "@humans/db/schema";
 import { createId } from "@humans/db";
 import { ERROR_CODES } from "@humans/shared";
 import { notFound } from "../lib/errors";
@@ -170,4 +170,61 @@ export async function updatePet(
     where: eq(pets.id, id),
   });
   return updated;
+}
+
+export async function getOpportunitiesForPet(db: DB, petId: string): Promise<{ linkId: string; id: string; displayId: string; stage: string; primaryHumanName: string | null; createdAt: string }[]> {
+  const links = await db
+    .select({
+      linkId: opportunityPets.id,
+      opportunityId: opportunityPets.opportunityId,
+    })
+    .from(opportunityPets)
+    .where(eq(opportunityPets.petId, petId));
+
+  if (links.length === 0) return [];
+
+  const oppIds = links.map((l) => l.opportunityId);
+
+  const opps = await db
+    .select({
+      id: opportunities.id,
+      displayId: opportunities.displayId,
+      stage: opportunities.stage,
+      createdAt: opportunities.createdAt,
+    })
+    .from(opportunities)
+    .where(inArray(opportunities.id, oppIds));
+
+  const roleConfigs = await db.select().from(opportunityHumanRolesConfig);
+  const primaryRoleId = roleConfigs.find((r) => r.name === "primary")?.id ?? null;
+
+  const primaryHumans = primaryRoleId != null
+    ? await db
+        .select({
+          opportunityId: opportunityHumans.opportunityId,
+          firstName: humans.firstName,
+          lastName: humans.lastName,
+        })
+        .from(opportunityHumans)
+        .innerJoin(humans, eq(opportunityHumans.humanId, humans.id))
+        .where(
+          and(
+            inArray(opportunityHumans.opportunityId, oppIds),
+            eq(opportunityHumans.roleId, primaryRoleId),
+          ),
+        )
+    : [];
+
+  return links.map((link) => {
+    const opp = opps.find((o) => o.id === link.opportunityId);
+    const primary = primaryHumans.find((p) => p.opportunityId === link.opportunityId);
+    return {
+      linkId: link.linkId,
+      id: opp?.id ?? link.opportunityId,
+      displayId: opp?.displayId ?? "",
+      stage: opp?.stage ?? "open",
+      primaryHumanName: primary != null ? `${primary.firstName} ${primary.lastName}` : null,
+      createdAt: opp?.createdAt ?? "",
+    };
+  });
 }

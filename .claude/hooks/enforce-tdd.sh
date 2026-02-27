@@ -1,9 +1,10 @@
 #!/bin/bash
-# PreToolUse hook (matcher: Edit): Enforce test-driven development.
+# PreToolUse hook (matcher: Edit, Write): Enforce test-driven development.
 #
-# When editing implementation source files (not test files, configs, docs),
-# emit a reminder that TDD requires the test to be written first.
-# This is a soft gate (allow with message) — the audit script is the hard gate.
+# When editing implementation source files (not test files, configs, docs):
+# 1. Check if a corresponding test file exists in the same package
+# 2. If NO test file: strong warning demanding test-first development
+# 3. If test file exists: gentle reminder to ensure a failing test covers this change
 #
 # Exit 0 with no output = passthrough.
 # JSON with systemMessage = allow but remind.
@@ -40,6 +41,8 @@ case "$FILE_PATH" in
   */node_modules/*) exit 0 ;;              # Dependencies
   *.svelte) exit 0 ;;                      # Svelte components (tested via integration)
   *.d.ts) exit 0 ;;                        # Type declarations
+  *.css) exit 0 ;;                         # Stylesheets
+  *.html) exit 0 ;;                        # HTML templates
 esac
 
 # Only act on TypeScript source files in src/ directories
@@ -47,11 +50,38 @@ if ! echo "$FILE_PATH" | grep -qE '/src/.*\.ts$'; then
   exit 0
 fi
 
-# This is an implementation source file — remind about TDD
+# Extract the basename (handle SvelteKit +page.server.ts → page.server convention)
+BASENAME=$(basename "$FILE_PATH" .ts)
+SEARCH_NAME=$(echo "$BASENAME" | sed 's/^\+//')
+
+# Find the package root (apps/api, apps/web, packages/db, packages/shared)
+PACKAGE_ROOT=$(echo "$FILE_PATH" | grep -oE '.*/apps/[^/]+|.*/packages/[^/]+' || echo "")
+
+if [[ -n "$PACKAGE_ROOT" ]]; then
+  # Look for corresponding test file in the package
+  TEST_EXISTS=false
+  if find "$PACKAGE_ROOT" -maxdepth 6 \( -name "${SEARCH_NAME}.test.ts" -o -name "${SEARCH_NAME}.spec.ts" \) -not -path "*/node_modules/*" -not -path "*/.svelte-kit/*" 2>/dev/null | head -1 | grep -q .; then
+    TEST_EXISTS=true
+  fi
+
+  if [[ "$TEST_EXISTS" == "false" ]]; then
+    # No test file found — STRONG WARNING
+    jq -n --arg file "$FILE_PATH" --arg name "$SEARCH_NAME" '{
+      hookSpecificOutput: {
+        hookEventName: "PreToolUse",
+        permissionDecision: "allow",
+        systemMessage: ("TDD VIOLATION: You are editing " + $file + " but NO corresponding test file exists (searched for " + $name + ".test.ts). You MUST create the test file with a FAILING test FIRST, then implement. Red-Green-Refactor: write the failing test, then come back to this file. This is mandatory.")
+      }
+    }'
+    exit 0
+  fi
+fi
+
+# Test file exists — gentle reminder
 jq -n '{
   hookSpecificOutput: {
     hookEventName: "PreToolUse",
     permissionDecision: "allow",
-    systemMessage: "TDD REMINDER: You are editing an implementation file. Ensure the corresponding test file exists and has a FAILING test for this change BEFORE writing implementation code. Red-Green-Refactor: test first, then implement."
+    systemMessage: "TDD REMINDER: You are editing an implementation file. Ensure the corresponding test has a FAILING assertion for this change BEFORE writing implementation code. Red-Green-Refactor: test first, then implement."
   }
 }'

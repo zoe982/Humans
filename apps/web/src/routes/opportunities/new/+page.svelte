@@ -14,8 +14,8 @@
   const allHumans = $derived(data.allHumans as HumanOption[]);
   const allPets = $derived(data.allPets as PetOption[]);
 
-  let selectedHumanId = $state("");
-  let selectedPetIds = $state<string[]>([]);
+  let selectedHumanId = $state(data.preselectedHumanId ?? "");
+  let selectedPetIds = $state<string[]>(data.preselectedPetId ? [data.preselectedPetId] : []);
   let passengerSeats = $state(1);
   let petSeats = $state(1);
 

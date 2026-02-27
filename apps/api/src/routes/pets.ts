@@ -10,6 +10,7 @@ import {
   createPet,
   updatePet,
   deletePet,
+  getOpportunitiesForPet,
 } from "../services/pets";
 import type { AppContext } from "../types";
 
@@ -32,6 +33,12 @@ petRoutes.get("/api/pets", requirePermission("viewRecords"), async (c) => {
 // List pets for a human
 petRoutes.get("/api/humans/:humanId/pets", requirePermission("viewRecords"), async (c) => {
   const data = await listPetsForHuman(c.get("db"), c.req.param("humanId"));
+  return c.json({ data });
+});
+
+// Get opportunities linked to a pet
+petRoutes.get("/api/pets/:id/opportunities", requirePermission("viewRecords"), async (c) => {
+  const data = await getOpportunitiesForPet(c.get("db"), c.req.param("id"));
   return c.json({ data });
 });
 

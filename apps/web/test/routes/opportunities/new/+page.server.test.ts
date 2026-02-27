@@ -33,6 +33,22 @@ describe("opportunities/new +page.server load", () => {
     expect(result.allHumans).toEqual([{ id: "h-1", name: "Alice" }]);
     expect(result.allPets).toEqual([{ id: "p-1", name: "Fluffy" }]);
     expect(result.apiUrl).toBe("http://localhost:8787");
+    expect(result.preselectedHumanId).toBe("");
+    expect(result.preselectedPetId).toBe("");
+  });
+
+  it("reads preselected humanId and petId from query params", async () => {
+    const mockFetch = createMockFetch({
+      "/api/humans": { status: 200, body: { data: [] } },
+      "/api/pets": { status: 200, body: { data: [] } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = mockEvent({ url: "http://localhost/opportunities/new?humanId=h-42&petId=p-99" });
+    const result = await load(event as any);
+
+    expect(result.preselectedHumanId).toBe("h-42");
+    expect(result.preselectedPetId).toBe("p-99");
   });
 
   it("returns empty arrays when API calls fail", async () => {

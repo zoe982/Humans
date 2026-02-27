@@ -54,6 +54,8 @@ describe("Detail page smoke tests", () => {
             ownerDisplayId: null,
           },
           allHumans: [],
+          petOpportunities: [],
+          allOpportunities: [],
           user: { id: "u1", email: "test@example.com", name: "Test User", avatarUrl: null, role: "admin" },
           sessionToken: "test-token",
         },
@@ -467,6 +469,8 @@ describe("Detail page structure enforcement", () => {
         data: {
           pet: { id: "pet-1", displayId: "PET-001", humanId: null, type: "dog", name: "Buddy", breed: null, weight: null, ownerName: null, ownerDisplayId: null },
           allHumans: [],
+          petOpportunities: [],
+          allOpportunities: [],
           user: { id: "u1", email: "test@example.com", name: "Test User", avatarUrl: null, role: "admin" },
           sessionToken: "test-token",
         },

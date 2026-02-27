@@ -12,8 +12,11 @@ function getFormString(form: FormData, key: string): string {
   return typeof raw === "string" ? raw : "";
 }
 
-export const load = async ({ locals, cookies }: RequestEvent): Promise<{ allHumans: unknown[]; allPets: unknown[]; apiUrl: string }> => {
+export const load = async ({ locals, cookies, url }: RequestEvent): Promise<{ allHumans: unknown[]; allPets: unknown[]; apiUrl: string; preselectedHumanId: string; preselectedPetId: string }> => {
   if (locals.user == null) redirect(302, "/login");
+
+  const preselectedHumanId = url.searchParams.get("humanId") ?? "";
+  const preselectedPetId = url.searchParams.get("petId") ?? "";
 
   const sessionToken = cookies.get("humans_session");
   const headers = { Cookie: `humans_session=${sessionToken ?? ""}` };
@@ -35,7 +38,7 @@ export const load = async ({ locals, cookies }: RequestEvent): Promise<{ allHuma
     allPets = isListData(raw) ? raw.data : [];
   }
 
-  return { allHumans, allPets, apiUrl: PUBLIC_API_URL };
+  return { allHumans, allPets, apiUrl: PUBLIC_API_URL, preselectedHumanId, preselectedPetId };
 };
 
 export const actions = {
