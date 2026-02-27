@@ -69,7 +69,7 @@
     </div>
   </div>
 {:else}
-  <div class="glass-card p-3 mb-6">
+  <div class="glass-card overflow-visible p-3 mb-6">
     <div class="relative">
       <div class="flex items-center gap-3">
         <span class="text-sm font-medium text-text-muted whitespace-nowrap shrink-0">Link Human</span>
@@ -94,7 +94,7 @@
         {/if}
       </div>
       {#if searchResults.length > 0}
-        <ul class="absolute left-0 right-0 top-full mt-1 z-10 divide-y divide-glass-border rounded-xl border border-glass-border overflow-hidden" style="background: var(--glass-popover, rgba(20,55,90,0.92)); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);">
+        <ul class="absolute left-0 right-0 top-full mt-1 z-50 divide-y divide-glass-border rounded-xl border border-glass-border overflow-hidden" style="background: var(--glass-popover, rgba(20,55,90,0.92)); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);">
           {#each searchResults as human, i (i)}
             <li class="flex items-center justify-between px-4 py-3 hover:bg-glass-hover transition-colors duration-150">
               <div>
