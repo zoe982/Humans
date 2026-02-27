@@ -134,6 +134,18 @@
   let humanAddMode = $state<'link' | 'create'>('link');
   let agreementActivationDate = $state("");
 
+  let emailAddMode = $state<"create" | "link">("create");
+  let phoneAddMode = $state<"create" | "link">("create");
+  let socialIdAddMode = $state<"create" | "link">("create");
+  let emailLinkQuery = $state("");
+  let phoneLinkQuery = $state("");
+  let socialIdLinkQuery = $state("");
+  let emailLinkResults = $state<{ id: string; displayId: string; email: string; ownerName: string | null }[]>([]);
+  let phoneLinkResults = $state<{ id: string; displayId: string; phoneNumber: string; ownerName: string | null }[]>([]);
+  let socialIdLinkResults = $state<{ id: string; displayId: string; handle: string; platformName: string | null; humanName: string | null; accountName: string | null }[]>([]);
+  let linkSearching = $state(false);
+  let linking = $state(false);
+
   // Initialize state from loaded account data
   $effect(() => {
     if (account) {
@@ -327,6 +339,66 @@
     await loadData();
   }
 
+  async function searchEmails() {
+    if (emailLinkQuery.trim().length < 2) { emailLinkResults = []; return; }
+    linkSearching = true;
+    try {
+      const res = await api(`/api/emails`, { params: { q: emailLinkQuery.trim() } }) as { data: typeof emailLinkResults };
+      emailLinkResults = (res.data ?? []).filter((e) => !(account?.emails ?? []).some((ae) => ae.id === e.id));
+    } catch { emailLinkResults = []; } finally { linkSearching = false; }
+  }
+
+  async function searchPhones() {
+    if (phoneLinkQuery.trim().length < 2) { phoneLinkResults = []; return; }
+    linkSearching = true;
+    try {
+      const res = await api(`/api/phone-numbers`, { params: { q: phoneLinkQuery.trim() } }) as { data: typeof phoneLinkResults };
+      phoneLinkResults = (res.data ?? []).filter((p) => !(account?.phoneNumbers ?? []).some((ap) => ap.id === p.id));
+    } catch { phoneLinkResults = []; } finally { linkSearching = false; }
+  }
+
+  async function searchSocialIds() {
+    if (socialIdLinkQuery.trim().length < 2) { socialIdLinkResults = []; return; }
+    linkSearching = true;
+    try {
+      const res = await api(`/api/social-ids`, { params: { q: socialIdLinkQuery.trim() } }) as { data: typeof socialIdLinkResults };
+      socialIdLinkResults = (res.data ?? []).filter((s) => !(account?.socialIds ?? []).some((as_) => as_.id === s.id));
+    } catch { socialIdLinkResults = []; } finally { linkSearching = false; }
+  }
+
+  async function linkEmail(emailId: string) {
+    linking = true;
+    try {
+      await api(`/api/emails/${emailId}`, { method: "PATCH", body: JSON.stringify({ accountId }) });
+      emailLinkQuery = ""; emailLinkResults = [];
+      toast("Email linked");
+      await loadData();
+    } catch (err) { toast(`Failed to link email: ${err instanceof Error ? err.message : "Unknown error"}`); }
+    finally { linking = false; }
+  }
+
+  async function linkPhone(phoneId: string) {
+    linking = true;
+    try {
+      await api(`/api/phone-numbers/${phoneId}`, { method: "PATCH", body: JSON.stringify({ accountId }) });
+      phoneLinkQuery = ""; phoneLinkResults = [];
+      toast("Phone number linked");
+      await loadData();
+    } catch (err) { toast(`Failed to link phone: ${err instanceof Error ? err.message : "Unknown error"}`); }
+    finally { linking = false; }
+  }
+
+  async function linkSocialId(socialIdId: string) {
+    linking = true;
+    try {
+      await api(`/api/social-ids/${socialIdId}`, { method: "PATCH", body: JSON.stringify({ accountId }) });
+      socialIdLinkQuery = ""; socialIdLinkResults = [];
+      toast("Social ID linked");
+      await loadData();
+    } catch (err) { toast(`Failed to link social ID: ${err instanceof Error ? err.message : "Unknown error"}`); }
+    finally { linking = false; }
+  }
+
 </script>
 
 <svelte:head>
@@ -444,6 +516,7 @@
       emptyMessage="No emails yet."
       searchEmptyMessage="No emails match your search."
       addLabel="Email"
+      onFormToggle={(open) => { if (!open) { emailAddMode = 'create'; emailLinkQuery = ''; emailLinkResults = []; } }}
     >
       {#snippet row(email, _searchQuery)}
         <td>
@@ -485,35 +558,64 @@
         </td>
       {/snippet}
       {#snippet addForm()}
-        <form method="POST" action="?/addEmail" use:enhance={formEnhance} class="space-y-3">
-          <div class="grid gap-3 sm:grid-cols-2">
-            <div>
-              <label for="emailAddress" class="block text-sm font-medium text-text-secondary">Email</label>
-              <input
-                id="emailAddress" name="email" type="email" required
-                class="glass-input mt-1 block w-full"
-                placeholder="email@example.com"
-              />
+        <div class="flex gap-2 mb-3">
+          <button type="button" class="px-3 py-1 text-xs rounded-full transition-colors {emailAddMode === 'create' ? 'bg-accent text-white' : 'bg-glass-hover text-text-muted'}" onclick={() => { emailAddMode = 'create'; emailLinkQuery = ''; emailLinkResults = []; }}>Create New</button>
+          <button type="button" class="px-3 py-1 text-xs rounded-full transition-colors {emailAddMode === 'link' ? 'bg-accent text-white' : 'bg-glass-hover text-text-muted'}" onclick={() => { emailAddMode = 'link'; }}>Link Existing</button>
+        </div>
+        {#if emailAddMode === 'create'}
+          <form method="POST" action="?/addEmail" use:enhance={formEnhance} class="space-y-3">
+            <div class="grid gap-3 sm:grid-cols-2">
+              <div>
+                <label for="emailAddress" class="block text-sm font-medium text-text-secondary">Email</label>
+                <input
+                  id="emailAddress" name="email" type="email" required
+                  class="glass-input mt-1 block w-full"
+                  placeholder="email@example.com"
+                />
+              </div>
+              <div>
+                <label for="emailLabel" class="block text-sm font-medium text-text-secondary">Label</label>
+                <SearchableSelect
+                  options={emailLabelOptions}
+                  name="labelId"
+                  id="emailLabel"
+                  emptyOption="None"
+                  placeholder="Select label..."
+                />
+              </div>
             </div>
             <div>
-              <label for="emailLabel" class="block text-sm font-medium text-text-secondary">Label</label>
-              <SearchableSelect
-                options={emailLabelOptions}
-                name="labelId"
-                id="emailLabel"
-                emptyOption="None"
-                placeholder="Select label..."
-              />
+              <label class="flex items-center gap-2 text-sm text-text-secondary">
+                <input type="checkbox" name="isPrimary" class="rounded border-glass-border" />
+                Primary
+              </label>
             </div>
+            <Button type="submit" size="sm">Add Email</Button>
+          </form>
+        {:else}
+          <div class="space-y-3">
+            <div>
+              <label for="linkEmail" class="block text-sm font-medium text-text-secondary">Search emails</label>
+              <input id="linkEmail" type="text" bind:value={emailLinkQuery} oninput={searchEmails} class="glass-input mt-1 block w-full px-3 py-2 text-sm" placeholder="Type to search existing emails..." />
+            </div>
+            {#if linkSearching}<p class="text-xs text-text-muted">Searching...</p>{/if}
+            {#if emailLinkResults.length > 0}
+              <ul class="divide-y divide-glass-border rounded-lg border border-glass-border overflow-hidden">
+                {#each emailLinkResults as result, i (i)}
+                  <li class="flex items-center justify-between px-3 py-2 hover:bg-glass-hover transition-colors">
+                    <div>
+                      <p class="text-sm font-medium text-text-primary">{result.email}</p>
+                      <p class="text-xs text-text-muted">{result.displayId}{result.ownerName ? ` — ${result.ownerName}` : ""}</p>
+                    </div>
+                    <Button type="button" size="sm" disabled={linking} onclick={() => linkEmail(result.id)}>{linking ? "Linking..." : "Link"}</Button>
+                  </li>
+                {/each}
+              </ul>
+            {:else if emailLinkQuery.length >= 2 && !linkSearching}
+              <p class="text-xs text-text-muted">No matching emails found.</p>
+            {/if}
           </div>
-          <div>
-            <label class="flex items-center gap-2 text-sm text-text-secondary">
-              <input type="checkbox" name="isPrimary" class="rounded border-glass-border" />
-              Primary
-            </label>
-          </div>
-          <Button type="submit" size="sm">Add Email</Button>
-        </form>
+        {/if}
       {/snippet}
     </RelatedListTable>
   </div>
@@ -537,6 +639,7 @@
       emptyMessage="No phone numbers yet."
       searchEmptyMessage="No phone numbers match your search."
       addLabel="Phone"
+      onFormToggle={(open) => { if (!open) { phoneAddMode = 'create'; phoneLinkQuery = ''; phoneLinkResults = []; } }}
     >
       {#snippet row(phone, _searchQuery)}
         <td>
@@ -583,35 +686,64 @@
         </td>
       {/snippet}
       {#snippet addForm()}
-        <form method="POST" action="?/addPhoneNumber" use:enhance={formEnhance} class="space-y-3">
-          <div class="grid gap-3 sm:grid-cols-2">
-            <div>
-              <label for="phoneNumber" class="block text-sm font-medium text-text-secondary">Phone Number</label>
-              <PhoneInput name="phoneNumber" id="phoneNumber" />
+        <div class="flex gap-2 mb-3">
+          <button type="button" class="px-3 py-1 text-xs rounded-full transition-colors {phoneAddMode === 'create' ? 'bg-accent text-white' : 'bg-glass-hover text-text-muted'}" onclick={() => { phoneAddMode = 'create'; phoneLinkQuery = ''; phoneLinkResults = []; }}>Create New</button>
+          <button type="button" class="px-3 py-1 text-xs rounded-full transition-colors {phoneAddMode === 'link' ? 'bg-accent text-white' : 'bg-glass-hover text-text-muted'}" onclick={() => { phoneAddMode = 'link'; }}>Link Existing</button>
+        </div>
+        {#if phoneAddMode === 'create'}
+          <form method="POST" action="?/addPhoneNumber" use:enhance={formEnhance} class="space-y-3">
+            <div class="grid gap-3 sm:grid-cols-2">
+              <div>
+                <label for="phoneNumber" class="block text-sm font-medium text-text-secondary">Phone Number</label>
+                <PhoneInput name="phoneNumber" id="phoneNumber" />
+              </div>
+              <div>
+                <label for="phoneLabel" class="block text-sm font-medium text-text-secondary">Label</label>
+                <SearchableSelect
+                  options={phoneLabelOptions}
+                  name="labelId"
+                  id="phoneLabel"
+                  emptyOption="None"
+                  placeholder="Select label..."
+                />
+              </div>
             </div>
-            <div>
-              <label for="phoneLabel" class="block text-sm font-medium text-text-secondary">Label</label>
-              <SearchableSelect
-                options={phoneLabelOptions}
-                name="labelId"
-                id="phoneLabel"
-                emptyOption="None"
-                placeholder="Select label..."
-              />
+            <div class="flex gap-4">
+              <label class="flex items-center gap-2 text-sm text-text-secondary">
+                <input type="checkbox" name="hasWhatsapp" class="rounded border-glass-border" />
+                WhatsApp
+              </label>
+              <label class="flex items-center gap-2 text-sm text-text-secondary">
+                <input type="checkbox" name="isPrimary" class="rounded border-glass-border" />
+                Primary
+              </label>
             </div>
+            <Button type="submit" size="sm">Add Phone Number</Button>
+          </form>
+        {:else}
+          <div class="space-y-3">
+            <div>
+              <label for="linkPhone" class="block text-sm font-medium text-text-secondary">Search phone numbers</label>
+              <input id="linkPhone" type="text" bind:value={phoneLinkQuery} oninput={searchPhones} class="glass-input mt-1 block w-full px-3 py-2 text-sm" placeholder="Type to search existing phone numbers..." />
+            </div>
+            {#if linkSearching}<p class="text-xs text-text-muted">Searching...</p>{/if}
+            {#if phoneLinkResults.length > 0}
+              <ul class="divide-y divide-glass-border rounded-lg border border-glass-border overflow-hidden">
+                {#each phoneLinkResults as result, i (i)}
+                  <li class="flex items-center justify-between px-3 py-2 hover:bg-glass-hover transition-colors">
+                    <div>
+                      <p class="text-sm font-medium text-text-primary">{result.phoneNumber}</p>
+                      <p class="text-xs text-text-muted">{result.displayId}{result.ownerName ? ` — ${result.ownerName}` : ""}</p>
+                    </div>
+                    <Button type="button" size="sm" disabled={linking} onclick={() => linkPhone(result.id)}>{linking ? "Linking..." : "Link"}</Button>
+                  </li>
+                {/each}
+              </ul>
+            {:else if phoneLinkQuery.length >= 2 && !linkSearching}
+              <p class="text-xs text-text-muted">No matching phone numbers found.</p>
+            {/if}
           </div>
-          <div class="flex gap-4">
-            <label class="flex items-center gap-2 text-sm text-text-secondary">
-              <input type="checkbox" name="hasWhatsapp" class="rounded border-glass-border" />
-              WhatsApp
-            </label>
-            <label class="flex items-center gap-2 text-sm text-text-secondary">
-              <input type="checkbox" name="isPrimary" class="rounded border-glass-border" />
-              Primary
-            </label>
-          </div>
-          <Button type="submit" size="sm">Add Phone Number</Button>
-        </form>
+        {/if}
       {/snippet}
     </RelatedListTable>
   </div>
@@ -634,6 +766,7 @@
       emptyMessage="No social media IDs yet."
       searchEmptyMessage="No social media IDs match your search."
       addLabel="Social ID"
+      onFormToggle={(open) => { if (!open) { socialIdAddMode = 'create'; socialIdLinkQuery = ''; socialIdLinkResults = []; } }}
     >
       {#snippet row(sid, _searchQuery)}
         <td>
@@ -656,29 +789,58 @@
         </td>
       {/snippet}
       {#snippet addForm()}
-        <form method="POST" action="?/addSocialId" use:enhance={formEnhance} class="space-y-3">
-          <div class="grid gap-3 sm:grid-cols-2">
-            <div>
-              <label for="socialHandle" class="block text-sm font-medium text-text-secondary">Handle</label>
-              <input
-                id="socialHandle" name="handle" type="text" required
-                class="glass-input mt-1 block w-full"
-                placeholder="@username"
-              />
+        <div class="flex gap-2 mb-3">
+          <button type="button" class="px-3 py-1 text-xs rounded-full transition-colors {socialIdAddMode === 'create' ? 'bg-accent text-white' : 'bg-glass-hover text-text-muted'}" onclick={() => { socialIdAddMode = 'create'; socialIdLinkQuery = ''; socialIdLinkResults = []; }}>Create New</button>
+          <button type="button" class="px-3 py-1 text-xs rounded-full transition-colors {socialIdAddMode === 'link' ? 'bg-accent text-white' : 'bg-glass-hover text-text-muted'}" onclick={() => { socialIdAddMode = 'link'; }}>Link Existing</button>
+        </div>
+        {#if socialIdAddMode === 'create'}
+          <form method="POST" action="?/addSocialId" use:enhance={formEnhance} class="space-y-3">
+            <div class="grid gap-3 sm:grid-cols-2">
+              <div>
+                <label for="socialHandle" class="block text-sm font-medium text-text-secondary">Handle</label>
+                <input
+                  id="socialHandle" name="handle" type="text" required
+                  class="glass-input mt-1 block w-full"
+                  placeholder="@username"
+                />
+              </div>
+              <div>
+                <label for="socialPlatform" class="block text-sm font-medium text-text-secondary">Platform</label>
+                <SearchableSelect
+                  options={socialIdPlatformOptions}
+                  name="platformId"
+                  id="socialPlatform"
+                  emptyOption="None"
+                  placeholder="Select platform..."
+                />
+              </div>
             </div>
+            <Button type="submit" size="sm">Add Social ID</Button>
+          </form>
+        {:else}
+          <div class="space-y-3">
             <div>
-              <label for="socialPlatform" class="block text-sm font-medium text-text-secondary">Platform</label>
-              <SearchableSelect
-                options={socialIdPlatformOptions}
-                name="platformId"
-                id="socialPlatform"
-                emptyOption="None"
-                placeholder="Select platform..."
-              />
+              <label for="linkSocialId" class="block text-sm font-medium text-text-secondary">Search social IDs</label>
+              <input id="linkSocialId" type="text" bind:value={socialIdLinkQuery} oninput={searchSocialIds} class="glass-input mt-1 block w-full px-3 py-2 text-sm" placeholder="Type to search existing social IDs..." />
             </div>
+            {#if linkSearching}<p class="text-xs text-text-muted">Searching...</p>{/if}
+            {#if socialIdLinkResults.length > 0}
+              <ul class="divide-y divide-glass-border rounded-lg border border-glass-border overflow-hidden">
+                {#each socialIdLinkResults as result, i (i)}
+                  <li class="flex items-center justify-between px-3 py-2 hover:bg-glass-hover transition-colors">
+                    <div>
+                      <p class="text-sm font-medium text-text-primary">{result.handle}</p>
+                      <p class="text-xs text-text-muted">{result.displayId}{result.platformName ? ` — ${result.platformName}` : ""}{result.humanName ? ` — ${result.humanName}` : ""}{result.accountName ? ` — ${result.accountName}` : ""}</p>
+                    </div>
+                    <Button type="button" size="sm" disabled={linking} onclick={() => linkSocialId(result.id)}>{linking ? "Linking..." : "Link"}</Button>
+                  </li>
+                {/each}
+              </ul>
+            {:else if socialIdLinkQuery.length >= 2 && !linkSearching}
+              <p class="text-xs text-text-muted">No matching social IDs found.</p>
+            {/if}
           </div>
-          <Button type="submit" size="sm">Add Social ID</Button>
-        </form>
+        {/if}
       {/snippet}
     </RelatedListTable>
   </div>

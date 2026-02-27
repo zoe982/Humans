@@ -10,10 +10,16 @@
   import { createChangeHistoryLoader } from "$lib/changeHistory.svelte";
   import RelatedListTable from "$lib/components/RelatedListTable.svelte";
   import { resolve } from "$app/paths";
+  import { page } from "$app/stores";
 
   let { data }: { data: PageData } = $props();
 
   type ConfigItem = { id: string; name: string };
+  type HumanListItem = { id: string; firstName: string; lastName: string; displayId: string };
+  type AccountListItem = { id: string; name: string; displayId: string };
+  type GeneralLeadListItem = { id: string; firstName: string; lastName: string; displayId: string };
+  type BookingRequestListItem = { id: string; first_name: string | null; last_name: string | null; crm_display_id: string | null };
+  type RouteSignupListItem = { id: string; first_name: string | null; last_name: string | null; display_id: string | null };
   type Phone = {
     id: string;
     displayId: string;
@@ -44,12 +50,22 @@
   const phone = $derived(data.phone as Phone);
   const humanPhoneLabelConfigs = $derived(data.humanPhoneLabelConfigs as ConfigItem[]);
   const accountPhoneLabelConfigs = $derived(data.accountPhoneLabelConfigs as ConfigItem[]);
+  const allHumans = $derived(data.allHumans as HumanListItem[]);
+  const allAccounts = $derived(data.allAccounts as AccountListItem[]);
+  const allGeneralLeads = $derived(data.allGeneralLeads as GeneralLeadListItem[]);
+  const allBookingRequests = $derived(data.allBookingRequests as BookingRequestListItem[]);
+  const allRouteSignups = $derived(data.allRouteSignups as RouteSignupListItem[]);
 
   // Auto-save state
   let phoneNumber = $state("");
   let labelId = $state("");
   let hasWhatsapp = $state(false);
   let isPrimary = $state(false);
+  let humanId = $state("");
+  let accountId = $state("");
+  let generalLeadId = $state("");
+  let websiteBookingRequestId = $state("");
+  let routeSignupId = $state("");
   let saveStatus = $state<SaveStatus>("idle");
   let initialized = $state(false);
 
@@ -85,6 +101,11 @@
     labelId = phone.labelId ?? "";
     hasWhatsapp = phone.hasWhatsapp;
     isPrimary = phone.isPrimary;
+    humanId = phone.humanId ?? "";
+    accountId = phone.accountId ?? "";
+    generalLeadId = phone.generalLeadId ?? "";
+    websiteBookingRequestId = phone.websiteBookingRequestId ?? "";
+    routeSignupId = phone.routeSignupId ?? "";
     if (!initialized) initialized = true;
   });
 
@@ -94,24 +115,25 @@
       .map((l) => ({ value: l.id, label: l.name }))
   );
 
-  // Relationships
-  type Relationship = { href: string; displayId: string; name: string | null };
+  const humanOptions = $derived(
+    allHumans.map((h) => ({ value: h.id, label: `${h.displayId} ${h.firstName} ${h.lastName}` }))
+  );
 
-  const relationships: Relationship[] = $derived.by(() => {
-    const rels: Relationship[] = [];
-    const p = phone;
-    if (p.humanId && p.humanDisplayId)
-      rels.push({ href: resolve(`/humans/${p.humanId}`), displayId: p.humanDisplayId, name: p.humanName });
-    if (p.accountId && p.accountDisplayId)
-      rels.push({ href: resolve(`/accounts/${p.accountId}`), displayId: p.accountDisplayId, name: p.accountName });
-    if (p.generalLeadId && p.generalLeadDisplayId)
-      rels.push({ href: resolve(`/leads/general-leads/${p.generalLeadId}`), displayId: p.generalLeadDisplayId, name: p.generalLeadName });
-    if (p.websiteBookingRequestId && p.websiteBookingRequestDisplayId)
-      rels.push({ href: resolve(`/leads/website-booking-requests/${p.websiteBookingRequestId}`), displayId: p.websiteBookingRequestDisplayId, name: p.websiteBookingRequestName });
-    if (p.routeSignupId && p.routeSignupDisplayId)
-      rels.push({ href: resolve(`/leads/route-signups/${p.routeSignupId}`), displayId: p.routeSignupDisplayId, name: p.routeSignupName });
-    return rels;
-  });
+  const accountOptions = $derived(
+    allAccounts.map((a) => ({ value: a.id, label: `${a.displayId} ${a.name}` }))
+  );
+
+  const generalLeadOptions = $derived(
+    allGeneralLeads.map((l) => ({ value: l.id, label: `${l.displayId} ${l.firstName} ${l.lastName}` }))
+  );
+
+  const bookingRequestOptions = $derived(
+    allBookingRequests.map((b) => ({ value: b.id, label: `${b.crm_display_id ?? ""} ${[b.first_name, b.last_name].filter(Boolean).join(" ")}`.trim() }))
+  );
+
+  const routeSignupOptions = $derived(
+    allRouteSignups.map((r) => ({ value: r.id, label: `${r.display_id ?? ""} ${[r.first_name, r.last_name].filter(Boolean).join(" ")}`.trim() }))
+  );
 
   onDestroy(() => autoSaver.destroy());
 
@@ -122,6 +144,11 @@
       labelId: labelId || null,
       hasWhatsapp,
       isPrimary,
+      humanId: humanId || null,
+      accountId: accountId || null,
+      generalLeadId: generalLeadId || null,
+      websiteBookingRequestId: websiteBookingRequestId || null,
+      routeSignupId: routeSignupId || null,
     });
   }
 
@@ -132,11 +159,41 @@
       labelId: labelId || null,
       hasWhatsapp,
       isPrimary,
+      humanId: humanId || null,
+      accountId: accountId || null,
+      generalLeadId: generalLeadId || null,
+      websiteBookingRequestId: websiteBookingRequestId || null,
+      routeSignupId: routeSignupId || null,
     });
   }
 
   function handleLabelChange(value: string) {
     labelId = value;
+    triggerSaveImmediate();
+  }
+
+  function handleHumanChange(value: string) {
+    humanId = value;
+    triggerSaveImmediate();
+  }
+
+  function handleAccountChange(value: string) {
+    accountId = value;
+    triggerSaveImmediate();
+  }
+
+  function handleGeneralLeadChange(value: string) {
+    generalLeadId = value;
+    triggerSaveImmediate();
+  }
+
+  function handleBookingRequestChange(value: string) {
+    websiteBookingRequestId = value;
+    triggerSaveImmediate();
+  }
+
+  function handleRouteSignupChange(value: string) {
+    routeSignupId = value;
     triggerSaveImmediate();
   }
 </script>
@@ -202,24 +259,97 @@
         Primary
       </label>
     </div>
-  </div>
 
-  {#if relationships.length > 0}
-    <div class="glass-card p-6 mt-6">
-      <h2 class="text-lg font-semibold text-text-primary">Relationships</h2>
-      <div class="mt-4 space-y-2">
-        {#each relationships as rel, i (i)}
-          <div class="text-sm">
-            <!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
-            <a href={rel.href} class="text-accent hover:text-[var(--link-hover)] font-mono">{rel.displayId}</a>
-            {#if rel.name}
-              <span class="text-text-secondary ml-1">({rel.name})</span>
-            {/if}
-          </div>
-        {/each}
-      </div>
+    <div>
+      <label for="human" class="block text-sm font-medium text-text-secondary">Human</label>
+      <SearchableSelect
+        options={humanOptions}
+        name="humanId"
+        id="human"
+        value={humanId}
+        emptyOption="None"
+        placeholder="Search humans..."
+        onSelect={handleHumanChange}
+      />
+      {#if humanId}
+        <a href={resolve(`/humans/${humanId}?from=${$page.url.pathname}`)} class="mt-1 inline-block text-sm text-accent hover:text-[var(--link-hover)]">
+          View Human
+        </a>
+      {/if}
     </div>
-  {/if}
+
+    <div>
+      <label for="account" class="block text-sm font-medium text-text-secondary">Account</label>
+      <SearchableSelect
+        options={accountOptions}
+        name="accountId"
+        id="account"
+        value={accountId}
+        emptyOption="None"
+        placeholder="Search accounts..."
+        onSelect={handleAccountChange}
+      />
+      {#if accountId}
+        <a href={resolve(`/accounts/${accountId}?from=${$page.url.pathname}`)} class="mt-1 inline-block text-sm text-accent hover:text-[var(--link-hover)]">
+          View Account
+        </a>
+      {/if}
+    </div>
+
+    <div>
+      <label for="generalLead" class="block text-sm font-medium text-text-secondary">General Lead</label>
+      <SearchableSelect
+        options={generalLeadOptions}
+        name="generalLeadId"
+        id="generalLead"
+        value={generalLeadId}
+        emptyOption="None"
+        placeholder="Search general leads..."
+        onSelect={handleGeneralLeadChange}
+      />
+      {#if generalLeadId}
+        <a href={resolve(`/leads/general-leads/${generalLeadId}?from=${$page.url.pathname}`)} class="mt-1 inline-block text-sm text-accent hover:text-[var(--link-hover)]">
+          View General Lead
+        </a>
+      {/if}
+    </div>
+
+    <div>
+      <label for="bookingRequest" class="block text-sm font-medium text-text-secondary">Booking Request</label>
+      <SearchableSelect
+        options={bookingRequestOptions}
+        name="websiteBookingRequestId"
+        id="bookingRequest"
+        value={websiteBookingRequestId}
+        emptyOption="None"
+        placeholder="Search booking requests..."
+        onSelect={handleBookingRequestChange}
+      />
+      {#if websiteBookingRequestId}
+        <a href={resolve(`/leads/website-booking-requests/${websiteBookingRequestId}?from=${$page.url.pathname}`)} class="mt-1 inline-block text-sm text-accent hover:text-[var(--link-hover)]">
+          View Booking Request
+        </a>
+      {/if}
+    </div>
+
+    <div>
+      <label for="routeSignup" class="block text-sm font-medium text-text-secondary">Route Signup</label>
+      <SearchableSelect
+        options={routeSignupOptions}
+        name="routeSignupId"
+        id="routeSignup"
+        value={routeSignupId}
+        emptyOption="None"
+        placeholder="Search route signups..."
+        onSelect={handleRouteSignupChange}
+      />
+      {#if routeSignupId}
+        <a href={resolve(`/leads/route-signups/${routeSignupId}?from=${$page.url.pathname}`)} class="mt-1 inline-block text-sm text-accent hover:text-[var(--link-hover)]">
+          View Route Signup
+        </a>
+      {/if}
+    </div>
+  </div>
 
   <!-- Change History -->
   <div class="mt-6">
