@@ -9,7 +9,7 @@ export async function batchedPromiseAll<T>(
   const results: T[] = [];
   for (let i = 0; i < thunks.length; i += batchSize) {
     const batch = thunks.slice(i, i + batchSize);
-    const batchResults = await Promise.all(batch.map((fn) => fn()));
+    const batchResults = await Promise.all(batch.map(async (fn) => fn()));
     results.push(...batchResults);
   }
   return results;

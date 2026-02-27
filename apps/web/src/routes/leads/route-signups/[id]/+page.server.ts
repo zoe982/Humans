@@ -34,20 +34,17 @@ export const load = async ({ locals, cookies, params }: RequestEvent): Promise<{
     fetchList(`${PUBLIC_API_URL}/api/route-signups/${id ?? ""}/emails`, sessionToken),
   ]);
 
-  // Batch 2 (3-4 concurrent — batch 1 connections already released)
-  const batch2: (() => Promise<unknown>)[] = [
-    () => fetchList(`${PUBLIC_API_URL}/api/route-signups/${id ?? ""}/phone-numbers`, sessionToken),
-    () => fetchList(`${PUBLIC_API_URL}/api/route-signups/${id ?? ""}/social-ids`, sessionToken),
-    () => fetchConfigs(sessionToken, ["social-id-platforms", "lead-sources", "lead-channels"]),
-  ];
-  if (marketingAttributionId != null) {
-    batch2.push(() => fetchObj(`${PUBLIC_API_URL}/api/marketing-attributions/${marketingAttributionId}`, sessionToken));
-  }
-  const batch2Results = await Promise.all(batch2.map((fn) => fn()));
-  const phoneNumbers = batch2Results[0] as unknown[];
-  const socialIds = batch2Results[1] as unknown[];
-  const configs = batch2Results[2] as Record<string, unknown[]>;
-  const marketingAttribution = batch2Results[3] ?? null;
+  // Batch 2 (3 concurrent — batch 1 connections already released)
+  const [phoneNumbers, socialIds, configs] = await Promise.all([
+    fetchList(`${PUBLIC_API_URL}/api/route-signups/${id ?? ""}/phone-numbers`, sessionToken),
+    fetchList(`${PUBLIC_API_URL}/api/route-signups/${id ?? ""}/social-ids`, sessionToken),
+    fetchConfigs(sessionToken, ["social-id-platforms", "lead-sources", "lead-channels"]),
+  ]);
+
+  // Sequential: marketing attribution (optional)
+  const marketingAttribution = marketingAttributionId != null
+    ? await fetchObj(`${PUBLIC_API_URL}/api/marketing-attributions/${marketingAttributionId}`, sessionToken)
+    : null;
 
   return { signup, activities, colleagues, marketingAttribution, leadScore, emails, phoneNumbers, socialIds, platformConfigs: configs["social-id-platforms"] ?? [], leadSources: configs["lead-sources"] ?? [], leadChannels: configs["lead-channels"] ?? [], user: locals.user };
 };

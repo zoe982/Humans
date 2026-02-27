@@ -28,8 +28,8 @@ export const load = async ({ locals, cookies, params }: RequestEvent): Promise<{
   const booking = isObjData(bookingRaw) ? bookingRaw.data : null;
   if (booking == null) redirect(302, "/leads/website-booking-requests");
 
-  const fetchList = (url: string) => sharedFetchList(url, sessionToken);
-  const fetchObj = (url: string) => sharedFetchObj(url, sessionToken);
+  const fetchList = async (url: string): Promise<unknown[]> => sharedFetchList(url, sessionToken);
+  const fetchObj = async (url: string): Promise<Record<string, unknown> | null> => sharedFetchObj(url, sessionToken);
 
   const marketingAttributionId = typeof booking["marketing_attribution_id"] === "string" ? booking["marketing_attribution_id"] : null;
 
