@@ -28,7 +28,7 @@ export const load = async ({ locals, cookies, params }: RequestEvent): Promise<{
 
   // Batch 1 (4 concurrent — Cloudflare Workers limit: 6 TCP, auth uses 1, safety margin 1)
   const [activities, colleagues, leadScore, emails] = await Promise.all([
-    fetchList(`${PUBLIC_API_URL}/api/activities?routeSignupId=${id ?? ""}`, sessionToken),
+    fetchList(`${PUBLIC_API_URL}/api/activities?routeSignupId=${id ?? ""}&include=linkedEntities`, sessionToken),
     fetchList(`${PUBLIC_API_URL}/api/colleagues`, sessionToken),
     fetchObj(`${PUBLIC_API_URL}/api/lead-scores/by-parent/route_signup/${id ?? ""}`, sessionToken),
     fetchList(`${PUBLIC_API_URL}/api/route-signups/${id ?? ""}/emails`, sessionToken),

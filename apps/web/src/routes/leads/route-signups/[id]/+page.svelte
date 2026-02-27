@@ -3,19 +3,20 @@
   import RecordManagementBar from "$lib/components/RecordManagementBar.svelte";
   import AlertBanner from "$lib/components/AlertBanner.svelte";
   import RelatedListTable from "$lib/components/RelatedListTable.svelte";
+  import ActivityConversationView from "$lib/components/ActivityConversationView.svelte";
   import MarketingAttributionCard from "$lib/components/MarketingAttributionCard.svelte";
   import HighlightText from "$lib/components/HighlightText.svelte";
   import { invalidateAll } from "$app/navigation";
   import { api } from "$lib/api";
   import { toast } from "svelte-sonner";
-  import { signupStatusColors as statusColorMap, activityTypeColors } from "$lib/constants/colors";
-  import { signupStatusLabels, activityTypeLabels, ACTIVITY_TYPE_OPTIONS } from "$lib/constants/labels";
+  import { signupStatusColors as statusColorMap } from "$lib/constants/colors";
+  import { signupStatusLabels, ACTIVITY_TYPE_OPTIONS } from "$lib/constants/labels";
   import SearchableSelect from "$lib/components/SearchableSelect.svelte";
   import NextActionSection from "$lib/components/NextActionSection.svelte";
   import { Button } from "$lib/components/ui/button";
   import { resolve } from "$app/paths";
   import { page } from "$app/stores";
-  import { formatDateTime, formatRelativeTime } from "$lib/utils/format";
+  import { formatRelativeTime } from "$lib/utils/format";
   import { routeSignupStatuses } from "@humans/shared";
   import LeadScoreInlineFlags from "$lib/components/LeadScoreInlineFlags.svelte";
   import { Trash2 } from "lucide-svelte";
@@ -62,7 +63,11 @@
     subject: string;
     notes: string | null;
     body: string | null;
+    direction: string | null;
     activityDate: string;
+    frontConversationId: string | null;
+    ownerName?: string | null;
+    ownerDisplayId?: string | null;
     createdAt: string;
   };
 
@@ -79,7 +84,7 @@
 
   const signup = $derived(data.signup as Signup);
   const marketingAttribution = $derived(data.marketingAttribution as MarketingAttr | null);
-  const activities = $derived(data.activities as Activity[]);
+  let activities = $state<Activity[]>(data.activities as Activity[]);
   const colleaguesList = $derived((data.colleagues ?? []) as Colleague[]);
   const colleagueOptions = $derived(colleaguesList.map((c) => ({ value: c.id, label: `${c.displayId ?? ""} ${c.name}`.trim() })));
   const isAdmin = $derived(data.user?.role === "admin");
@@ -213,6 +218,17 @@
       await invalidateAll();
     } catch (err) { toast(`Failed to link social ID: ${err instanceof Error ? err.message : "Unknown error"}`); }
     finally { linking = false; }
+  }
+
+  async function deleteActivity(id: string) {
+    activities = activities.filter((a) => a.id !== id);
+    try {
+      await api(`/api/activities/${id}`, { method: "DELETE" });
+      toast("Activity deleted");
+    } catch {
+      toast("Failed to delete activity");
+      await invalidateAll();
+    }
   }
 
   function displayName(s: Signup): string {
@@ -687,45 +703,14 @@
 
   <!-- Activities -->
   <div class="mb-6">
-    <RelatedListTable
-      title="Activities"
-      items={activities}
-      columns={[
-        { key: "displayId", label: "ID", sortable: true, sortValue: (a) => a.displayId },
-        { key: "type", label: "Type", sortable: true, sortValue: (a) => activityTypeLabels[a.type] ?? a.type },
-        { key: "subject", label: "Subject", sortable: true, sortValue: (a) => a.subject },
-        { key: "notes", label: "Notes", sortable: true, sortValue: (a) => a.notes ?? "" },
-        { key: "date", label: "Date", sortable: true, sortValue: (a) => a.activityDate },
-      ]}
-      defaultSortKey="date"
-      defaultSortDirection="desc"
-      searchFilter={(a, q) => {
-        const typeLabel = (activityTypeLabels[a.type] ?? a.type).toLowerCase();
-        return a.subject.toLowerCase().includes(q) ||
-          (a.notes ?? "").toLowerCase().includes(q) ||
-          typeLabel.includes(q);
-      }}
-      emptyMessage="No activities yet."
-      searchEmptyMessage="No activities match your search."
-      addLabel="Activity"
+    <ActivityConversationView
+      {activities}
+      entityType="route-signup"
+      entityId={signup.id}
+      maxMessages={8}
+      showViewAll={true}
+      onDelete={deleteActivity}
     >
-      {#snippet row(activity, searchQuery)}
-        <td class="font-mono text-sm whitespace-nowrap">
-          <a href={resolve(`/activities/${activity.id}?from=${$page.url.pathname}`)} class="text-accent hover:text-[var(--link-hover)]">{activity.displayId}</a>
-        </td>
-        <td>
-          <!-- eslint-disable-next-line security/detect-object-injection -->
-          <span class="glass-badge inline-flex rounded-full px-2 py-0.5 text-xs font-medium {activityTypeColors[activity.type] ?? 'bg-glass text-text-secondary'}">
-            <!-- eslint-disable-next-line security/detect-object-injection -->
-            <HighlightText text={activityTypeLabels[activity.type] ?? activity.type} query={searchQuery} />
-          </span>
-        </td>
-        <td class="text-sm font-medium max-w-sm truncate">
-          <HighlightText text={activity.subject} query={searchQuery} />
-        </td>
-        <td class="text-text-muted max-w-xs truncate"><HighlightText text={activity.notes ?? activity.body ?? "—"} query={searchQuery} /></td>
-        <td class="text-text-muted whitespace-nowrap">{formatDateTime(activity.activityDate)}</td>
-      {/snippet}
       {#snippet addForm()}
         <form method="POST" action="?/addActivity" class="space-y-3">
           <div>
@@ -766,7 +751,7 @@
           </Button>
         </form>
       {/snippet}
-    </RelatedListTable>
+    </ActivityConversationView>
   </div>
 
   <!-- Danger Zone (Admin only) -->

@@ -39,7 +39,7 @@
 
   type Props = {
     activities: Activity[];
-    entityType: "human" | "account" | "opportunity" | "general-lead" | "website-booking-request" | "route-interest";
+    entityType: "human" | "account" | "opportunity" | "general-lead" | "website-booking-request" | "route-interest" | "route-signup";
     entityId: string;
     addForm?: Snippet;
     onDelete?: (id: string) => void;
@@ -195,6 +195,7 @@
       "general-lead": `/leads/general-leads/${id}`,
       "website-booking-request": `/leads/website-booking-requests/${id}`,
       "route-interest": `/route-interests/${id}`,
+      "route-signup": `/leads/route-signups/${id}`,
     };
     // eslint-disable-next-line security/detect-object-injection
     return map[type] ?? `/humans/${id}`;
