@@ -163,7 +163,9 @@
     </p>
   {/if}
   {#if warnWhenEmpty && !naLocked && !naAllFilled}
-    <p class="text-sm text-amber-400 font-medium">Please set a next action so you don't lose track of this lead.</p>
+    <div class="cadence-deviation-note">
+      <p class="text-sm font-medium" style="color: var(--badge-yellow-text)">Please set a next action so you don't lose track of this lead.</p>
+    </div>
   {/if}
 
   {#if naLocked}
