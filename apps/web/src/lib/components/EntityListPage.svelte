@@ -44,6 +44,8 @@
     pagination?: PaginationInfo;
     clientPageSize?: number;
 
+    zebraStripe?: boolean;
+
     desktopRow: Snippet<[item: T]>;
     mobileCard: Snippet<[item: T]>;
     headerAction?: Snippet;
@@ -70,6 +72,7 @@
     canDelete = false,
     pagination,
     clientPageSize,
+    zebraStripe = false,
     desktopRow,
     mobileCard,
     headerAction,
@@ -214,8 +217,8 @@
         </tr>
       </thead>
       <tbody>
-        {#each displayItems as item (item.id)}
-          <tr class="glass-row-hover">
+        {#each displayItems as item, i (item.id)}
+          <tr class="glass-row-hover {zebraStripe && i % 2 === 0 ? 'glass-row-zebra' : ''}">
             {@render desktopRow(item)}
             {#if canDelete}
               <td>

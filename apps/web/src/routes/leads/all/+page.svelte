@@ -1,10 +1,13 @@
 <script lang="ts">
   import EntityListPage from "$lib/components/EntityListPage.svelte";
   import LeadScoreBadge from "$lib/components/LeadScoreBadge.svelte";
-  import { getLeadScoreBand } from "@humans/shared";
+  import { getLeadScoreBand, generalLeadStatuses, routeSignupStatuses, websiteBookingRequestStatuses } from "@humans/shared";
   import { leadTypeColors, allLeadStatusColors } from "$lib/constants/colors";
   import { leadTypeLabels, allLeadStatusLabels, generalLeadStatusLabels, signupStatusLabels, bookingRequestStatusLabels } from "$lib/constants/labels";
   import { resolve } from "$app/paths";
+  import { api } from "$lib/api";
+  import { toast } from "svelte-sonner";
+  import { SvelteMap } from "svelte/reactivity";
 
   let { data }: { data: { allLeads: unknown[]; userRole: string } } = $props();
 
@@ -28,6 +31,9 @@
   let filterType = $state("");
   let filterStatus = $state("");
   let filterQ = $state("");
+
+  // Status overrides for inline editing (since allLeads is $derived, can't mutate directly)
+  let statusOverrides = new SvelteMap<string, string>();
 
   // Status options change based on selected type
   const statusOptions = $derived.by(() => {
@@ -77,6 +83,92 @@
   function formatName(lead: UnifiedLead): string {
     return [lead.firstName, lead.middleName, lead.lastName].filter(Boolean).join(" ");
   }
+
+  function getEffectiveStatus(lead: UnifiedLead): string {
+    return statusOverrides.get(lead.id) ?? lead.status;
+  }
+
+  function getStatusOptionsForLead(leadType: UnifiedLead["leadType"]): readonly string[] {
+    switch (leadType) {
+      case "general_lead": return generalLeadStatuses;
+      case "route_signup": return routeSignupStatuses;
+      case "website_booking_request": return websiteBookingRequestStatuses;
+    }
+  }
+
+  function getStatusLabelsForLead(leadType: UnifiedLead["leadType"]): Record<string, string> {
+    switch (leadType) {
+      case "general_lead": return generalLeadStatusLabels;
+      case "route_signup": return signupStatusLabels;
+      case "website_booking_request": return bookingRequestStatusLabels;
+    }
+  }
+
+  // Maps badge utility names to their CSS variable pairs for inline status selects
+  const badgeStyleMap: Record<string, { bg: string; color: string }> = {
+    "badge-blue":   { bg: "var(--badge-blue-bg)",   color: "var(--badge-blue-text)" },
+    "badge-green":  { bg: "var(--badge-green-bg)",  color: "var(--badge-green-text)" },
+    "badge-red":    { bg: "var(--badge-red-bg)",    color: "var(--badge-red-text)" },
+    "badge-yellow": { bg: "var(--badge-yellow-bg)", color: "var(--badge-yellow-text)" },
+    "badge-purple": { bg: "var(--badge-purple-bg)", color: "var(--badge-purple-text)" },
+    "badge-orange": { bg: "var(--badge-orange-bg)", color: "var(--badge-orange-text)" },
+    "badge-pink":   { bg: "var(--badge-pink-bg)",   color: "var(--badge-pink-text)" },
+  };
+
+  function getStatusBadgeStyle(lead: UnifiedLead): string {
+    const effectiveStatus = getEffectiveStatus(lead);
+    // eslint-disable-next-line security/detect-object-injection
+    const badgeKey = allLeadStatusColors[effectiveStatus];
+    // eslint-disable-next-line security/detect-object-injection
+    const style = badgeKey ? badgeStyleMap[badgeKey] : null;
+    if (!style) return "";
+    return `background-color: ${style.bg}; color: ${style.color};`;
+  }
+
+  async function handleInlineStatusChange(lead: UnifiedLead, newStatus: string) {
+    const originalId = lead.id.split(":").slice(1).join(":");
+
+    // General leads with closed_lost require a loss reason — redirect to detail page
+    if (lead.leadType === "general_lead" && newStatus === "closed_lost") {
+      toast.info("Loss reason required — please update status on the detail page");
+      return;
+    }
+
+    const prev = getEffectiveStatus(lead);
+    statusOverrides.set(lead.id, newStatus);
+
+    try {
+      switch (lead.leadType) {
+        case "general_lead":
+          await api(`/api/general-leads/${originalId}/status`, {
+            method: "PATCH",
+            body: JSON.stringify({ status: newStatus }),
+          });
+          break;
+        case "route_signup":
+          await api(`/api/route-signups/${originalId}`, {
+            method: "PATCH",
+            body: JSON.stringify({ status: newStatus }),
+          });
+          break;
+        case "website_booking_request":
+          await api(`/api/website-booking-requests/${originalId}`, {
+            method: "PATCH",
+            body: JSON.stringify({ status: newStatus }),
+          });
+          break;
+      }
+      toast.success("Status updated");
+    } catch {
+      // Revert on failure
+      if (prev === lead.status) {
+        statusOverrides.delete(lead.id);
+      } else {
+        statusOverrides.set(lead.id, prev);
+      }
+      toast.error("Failed to update status");
+    }
+  }
 </script>
 
 <EntityListPage
@@ -87,14 +179,15 @@
     { key: "displayId", label: "ID" },
     { key: "leadType", label: "Type" },
     { key: "status", label: "Status" },
+    { key: "createdAt", label: "Created" },
     { key: "name", label: "Name" },
     { key: "channel", label: "Channel" },
     { key: "source", label: "Source" },
     { key: "score", label: "Score" },
     { key: "nextAction", label: "Next Action" },
-    { key: "createdAt", label: "Created" },
   ]}
-  clientPageSize={25}
+  clientPageSize={100}
+  zebraStripe={true}
   defaultSortKey="createdAt"
   defaultSortDirection="desc"
   canDelete={false}
@@ -130,23 +223,34 @@
   {/snippet}
   {#snippet desktopRow(lead)}
     <td class="font-mono text-sm whitespace-nowrap">
-      <a href={resolve(getDetailUrl(lead))} class="text-accent hover:text-[var(--link-hover)]">{lead.displayId || "\u2014"}</a>
+      <a href={resolve(getDetailUrl(lead))} class="font-semibold text-accent hover:text-[var(--link-hover)]">{lead.displayId || "\u2014"}</a>
     </td>
     <td>
       <!-- eslint-disable-next-line security/detect-object-injection -->
-      <span class="glass-badge inline-flex rounded-full px-2 py-0.5 text-xs font-medium {leadTypeColors[lead.leadType] ?? 'bg-glass text-text-secondary'}">
+      <span class="glass-badge {leadTypeColors[lead.leadType] ?? 'bg-glass text-text-secondary'}">
         <!-- eslint-disable-next-line security/detect-object-injection -->
         {leadTypeLabels[lead.leadType] ?? lead.leadType}
       </span>
     </td>
     <td>
-      <!-- eslint-disable-next-line security/detect-object-injection -->
-      <span class="glass-badge inline-flex rounded-full px-2 py-0.5 text-xs font-medium {allLeadStatusColors[lead.status] ?? 'bg-glass text-text-secondary'}">
-        <!-- eslint-disable-next-line security/detect-object-injection -->
-        {allLeadStatusLabels[lead.status] ?? lead.status}
-      </span>
+      <select
+        class="glass-select-badge"
+        style={getStatusBadgeStyle(lead)}
+        value={getEffectiveStatus(lead)}
+        onchange={(e) => {
+          const target = e.currentTarget;
+          void handleInlineStatusChange(lead, target.value);
+        }}
+      >
+        {#each getStatusOptionsForLead(lead.leadType) as status, i (i)}
+          {@const labels = getStatusLabelsForLead(lead.leadType)}
+          <!-- eslint-disable-next-line security/detect-object-injection -->
+          <option value={status}>{labels[status] ?? status}</option>
+        {/each}
+      </select>
     </td>
-    <td class="text-text-primary text-sm">{formatName(lead)}</td>
+    <td class="text-text-muted text-sm whitespace-nowrap">{lead.createdAt ? new Date(lead.createdAt).toLocaleDateString() : "\u2014"}</td>
+    <td class="font-semibold text-text-primary text-sm">{formatName(lead)}</td>
     <td class="text-text-secondary text-sm">{lead.channel ?? "\u2014"}</td>
     <td class="text-text-secondary text-sm">{lead.source ?? "\u2014"}</td>
     <td>
@@ -162,7 +266,7 @@
           {#if lead.nextAction.type}{lead.nextAction.type}: {/if}{lead.nextAction.description ?? ""}
         </div>
         {#if lead.nextAction.dueDate}
-          <div class="text-xs {isOverdue(lead.nextAction.dueDate) ? 'text-[#fca5a5]' : 'text-text-muted'}">
+          <div class="text-xs {isOverdue(lead.nextAction.dueDate) ? 'text-[var(--badge-red-text)]' : 'text-text-muted'}">
             Due {new Date(lead.nextAction.dueDate).toLocaleDateString()}
           </div>
         {/if}
@@ -170,23 +274,22 @@
         <span class="text-text-muted">&mdash;</span>
       {/if}
     </td>
-    <td class="text-text-muted whitespace-nowrap">{lead.createdAt ? new Date(lead.createdAt).toLocaleDateString() : "\u2014"}</td>
   {/snippet}
   {#snippet mobileCard(lead)}
     <a href={resolve(getDetailUrl(lead))} class="glass-card p-4 block hover:ring-1 hover:ring-accent/40 transition">
       <div class="flex items-center gap-2 mb-2">
         <span class="font-mono text-xs text-text-muted">{lead.displayId || "\u2014"}</span>
         <!-- eslint-disable-next-line security/detect-object-injection -->
-        <span class="glass-badge inline-flex rounded-full px-2 py-0.5 text-xs font-medium {leadTypeColors[lead.leadType] ?? 'bg-glass text-text-secondary'}">
+        <span class="glass-badge {leadTypeColors[lead.leadType] ?? 'bg-glass text-text-secondary'}">
           <!-- eslint-disable-next-line security/detect-object-injection -->
           {leadTypeLabels[lead.leadType] ?? lead.leadType}
         </span>
       </div>
       <div class="flex items-center gap-2 mb-1">
         <!-- eslint-disable-next-line security/detect-object-injection -->
-        <span class="glass-badge inline-flex rounded-full px-2 py-0.5 text-xs font-medium {allLeadStatusColors[lead.status] ?? 'bg-glass text-text-secondary'}">
+        <span class="glass-badge {allLeadStatusColors[getEffectiveStatus(lead)] ?? 'bg-glass text-text-secondary'}">
           <!-- eslint-disable-next-line security/detect-object-injection -->
-          {allLeadStatusLabels[lead.status] ?? lead.status}
+          {allLeadStatusLabels[getEffectiveStatus(lead)] ?? getEffectiveStatus(lead)}
         </span>
         {#if lead.scoreTotal != null}
           <LeadScoreBadge score={lead.scoreTotal} band={getLeadScoreBand(lead.scoreTotal)} />
