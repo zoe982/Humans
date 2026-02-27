@@ -15,6 +15,10 @@ describe("generalLeadStatuses", () => {
     expect(generalLeadStatuses).toContain("closed_converted");
     expect(generalLeadStatuses).toContain("closed_rejected");
   });
+
+  it("contains closed_no_response status", () => {
+    expect(generalLeadStatuses).toContain("closed_no_response");
+  });
 });
 
 describe("createGeneralLeadSchema", () => {
@@ -186,6 +190,39 @@ describe("updateGeneralLeadStatusSchema", () => {
 
   it("rejects missing status", () => {
     expect(() => updateGeneralLeadStatusSchema.parse({})).toThrowError();
+  });
+
+  it("accepts lossReason with closed_rejected status", () => {
+    const result = updateGeneralLeadStatusSchema.parse({
+      status: "closed_rejected",
+      rejectReason: "Not interested",
+      lossReason: "Price/Budget",
+    });
+    expect(result.lossReason).toBe("Price/Budget");
+  });
+
+  it("accepts closed_rejected without lossReason (optional)", () => {
+    const result = updateGeneralLeadStatusSchema.parse({
+      status: "closed_rejected",
+      rejectReason: "Not interested",
+    });
+    expect(result.status).toBe("closed_rejected");
+  });
+
+  it("accepts closed_no_response with lossReason", () => {
+    const result = updateGeneralLeadStatusSchema.parse({
+      status: "closed_no_response",
+      lossReason: "No Response",
+    });
+    expect(result.lossReason).toBe("No Response");
+  });
+
+  it("rejects lossReason over 255 chars", () => {
+    expect(() => updateGeneralLeadStatusSchema.parse({
+      status: "closed_rejected",
+      rejectReason: "reason",
+      lossReason: "a".repeat(256),
+    })).toThrowError();
   });
 });
 

@@ -236,6 +236,7 @@ const MIGRATION_STATEMENTS = [
     \`last_name\` text DEFAULT '' NOT NULL,
     \`notes\` text,
     \`reject_reason\` text,
+    \`loss_reason\` text,
     \`converted_human_id\` text REFERENCES \`humans\`(\`id\`),
     \`owner_id\` text REFERENCES \`colleagues\`(\`id\`),
     \`front_conversation_id\` text,
@@ -530,6 +531,11 @@ const MIGRATION_STATEMENTS = [
     \`name\` text NOT NULL UNIQUE,
     \`created_at\` text NOT NULL
   )`,
+  `CREATE TABLE IF NOT EXISTS \`loss_reasons_config\` (
+    \`id\` text PRIMARY KEY NOT NULL,
+    \`name\` text NOT NULL UNIQUE,
+    \`created_at\` text NOT NULL
+  )`,
 
   // ── Human Relationships ──────────────────────────────────────────
   `CREATE TABLE IF NOT EXISTS \`human_relationship_labels_config\` (
@@ -654,6 +660,7 @@ afterEach(async () => {
   await env.DB.exec("DELETE FROM opportunity_human_roles_config");
   await env.DB.exec("DELETE FROM lead_sources_config");
   await env.DB.exec("DELETE FROM lead_channels_config");
+  await env.DB.exec("DELETE FROM loss_reasons_config");
   await env.DB.exec("DELETE FROM display_id_counters");
   await env.DB.exec("DELETE FROM accounts");
   await env.DB.exec("DELETE FROM lead_sources");

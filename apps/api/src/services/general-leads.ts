@@ -40,7 +40,7 @@ export async function listGeneralLeads(
   page: number,
   limit: number,
   filters: { q?: string | undefined; status?: string | undefined; convertedHumanId?: string | undefined },
-): Promise<{ data: { convertedHumanDisplayId: string | null; convertedHumanName: string | null; scoreTotal: number | null; id: string; displayId: string; status: string; firstName: string; middleName: string | null; lastName: string; notes: string | null; rejectReason: string | null; convertedHumanId: string | null; ownerId: string | null; createdAt: string; updatedAt: string; ownerName: string | null }[]; meta: { page: number; limit: number; total: number } }> {
+): Promise<{ data: { convertedHumanDisplayId: string | null; convertedHumanName: string | null; scoreTotal: number | null; id: string; displayId: string; status: string; firstName: string; middleName: string | null; lastName: string; notes: string | null; rejectReason: string | null; lossReason: string | null; convertedHumanId: string | null; ownerId: string | null; createdAt: string; updatedAt: string; ownerName: string | null }[]; meta: { page: number; limit: number; total: number } }> {
   const offset = (page - 1) * limit;
   const conditions: ReturnType<typeof eq>[] = [];
 
@@ -71,6 +71,7 @@ export async function listGeneralLeads(
       lastName: generalLeads.lastName,
       notes: generalLeads.notes,
       rejectReason: generalLeads.rejectReason,
+      lossReason: generalLeads.lossReason,
       convertedHumanId: generalLeads.convertedHumanId,
       ownerId: generalLeads.ownerId,
       createdAt: generalLeads.createdAt,
@@ -109,7 +110,7 @@ export async function listGeneralLeads(
 
 // ─── Detail ──────────────────────────────────────────────────────
 
-export async function getGeneralLead(db: DB, id: string): Promise<{ convertedHumanDisplayId: string | null; convertedHumanName: string | null; activities: (typeof activities.$inferSelect)[]; emails: (typeof emails.$inferSelect)[]; phoneNumbers: (typeof phones.$inferSelect)[]; socialIds: ((typeof socialIds.$inferSelect) & { platformName: string | null })[]; id: string; displayId: string; status: string; firstName: string; middleName: string | null; lastName: string; notes: string | null; rejectReason: string | null; convertedHumanId: string | null; ownerId: string | null; createdAt: string; updatedAt: string; ownerName: string | null }> {
+export async function getGeneralLead(db: DB, id: string): Promise<{ convertedHumanDisplayId: string | null; convertedHumanName: string | null; activities: (typeof activities.$inferSelect)[]; emails: (typeof emails.$inferSelect)[]; phoneNumbers: (typeof phones.$inferSelect)[]; socialIds: ((typeof socialIds.$inferSelect) & { platformName: string | null })[]; id: string; displayId: string; status: string; firstName: string; middleName: string | null; lastName: string; notes: string | null; rejectReason: string | null; lossReason: string | null; convertedHumanId: string | null; ownerId: string | null; createdAt: string; updatedAt: string; ownerName: string | null }> {
   const rows = await db
     .select({
       id: generalLeads.id,
@@ -120,6 +121,7 @@ export async function getGeneralLead(db: DB, id: string): Promise<{ convertedHum
       lastName: generalLeads.lastName,
       notes: generalLeads.notes,
       rejectReason: generalLeads.rejectReason,
+      lossReason: generalLeads.lossReason,
       convertedHumanId: generalLeads.convertedHumanId,
       ownerId: generalLeads.ownerId,
       source: generalLeads.source,
@@ -300,7 +302,7 @@ export async function updateGeneralLead(
 export async function updateGeneralLeadStatus(
   db: DB,
   id: string,
-  data: { status: string; rejectReason?: string | undefined },
+  data: { status: string; rejectReason?: string | undefined; lossReason?: string | undefined },
   colleagueId: string,
 ): Promise<{ data: typeof generalLeads.$inferSelect | undefined }> {
   const existing = await db.query.generalLeads.findFirst({
@@ -308,6 +310,11 @@ export async function updateGeneralLeadStatus(
   });
   if (existing == null) {
     throw notFound(ERROR_CODES.GENERAL_LEAD_NOT_FOUND, "General lead not found");
+  }
+
+  // closed_converted must go through the convert/link-human endpoint
+  if (data.status === "closed_converted") {
+    throw badRequest(ERROR_CODES.GENERAL_LEAD_INVALID_STATUS_TRANSITION, "Use the convert endpoint to close as converted");
   }
 
   // Cannot transition from closed statuses
@@ -326,6 +333,9 @@ export async function updateGeneralLeadStatus(
   const updateFields: Record<string, unknown> = { status: data.status, updatedAt: now };
   if (data.rejectReason != null) {
     updateFields["rejectReason"] = data.rejectReason;
+  }
+  if (data.lossReason !== undefined) {
+    updateFields["lossReason"] = data.lossReason;
   }
 
   await db.update(generalLeads).set(updateFields).where(eq(generalLeads.id, id));

@@ -36,7 +36,6 @@ describe("general-leads/[id] load", () => {
   beforeEach(() => {
     mockFetch = createMockFetch({
       "/api/general-leads/lea-1": { body: { data: sampleLead } },
-      "/api/humans": { body: { data: [{ id: "h-1", firstName: "Jane", lastName: "Smith" }] } },
     });
     vi.stubGlobal("fetch", mockFetch);
   });
@@ -59,7 +58,6 @@ describe("general-leads/[id] load", () => {
     const event = makeEvent();
     const result = await load(event as any);
     expect(result.lead).toEqual(sampleLead);
-    expect(result.allHumans).toEqual([{ id: "h-1", firstName: "Jane", lastName: "Smith" }]);
   });
 
   it("returns phone numbers with displayId in lead data", async () => {
@@ -71,7 +69,6 @@ describe("general-leads/[id] load", () => {
     };
     const phoneMockFetch = createMockFetch({
       "/api/general-leads/lea-1": { body: { data: leadWithPhones } },
-      "/api/humans": { body: { data: [] } },
     });
     vi.stubGlobal("fetch", phoneMockFetch);
     const event = makeEvent();
@@ -120,7 +117,6 @@ describe("general-leads/[id] load", () => {
     const sampleScore = { id: "sco-1", scoreTotal: 65, scoreFit: 30, scoreIntent: 25, scoreEngagement: 15, scoreNegative: 5 };
     mockFetch = createMockFetch({
       "/api/general-leads/lea-1": { body: { data: sampleLead } },
-      "/api/humans": { body: { data: [] } },
       "/api/lead-scores/by-parent/general_lead/lea-1": { body: { data: sampleScore } },
     });
     vi.stubGlobal("fetch", mockFetch);
@@ -133,7 +129,6 @@ describe("general-leads/[id] load", () => {
   it("returns null leadScore when lead-scores API returns null data", async () => {
     mockFetch = createMockFetch({
       "/api/general-leads/lea-1": { body: { data: sampleLead } },
-      "/api/humans": { body: { data: [] } },
       "/api/lead-scores/by-parent/general_lead/lea-1": { body: { data: null } },
     });
     vi.stubGlobal("fetch", mockFetch);
@@ -143,17 +138,6 @@ describe("general-leads/[id] load", () => {
     expect(result.leadScore).toBeNull();
   });
 
-  it("returns empty allHumans when humans API fails", async () => {
-    mockFetch = createMockFetch({
-      "/api/general-leads/lea-1": { body: { data: sampleLead } },
-      "/api/humans": { status: 500, body: {} },
-    });
-    vi.stubGlobal("fetch", mockFetch);
-
-    const event = makeEvent();
-    const result = await load(event as any);
-    expect(result.allHumans).toEqual([]);
-  });
 });
 
 describe("general-leads/[id] updateNotes action", () => {
@@ -503,7 +487,6 @@ describe("general-leads/[id] load returns leadSources and leadChannels", () => {
         },
       },
       "/api/general-leads/lea-1": { body: { data: sampleLead } },
-      "/api/humans": { body: { data: [] } },
     });
     vi.stubGlobal("fetch", mockFetch);
 

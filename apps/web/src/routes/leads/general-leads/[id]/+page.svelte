@@ -26,6 +26,7 @@
   type ConfigItem = { id: string; name: string };
   const leadSources = $derived(data.leadSources as ConfigItem[]);
   const leadChannels = $derived(data.leadChannels as ConfigItem[]);
+  const lossReasons = $derived(data.lossReasons as ConfigItem[]);
 
   type NextAction = {
     id: string;
@@ -51,6 +52,7 @@
     lastName: string;
     notes: string | null;
     rejectReason: string | null;
+    lossReason: string | null;
     ownerName: string | null;
     ownerId: string | null;
     convertedHumanId: string | null;
@@ -144,6 +146,8 @@
   let showDeleteConfirm = $state(false);
   let showRejectDialog = $state(false);
   let rejectReason = $state("");
+  let selectedLossReason = $state("");
+  let pendingCloseStatus = $state("");
   // Link-existing state for emails, phones, social IDs
   let emailAddMode = $state<"create" | "link">("create");
   let phoneAddMode = $state<"create" | "link">("create");
@@ -244,7 +248,8 @@
   });
 
   async function handleStatusChange(newStatus: string) {
-    if (newStatus === "closed_rejected") {
+    if (newStatus === "closed_rejected" || newStatus === "closed_no_response") {
+      pendingCloseStatus = newStatus;
       showRejectDialog = true;
       return;
     }
@@ -260,14 +265,19 @@
   }
 
   async function submitReject() {
-    if (!rejectReason.trim()) return;
+    if (pendingCloseStatus === "closed_rejected" && !rejectReason.trim()) return;
     try {
+      const payload: Record<string, string | undefined> = { status: pendingCloseStatus };
+      if (rejectReason.trim()) payload.rejectReason = rejectReason;
+      if (selectedLossReason) payload.lossReason = selectedLossReason;
       await api(`/api/general-leads/${lead.id}/status`, {
         method: "PATCH",
-        body: JSON.stringify({ status: "closed_rejected", rejectReason }),
+        body: JSON.stringify(payload),
       });
       showRejectDialog = false;
       rejectReason = "";
+      selectedLossReason = "";
+      pendingCloseStatus = "";
       await invalidateAll();
     } catch {
       // Rejection failed
@@ -297,7 +307,7 @@
         {#if lead.status === "open"}
           <Button size="sm" onclick={() => handleStatusChange("qualified")}>Mark Qualified</Button>
         {/if}
-        <Button size="sm" variant="destructive" onclick={() => { showRejectDialog = true; }}>Close Rejected</Button>
+        <Button size="sm" variant="destructive" onclick={() => { pendingCloseStatus = "closed_rejected"; showRejectDialog = true; }}>Close Rejected</Button>
       {/if}
     {/snippet}
   </RecordManagementBar>
@@ -391,6 +401,12 @@
         <div class="col-span-2">
           <dt class="text-sm font-medium text-text-muted">Reject Reason</dt>
           <dd class="mt-1 text-sm text-destructive-foreground">{lead.rejectReason}</dd>
+        </div>
+      {/if}
+      {#if lead.lossReason}
+        <div>
+          <dt class="text-sm font-medium text-text-muted">Loss Reason</dt>
+          <dd class="mt-1 text-sm text-text-primary">{lead.lossReason}</dd>
         </div>
       {/if}
     </dl>
@@ -728,17 +744,32 @@
 {#if showRejectDialog}
   <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
     <div class="glass-card p-6 max-w-md w-full mx-4">
-      <h3 class="text-lg font-semibold text-text-primary">Close as Rejected</h3>
-      <p class="mt-2 text-sm text-text-secondary">Please provide a reason for rejecting this lead.</p>
+      <h3 class="text-lg font-semibold text-text-primary">
+        {pendingCloseStatus === "closed_no_response" ? "Close as No Response" : "Close as Rejected"}
+      </h3>
+      <p class="mt-2 text-sm text-text-secondary">
+        {pendingCloseStatus === "closed_no_response" ? "Optionally provide details for closing this lead." : "Please provide a reason for rejecting this lead."}
+      </p>
+      <div class="mt-3">
+        <label for="lossReasonSelect" class="block text-sm font-medium text-text-secondary mb-1">Loss Reason</label>
+        <select id="lossReasonSelect" class="glass-input block w-full px-3 py-2 text-sm" bind:value={selectedLossReason}>
+          <option value="">-- Select --</option>
+          {#each lossReasons as reason, i (i)}
+            <option value={reason.name}>{reason.name}</option>
+          {/each}
+        </select>
+      </div>
       <textarea
         bind:value={rejectReason}
         rows="3"
         class="glass-input mt-3 block w-full px-3 py-2 text-sm"
-        placeholder="Reject reason..."
+        placeholder="Loss notes..."
       ></textarea>
       <div class="mt-4 flex gap-2 justify-end">
-        <Button variant="ghost" size="sm" onclick={() => { showRejectDialog = false; rejectReason = ""; }}>Cancel</Button>
-        <Button variant="destructive" size="sm" onclick={submitReject} disabled={!rejectReason.trim()}>Reject Lead</Button>
+        <Button variant="ghost" size="sm" onclick={() => { showRejectDialog = false; rejectReason = ""; selectedLossReason = ""; pendingCloseStatus = ""; }}>Cancel</Button>
+        <Button variant="destructive" size="sm" onclick={submitReject} disabled={pendingCloseStatus === "closed_rejected" && !rejectReason.trim()}>
+          {pendingCloseStatus === "closed_no_response" ? "Close Lead" : "Reject Lead"}
+        </Button>
       </div>
     </div>
   </div>

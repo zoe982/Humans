@@ -302,52 +302,52 @@ describe("website-booking-requests/[id] actions.addActivity", () => {
   });
 });
 
-describe("website-booking-requests/[id] actions.convertToHuman", () => {
+describe("website-booking-requests/[id] actions.linkHuman", () => {
   afterEach(() => {
     vi.unstubAllGlobals();
   });
 
   it("returns success on valid convert", async () => {
     const mockFetch = createMockFetch({
-      "/api/humans/h1/convert-from-booking-request": { body: { data: {} } },
+      "/api/website-booking-requests/b1/link-human": { body: { data: {} } },
     });
     vi.stubGlobal("fetch", mockFetch);
     const event = makeEvent({ formData: { humanId: "h1" } });
-    const result = await actions.convertToHuman(event as any);
+    const result = await actions.linkHuman(event as any);
     expect(result).toEqual({ success: true });
     expect(mockFetch).toHaveBeenCalledWith(
-      expect.stringContaining("/api/humans/h1/convert-from-booking-request"),
+      expect.stringContaining("/api/website-booking-requests/b1/link-human"),
       expect.objectContaining({ method: "POST" }),
     );
   });
 
   it("returns action failure when API returns error", async () => {
     const mockFetch = createMockFetch({
-      "/api/humans/h1/convert-from-booking-request": { status: 404, body: { error: "Human not found" } },
+      "/api/website-booking-requests/b1/link-human": { status: 404, body: { error: "Human not found" } },
     });
     vi.stubGlobal("fetch", mockFetch);
     const event = makeEvent({ formData: { humanId: "h1" } });
-    const result = await actions.convertToHuman(event as any);
+    const result = await actions.linkHuman(event as any);
     expect(isActionFailure(result)).toBe(true);
     if (isActionFailure(result)) {
       expect(result.data.error).toBe("Human not found");
     }
   });
 
-  it("passes booking id as websiteBookingRequestId in body", async () => {
+  it("passes humanId in body", async () => {
     const mockFetch = createMockFetch({
-      "/api/humans/h1/convert-from-booking-request": { body: { data: {} } },
+      "/api/website-booking-requests/b1/link-human": { body: { data: {} } },
     });
     vi.stubGlobal("fetch", mockFetch);
     const event = makeEvent({ formData: { humanId: "h1" } });
-    await actions.convertToHuman(event as any);
+    await actions.linkHuman(event as any);
     const postCall = mockFetch.mock.calls.find(
       (c: unknown[]) => typeof c[1] === "object" && (c[1] as RequestInit).method === "POST",
     );
     const body = JSON.parse((postCall as unknown[])[1]
       ? ((postCall as unknown[])[1] as RequestInit).body as string
       : "{}");
-    expect(body.websiteBookingRequestId).toBe("b1");
+    expect(body.humanId).toBe("h1");
   });
 });
 
@@ -356,26 +356,26 @@ describe("website-booking-requests/[id] actions.unlinkHuman", () => {
     vi.unstubAllGlobals();
   });
 
-  it("calls DELETE on correct URL with humanId and linkId", async () => {
+  it("calls DELETE on correct URL", async () => {
     const mockFetch = createMockFetch({
-      "/api/humans/h1/website-booking-requests/link-1": { body: {} },
+      "/api/website-booking-requests/b1/link-human": { body: {} },
     });
     vi.stubGlobal("fetch", mockFetch);
-    const event = makeEvent({ formData: { humanId: "h1", linkId: "link-1" } });
+    const event = makeEvent();
     const result = await actions.unlinkHuman(event as any);
     expect(result).toEqual({ success: true });
     expect(mockFetch).toHaveBeenCalledWith(
-      expect.stringContaining("/api/humans/h1/website-booking-requests/link-1"),
+      expect.stringContaining("/api/website-booking-requests/b1/link-human"),
       expect.objectContaining({ method: "DELETE" }),
     );
   });
 
   it("returns action failure when API returns error", async () => {
     const mockFetch = createMockFetch({
-      "/api/humans/h1/website-booking-requests/link-1": { status: 404, body: { error: "Not found" } },
+      "/api/website-booking-requests/b1/link-human": { status: 404, body: { error: "Not found" } },
     });
     vi.stubGlobal("fetch", mockFetch);
-    const event = makeEvent({ formData: { humanId: "h1", linkId: "link-1" } });
+    const event = makeEvent();
     const result = await actions.unlinkHuman(event as any);
     expect(isActionFailure(result)).toBe(true);
   });

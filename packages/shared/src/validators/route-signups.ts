@@ -19,6 +19,8 @@ export const updateRouteSignupSchema = z.object({
   note: z.string().max(5000).optional(),
   crm_source: z.string().max(255).nullable().optional(),
   crm_channel: z.string().max(255).nullable().optional(),
+  loss_reason: z.string().max(255).nullable().optional(),
+  loss_notes: z.string().max(5000).nullable().optional(),
 });
 
 export type UpdateRouteSignupStatusInput = z.infer<typeof updateRouteSignupStatusSchema>;

@@ -23,6 +23,8 @@ export const updateWebsiteBookingRequestSchema = z.object({
   status: z.enum(websiteBookingRequestStatuses).optional(),
   crm_source: z.string().max(255).nullable().optional(),
   crm_channel: z.string().max(255).nullable().optional(),
+  crm_loss_reason: z.string().max(255).nullable().optional(),
+  crm_loss_notes: z.string().max(5000).nullable().optional(),
 });
 
 export type UpdateWebsiteBookingRequestInput = z.infer<typeof updateWebsiteBookingRequestSchema>;

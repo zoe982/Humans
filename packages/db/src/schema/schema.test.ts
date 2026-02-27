@@ -11,6 +11,8 @@ import { emails } from "./emails";
 import { emailLabelsConfig } from "./email-labels-config";
 import { humanTypes, humanTypeValues } from "./human-types";
 import { humanRouteSignups } from "./human-route-signups";
+import { humanWebsiteBookingRequests } from "./human-website-booking-requests";
+import { lossReasonsConfig } from "./loss-reasons-config";
 import { phones } from "./phones";
 import { phoneLabelsConfig } from "./phone-labels-config";
 import { activities, activityTypeValues } from "./activities";
@@ -78,6 +80,14 @@ describe("schema tables", () => {
 
   it("humanRouteSignups table has correct name", () => {
     expect(getTableName(humanRouteSignups)).toBe("human_route_signups");
+  });
+
+  it("humanWebsiteBookingRequests table has correct name", () => {
+    expect(getTableName(humanWebsiteBookingRequests)).toBe("human_website_booking_requests");
+  });
+
+  it("lossReasonsConfig table has correct name", () => {
+    expect(getTableName(lossReasonsConfig)).toBe("loss_reasons_config");
   });
 
   it("phones table has correct name", () => {
@@ -273,6 +283,8 @@ describe("schema index re-exports", () => {
     expect(schemaIndex.humanTypes).toBeDefined();
     expect(schemaIndex.humanTypeValues).toBeDefined();
     expect(schemaIndex.humanRouteSignups).toBeDefined();
+    expect(schemaIndex.humanWebsiteBookingRequests).toBeDefined();
+    expect(schemaIndex.lossReasonsConfig).toBeDefined();
     expect(schemaIndex.phones).toBeDefined();
     expect(schemaIndex.phoneLabelsConfig).toBeDefined();
     expect(schemaIndex.activities).toBeDefined();
@@ -292,6 +304,22 @@ describe("schema index re-exports", () => {
     expect(schemaIndex.routeInterestFrequencyValues).toBeDefined();
     expect(schemaIndex.socialIds).toBeDefined();
     expect(schemaIndex.errorLogResolutionStatuses).toBeDefined();
+  });
+});
+
+describe("humanRouteSignups schema", () => {
+  it("has a unique index on routeSignupId", () => {
+    const config = getTableConfig(humanRouteSignups);
+    const idx = config.indexes.find((i) => i.config.name === "human_route_signups_route_signup_id_unique");
+    expect(idx).toBeDefined();
+  });
+});
+
+describe("humanWebsiteBookingRequests schema", () => {
+  it("has a unique index on websiteBookingRequestId", () => {
+    const config = getTableConfig(humanWebsiteBookingRequests);
+    const idx = config.indexes.find((i) => i.config.name === "human_website_booking_requests_wbr_id_unique");
+    expect(idx).toBeDefined();
   });
 });
 

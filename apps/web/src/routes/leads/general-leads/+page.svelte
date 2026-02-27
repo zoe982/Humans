@@ -7,6 +7,8 @@
   import { generalLeadStatusColors } from "$lib/constants/colors";
   import { resolve } from "$app/paths";
   import { enhance } from "$app/forms";
+  import InlineNoteEditor from "$lib/components/InlineNoteEditor.svelte";
+  import { api } from "$lib/api";
   import { Loader2 } from "lucide-svelte";
 
   let { data, form }: { data: PageData; form: ActionData } = $props();
@@ -84,9 +86,7 @@
     { key: "convertedHuman", label: "Linked Human" },
   ]}
   clientPageSize={25}
-  deleteAction="?/delete"
-  deleteMessage="Are you sure you want to delete this general lead? This cannot be undone."
-  canDelete={data.userRole === "admin"}
+  canDelete={false}
 >
   {#snippet headerAction()}
     <div class="flex items-center gap-2">
@@ -206,7 +206,19 @@
       </span>
     </td>
     <td class="text-text-secondary">{lead.ownerName ?? "\u2014"}</td>
-    <td class="text-text-muted max-w-xs truncate">{lead.notes ?? "\u2014"}</td>
+    <td>
+      <InlineNoteEditor
+        value={lead.notes}
+        onSave={async (note) => {
+          await api(`/api/general-leads/${lead.id}`, {
+            method: "PATCH",
+            body: JSON.stringify({ notes: note }),
+            headers: { "Content-Type": "application/json" },
+          });
+          lead.notes = note;
+        }}
+      />
+    </td>
     <td class="text-text-muted whitespace-nowrap">{new Date(lead.createdAt).toLocaleDateString()}</td>
     <td>
       {#if lead.convertedHumanId}

@@ -12,7 +12,7 @@ function getFormString(form: FormData, key: string): string {
   return typeof raw === "string" ? raw : "";
 }
 
-export const load = async ({ locals, cookies, params }: RequestEvent): Promise<{ booking: unknown; activities: unknown[]; colleagues: unknown[]; linkedHumans: unknown[]; marketingAttribution: unknown; leadScore: Record<string, unknown> | null; emails: unknown[]; phoneNumbers: unknown[]; socialIds: unknown[]; platformConfigs: unknown[]; leadSources: unknown[]; leadChannels: unknown[]; user: NonNullable<typeof locals.user> }> => {
+export const load = async ({ locals, cookies, params }: RequestEvent): Promise<{ booking: unknown; activities: unknown[]; colleagues: unknown[]; linkedHumans: unknown[]; marketingAttribution: unknown; leadScore: Record<string, unknown> | null; emails: unknown[]; phoneNumbers: unknown[]; socialIds: unknown[]; platformConfigs: unknown[]; leadSources: unknown[]; leadChannels: unknown[]; lossReasons: unknown[]; user: NonNullable<typeof locals.user> }> => {
   if (locals.user == null) redirect(302, "/login");
 
   const sessionToken = cookies.get("humans_session") ?? "";
@@ -50,7 +50,7 @@ export const load = async ({ locals, cookies, params }: RequestEvent): Promise<{
   // Batch 3 (2-3 fetches)
   const batch3: Promise<unknown>[] = [
     fetchList(`${PUBLIC_API_URL}/api/website-booking-requests/${id ?? ""}/social-ids`),
-    fetchConfigs(sessionToken, ["social-id-platforms", "lead-sources", "lead-channels"]),
+    fetchConfigs(sessionToken, ["social-id-platforms", "lead-sources", "lead-channels", "loss-reasons"]),
   ];
   if (marketingAttributionId != null) {
     batch3.push(fetchObj(`${PUBLIC_API_URL}/api/marketing-attributions/${marketingAttributionId}`));
@@ -60,7 +60,7 @@ export const load = async ({ locals, cookies, params }: RequestEvent): Promise<{
   const configs = isConfigsRecord(configsResult) ? configsResult : {};
   const marketingAttribution = attrResult ?? null;
 
-  return { booking, activities, colleagues, linkedHumans, marketingAttribution, leadScore, emails, phoneNumbers, socialIds, platformConfigs: configs["social-id-platforms"] ?? [], leadSources: configs["lead-sources"] ?? [], leadChannels: configs["lead-channels"] ?? [], user: locals.user };
+  return { booking, activities, colleagues, linkedHumans, marketingAttribution, leadScore, emails, phoneNumbers, socialIds, platformConfigs: configs["social-id-platforms"] ?? [], leadSources: configs["lead-sources"] ?? [], leadChannels: configs["lead-channels"] ?? [], lossReasons: configs["loss-reasons"] ?? [], user: locals.user };
 };
 
 export const actions = {
@@ -158,7 +158,7 @@ export const actions = {
     const sessionToken = cookies.get("humans_session");
 
     const activityDateRaw = form.get("activityDate");
-    const activityDate = activityDateRaw && typeof activityDateRaw === "string" && activityDateRaw !== ""
+    const activityDate = activityDateRaw !== null && typeof activityDateRaw === "string" && activityDateRaw !== ""
       ? new Date(activityDateRaw).toISOString()
       : new Date().toISOString();
     const payload = {

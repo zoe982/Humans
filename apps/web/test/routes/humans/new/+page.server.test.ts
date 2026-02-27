@@ -26,6 +26,7 @@ describe("humans/new load", () => {
     expect(result.prefill).toEqual({
       fromSignup: "signup-1",
       fromGeneralLead: "",
+      fromBookingRequest: "",
       firstName: "Jane",
       middleName: "M",
       lastName: "Doe",
@@ -39,6 +40,7 @@ describe("humans/new load", () => {
     expect(result.prefill).toEqual({
       fromSignup: "",
       fromGeneralLead: "",
+      fromBookingRequest: "",
       firstName: "",
       middleName: "",
       lastName: "",
@@ -95,10 +97,10 @@ describe("humans/new create action", () => {
     }
   });
 
-  it("calls convert-from-signup when fromSignup is set", async () => {
+  it("calls link-human when fromSignup is set", async () => {
     mockFetch = createMockFetch({
       "/api/humans": { body: { data: { id: "h-1" } } },
-      "/convert-from-signup": { body: { data: {} } },
+      "/link-human": { body: { data: {} } },
     });
     vi.stubGlobal("fetch", mockFetch);
 
@@ -115,9 +117,9 @@ describe("humans/new create action", () => {
     } catch (e) {
       expect(isRedirect(e)).toBe(true);
     }
-    // Verify that the convert endpoint was called
+    // Verify that the link-human endpoint was called
     const calls = mockFetch.mock.calls.map((c: unknown[]) => String(c[0]));
-    expect(calls.some((u: string) => u.includes("convert-from-signup"))).toBe(true);
+    expect(calls.some((u: string) => u.includes("/link-human"))).toBe(true);
   });
 
   it("returns failure when API returns unexpected response shape", async () => {
@@ -158,10 +160,10 @@ describe("humans/new create action", () => {
     expect(body.lastName).toBe("Doe");
   });
 
-  it("redirects to human when convert-from-signup fails", async () => {
+  it("redirects to human when link-human from signup fails", async () => {
     mockFetch = createMockFetch({
       "/api/humans": { body: { data: { id: "h-2" } } },
-      "/convert-from-signup": { status: 500, body: { error: "Server error" } },
+      "/link-human": { status: 500, body: { error: "Server error" } },
     });
     vi.stubGlobal("fetch", mockFetch);
 
@@ -183,7 +185,7 @@ describe("humans/new create action", () => {
   it("calls convert general lead endpoint when fromGeneralLead is set", async () => {
     mockFetch = createMockFetch({
       "/api/humans": { body: { data: { id: "h-3" } } },
-      "/convert": { body: { data: {} } },
+      "/link-human": { body: { data: {} } },
     });
     vi.stubGlobal("fetch", mockFetch);
 
@@ -201,13 +203,13 @@ describe("humans/new create action", () => {
       expect(isRedirect(e)).toBe(true);
     }
     const calls = mockFetch.mock.calls.map((c: unknown[]) => String(c[0]));
-    expect(calls.some((u: string) => u.includes("/convert"))).toBe(true);
+    expect(calls.some((u: string) => u.includes("/link-human"))).toBe(true);
   });
 
   it("redirects to human when convert general lead fails", async () => {
     mockFetch = createMockFetch({
       "/api/humans": { body: { data: { id: "h-4" } } },
-      "/convert": { status: 500, body: { error: "Convert failed" } },
+      "/link-human": { status: 500, body: { error: "Convert failed" } },
     });
     vi.stubGlobal("fetch", mockFetch);
 

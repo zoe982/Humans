@@ -246,30 +246,30 @@ describe("route-signups/[id] addActivity action", () => {
   });
 });
 
-describe("route-signups/[id] convertToHuman action", () => {
+describe("route-signups/[id] linkHuman action", () => {
   afterEach(() => {
     vi.unstubAllGlobals();
   });
 
   it("returns success on conversion", async () => {
     const mockFetch = createMockFetch({
-      "/api/humans/h-1/convert-from-signup": { body: { data: {} } },
+      "/api/route-signups/rs-1/link-human": { body: { data: {} } },
     });
     vi.stubGlobal("fetch", mockFetch);
 
     const event = makeEvent({ formData: { humanId: "h-1" } });
-    const result = await actions.convertToHuman(event as any);
+    const result = await actions.linkHuman(event as any);
     expect(result).toEqual({ success: true });
   });
 
   it("returns failure on API error", async () => {
     const mockFetch = createMockFetch({
-      "/api/humans/h-1/convert-from-signup": { status: 400, body: { error: "Already converted" } },
+      "/api/route-signups/rs-1/link-human": { status: 400, body: { error: "Already converted" } },
     });
     vi.stubGlobal("fetch", mockFetch);
 
     const event = makeEvent({ formData: { humanId: "h-1" } });
-    const result = await actions.convertToHuman(event as any);
+    const result = await actions.linkHuman(event as any);
     expect(isActionFailure(result)).toBe(true);
     if (isActionFailure(result)) {
       expect(result.data.error).toBe("Already converted");

@@ -13,6 +13,7 @@ import {
   agreementTypesConfig,
   leadSourcesConfig,
   leadChannelsConfig,
+  lossReasonsConfig,
 } from "@humans/db/schema";
 import { createId } from "@humans/db";
 import { createConfigItemSchema, updateConfigItemSchema } from "@humans/shared";
@@ -35,6 +36,7 @@ const configTableMap = {
   "agreement-types": agreementTypesConfig,
   "lead-sources": leadSourcesConfig,
   "lead-channels": leadChannelsConfig,
+  "loss-reasons": lossReasonsConfig,
 } as const;
 
 type ConfigType = keyof typeof configTableMap;
@@ -57,6 +59,7 @@ function getConfigTable(configType: ConfigType): (typeof configTableMap)[ConfigT
     case "agreement-types": return agreementTypesConfig;
     case "lead-sources": return leadSourcesConfig;
     case "lead-channels": return leadChannelsConfig;
+    case "loss-reasons": return lossReasonsConfig;
   }
 }
 

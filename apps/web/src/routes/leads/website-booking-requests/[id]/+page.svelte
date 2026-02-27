@@ -28,6 +28,7 @@
 
   const leadSources = $derived(data.leadSources as ConfigItem[]);
   const leadChannels = $derived(data.leadChannels as ConfigItem[]);
+  const lossReasons = $derived(data.lossReasons as ConfigItem[]);
 
   type NextAction = {
     id: string;
@@ -67,6 +68,8 @@
     additional_information: string | null;
     crm_source: string | null;
     crm_channel: string | null;
+    crm_loss_reason: string | null;
+    crm_loss_notes: string | null;
     nextAction?: NextAction | null;
   };
 
@@ -171,6 +174,9 @@
   let showDeleteConfirm = $state(false);
   let editingNote = $state(false);
   let noteValue = $state("");
+  let showLossDialog = $state(false);
+  let selectedLossReason = $state("");
+  let lossNotes = $state("");
 
   // Link-existing state for emails, phones, social IDs
   let emailAddMode = $state<"create" | "link">("create");
@@ -270,6 +276,41 @@
     return `/humans/new?${params.toString()}`;
   });
 
+  async function handleStatusChange(newStatus: string) {
+    if (newStatus === "closed_lost") {
+      showLossDialog = true;
+      return;
+    }
+    try {
+      await api(`/api/website-booking-requests/${booking.id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ status: newStatus }),
+      });
+      await invalidateAll();
+    } catch {
+      toast("Failed to update status");
+    }
+  }
+
+  async function submitLoss() {
+    try {
+      await api(`/api/website-booking-requests/${booking.id}`, {
+        method: "PATCH",
+        body: JSON.stringify({
+          status: "closed_lost",
+          crm_loss_reason: selectedLossReason || null,
+          crm_loss_notes: lossNotes || null,
+        }),
+      });
+      showLossDialog = false;
+      selectedLossReason = "";
+      lossNotes = "";
+      await invalidateAll();
+    } catch {
+      // Loss submission failed
+    }
+  }
+
   function startEditNote() {
     noteValue = booking.crm_note ?? "";
     editingNote = true;
@@ -301,7 +342,7 @@
     statusOptions={BOOKING_REQUEST_STATUS_OPTIONS.map((o) => o.value)}
     statusLabels={bookingRequestStatusLabels}
     statusColorMap={bookingRequestStatusColors}
-    statusFormAction="?/updateStatus"
+    onStatusChange={handleStatusChange}
   >
     {#snippet actions()}
       <a href={resolve(createNewHumanUrl)} class="btn-primary text-sm py-1.5">
@@ -418,6 +459,18 @@
           {/if}
         </dd>
       </div>
+      {#if booking.crm_loss_reason}
+        <div>
+          <dt class="text-sm font-medium text-text-muted">Loss Reason</dt>
+          <dd class="mt-1 text-sm text-text-primary">{booking.crm_loss_reason}</dd>
+        </div>
+      {/if}
+      {#if booking.crm_loss_notes}
+        <div class="col-span-2">
+          <dt class="text-sm font-medium text-text-muted">Loss Notes</dt>
+          <dd class="mt-1 text-sm text-text-secondary">{booking.crm_loss_notes}</dd>
+        </div>
+      {/if}
     </dl>
     {#if booking.additional_information}
       <div class="mt-4">
@@ -845,3 +898,31 @@
     </div>
   {/if}
 </div>
+
+{#if showLossDialog}
+  <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+    <div class="glass-card p-6 max-w-md w-full mx-4">
+      <h3 class="text-lg font-semibold text-text-primary">Close as Lost</h3>
+      <p class="mt-2 text-sm text-text-secondary">Optionally provide details for closing this booking request.</p>
+      <div class="mt-3">
+        <label for="wbrLossReasonSelect" class="block text-sm font-medium text-text-secondary mb-1">Loss Reason</label>
+        <select id="wbrLossReasonSelect" class="glass-input block w-full px-3 py-2 text-sm" bind:value={selectedLossReason}>
+          <option value="">-- Select --</option>
+          {#each lossReasons as reason, i (i)}
+            <option value={reason.name}>{reason.name}</option>
+          {/each}
+        </select>
+      </div>
+      <textarea
+        bind:value={lossNotes}
+        rows="3"
+        class="glass-input mt-3 block w-full px-3 py-2 text-sm"
+        placeholder="Loss notes..."
+      ></textarea>
+      <div class="mt-4 flex gap-2 justify-end">
+        <Button variant="ghost" size="sm" onclick={() => { showLossDialog = false; selectedLossReason = ""; lossNotes = ""; }}>Cancel</Button>
+        <Button variant="destructive" size="sm" onclick={submitLoss}>Close as Lost</Button>
+      </div>
+    </div>
+  </div>
+{/if}

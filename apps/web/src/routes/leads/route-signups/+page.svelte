@@ -8,6 +8,8 @@
   import { signupStatusLabels } from "$lib/constants/labels";
   import { formatRelativeTime } from "$lib/utils/format";
   import { resolve } from "$app/paths";
+  import InlineNoteEditor from "$lib/components/InlineNoteEditor.svelte";
+  import { api } from "$lib/api";
 
   let { data, form }: { data: PageData; form: ActionData } = $props();
 
@@ -92,14 +94,13 @@
     { key: "destination", label: "Destination", sortable: true, sortValue: (s) => s.destination ?? "" },
     { key: "score", label: "Score", sortable: true, sortValue: (s) => String(s.scoreTotal ?? -1).padStart(4, "0") },
     { key: "status", label: "Status", sortable: true, sortValue: (s) => s.status ?? "" },
+    { key: "notes", label: "Notes" },
     { key: "date", label: "Date", sortable: true, sortValue: (s) => s.inserted_at },
   ]}
   defaultSortKey="date"
   defaultSortDirection="desc"
   clientPageSize={25}
-  deleteAction="?/delete"
-  deleteMessage="Are you sure you want to delete this route signup? This cannot be undone."
-  canDelete={data.userRole === "admin"}
+  canDelete={false}
   emptyMessage="No route signups found."
 >
   {#snippet searchForm()}
@@ -161,6 +162,19 @@
     </td>
     <td>
       <StatusBadge status={signupStatusLabels[signup.status ?? ""] ?? signup.status ?? "\u2014"} colorMap={statusColorMap} />
+    </td>
+    <td>
+      <InlineNoteEditor
+        value={signup.note}
+        onSave={async (note) => {
+          await api(`/api/route-signups/${signup.id}`, {
+            method: "PATCH",
+            body: JSON.stringify({ note }),
+            headers: { "Content-Type": "application/json" },
+          });
+          signup.note = note;
+        }}
+      />
     </td>
     <td class="text-text-muted">{formatDatetime(signup.inserted_at)}</td>
   {/snippet}

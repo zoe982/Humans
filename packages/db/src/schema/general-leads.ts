@@ -20,6 +20,7 @@ export const generalLeads = sqliteTable("general_leads", {
   lastName: text("last_name").notNull(),
   notes: text("notes"),
   rejectReason: text("reject_reason"),
+  lossReason: text("loss_reason"),
   convertedHumanId: text("converted_human_id").references(() => humans.id),
   ownerId: text("owner_id").references(() => colleagues.id),
   frontConversationId: text("front_conversation_id"),

@@ -28,6 +28,7 @@
 
   const leadSources = $derived(data.leadSources as ConfigItem[]);
   const leadChannels = $derived(data.leadChannels as ConfigItem[]);
+  const lossReasons = $derived(data.lossReasons as ConfigItem[]);
 
   type NextAction = {
     id: string;
@@ -55,6 +56,8 @@
     newsletter_opt_in: boolean | null;
     crm_source: string | null;
     crm_channel: string | null;
+    loss_reason: string | null;
+    loss_notes: string | null;
     nextAction?: NextAction | null;
   };
 
@@ -152,6 +155,10 @@
   });
 
   let showDeleteConfirm = $state(false);
+  let showLossDialog = $state(false);
+  let selectedLossReason = $state("");
+  let lossNotes = $state("");
+  let pendingCloseStatus = $state("");
 
   // Link-existing state for emails, phones, social IDs
   let emailAddMode = $state<"create" | "link">("create");
@@ -258,6 +265,11 @@
   });
 
   async function handleStatusChange(newStatus: string) {
+    if (newStatus === "closed_rejected" || newStatus === "closed_no_response") {
+      pendingCloseStatus = newStatus;
+      showLossDialog = true;
+      return;
+    }
     try {
       await api(`/api/route-signups/${signup.id}`, {
         method: "PATCH",
@@ -266,6 +278,26 @@
       await invalidateAll();
     } catch {
       // Status update failed - page will reload with current status
+    }
+  }
+
+  async function submitLoss() {
+    try {
+      await api(`/api/route-signups/${signup.id}`, {
+        method: "PATCH",
+        body: JSON.stringify({
+          status: pendingCloseStatus,
+          loss_reason: selectedLossReason || null,
+          loss_notes: lossNotes || null,
+        }),
+      });
+      showLossDialog = false;
+      selectedLossReason = "";
+      lossNotes = "";
+      pendingCloseStatus = "";
+      await invalidateAll();
+    } catch {
+      // Loss submission failed
     }
   }
 </script>
@@ -375,6 +407,18 @@
         <dt class="text-sm font-medium text-text-muted">Last Activity</dt>
         <dd class="mt-1 text-sm text-text-primary">{lastActivityDate ? formatRelativeTime(lastActivityDate) : "—"}</dd>
       </div>
+      {#if signup.loss_reason}
+        <div>
+          <dt class="text-sm font-medium text-text-muted">Loss Reason</dt>
+          <dd class="mt-1 text-sm text-text-primary">{signup.loss_reason}</dd>
+        </div>
+      {/if}
+      {#if signup.loss_notes}
+        <div class="col-span-2">
+          <dt class="text-sm font-medium text-text-muted">Loss Notes</dt>
+          <dd class="mt-1 text-sm text-text-secondary">{signup.loss_notes}</dd>
+        </div>
+      {/if}
     </dl>
   </div>
 
@@ -405,16 +449,19 @@
     </div>
   {/if}
 
-  <!-- Note (Read-only) -->
+  <!-- Note (editable) -->
   <div class="glass-card p-6 mb-6">
     <h2 class="text-lg font-semibold text-text-primary">Note</h2>
-    <div class="mt-3 rounded-xl bg-glass border border-glass-border px-4 py-3 text-sm text-text-secondary min-h-[3rem]">
-      {#if signup.note}
-        {signup.note}
-      {:else}
-        <span class="text-text-muted italic">No note.</span>
-      {/if}
-    </div>
+    <form method="POST" action="?/updateNote" class="mt-3">
+      <textarea
+        name="note" rows="4"
+        class="glass-input block w-full px-3 py-2 text-sm"
+        placeholder="Add notes about this signup..."
+      >{signup.note ?? ""}</textarea>
+      <div class="mt-2 flex justify-end">
+        <Button type="submit" size="sm">Save Note</Button>
+      </div>
+    </form>
   </div>
 
   <!-- Link Human -->
@@ -731,3 +778,35 @@
     </div>
   {/if}
 </div>
+
+{#if showLossDialog}
+  <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+    <div class="glass-card p-6 max-w-md w-full mx-4">
+      <h3 class="text-lg font-semibold text-text-primary">
+        {pendingCloseStatus === "closed_no_response" ? "Close as No Response" : "Close as Rejected"}
+      </h3>
+      <p class="mt-2 text-sm text-text-secondary">Optionally provide details for closing this signup.</p>
+      <div class="mt-3">
+        <label for="rsLossReasonSelect" class="block text-sm font-medium text-text-secondary mb-1">Loss Reason</label>
+        <select id="rsLossReasonSelect" class="glass-input block w-full px-3 py-2 text-sm" bind:value={selectedLossReason}>
+          <option value="">-- Select --</option>
+          {#each lossReasons as reason, i (i)}
+            <option value={reason.name}>{reason.name}</option>
+          {/each}
+        </select>
+      </div>
+      <textarea
+        bind:value={lossNotes}
+        rows="3"
+        class="glass-input mt-3 block w-full px-3 py-2 text-sm"
+        placeholder="Loss notes..."
+      ></textarea>
+      <div class="mt-4 flex gap-2 justify-end">
+        <Button variant="ghost" size="sm" onclick={() => { showLossDialog = false; selectedLossReason = ""; lossNotes = ""; pendingCloseStatus = ""; }}>Cancel</Button>
+        <Button variant="destructive" size="sm" onclick={submitLoss}>
+          {pendingCloseStatus === "closed_no_response" ? "Close Signup" : "Reject Signup"}
+        </Button>
+      </div>
+    </div>
+  </div>
+{/if}

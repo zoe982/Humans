@@ -57,4 +57,32 @@ describe("updateRouteSignupSchema", () => {
   it("rejects note over 5000 chars", () => {
     expect(() => updateRouteSignupSchema.parse({ note: "a".repeat(5001) })).toThrowError();
   });
+
+  it("accepts loss_reason string", () => {
+    const result = updateRouteSignupSchema.parse({ loss_reason: "No Response" });
+    expect(result.loss_reason).toBe("No Response");
+  });
+
+  it("accepts nullable loss_reason", () => {
+    const result = updateRouteSignupSchema.parse({ loss_reason: null });
+    expect(result.loss_reason).toBeNull();
+  });
+
+  it("rejects loss_reason over 255 chars", () => {
+    expect(() => updateRouteSignupSchema.parse({ loss_reason: "a".repeat(256) })).toThrowError();
+  });
+
+  it("accepts loss_notes string", () => {
+    const result = updateRouteSignupSchema.parse({ loss_notes: "Never replied to follow-ups" });
+    expect(result.loss_notes).toBe("Never replied to follow-ups");
+  });
+
+  it("accepts nullable loss_notes", () => {
+    const result = updateRouteSignupSchema.parse({ loss_notes: null });
+    expect(result.loss_notes).toBeNull();
+  });
+
+  it("rejects loss_notes over 5000 chars", () => {
+    expect(() => updateRouteSignupSchema.parse({ loss_notes: "a".repeat(5001) })).toThrowError();
+  });
 });

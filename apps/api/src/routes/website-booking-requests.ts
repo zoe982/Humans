@@ -77,7 +77,7 @@ websiteBookingRequestRoutes.get(
 
     const { data, error, count } = await supabase
       .from("bookings")
-      .select("id, crm_display_id, first_name, middle_name, last_name, client_email, origin_city, destination_city, travel_date, status, deposit_status, inserted_at", { count: "exact" })
+      .select("id, crm_display_id, first_name, middle_name, last_name, client_email, origin_city, destination_city, travel_date, status, deposit_status, crm_note, inserted_at", { count: "exact" })
       .order("inserted_at", { ascending: false })
       .range(from, to);
 
@@ -191,6 +191,8 @@ websiteBookingRequestRoutes.patch(
     if (parsed.data.status !== undefined) updateFields["status"] = parsed.data.status;
     if (parsed.data.crm_source !== undefined) updateFields["crm_source"] = parsed.data.crm_source;
     if (parsed.data.crm_channel !== undefined) updateFields["crm_channel"] = parsed.data.crm_channel;
+    if (parsed.data.crm_loss_reason !== undefined) updateFields["crm_loss_reason"] = parsed.data.crm_loss_reason;
+    if (parsed.data.crm_loss_notes !== undefined) updateFields["crm_loss_notes"] = parsed.data.crm_loss_notes;
 
     if (Object.keys(updateFields).length === 0) {
       throw badRequest(ERROR_CODES.NO_FIELDS_TO_UPDATE, "No fields to update");

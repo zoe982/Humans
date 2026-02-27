@@ -27,6 +27,7 @@ const ALL_CONFIG_TYPES = [
   "agreement-types",
   "lead-sources",
   "lead-channels",
+  "loss-reasons",
 ] as const;
 
 describe("GET /api/admin/account-config/batch", () => {

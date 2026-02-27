@@ -7,6 +7,8 @@
   import { bookingRequestStatusLabels, depositStatusLabels } from "$lib/constants/labels";
   import { bookingRequestStatusColors } from "$lib/constants/colors";
   import { resolve } from "$app/paths";
+  import InlineNoteEditor from "$lib/components/InlineNoteEditor.svelte";
+  import { api } from "$lib/api";
 
   let { data, form }: { data: PageData; form: ActionData } = $props();
 
@@ -22,6 +24,7 @@
     travel_date: string | null;
     status: string | null;
     deposit_status: string | null;
+    crm_note: string | null;
     inserted_at: string;
     scoreTotal: number | null;
   };
@@ -30,6 +33,7 @@
 
   // Build display-label-keyed color map for StatusBadge
   const statusDisplayColors = Object.fromEntries(
+    // eslint-disable-next-line security/detect-object-injection
     Object.entries(bookingRequestStatusColors).map(([k, v]) => [bookingRequestStatusLabels[k] ?? k, v]),
   );
 
@@ -75,14 +79,13 @@
     { key: "score", label: "Score" },
     { key: "deposit", label: "Deposit" },
     { key: "status", label: "Status" },
+    { key: "notes", label: "Notes" },
     { key: "date", label: "Date" },
   ]}
   {searchFilter}
   searchPlaceholder="Search bookings..."
   clientPageSize={25}
-  deleteAction="?/delete"
-  deleteMessage="Are you sure you want to delete this booking request? This cannot be undone."
-  canDelete={data.userRole === "admin"}
+  canDelete={false}
 >
   {#snippet desktopRow(booking)}
     <td class="font-mono text-sm whitespace-nowrap">
@@ -116,6 +119,19 @@
     </td>
     <td>
       <StatusBadge status={bookingRequestStatusLabels[booking.status ?? ""] ?? booking.status ?? "—"} colorMap={statusDisplayColors} />
+    </td>
+    <td>
+      <InlineNoteEditor
+        value={booking.crm_note}
+        onSave={async (note) => {
+          await api(`/api/website-booking-requests/${booking.id}`, {
+            method: "PATCH",
+            body: JSON.stringify({ crm_note: note }),
+            headers: { "Content-Type": "application/json" },
+          });
+          booking.crm_note = note;
+        }}
+      />
     </td>
     <td class="text-text-muted">{formatDatetime(booking.inserted_at)}</td>
   {/snippet}

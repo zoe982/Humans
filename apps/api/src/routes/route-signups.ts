@@ -185,6 +185,8 @@ routeSignupRoutes.patch("/api/route-signups/:id", requirePermission("manageRoute
   if (parsed.data.note !== undefined) updateFields["note"] = parsed.data.note;
   if (parsed.data.crm_source !== undefined) updateFields["crm_source"] = parsed.data.crm_source;
   if (parsed.data.crm_channel !== undefined) updateFields["crm_channel"] = parsed.data.crm_channel;
+  if (parsed.data.loss_reason !== undefined) updateFields["loss_reason"] = parsed.data.loss_reason;
+  if (parsed.data.loss_notes !== undefined) updateFields["loss_notes"] = parsed.data.loss_notes;
 
   if (Object.keys(updateFields).length === 0) {
     throw badRequest(ERROR_CODES.NO_FIELDS_TO_UPDATE, "No fields to update");

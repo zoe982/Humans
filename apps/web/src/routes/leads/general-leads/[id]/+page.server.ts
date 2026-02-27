@@ -17,6 +17,7 @@ export const load = async ({ locals, cookies, params }: RequestEvent): Promise<{
   platformConfigs: unknown[];
   leadSources: unknown[];
   leadChannels: unknown[];
+  lossReasons: unknown[];
 }> => {
   if (locals.user == null) redirect(302, "/login");
 
@@ -33,13 +34,13 @@ export const load = async ({ locals, cookies, params }: RequestEvent): Promise<{
   const [colleagues, activities, configs] = await Promise.all([
     fetchList(`${PUBLIC_API_URL}/api/colleagues`, sessionToken),
     fetchList(`${PUBLIC_API_URL}/api/activities?generalLeadId=${id}&include=linkedEntities`, sessionToken),
-    fetchConfigs(sessionToken, ["social-id-platforms", "lead-sources", "lead-channels"]),
+    fetchConfigs(sessionToken, ["social-id-platforms", "lead-sources", "lead-channels", "loss-reasons"]),
   ]);
 
   // Sequential: lead score (batch 1 connections released)
   const leadScore = await fetchObj(`${PUBLIC_API_URL}/api/lead-scores/by-parent/general_lead/${id}`, sessionToken);
 
-  return { lead, activities, user: locals.user, colleagues, leadScore, platformConfigs: configs["social-id-platforms"] ?? [], leadSources: configs["lead-sources"] ?? [], leadChannels: configs["lead-channels"] ?? [] };
+  return { lead, activities, user: locals.user, colleagues, leadScore, platformConfigs: configs["social-id-platforms"] ?? [], leadSources: configs["lead-sources"] ?? [], leadChannels: configs["lead-channels"] ?? [], lossReasons: configs["loss-reasons"] ?? [] };
 };
 
 export const actions = {
