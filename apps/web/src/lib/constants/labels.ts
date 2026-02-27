@@ -35,10 +35,10 @@ export const ROLE_OPTIONS = [
 /** Signup status display labels */
 export const signupStatusLabels: Record<string, string> = {
   open: "Open",
+  pending_response: "Pending Response",
   qualified: "Qualified",
-  closed_converted: "Converted",
-  closed_rejected: "Rejected",
-  closed_no_response: "No Response",
+  closed_lost: "Closed - Lost",
+  closed_converted: "Closed - Converted",
 };
 
 /** Booking request status display labels */

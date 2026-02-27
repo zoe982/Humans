@@ -2,10 +2,10 @@ import { z } from "zod";
 
 export const routeSignupStatuses = [
   "open",
+  "pending_response",
   "qualified",
+  "closed_lost",
   "closed_converted",
-  "closed_rejected",
-  "closed_no_response",
 ] as const;
 
 export type RouteSignupStatus = (typeof routeSignupStatuses)[number];

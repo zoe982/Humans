@@ -25,10 +25,10 @@ export const activityTypeColors: Record<string, string> = {
 /** Route signup status colors */
 export const signupStatusColors: Record<string, string> = {
   open: "badge-blue",
+  pending_response: "badge-yellow",
   qualified: "badge-yellow",
+  closed_lost: "badge-red",
   closed_converted: "badge-green",
-  closed_rejected: "badge-red",
-  closed_no_response: "badge-yellow",
 };
 
 /** Booking request status colors */

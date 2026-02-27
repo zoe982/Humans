@@ -71,9 +71,10 @@
 
   const statusColorMap: Record<string, string> = {
     "Open": "badge-blue",
+    "Pending Response": "badge-yellow",
     "Qualified": "badge-yellow",
-    "Converted": "badge-green",
-    "Rejected": "badge-red",
+    "Closed - Lost": "badge-red",
+    "Closed - Converted": "badge-green",
   };
 
   const hasActiveFilters = $derived(
@@ -110,9 +111,10 @@
         <select id="status" class="glass-input px-3 py-1.5 text-sm" bind:value={filterStatus}>
           <option value="">All</option>
           <option value="open">Open</option>
+          <option value="pending_response">Pending Response</option>
           <option value="qualified">Qualified</option>
-          <option value="closed_converted">Converted</option>
-          <option value="closed_rejected">Rejected</option>
+          <option value="closed_lost">Closed - Lost</option>
+          <option value="closed_converted">Closed - Converted</option>
         </select>
       </div>
       <div>

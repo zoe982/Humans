@@ -266,7 +266,7 @@
   });
 
   async function handleStatusChange(newStatus: string) {
-    if (newStatus === "closed_rejected" || newStatus === "closed_no_response") {
+    if (newStatus === "closed_lost") {
       pendingCloseStatus = newStatus;
       showLossDialog = true;
       return;
@@ -794,7 +794,7 @@
   <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
     <div class="glass-card p-6 max-w-md w-full mx-4">
       <h3 class="text-lg font-semibold text-text-primary">
-        {pendingCloseStatus === "closed_no_response" ? "Close as No Response" : "Close as Rejected"}
+        Close as Lost
       </h3>
       <p class="mt-2 text-sm text-text-secondary">Optionally provide details for closing this signup.</p>
       <div class="mt-3">
@@ -815,7 +815,7 @@
       <div class="mt-4 flex gap-2 justify-end">
         <Button variant="ghost" size="sm" onclick={() => { showLossDialog = false; selectedLossReason = ""; lossNotes = ""; pendingCloseStatus = ""; }}>Cancel</Button>
         <Button variant="destructive" size="sm" onclick={submitLoss}>
-          {pendingCloseStatus === "closed_no_response" ? "Close Signup" : "Reject Signup"}
+          Close Lead
         </Button>
       </div>
     </div>

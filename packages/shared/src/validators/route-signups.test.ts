@@ -8,9 +8,10 @@ import {
 describe("routeSignupStatuses", () => {
   it("contains expected statuses", () => {
     expect(routeSignupStatuses).toContain("open");
+    expect(routeSignupStatuses).toContain("pending_response");
     expect(routeSignupStatuses).toContain("qualified");
+    expect(routeSignupStatuses).toContain("closed_lost");
     expect(routeSignupStatuses).toContain("closed_converted");
-    expect(routeSignupStatuses).toContain("closed_rejected");
   });
 
   it("has exactly 5 statuses", () => {
