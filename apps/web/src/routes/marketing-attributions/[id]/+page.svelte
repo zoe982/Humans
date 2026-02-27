@@ -50,6 +50,8 @@
     ltCapturedAt: string | null;
     firstTouch: Record<string, unknown> | null;
     lastTouch: Record<string, unknown> | null;
+    triggerEvent: string | null;
+    eventMetadata: Record<string, unknown> | null;
     linkedLead: LinkedLead | null;
   };
 
@@ -109,6 +111,21 @@
       </div>
     </div>
   {/if}
+
+  <!-- Trigger Event -->
+  <div class="glass-card p-6 mb-6">
+    <h2 class="text-lg font-semibold text-text-primary">Trigger Event</h2>
+    <dl class="mt-4 grid grid-cols-2 gap-4">
+      <div>
+        <dt class="text-sm font-medium text-text-muted">Event</dt>
+        <dd class="mt-1 text-sm text-text-primary">{attribution.triggerEvent ?? "—"}</dd>
+      </div>
+      <div>
+        <dt class="text-sm font-medium text-text-muted">Event Metadata</dt>
+        <dd class="mt-1 text-sm text-text-primary font-mono whitespace-pre-wrap break-all">{attribution.eventMetadata != null ? JSON.stringify(attribution.eventMetadata, null, 2) : "—"}</dd>
+      </div>
+    </dl>
+  </div>
 
   <!-- Attribution Data -->
   <div class="glass-card p-6 mb-6">

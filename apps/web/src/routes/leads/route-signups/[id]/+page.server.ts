@@ -149,11 +149,15 @@ export const actions = {
     const form = await request.formData();
     const sessionToken = cookies.get("humans_session");
 
+    const activityDateRaw = form.get("activityDate");
+    const activityDate = activityDateRaw && typeof activityDateRaw === "string" && activityDateRaw !== ""
+      ? new Date(activityDateRaw).toISOString()
+      : new Date().toISOString();
     const payload = {
       type: form.get("type") ?? "email",
       subject: form.get("subject"),
       notes: form.get("notes") ?? undefined,
-      activityDate: form.get("activityDate") ?? new Date().toISOString(),
+      activityDate,
       routeSignupId: params.id,
     };
 

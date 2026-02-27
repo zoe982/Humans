@@ -41,6 +41,8 @@ interface SupabaseMarketingAttribution {
   lt_fbc: string | null;
   ft_li_fat_id: string | null;
   lt_li_fat_id: string | null;
+  trigger_event: string | null;
+  event_metadata: Record<string, unknown> | null;
 }
 
 interface MarketingAttributionApiShape {
@@ -79,6 +81,8 @@ interface MarketingAttributionApiShape {
   ltFbc: string | null;
   ftLiFatId: string | null;
   ltLiFatId: string | null;
+  triggerEvent: string | null;
+  eventMetadata: Record<string, unknown> | null;
 }
 
 function toApiShape(row: SupabaseMarketingAttribution): MarketingAttributionApiShape {
@@ -118,6 +122,8 @@ function toApiShape(row: SupabaseMarketingAttribution): MarketingAttributionApiS
     ltFbc: row.lt_fbc,
     ftLiFatId: row.ft_li_fat_id,
     ltLiFatId: row.lt_li_fat_id,
+    triggerEvent: row.trigger_event,
+    eventMetadata: row.event_metadata,
   };
 }
 

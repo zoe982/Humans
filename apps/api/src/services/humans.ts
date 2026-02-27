@@ -181,7 +181,7 @@ export async function getHumanDetail(supabase: SupabaseClient, db: DB, humanId: 
     };
   });
 
-  let linkedAccounts: { id: string; accountId: string; accountName: string; labelId: string | null; labelName: string | null }[] = [];
+  let linkedAccounts: { id: string; accountId: string; accountName: string; accountDisplayId: string | null; labelId: string | null; labelName: string | null }[] = [];
   if (linkedAccountRows.length > 0) {
     const linkedAccountIds = linkedAccountRows.map((r) => r.accountId);
     const [allAccounts, allLabels] = await Promise.all([
@@ -195,6 +195,7 @@ export async function getHumanDetail(supabase: SupabaseClient, db: DB, humanId: 
         id: row.id,
         accountId: row.accountId,
         accountName: account?.name ?? "Unknown",
+        accountDisplayId: account?.displayId ?? null,
         labelId: row.labelId,
         labelName: label?.name ?? null,
       };

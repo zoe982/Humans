@@ -9,7 +9,7 @@
   import HighlightText from "$lib/components/HighlightText.svelte";
   import LinkHumanSection from "$lib/components/LinkHumanSection.svelte";
   import { bookingRequestStatusColors } from "$lib/constants/colors";
-  import { bookingRequestStatusLabels, depositStatusLabels, balanceStatusLabels, ACTIVITY_TYPE_OPTIONS } from "$lib/constants/labels";
+  import { bookingRequestStatusLabels, BOOKING_REQUEST_STATUS_OPTIONS, depositStatusLabels, balanceStatusLabels, ACTIVITY_TYPE_OPTIONS } from "$lib/constants/labels";
   import SearchableSelect from "$lib/components/SearchableSelect.svelte";
   import NextActionSection from "$lib/components/NextActionSection.svelte";
   import { invalidateAll } from "$app/navigation";
@@ -298,7 +298,7 @@
     backLabel="Booking Requests"
     title="{booking.crm_display_id ? booking.crm_display_id + ' — ' : ''}{displayName(booking)}"
     status={booking.status ?? undefined}
-    statusOptions={["confirmed", "closed_cancelled", "closed_no_response", "closed_converted"]}
+    statusOptions={BOOKING_REQUEST_STATUS_OPTIONS.map((o) => o.value)}
     statusLabels={bookingRequestStatusLabels}
     statusColorMap={bookingRequestStatusColors}
     statusFormAction="?/updateStatus"

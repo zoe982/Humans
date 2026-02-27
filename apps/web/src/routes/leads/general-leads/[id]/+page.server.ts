@@ -277,7 +277,7 @@ export const actions = {
       type: typeVal !== "" ? typeVal : "email",
       subject: form.get("subject"),
       notes: notesVal !== "" ? notesVal : undefined,
-      activityDate: activityDateVal !== "" ? activityDateVal : new Date().toISOString(),
+      activityDate: activityDateVal !== "" ? new Date(activityDateVal).toISOString() : new Date().toISOString(),
       generalLeadId: id,
     };
 

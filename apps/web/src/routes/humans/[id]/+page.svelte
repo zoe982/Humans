@@ -88,6 +88,7 @@
     id: string;
     accountId: string;
     accountName: string;
+    accountDisplayId: string | null;
     labelId: string | null;
     labelName: string | null;
   };
@@ -546,30 +547,45 @@
       title="Linked Accounts"
       items={human.linkedAccounts}
       columns={[
+        { key: "displayId", label: "ID" },
         { key: "account", label: "Account", sortable: true, sortValue: (a) => a.accountName },
         { key: "role", label: "Role", sortable: true, sortValue: (a) => a.labelName ?? "" },
         { key: "unlink", label: "", headerClass: "w-10" },
       ]}
       defaultSortKey="account"
       defaultSortDirection="asc"
-      searchFilter={(a, q) => (a.accountName ?? "").toLowerCase().includes(q) || (a.labelName ?? "").toLowerCase().includes(q)}
+      searchFilter={(a, q) => (a.accountName ?? "").toLowerCase().includes(q) || (a.labelName ?? "").toLowerCase().includes(q) || (a.accountDisplayId ?? "").toLowerCase().includes(q)}
       emptyMessage="No linked accounts."
       addLabel="Account"
     >
       {#snippet row(link, _searchQuery)}
+        <td class="font-mono text-sm whitespace-nowrap">{link.accountDisplayId ?? "—"}</td>
         <td>
           <a href={resolve(`/accounts/${link.accountId}?from=${$page.url.pathname}`)} class="text-sm font-medium text-accent hover:text-[var(--link-hover)]">
             {link.accountName}
           </a>
         </td>
         <td>
-          {#if link.labelName}
-            <span class="glass-badge inline-flex rounded-full px-2 py-0.5 text-xs font-medium badge-orange">
-              {link.labelName}
-            </span>
-          {:else}
-            <span class="text-text-muted">&mdash;</span>
-          {/if}
+          <div class="w-44">
+            <SearchableSelect
+              options={accountHumanLabelOptions}
+              name="accRole-{link.id}"
+              id="accRole-{link.id}"
+              value={link.labelId ?? ""}
+              emptyOption="None"
+              placeholder="Role..."
+              onSelect={async (value) => {
+                try {
+                  await api(`/api/accounts/${link.accountId}/humans/${link.id}`, {
+                    method: "PATCH",
+                    body: JSON.stringify({ labelId: value || null }),
+                  });
+                  toast("Label updated");
+                  await invalidateAll();
+                } catch { toast("Failed to update label"); }
+              }}
+            />
+          </div>
         </td>
         <td>
           <form method="POST" action="?/unlinkAccount">

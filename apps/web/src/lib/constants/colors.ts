@@ -33,10 +33,19 @@ export const signupStatusColors: Record<string, string> = {
 
 /** Booking request status colors */
 export const bookingRequestStatusColors: Record<string, string> = {
-  confirmed: "badge-green",
-  closed_cancelled: "badge-red",
-  closed_no_response: "badge-yellow",
-  closed_converted: "badge-green",
+  open: "badge-blue",
+  pending_response: "badge-yellow",
+  qualified: "badge-yellow",
+  deposit_requested: "badge-orange",
+  deposit_received: "badge-green",
+  group_forming: "badge-purple",
+  flight_confirmed: "badge-green",
+  final_payment_requested: "badge-orange",
+  paid: "badge-green",
+  docs_in_progress: "badge-yellow",
+  docs_complete: "badge-blue",
+  closed_flown: "badge-green",
+  closed_lost: "badge-red",
 };
 
 /** Deposit/balance status colors */

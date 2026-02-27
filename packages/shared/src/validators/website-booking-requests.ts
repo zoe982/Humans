@@ -1,10 +1,19 @@
 import { z } from "zod";
 
 export const websiteBookingRequestStatuses = [
-  "confirmed",
-  "closed_cancelled",
-  "closed_no_response",
-  "closed_converted",
+  "open",
+  "pending_response",
+  "qualified",
+  "deposit_requested",
+  "deposit_received",
+  "group_forming",
+  "flight_confirmed",
+  "final_payment_requested",
+  "paid",
+  "docs_in_progress",
+  "docs_complete",
+  "closed_flown",
+  "closed_lost",
 ] as const;
 
 export type WebsiteBookingRequestStatus = (typeof websiteBookingRequestStatuses)[number];

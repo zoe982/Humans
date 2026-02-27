@@ -5,6 +5,7 @@
   import LeadScoreBadge from "$lib/components/LeadScoreBadge.svelte";
   import { getLeadScoreBand } from "@humans/shared";
   import { bookingRequestStatusLabels, depositStatusLabels } from "$lib/constants/labels";
+  import { bookingRequestStatusColors } from "$lib/constants/colors";
   import { resolve } from "$app/paths";
 
   let { data, form }: { data: PageData; form: ActionData } = $props();
@@ -26,6 +27,11 @@
   };
 
   const bookings = $derived(data.bookings as Booking[]);
+
+  // Build display-label-keyed color map for StatusBadge
+  const statusDisplayColors = Object.fromEntries(
+    Object.entries(bookingRequestStatusColors).map(([k, v]) => [bookingRequestStatusLabels[k] ?? k, v]),
+  );
 
   function displayName(b: Booking): string {
     const parts = [b.first_name, b.middle_name, b.last_name].filter(Boolean);
@@ -109,12 +115,7 @@
       }} />
     </td>
     <td>
-      <StatusBadge status={bookingRequestStatusLabels[booking.status ?? ""] ?? booking.status ?? "—"} colorMap={{
-        "Confirmed": "badge-green",
-        "Cancelled": "badge-red",
-        "No Response": "badge-yellow",
-        "Converted": "badge-green",
-      }} />
+      <StatusBadge status={bookingRequestStatusLabels[booking.status ?? ""] ?? booking.status ?? "—"} colorMap={statusDisplayColors} />
     </td>
     <td class="text-text-muted">{formatDatetime(booking.inserted_at)}</td>
   {/snippet}
@@ -129,12 +130,7 @@
           {#if booking.scoreTotal != null}
             <LeadScoreBadge score={booking.scoreTotal} band={getLeadScoreBand(booking.scoreTotal)} />
           {/if}
-          <StatusBadge status={bookingRequestStatusLabels[booking.status ?? ""] ?? booking.status ?? "—"} colorMap={{
-            "Confirmed": "badge-green",
-            "Cancelled": "badge-red",
-            "No Response": "badge-yellow",
-            "Converted": "badge-green",
-          }} />
+          <StatusBadge status={bookingRequestStatusLabels[booking.status ?? ""] ?? booking.status ?? "—"} colorMap={statusDisplayColors} />
         </div>
       </div>
       {#if booking.client_email}

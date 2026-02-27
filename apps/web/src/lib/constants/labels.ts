@@ -43,11 +43,37 @@ export const signupStatusLabels: Record<string, string> = {
 
 /** Booking request status display labels */
 export const bookingRequestStatusLabels: Record<string, string> = {
-  confirmed: "Confirmed",
-  closed_cancelled: "Cancelled",
-  closed_no_response: "No Response",
-  closed_converted: "Converted",
+  open: "Open",
+  pending_response: "Pending Response",
+  qualified: "Qualified",
+  deposit_requested: "Deposit Requested",
+  deposit_received: "Deposit Received",
+  group_forming: "Group Forming",
+  flight_confirmed: "Flight Confirmed",
+  final_payment_requested: "Final Payment Requested",
+  paid: "Paid",
+  docs_in_progress: "Docs in Progress",
+  docs_complete: "Docs Complete",
+  closed_flown: "Closed - Flown",
+  closed_lost: "Closed - Lost",
 };
+
+/** Booking request status options ordered for pipeline progression */
+export const BOOKING_REQUEST_STATUS_OPTIONS = [
+  { value: "open", label: "Open" },
+  { value: "pending_response", label: "Pending Response" },
+  { value: "qualified", label: "Qualified" },
+  { value: "deposit_requested", label: "Deposit Requested" },
+  { value: "deposit_received", label: "Deposit Received" },
+  { value: "group_forming", label: "Group Forming" },
+  { value: "flight_confirmed", label: "Flight Confirmed" },
+  { value: "final_payment_requested", label: "Final Payment Requested" },
+  { value: "paid", label: "Paid" },
+  { value: "docs_in_progress", label: "Docs in Progress" },
+  { value: "docs_complete", label: "Docs Complete" },
+  { value: "closed_flown", label: "Closed - Flown" },
+  { value: "closed_lost", label: "Closed - Lost" },
+] as const;
 
 /** Deposit status display labels */
 export const depositStatusLabels: Record<string, string> = {
