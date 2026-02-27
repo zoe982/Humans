@@ -1,7 +1,7 @@
 import { redirect } from "@sveltejs/kit";
 import type { RequestEvent, ActionFailure } from "@sveltejs/kit";
 import { PUBLIC_API_URL } from "$env/static/public";
-import { isObjData, isListData, failFromApi, fetchConfigs, authHeaders } from "$lib/server/api";
+import { isObjData, failFromApi, fetchConfigs, authHeaders, fetchList as sharedFetchList, fetchObj as sharedFetchObj } from "$lib/server/api";
 
 function isConfigsRecord(value: unknown): value is Record<string, unknown[]> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -28,26 +28,8 @@ export const load = async ({ locals, cookies, params }: RequestEvent): Promise<{
   const booking = isObjData(bookingRaw) ? bookingRaw.data : null;
   if (booking == null) redirect(302, "/leads/website-booking-requests");
 
-  // Helpers that consume response bodies immediately to free Workers connections.
-  // Cloudflare Workers allow max 6 simultaneous outbound connections; stalled
-  // (unconsumed) bodies count against this limit and trigger
-  // "Response closed due to connection limit" errors.
-  async function fetchList(url: string): Promise<unknown[]> {
-    try {
-      const res = await fetch(url, { headers: authHeaders(sessionToken) });
-      if (!res.ok) { await res.body?.cancel(); return []; }
-      const raw: unknown = await res.json();
-      return isListData(raw) ? raw.data : [];
-    } catch { return []; }
-  }
-  async function fetchObj(url: string): Promise<Record<string, unknown> | null> {
-    try {
-      const res = await fetch(url, { headers: authHeaders(sessionToken) });
-      if (!res.ok) { await res.body?.cancel(); return null; }
-      const raw: unknown = await res.json();
-      return isObjData(raw) ? raw.data : null;
-    } catch { return null; }
-  }
+  const fetchList = (url: string) => sharedFetchList(url, sessionToken);
+  const fetchObj = (url: string) => sharedFetchObj(url, sessionToken);
 
   const marketingAttributionId = typeof booking["marketing_attribution_id"] === "string" ? booking["marketing_attribution_id"] : null;
 

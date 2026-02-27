@@ -3,6 +3,7 @@ import { z } from "zod";
 import {
   fetchList,
   fetchObj,
+  fetchConfigs,
   isListData,
   isObjData,
   authHeaders,
@@ -150,5 +151,85 @@ describe("fetchObj", () => {
 
     const result = await fetchObj("http://api/humans/1", "token");
     expect(result).toBeNull();
+  });
+
+  it("cancels body on non-ok response to free connection", async () => {
+    const cancelFn = vi.fn(async () => undefined);
+    vi.stubGlobal("fetch", vi.fn(async () => ({
+      ok: false,
+      status: 500,
+      body: { cancel: cancelFn },
+      json: vi.fn(async () => null),
+    })));
+
+    await fetchObj("http://api/humans/1", "token");
+    expect(cancelFn).toHaveBeenCalled();
+  });
+
+  it("returns null on network error", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => {
+      throw new Error("Connection reset");
+    }));
+
+    const result = await fetchObj("http://api/humans/1", "token");
+    expect(result).toBeNull();
+  });
+});
+
+describe("fetchList — connection safety", () => {
+  it("cancels body on non-ok response to free connection", async () => {
+    const cancelFn = vi.fn(async () => undefined);
+    vi.stubGlobal("fetch", vi.fn(async () => ({
+      ok: false,
+      status: 500,
+      body: { cancel: cancelFn },
+      json: vi.fn(async () => null),
+    })));
+
+    await fetchList("http://api/humans", "token");
+    expect(cancelFn).toHaveBeenCalled();
+  });
+
+  it("returns empty array on network error", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => {
+      throw new Error("Connection reset");
+    }));
+
+    const result = await fetchList("http://api/humans", "token");
+    expect(result).toStrictEqual([]);
+  });
+});
+
+describe("fetchConfigs", () => {
+  it("returns config data on success", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () =>
+      new Response(JSON.stringify({ data: { "lead-sources": [{ id: "1", name: "Web" }] } })),
+    ));
+
+    const result = await fetchConfigs("token", ["lead-sources"]);
+    expect(result).toStrictEqual({ "lead-sources": [{ id: "1", name: "Web" }] });
+  });
+
+  it("cancels body on non-ok response to free connection", async () => {
+    const cancelFn = vi.fn(async () => undefined);
+    vi.stubGlobal("fetch", vi.fn(async () => ({
+      ok: false,
+      status: 500,
+      body: { cancel: cancelFn },
+      json: vi.fn(async () => null),
+    })));
+
+    const result = await fetchConfigs("token");
+    expect(result).toStrictEqual({});
+    expect(cancelFn).toHaveBeenCalled();
+  });
+
+  it("returns empty object on network error", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => {
+      throw new Error("Connection reset");
+    }));
+
+    const result = await fetchConfigs("token");
+    expect(result).toStrictEqual({});
   });
 });

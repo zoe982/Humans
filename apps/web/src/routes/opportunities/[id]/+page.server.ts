@@ -33,18 +33,19 @@ export const load = async ({ locals, cookies, params }: RequestEvent): Promise<{
   });
   if (opportunity == null) redirect(302, "/opportunities");
 
-  // Batch: configs + data in one round
-  const [configs, colleagues, allHumans, allPets, flightSummary] = await Promise.all([
+  // Batch 1 (4 concurrent — Cloudflare Workers limit: 6 TCP, auth uses 1, safety margin 1)
+  const [configs, colleagues, allHumans, allPets] = await Promise.all([
     fetchConfigs(token, ["opportunity-human-roles"]),
     fetchList(`${PUBLIC_API_URL}/api/colleagues`, token),
     fetchList(`${PUBLIC_API_URL}/api/humans?limit=200`, token),
     fetchList(`${PUBLIC_API_URL}/api/pets`, token),
-    fetchList(`${PUBLIC_API_URL}/api/flights/summary`, token),
   ]);
 
   const roleConfigs = configs["opportunity-human-roles"] ?? [];
 
-  const [bookingRequestsRaw, cadenceConfigs] = await Promise.all([
+  // Batch 2 (3 concurrent — batch 1 connections already released)
+  const [flightSummary, bookingRequestsRaw, cadenceConfigs] = await Promise.all([
+    fetchList(`${PUBLIC_API_URL}/api/flights/summary`, token),
     fetchObj(`${PUBLIC_API_URL}/api/opportunities/${id}/booking-requests`, token),
     fetchList(`${PUBLIC_API_URL}/api/opportunity-cadence`, token),
   ]);

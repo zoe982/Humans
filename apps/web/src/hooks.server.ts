@@ -72,12 +72,14 @@ export const handleError: HandleServerError = ({ error, event }) => {
       url: event.url.pathname,
       errors: [{ type: "ssr-crash", message: err.message, stack: err.stack ?? "" }],
     };
-    // Use waitUntil-like pattern: don't await but don't lose the reference
+    // Use waitUntil-like pattern: don't await but don't lose the reference.
+    // Cancel the response body to free the TCP connection immediately
+    // (Cloudflare Workers limit: 6 concurrent outbound connections).
     fetch(`${API_BASE}/api/client-errors`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
-    }).catch(() => { /* noop */ });
+    }).then((r) => { r.body?.cancel(); }).catch(() => { /* noop */ });
   } catch {
     // Ignore diagnostic failures
   }

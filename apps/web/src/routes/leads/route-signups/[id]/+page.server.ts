@@ -1,7 +1,7 @@
 import { redirect } from "@sveltejs/kit";
 import type { RequestEvent, ActionFailure } from "@sveltejs/kit";
 import { PUBLIC_API_URL } from "$env/static/public";
-import { isObjData, isListData, failFromApi, fetchConfigs, authHeaders } from "$lib/server/api";
+import { isObjData, failFromApi, fetchConfigs, authHeaders, fetchList, fetchObj } from "$lib/server/api";
 
 function getFormString(form: FormData, key: string): string {
   const raw = form.get(key);
@@ -24,68 +24,30 @@ export const load = async ({ locals, cookies, params }: RequestEvent): Promise<{
   const signup = isObjData(signupRaw) ? signupRaw.data : null;
   if (signup == null) redirect(302, "/leads/route-signups");
 
-  // Build parallel fetch list: activities, colleagues, emails, phones, social-ids, and optionally attribution
   const marketingAttributionId = typeof signup["marketing_attribution_id"] === "string" ? signup["marketing_attribution_id"] : null;
 
-  const headers = authHeaders(sessionToken);
-  const parallelFetches: Promise<Response>[] = [
-    fetch(`${PUBLIC_API_URL}/api/activities?routeSignupId=${id ?? ""}`, { headers }),
-    fetch(`${PUBLIC_API_URL}/api/colleagues`, { headers }),
-    fetch(`${PUBLIC_API_URL}/api/lead-scores/by-parent/route_signup/${id ?? ""}`, { headers }),
-    fetch(`${PUBLIC_API_URL}/api/route-signups/${id ?? ""}/emails`, { headers }),
-    fetch(`${PUBLIC_API_URL}/api/route-signups/${id ?? ""}/phone-numbers`, { headers }),
-    fetch(`${PUBLIC_API_URL}/api/route-signups/${id ?? ""}/social-ids`, { headers }),
+  // Batch 1 (4 concurrent — Cloudflare Workers limit: 6 TCP, auth uses 1, safety margin 1)
+  const [activities, colleagues, leadScore, emails] = await Promise.all([
+    fetchList(`${PUBLIC_API_URL}/api/activities?routeSignupId=${id ?? ""}`, sessionToken),
+    fetchList(`${PUBLIC_API_URL}/api/colleagues`, sessionToken),
+    fetchObj(`${PUBLIC_API_URL}/api/lead-scores/by-parent/route_signup/${id ?? ""}`, sessionToken),
+    fetchList(`${PUBLIC_API_URL}/api/route-signups/${id ?? ""}/emails`, sessionToken),
+  ]);
+
+  // Batch 2 (3-4 concurrent — batch 1 connections already released)
+  const batch2: (() => Promise<unknown>)[] = [
+    () => fetchList(`${PUBLIC_API_URL}/api/route-signups/${id ?? ""}/phone-numbers`, sessionToken),
+    () => fetchList(`${PUBLIC_API_URL}/api/route-signups/${id ?? ""}/social-ids`, sessionToken),
+    () => fetchConfigs(sessionToken, ["social-id-platforms", "lead-sources", "lead-channels"]),
   ];
   if (marketingAttributionId != null) {
-    parallelFetches.push(
-      fetch(`${PUBLIC_API_URL}/api/marketing-attributions/${marketingAttributionId}`, { headers }),
-    );
+    batch2.push(() => fetchObj(`${PUBLIC_API_URL}/api/marketing-attributions/${marketingAttributionId}`, sessionToken));
   }
-  const [activitiesRes, colleaguesRes, leadScoreRes, emailsRes, phoneNumbersRes, socialIdsRes, attributionRes] = await Promise.all(parallelFetches);
-
-  let activities: unknown[] = [];
-  if (activitiesRes.ok) {
-    const activitiesRaw: unknown = await activitiesRes.json();
-    activities = isListData(activitiesRaw) ? activitiesRaw.data : [];
-  }
-
-  let colleagues: unknown[] = [];
-  if (colleaguesRes.ok) {
-    const colleaguesRaw: unknown = await colleaguesRes.json();
-    colleagues = isListData(colleaguesRaw) ? colleaguesRaw.data : [];
-  }
-
-  let leadScore: Record<string, unknown> | null = null;
-  if (leadScoreRes.ok) {
-    const lsRaw: unknown = await leadScoreRes.json();
-    leadScore = isObjData(lsRaw) ? lsRaw.data : null;
-  }
-
-  let emails: unknown[] = [];
-  if (emailsRes.ok) {
-    const emailsRaw: unknown = await emailsRes.json();
-    emails = isListData(emailsRaw) ? emailsRaw.data : [];
-  }
-
-  let phoneNumbers: unknown[] = [];
-  if (phoneNumbersRes.ok) {
-    const phoneNumbersRaw: unknown = await phoneNumbersRes.json();
-    phoneNumbers = isListData(phoneNumbersRaw) ? phoneNumbersRaw.data : [];
-  }
-
-  let socialIds: unknown[] = [];
-  if (socialIdsRes.ok) {
-    const socialIdsRaw: unknown = await socialIdsRes.json();
-    socialIds = isListData(socialIdsRaw) ? socialIdsRaw.data : [];
-  }
-
-  let marketingAttribution: unknown = null;
-  if (attributionRes?.ok === true) {
-    const attrRaw: unknown = await attributionRes.json();
-    marketingAttribution = isObjData(attrRaw) ? attrRaw.data : null;
-  }
-
-  const configs = await fetchConfigs(sessionToken, ["social-id-platforms", "lead-sources", "lead-channels"]);
+  const batch2Results = await Promise.all(batch2.map((fn) => fn()));
+  const phoneNumbers = batch2Results[0] as unknown[];
+  const socialIds = batch2Results[1] as unknown[];
+  const configs = batch2Results[2] as Record<string, unknown[]>;
+  const marketingAttribution = batch2Results[3] ?? null;
 
   return { signup, activities, colleagues, marketingAttribution, leadScore, emails, phoneNumbers, socialIds, platformConfigs: configs["social-id-platforms"] ?? [], leadSources: configs["lead-sources"] ?? [], leadChannels: configs["lead-channels"] ?? [], user: locals.user };
 };

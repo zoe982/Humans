@@ -29,11 +29,16 @@ export const load = async ({ locals, cookies }: RequestEvent): Promise<{ user: A
     return { ok: res.ok, status: res.status, data };
   }
 
-  const [humans, activities, geoInterests, petsCount, recent, dailyCounts_] = await Promise.all([
+  // Batch 1 (4 concurrent — Cloudflare Workers limit: 6 TCP, auth uses 1, safety margin 1)
+  const [humans, activities, geoInterests, petsCount] = await Promise.all([
     fetchJson(`${PUBLIC_API_URL}/api/humans?page=1&limit=1`),
     fetchJson(`${PUBLIC_API_URL}/api/activities?page=1&limit=1`),
     fetchJson(`${PUBLIC_API_URL}/api/geo-interests`),
     fetchJson(`${PUBLIC_API_URL}/api/pets/count`),
+  ]);
+
+  // Batch 2 (2 concurrent — batch 1 connections already released)
+  const [recent, dailyCounts_] = await Promise.all([
     fetchJson(`${PUBLIC_API_URL}/api/activities?page=1&limit=10`),
     fetchJson(`${PUBLIC_API_URL}/api/activities/daily-counts?days=30`),
   ]);

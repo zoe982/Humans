@@ -34,22 +34,24 @@ export async function fetchList(
   sessionToken: string,
   options?: SchemaOptions<z.ZodTypeAny>,
 ): Promise<unknown[]> {
-  const res = await fetch(url, { headers: authHeaders(sessionToken) });
-  if (!res.ok) return [];
-  const raw: unknown = await res.json().catch(() => null);
-  if (!isListData(raw)) return [];
-  if (options !== undefined) {
-    /* eslint-disable @typescript-eslint/no-unsafe-return -- validateResponse returns z.infer<T> which resolves to any in generic context */
-    return raw.data.map((item: unknown) =>
-      validateResponse(options.schema, item, {
-        url,
-        schemaName: options.schemaName,
-        strict: import.meta.env.DEV,
-      }),
-    );
-    /* eslint-enable @typescript-eslint/no-unsafe-return */
-  }
-  return raw.data;
+  try {
+    const res = await fetch(url, { headers: authHeaders(sessionToken) });
+    if (!res.ok) { await res.body?.cancel(); return []; }
+    const raw: unknown = await res.json().catch(() => null);
+    if (!isListData(raw)) return [];
+    if (options !== undefined) {
+      /* eslint-disable @typescript-eslint/no-unsafe-return -- validateResponse returns z.infer<T> which resolves to any in generic context */
+      return raw.data.map((item: unknown) =>
+        validateResponse(options.schema, item, {
+          url,
+          schemaName: options.schemaName,
+          strict: import.meta.env.DEV,
+        }),
+      );
+      /* eslint-enable @typescript-eslint/no-unsafe-return */
+    }
+    return raw.data;
+  } catch { return []; }
 }
 
 export async function fetchObj(url: string, sessionToken: string): Promise<Record<string, unknown> | null>;
@@ -59,18 +61,20 @@ export async function fetchObj(
   sessionToken: string,
   options?: SchemaOptions<z.ZodTypeAny>,
 ): Promise<unknown> {
-  const res = await fetch(url, { headers: authHeaders(sessionToken) });
-  if (!res.ok) return null;
-  const raw: unknown = await res.json().catch(() => null);
-  if (!isObjData(raw)) return null;
-  if (options !== undefined) {
-    return validateResponse(options.schema, raw.data, {
-      url,
-      schemaName: options.schemaName,
-      strict: import.meta.env.DEV,
-    }) as unknown;
-  }
-  return raw.data;
+  try {
+    const res = await fetch(url, { headers: authHeaders(sessionToken) });
+    if (!res.ok) { await res.body?.cancel(); return null; }
+    const raw: unknown = await res.json().catch(() => null);
+    if (!isObjData(raw)) return null;
+    if (options !== undefined) {
+      return validateResponse(options.schema, raw.data, {
+        url,
+        schemaName: options.schemaName,
+        strict: import.meta.env.DEV,
+      }) as unknown;
+    }
+    return raw.data;
+  } catch { return null; }
 }
 
 type BatchConfigResult = Record<string, unknown[]>;
@@ -80,14 +84,16 @@ function isBatchConfigResponse(value: unknown): value is { data: BatchConfigResu
 }
 
 export async function fetchConfigs(sessionToken: string, types?: string[]): Promise<BatchConfigResult> {
-  const params = types != null ? `?types=${types.join(",")}` : "";
-  const res = await fetch(`${PUBLIC_API_URL}/api/admin/account-config/batch${params}`, {
-    headers: authHeaders(sessionToken),
-  });
-  if (!res.ok) return {};
-  const raw: unknown = await res.json();
-  if (isBatchConfigResponse(raw)) {
-    return raw.data;
-  }
-  return {};
+  try {
+    const params = types != null ? `?types=${types.join(",")}` : "";
+    const res = await fetch(`${PUBLIC_API_URL}/api/admin/account-config/batch${params}`, {
+      headers: authHeaders(sessionToken),
+    });
+    if (!res.ok) { await res.body?.cancel(); return {}; }
+    const raw: unknown = await res.json();
+    if (isBatchConfigResponse(raw)) {
+      return raw.data;
+    }
+    return {};
+  } catch { return {}; }
 }

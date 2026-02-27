@@ -40,17 +40,17 @@ export const load = async ({ locals, cookies, params }: RequestEvent): Promise<{
   const activity = isObjData(activityRaw) ? activityRaw.data : null;
   if (activity == null) redirect(302, "/activities");
 
-  // Batch 1 (5 concurrent — each connection closes after body is consumed)
-  const [humans, accounts, routeSignups, websiteBookingRequests, colleagues] = await Promise.all([
+  // Batch 1 (4 concurrent — Cloudflare Workers limit: 6 TCP, auth uses 1, safety margin 1)
+  const [humans, accounts, routeSignups, websiteBookingRequests] = await Promise.all([
     fetchList(`${PUBLIC_API_URL}/api/humans`),
     fetchList(`${PUBLIC_API_URL}/api/accounts`),
     fetchList(`${PUBLIC_API_URL}/api/route-signups?limit=100`),
     fetchList(`${PUBLIC_API_URL}/api/website-booking-requests?limit=100`),
-    fetchList(`${PUBLIC_API_URL}/api/colleagues`),
   ]);
 
-  // Batch 2 (2 concurrent — batch 1 connections already released)
-  const [generalLeads, opportunitiesList] = await Promise.all([
+  // Batch 2 (3 concurrent — batch 1 connections already released)
+  const [colleagues, generalLeads, opportunitiesList] = await Promise.all([
+    fetchList(`${PUBLIC_API_URL}/api/colleagues`),
     fetchList(`${PUBLIC_API_URL}/api/general-leads?limit=100`),
     fetchList(`${PUBLIC_API_URL}/api/opportunities?limit=100`),
   ]);

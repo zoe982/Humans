@@ -1,7 +1,7 @@
 import { redirect } from "@sveltejs/kit";
 import type { RequestEvent, ActionFailure } from "@sveltejs/kit";
 import { PUBLIC_API_URL } from "$env/static/public";
-import { isObjData, failFromApi, fetchConfigs, authHeaders, fetchList, fetchObj } from "$lib/server/api";
+import { failFromApi, fetchConfigs, fetchList, fetchObj } from "$lib/server/api";
 import { generalLeadDetailSchema, type GeneralLeadDetail } from "@humans/shared";
 
 function formStr(value: FormDataEntryValue | null): string {
@@ -30,19 +30,16 @@ export const load = async ({ locals, cookies, params }: RequestEvent): Promise<{
   });
   if (lead == null) redirect(302, "/leads/general-leads");
 
-  const [allHumans, colleagues, leadScoreRes, activities, configs] = await Promise.all([
+  // Batch 1 (4 concurrent — Cloudflare Workers limit: 6 TCP, auth uses 1, safety margin 1)
+  const [allHumans, colleagues, activities, configs] = await Promise.all([
     fetchList(`${PUBLIC_API_URL}/api/humans?limit=200`, sessionToken),
     fetchList(`${PUBLIC_API_URL}/api/colleagues`, sessionToken),
-    fetch(`${PUBLIC_API_URL}/api/lead-scores/by-parent/general_lead/${id}`, { headers: authHeaders(sessionToken) }),
     fetchList(`${PUBLIC_API_URL}/api/activities?generalLeadId=${id}&include=linkedEntities`, sessionToken),
     fetchConfigs(sessionToken, ["social-id-platforms", "lead-sources", "lead-channels"]),
   ]);
 
-  let leadScore: Record<string, unknown> | null = null;
-  if (leadScoreRes.ok) {
-    const raw: unknown = await leadScoreRes.json();
-    leadScore = isObjData(raw) ? (raw.data as Record<string, unknown> | null) : null;
-  }
+  // Sequential: lead score (batch 1 connections released)
+  const leadScore = await fetchObj(`${PUBLIC_API_URL}/api/lead-scores/by-parent/general_lead/${id}`, sessionToken);
 
   return { lead, activities, user: locals.user, allHumans, colleagues, leadScore, platformConfigs: configs["social-id-platforms"] ?? [], leadSources: configs["lead-sources"] ?? [], leadChannels: configs["lead-channels"] ?? [] };
 };

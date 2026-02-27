@@ -1,7 +1,7 @@
 import { redirect } from "@sveltejs/kit";
 import type { RequestEvent } from "@sveltejs/kit";
 import { PUBLIC_API_URL } from "$env/static/public";
-import { isObjData, isListData, fetchConfigs, authHeaders } from "$lib/server/api";
+import { fetchObj, fetchList, fetchConfigs } from "$lib/server/api";
 
 export const load = async ({ locals, cookies, params }: RequestEvent): Promise<{ socialId: Record<string, unknown>; platformConfigs: unknown[]; allHumans: unknown[]; allAccounts: unknown[]; allGeneralLeads: unknown[]; allBookingRequests: unknown[]; allRouteSignups: unknown[] }> => {
   if (locals.user == null) redirect(302, "/login");
@@ -9,37 +9,21 @@ export const load = async ({ locals, cookies, params }: RequestEvent): Promise<{
   const sessionToken = cookies.get("humans_session") ?? "";
   const id = params.id ?? "";
 
-  const socialIdRes = await fetch(`${PUBLIC_API_URL}/api/social-ids/${id}`, {
-    headers: authHeaders(sessionToken),
-  });
-
-  if (!socialIdRes.ok) redirect(302, "/social-ids");
-  const socialIdRaw: unknown = await socialIdRes.json();
-  const socialId = isObjData(socialIdRaw) ? socialIdRaw.data : null;
+  const socialId = await fetchObj(`${PUBLIC_API_URL}/api/social-ids/${id}`, sessionToken);
   if (socialId == null) redirect(302, "/social-ids");
 
-  const headers = authHeaders(sessionToken);
-  const [configs, humansRes, accountsRes, generalLeadsRes, bookingRequestsRes, routeSignupsRes] = await Promise.all([
+  // Batch 1 (4 concurrent — Cloudflare Workers limit: 6 TCP, auth uses 1, safety margin 1)
+  const [configs, allHumans, allAccounts, allGeneralLeads] = await Promise.all([
     fetchConfigs(sessionToken, ["social-id-platforms"]),
-    fetch(`${PUBLIC_API_URL}/api/humans`, { headers }),
-    fetch(`${PUBLIC_API_URL}/api/accounts`, { headers }),
-    fetch(`${PUBLIC_API_URL}/api/general-leads`, { headers }),
-    fetch(`${PUBLIC_API_URL}/api/website-booking-requests?limit=500`, { headers }),
-    fetch(`${PUBLIC_API_URL}/api/route-signups?limit=500`, { headers }),
+    fetchList(`${PUBLIC_API_URL}/api/humans`, sessionToken),
+    fetchList(`${PUBLIC_API_URL}/api/accounts`, sessionToken),
+    fetchList(`${PUBLIC_API_URL}/api/general-leads`, sessionToken),
   ]);
 
-  const parseList = async (res: Response): Promise<unknown[]> => {
-    if (!res.ok) return [];
-    const raw: unknown = await res.json();
-    return isListData(raw) ? raw.data : [];
-  };
-
-  const [allHumans, allAccounts, allGeneralLeads, allBookingRequests, allRouteSignups] = await Promise.all([
-    parseList(humansRes),
-    parseList(accountsRes),
-    parseList(generalLeadsRes),
-    parseList(bookingRequestsRes),
-    parseList(routeSignupsRes),
+  // Batch 2 (2 concurrent — batch 1 connections already released)
+  const [allBookingRequests, allRouteSignups] = await Promise.all([
+    fetchList(`${PUBLIC_API_URL}/api/website-booking-requests?limit=500`, sessionToken),
+    fetchList(`${PUBLIC_API_URL}/api/route-signups?limit=500`, sessionToken),
   ]);
 
   return {
