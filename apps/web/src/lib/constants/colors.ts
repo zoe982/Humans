@@ -70,6 +70,15 @@ export const generalLeadStatusColors: Record<string, string> = {
   closed_no_response: "badge-yellow",
 };
 
+/** General lead stage badge colors */
+export const generalLeadStageColors: Record<string, string> = {
+  open: "badge-blue",
+  pending_response: "badge-yellow",
+  qualified: "badge-yellow",
+  closed_lost: "badge-red",
+  closed_converted: "badge-green",
+};
+
 /** General lead source badge colors */
 export const generalLeadSourceColors: Record<string, string> = {
   whatsapp: "badge-green",
@@ -82,6 +91,20 @@ export const agreementStatusColors: Record<string, string> = {
   open: "badge-blue",
   active: "badge-green",
   closed_inactive: "badge-red",
+};
+
+/** Lead type badge colors (for All Leads unified view) */
+export const leadTypeColors: Record<string, string> = {
+  general_lead: "badge-purple",
+  route_signup: "badge-blue",
+  website_booking_request: "badge-orange",
+};
+
+/** Merged status colors across all lead types */
+export const allLeadStatusColors: Record<string, string> = {
+  ...signupStatusColors,
+  ...bookingRequestStatusColors,
+  ...generalLeadStatusColors,
 };
 
 /** Opportunity stage badge colors */

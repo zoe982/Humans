@@ -98,6 +98,15 @@ export const generalLeadStatusLabels: Record<string, string> = {
   closed_no_response: "No Response",
 };
 
+/** General lead stage display labels */
+export const generalLeadStageLabels: Record<string, string> = {
+  open: "Open",
+  pending_response: "Pending Response",
+  qualified: "Qualified",
+  closed_lost: "Closed - Lost",
+  closed_converted: "Closed - Converted",
+};
+
 /** General lead source display labels */
 export const generalLeadSourceLabels: Record<string, string> = {
   whatsapp: "WhatsApp",
@@ -111,6 +120,20 @@ export const GENERAL_LEAD_SOURCE_OPTIONS = [
   { value: "email", label: "Email" },
   { value: "direct_referral", label: "Direct Referral" },
 ] as const;
+
+/** Lead type display labels (for All Leads unified view) */
+export const leadTypeLabels: Record<string, string> = {
+  general_lead: "General Lead",
+  route_signup: "Route Signup",
+  website_booking_request: "Booking Request",
+};
+
+/** Merged status labels across all lead types */
+export const allLeadStatusLabels: Record<string, string> = {
+  ...signupStatusLabels,
+  ...bookingRequestStatusLabels,
+  ...generalLeadStatusLabels,
+};
 
 /** Agreement status display labels */
 export const agreementStatusLabels: Record<string, string> = {
