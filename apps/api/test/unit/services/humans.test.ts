@@ -875,4 +875,48 @@ describe("getLinkedHumansForBookingRequest", () => {
     const result = await getLinkedHumansForBookingRequest(db, "wbr-1");
     expect(result).toHaveLength(0);
   });
+
+  it("includes opportunityId in response", async () => {
+    const db = getTestDb();
+    const ts = now();
+    await seedHuman(db, "h-1", "Alice", "Smith");
+    await db.insert(schema.opportunities).values({
+      id: "opp-123",
+      displayId: "OPP-AAA-001",
+      stage: "open",
+      seatsRequested: 1,
+      passengerSeats: 1,
+      petSeats: 0,
+      createdAt: ts,
+      updatedAt: ts,
+    });
+
+    await db.insert(schema.humanWebsiteBookingRequests).values({
+      id: "link-1",
+      humanId: "h-1",
+      websiteBookingRequestId: "wbr-1",
+      opportunityId: "opp-123",
+      linkedAt: ts,
+    });
+
+    const result = await getLinkedHumansForBookingRequest(db, "wbr-1");
+    expect(result).toHaveLength(1);
+    expect(result[0]!.opportunityId).toBe("opp-123");
+  });
+
+  it("returns null opportunityId when no opportunity is linked", async () => {
+    const db = getTestDb();
+    const ts = now();
+    await seedHuman(db, "h-1");
+
+    await db.insert(schema.humanWebsiteBookingRequests).values({
+      id: "link-1",
+      humanId: "h-1",
+      websiteBookingRequestId: "wbr-1",
+      linkedAt: ts,
+    });
+
+    const result = await getLinkedHumansForBookingRequest(db, "wbr-1");
+    expect(result[0]!.opportunityId).toBeNull();
+  });
 });

@@ -633,3 +633,114 @@ describe("website-booking-requests/[id] load returns leadSources and leadChannel
     ]);
   });
 });
+
+describe("website-booking-requests/[id] load returns opportunities", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("returns opportunities list from API", async () => {
+    const sampleOpps = [{ id: "opp-1", displayId: "OPP-AAA-001", stage: "open" }];
+    const mockFetch = createMockFetch({
+      "/api/opportunities?limit=200": { body: { data: sampleOpps } },
+      "/api/website-booking-requests/b1/linked-humans": { body: { data: sampleLinkedHumans } },
+      "/api/website-booking-requests/b1": { body: { data: sampleBooking } },
+      "/api/activities": { body: { data: [] } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent();
+    const result = await load(event as any);
+    expect(result.opportunities).toEqual(sampleOpps);
+  });
+
+  it("returns empty opportunities when API fails", async () => {
+    const mockFetch = createMockFetch({
+      "/api/opportunities?limit=200": { status: 500, body: { error: "fail" } },
+      "/api/website-booking-requests/b1/linked-humans": { body: { data: sampleLinkedHumans } },
+      "/api/website-booking-requests/b1": { body: { data: sampleBooking } },
+      "/api/activities": { body: { data: [] } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent();
+    const result = await load(event as any);
+    expect(result.opportunities).toEqual([]);
+  });
+});
+
+describe("website-booking-requests/[id] actions.linkOpportunity", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("returns success on valid link", async () => {
+    const mockFetch = createMockFetch({
+      "/api/website-booking-requests/b1/link-opportunity": { body: { success: true } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+    const event = makeEvent({ formData: { opportunityId: "opp-1" } });
+    const result = await actions.linkOpportunity(event as any);
+    expect(result).toEqual({ success: true });
+    expect(mockFetch).toHaveBeenCalledWith(
+      expect.stringContaining("/api/website-booking-requests/b1/link-opportunity"),
+      expect.objectContaining({ method: "POST" }),
+    );
+  });
+
+  it("sends opportunityId in body", async () => {
+    const mockFetch = createMockFetch({
+      "/api/website-booking-requests/b1/link-opportunity": { body: { success: true } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+    const event = makeEvent({ formData: { opportunityId: "opp-1" } });
+    await actions.linkOpportunity(event as any);
+    const postCall = mockFetch.mock.calls.find(
+      (c: unknown[]) => typeof c[1] === "object" && (c[1] as RequestInit).method === "POST",
+    );
+    const body = JSON.parse((postCall as unknown[])[1]
+      ? ((postCall as unknown[])[1] as RequestInit).body as string
+      : "{}");
+    expect(body.opportunityId).toBe("opp-1");
+  });
+
+  it("returns action failure when API returns error", async () => {
+    const mockFetch = createMockFetch({
+      "/api/website-booking-requests/b1/link-opportunity": { status: 404, body: { error: "Not found" } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+    const event = makeEvent({ formData: { opportunityId: "opp-1" } });
+    const result = await actions.linkOpportunity(event as any);
+    expect(isActionFailure(result)).toBe(true);
+  });
+});
+
+describe("website-booking-requests/[id] actions.unlinkOpportunity", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("calls DELETE on correct URL", async () => {
+    const mockFetch = createMockFetch({
+      "/api/website-booking-requests/b1/link-opportunity": { body: {} },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+    const event = makeEvent();
+    const result = await actions.unlinkOpportunity(event as any);
+    expect(result).toEqual({ success: true });
+    expect(mockFetch).toHaveBeenCalledWith(
+      expect.stringContaining("/api/website-booking-requests/b1/link-opportunity"),
+      expect.objectContaining({ method: "DELETE" }),
+    );
+  });
+
+  it("returns action failure when API returns error", async () => {
+    const mockFetch = createMockFetch({
+      "/api/website-booking-requests/b1/link-opportunity": { status: 500, body: { error: "Server error" } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+    const event = makeEvent();
+    const result = await actions.unlinkOpportunity(event as any);
+    expect(isActionFailure(result)).toBe(true);
+  });
+});

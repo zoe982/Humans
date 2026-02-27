@@ -89,7 +89,7 @@
   };
 
   type PetOption = { id: string; displayId?: string; name: string | null; type: string; humanId: string | null };
-  type BookingRequestLink = { id: string; humanId: string; websiteBookingRequestId: string; opportunityId: string | null; linkedAt: string };
+  type BookingRequestLink = { id: string; humanId: string; websiteBookingRequestId: string; opportunityId: string | null; linkedAt: string; humanFirstName: string; humanLastName: string; humanDisplayId: string | null };
   type CadenceConfig = { id: string; stage: string; cadenceHours: number; displayText: string };
 
   const opportunity = $derived(data.opportunity as Opportunity);
@@ -143,7 +143,7 @@
   const availableBookingRequestOptions = $derived(
     (bookingRequests?.available ?? []).map((br) => ({
       value: br.id,
-      label: `BR-${br.websiteBookingRequestId}`,
+      label: `${br.humanDisplayId ?? ""} ${br.humanFirstName} ${br.humanLastName}`.trim(),
     }))
   );
 
@@ -831,7 +831,7 @@
       title="Website Booking Requests"
       items={bookingRequests?.linked ?? []}
       columns={[
-        { key: "bookingId", label: "Booking Request ID" },
+        { key: "bookingId", label: "Human" },
         { key: "linkedAt", label: "Linked Date" },
         { key: "delete", label: "", headerClass: "w-10" },
       ]}
@@ -839,7 +839,7 @@
       addLabel="Booking Request"
     >
       {#snippet row(link, _searchQuery)}
-        <td class="font-mono text-sm">{link.websiteBookingRequestId}</td>
+        <td class="text-sm">{link.humanDisplayId ?? ""} {link.humanFirstName} {link.humanLastName}</td>
         <td class="text-sm text-text-muted">{new Date(link.linkedAt).toLocaleDateString()}</td>
         <td>
           <form method="POST" action="?/unlinkBookingRequest">
@@ -863,9 +863,7 @@
               placeholder="Search booking requests..."
             />
           </div>
-          {#if availableBookingRequestOptions.length === 0}
-            <p class="text-xs text-text-muted">No available booking requests. Link a human first — their unlinked booking requests will appear here.</p>
-          {/if}
+
           <Button type="submit" size="sm">Link Booking Request</Button>
         </form>
       {/snippet}

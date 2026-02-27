@@ -96,7 +96,10 @@
     humanFirstName: string;
     humanLastName: string;
     linkedAt: string;
+    opportunityId: string | null;
   };
+
+  type OpportunityOption = { id: string; displayId: string; stage: string; seatsRequested?: number; notes?: string | null };
 
   type MarketingAttr = {
     id: string;
@@ -128,6 +131,15 @@
   const crmPhoneNumbers = $derived((data.phoneNumbers ?? []) as CrmPhoneNumber[]);
   const socialIds = $derived((data.socialIds ?? []) as SocialId[]);
   const platformConfigs = $derived((data.platformConfigs ?? []) as PlatformConfig[]);
+  const allOpportunities = $derived((data.opportunities ?? []) as OpportunityOption[]);
+  const linkedOpportunityId = $derived(linkedHumans[0]?.opportunityId ?? null);
+  const linkedOpportunity = $derived(linkedOpportunityId ? allOpportunities.find((o) => o.id === linkedOpportunityId) ?? null : null);
+  const opportunityOptions = $derived(
+    allOpportunities
+      .filter((o) => o.id !== linkedOpportunityId)
+      .map((o) => ({ value: o.id, label: `${o.displayId} — ${o.stage}` }))
+  );
+  const hasLinkedHuman = $derived(linkedHumans.length > 0);
 
   type LeadScoreFull = {
     id: string;
@@ -589,6 +601,43 @@
     linkedHuman={linkedHumanProp}
     createNewHumanUrl={createNewHumanUrl}
   />
+
+  <!-- Linked Opportunity -->
+  {#if hasLinkedHuman}
+    <div class="glass-card p-6 mb-6">
+      <h2 class="text-lg font-semibold text-text-primary">Linked Opportunity</h2>
+      {#if linkedOpportunity}
+        <div class="mt-3 rounded-xl bg-glass border border-glass-border px-4 py-3">
+          <div class="flex items-center justify-between">
+            <div>
+              <a href={resolve(`/opportunities/${linkedOpportunity.id}`)} class="text-sm font-mono text-accent hover:text-[var(--link-hover)]">
+                {linkedOpportunity.displayId}
+              </a>
+              <span class="ml-2 text-sm text-text-secondary">{linkedOpportunity.stage}</span>
+            </div>
+            <form method="POST" action="?/unlinkOpportunity">
+              <Button type="submit" variant="ghost" size="sm">Unlink</Button>
+            </form>
+          </div>
+        </div>
+      {:else}
+        <form method="POST" action="?/linkOpportunity" class="mt-3 space-y-3">
+          <div>
+            <label for="opportunitySelect" class="block text-sm font-medium text-text-secondary">Opportunity</label>
+            <SearchableSelect
+              options={opportunityOptions}
+              name="opportunityId"
+              id="opportunitySelect"
+              required={true}
+              emptyOption="Select an opportunity..."
+              placeholder="Search opportunities..."
+            />
+          </div>
+          <Button type="submit" size="sm">Link Opportunity</Button>
+        </form>
+      {/if}
+    </div>
+  {/if}
 
   <!-- Emails -->
   <div class="mb-6">

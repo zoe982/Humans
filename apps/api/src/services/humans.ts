@@ -613,7 +613,7 @@ export async function unlinkWebsiteBookingRequest(db: DB, linkId: string): Promi
 export async function getLinkedHumansForBookingRequest(
   db: DB,
   websiteBookingRequestId: string,
-): Promise<{ id: string; humanId: string; humanDisplayId: string; humanFirstName: string; humanLastName: string; linkedAt: string }[]> {
+): Promise<{ id: string; humanId: string; humanDisplayId: string; humanFirstName: string; humanLastName: string; linkedAt: string; opportunityId: string | null }[]> {
   const links = await db
     .select({
       id: humanWebsiteBookingRequests.id,
@@ -622,6 +622,7 @@ export async function getLinkedHumansForBookingRequest(
       humanFirstName: humans.firstName,
       humanLastName: humans.lastName,
       linkedAt: humanWebsiteBookingRequests.linkedAt,
+      opportunityId: humanWebsiteBookingRequests.opportunityId,
     })
     .from(humanWebsiteBookingRequests)
     .innerJoin(humans, eq(humanWebsiteBookingRequests.humanId, humans.id))

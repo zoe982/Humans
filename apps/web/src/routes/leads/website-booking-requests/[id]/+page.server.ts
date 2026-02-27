@@ -12,7 +12,7 @@ function getFormString(form: FormData, key: string): string {
   return typeof raw === "string" ? raw : "";
 }
 
-export const load = async ({ locals, cookies, params }: RequestEvent): Promise<{ booking: unknown; activities: unknown[]; colleagues: unknown[]; linkedHumans: unknown[]; marketingAttribution: unknown; leadScore: Record<string, unknown> | null; emails: unknown[]; phoneNumbers: unknown[]; socialIds: unknown[]; platformConfigs: unknown[]; leadSources: unknown[]; leadChannels: unknown[]; lossReasons: unknown[]; user: NonNullable<typeof locals.user> }> => {
+export const load = async ({ locals, cookies, params }: RequestEvent): Promise<{ booking: unknown; activities: unknown[]; colleagues: unknown[]; linkedHumans: unknown[]; marketingAttribution: unknown; leadScore: Record<string, unknown> | null; emails: unknown[]; phoneNumbers: unknown[]; socialIds: unknown[]; platformConfigs: unknown[]; leadSources: unknown[]; leadChannels: unknown[]; lossReasons: unknown[]; opportunities: unknown[]; user: NonNullable<typeof locals.user> }> => {
   if (locals.user == null) redirect(302, "/login");
 
   const sessionToken = cookies.get("humans_session") ?? "";
@@ -40,11 +40,12 @@ export const load = async ({ locals, cookies, params }: RequestEvent): Promise<{
     fetchList(`${PUBLIC_API_URL}/api/website-booking-requests/${id ?? ""}/linked-humans`),
   ]);
 
-  // Batch 2 (3 fetches)
-  const [leadScore, emails, phoneNumbers] = await Promise.all([
+  // Batch 2 (4 fetches)
+  const [leadScore, emails, phoneNumbers, opportunities] = await Promise.all([
     fetchObj(`${PUBLIC_API_URL}/api/lead-scores/by-parent/website_booking_request/${id ?? ""}`),
     fetchList(`${PUBLIC_API_URL}/api/website-booking-requests/${id ?? ""}/emails`),
     fetchList(`${PUBLIC_API_URL}/api/website-booking-requests/${id ?? ""}/phone-numbers`),
+    fetchList(`${PUBLIC_API_URL}/api/opportunities?limit=200`),
   ]);
 
   // Batch 3 (2-3 fetches)
@@ -60,7 +61,7 @@ export const load = async ({ locals, cookies, params }: RequestEvent): Promise<{
   const configs = isConfigsRecord(configsResult) ? configsResult : {};
   const marketingAttribution = attrResult ?? null;
 
-  return { booking, activities, colleagues, linkedHumans, marketingAttribution, leadScore, emails, phoneNumbers, socialIds, platformConfigs: configs["social-id-platforms"] ?? [], leadSources: configs["lead-sources"] ?? [], leadChannels: configs["lead-channels"] ?? [], lossReasons: configs["loss-reasons"] ?? [], user: locals.user };
+  return { booking, activities, colleagues, linkedHumans, marketingAttribution, leadScore, emails, phoneNumbers, socialIds, platformConfigs: configs["social-id-platforms"] ?? [], leadSources: configs["lead-sources"] ?? [], leadChannels: configs["lead-channels"] ?? [], lossReasons: configs["loss-reasons"] ?? [], opportunities, user: locals.user };
 };
 
 export const actions = {
@@ -351,6 +352,46 @@ export const actions = {
     if (!res.ok) {
       const resBody: unknown = await res.json();
       return failFromApi(resBody, res.status, "Failed to delete social ID");
+    }
+
+    return { success: true };
+  },
+
+  linkOpportunity: async ({ request, cookies, params }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
+    const form = await request.formData();
+    const sessionToken = cookies.get("humans_session");
+    const opportunityId = getFormString(form, "opportunityId");
+
+    const res = await fetch(`${PUBLIC_API_URL}/api/website-booking-requests/${params.id ?? ""}/link-opportunity`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Cookie: `humans_session=${sessionToken ?? ""}`,
+      },
+      body: JSON.stringify({ opportunityId }),
+    });
+
+    if (!res.ok) {
+      const resBody: unknown = await res.json();
+      return failFromApi(resBody, res.status, "Failed to link opportunity");
+    }
+
+    return { success: true };
+  },
+
+  unlinkOpportunity: async ({ cookies, params }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
+    const sessionToken = cookies.get("humans_session");
+
+    const res = await fetch(`${PUBLIC_API_URL}/api/website-booking-requests/${params.id ?? ""}/link-opportunity`, {
+      method: "DELETE",
+      headers: {
+        Cookie: `humans_session=${sessionToken ?? ""}`,
+      },
+    });
+
+    if (!res.ok) {
+      const resBody: unknown = await res.json();
+      return failFromApi(resBody, res.status, "Failed to unlink opportunity");
     }
 
     return { success: true };

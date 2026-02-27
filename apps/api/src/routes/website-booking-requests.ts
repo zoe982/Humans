@@ -2,10 +2,11 @@ import { Hono } from "hono";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { inArray, eq } from "drizzle-orm";
 import { leadScores, humanWebsiteBookingRequests } from "@humans/db/schema";
-import { updateWebsiteBookingRequestSchema, updateEntityNextActionSchema, createEmailSchema, createPhoneNumberSchema, createSocialIdSchema, linkHumanSchema, ERROR_CODES } from "@humans/shared";
+import { updateWebsiteBookingRequestSchema, updateEntityNextActionSchema, createEmailSchema, createPhoneNumberSchema, createSocialIdSchema, linkHumanSchema, linkOpportunityFromBorSchema, ERROR_CODES } from "@humans/shared";
 import { authMiddleware } from "../middleware/auth";
 import { requirePermission } from "../middleware/rbac";
 import { supabaseMiddleware } from "../middleware/supabase";
+import { linkBookingRequestFromBor, unlinkBookingRequestFromBor } from "../services/opportunities";
 import { internal, notFound, badRequest } from "../lib/errors";
 import { nextDisplayIdBatch } from "../lib/display-id";
 import { getNextAction, updateNextAction, completeNextAction } from "../services/entity-next-actions";
@@ -171,6 +172,28 @@ websiteBookingRequestRoutes.delete(
     if (link[0] != null) {
       await unlinkWebsiteBookingRequest(db, link[0].id);
     }
+    return c.json({ success: true });
+  },
+);
+
+// POST /api/website-booking-requests/:id/link-opportunity
+websiteBookingRequestRoutes.post(
+  "/api/website-booking-requests/:id/link-opportunity",
+  requirePermission("manageWebsiteBookingRequests"),
+  async (c) => {
+    const body: unknown = await c.req.json();
+    const data = linkOpportunityFromBorSchema.parse(body);
+    await linkBookingRequestFromBor(c.get("db"), c.req.param("id"), data.opportunityId);
+    return c.json({ success: true });
+  },
+);
+
+// DELETE /api/website-booking-requests/:id/link-opportunity
+websiteBookingRequestRoutes.delete(
+  "/api/website-booking-requests/:id/link-opportunity",
+  requirePermission("manageWebsiteBookingRequests"),
+  async (c) => {
+    await unlinkBookingRequestFromBor(c.get("db"), c.req.param("id"));
     return c.json({ success: true });
   },
 );

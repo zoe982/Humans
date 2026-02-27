@@ -18,6 +18,8 @@ import {
   getOpportunityBookingRequests,
   linkBookingRequest,
   unlinkBookingRequest,
+  linkBookingRequestFromBor,
+  unlinkBookingRequestFromBor,
   completeNextAction,
 } from "../../../src/services/opportunities";
 import * as schema from "@humans/db/schema";
@@ -1577,47 +1579,59 @@ describe("getOpportunityBookingRequests", () => {
     expect(result.linked[0]!.id).toBe("br-1");
   });
 
-  it("returns available booking requests from linked humans", async () => {
+  it("returns all unlinked BORs as available regardless of human-opportunity link", async () => {
     const db = getTestDb();
     await seedRoles(db);
     await seedHuman(db, "h-1");
+    await seedHuman(db, "h-2", "Alice", "Smith");
     await seedOpportunity(db, "opp-1");
 
-    // Link human to opportunity
+    // Link h-1 to opportunity, but NOT h-2
     await linkOpportunityHuman(db, "opp-1", { humanId: "h-1" });
 
-    // Create unlinked booking request for that human
-    await seedBookingRequest(db, "br-unlinked", "h-1", null);
-
-    const result = await getOpportunityBookingRequests(db, "opp-1");
-    expect(result.available).toHaveLength(1);
-    expect(result.available[0]!.id).toBe("br-unlinked");
-  });
-
-  it("excludes booking requests from humans not linked to the opportunity", async () => {
-    const db = getTestDb();
-    await seedRoles(db);
-    await seedHuman(db, "h-1");
-    await seedHuman(db, "h-2");
-    await seedOpportunity(db, "opp-1");
-
-    await linkOpportunityHuman(db, "opp-1", { humanId: "h-1" });
-
-    // h-2 is NOT linked to the opportunity
+    // Both humans have unlinked BORs — both should appear as available
+    await seedBookingRequest(db, "br-h1", "h-1", null);
     await seedBookingRequest(db, "br-h2", "h-2", null);
 
     const result = await getOpportunityBookingRequests(db, "opp-1");
-    expect(result.available).toHaveLength(0);
+    expect(result.available).toHaveLength(2);
+    const ids = result.available.map((a) => a.id);
+    expect(ids).toContain("br-h1");
+    expect(ids).toContain("br-h2");
   });
 
-  it("returns empty available when no humans are linked", async () => {
+  it("returns available BORs even when no humans are linked to the opportunity", async () => {
     const db = getTestDb();
     await seedHuman(db, "h-1");
     await seedOpportunity(db, "opp-1");
     await seedBookingRequest(db, "br-1", "h-1", null);
 
     const result = await getOpportunityBookingRequests(db, "opp-1");
-    expect(result.available).toHaveLength(0);
+    expect(result.available).toHaveLength(1);
+    expect(result.available[0]!.id).toBe("br-1");
+  });
+
+  it("enriches linked and available BORs with human name and displayId", async () => {
+    const db = getTestDb();
+    await seedHuman(db, "h-1", "John", "Doe");
+    await seedOpportunity(db, "opp-1");
+    await seedBookingRequest(db, "br-linked", "h-1", "opp-1");
+    await seedBookingRequest(db, "br-avail", "h-1", null);
+
+    const result = await getOpportunityBookingRequests(db, "opp-1");
+    expect(result.linked[0]).toMatchObject({
+      id: "br-linked",
+      humanFirstName: "John",
+      humanLastName: "Doe",
+    });
+    expect(result.linked[0]!.humanDisplayId).toBeDefined();
+
+    expect(result.available[0]).toMatchObject({
+      id: "br-avail",
+      humanFirstName: "John",
+      humanLastName: "Doe",
+    });
+    expect(result.available[0]!.humanDisplayId).toBeDefined();
   });
 });
 
@@ -1688,6 +1702,67 @@ describe("unlinkBookingRequest", () => {
     await seedBookingRequest(db, "br-1", "h-1", "opp-1");
 
     const result = await unlinkBookingRequest(db, "opp-1", "br-1");
+    expect(result.success).toBe(true);
+
+    const brs = await db.select().from(schema.humanWebsiteBookingRequests);
+    expect(brs[0]!.opportunityId).toBeNull();
+  });
+});
+
+// ─── linkBookingRequestFromBor ───────────────────────────────────────────────
+
+describe("linkBookingRequestFromBor", () => {
+  it("throws notFound when no humanWebsiteBookingRequest exists for the websiteBookingRequestId", async () => {
+    const db = getTestDb();
+    await seedOpportunity(db, "opp-1");
+
+    await expect(
+      linkBookingRequestFromBor(db, "nonexistent", "opp-1"),
+    ).rejects.toThrowError("Booking request link not found");
+  });
+
+  it("throws notFound for missing opportunity", async () => {
+    const db = getTestDb();
+    await seedHuman(db, "h-1");
+    await seedBookingRequest(db, "br-1", "h-1", null);
+
+    await expect(
+      linkBookingRequestFromBor(db, "wbr-br-1", "nonexistent"),
+    ).rejects.toThrowError("Opportunity not found");
+  });
+
+  it("links a BOR to an opportunity by websiteBookingRequestId", async () => {
+    const db = getTestDb();
+    await seedHuman(db, "h-1");
+    await seedOpportunity(db, "opp-1");
+    await seedBookingRequest(db, "br-1", "h-1", null);
+
+    const result = await linkBookingRequestFromBor(db, "wbr-br-1", "opp-1");
+    expect(result.success).toBe(true);
+
+    const brs = await db.select().from(schema.humanWebsiteBookingRequests);
+    expect(brs[0]!.opportunityId).toBe("opp-1");
+  });
+});
+
+// ─── unlinkBookingRequestFromBor ─────────────────────────────────────────────
+
+describe("unlinkBookingRequestFromBor", () => {
+  it("throws notFound when no humanWebsiteBookingRequest exists", async () => {
+    const db = getTestDb();
+
+    await expect(
+      unlinkBookingRequestFromBor(db, "nonexistent"),
+    ).rejects.toThrowError("Booking request link not found");
+  });
+
+  it("clears opportunityId on the humanWebsiteBookingRequest record", async () => {
+    const db = getTestDb();
+    await seedHuman(db, "h-1");
+    await seedOpportunity(db, "opp-1");
+    await seedBookingRequest(db, "br-1", "h-1", "opp-1");
+
+    const result = await unlinkBookingRequestFromBor(db, "wbr-br-1");
     expect(result.success).toBe(true);
 
     const brs = await db.select().from(schema.humanWebsiteBookingRequests);

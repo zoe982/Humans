@@ -717,7 +717,10 @@ export async function unlinkOpportunityFlight(db: DB, id: string, colleagueId: s
 
 // ─── Link/Unlink Booking Requests ────────────────────────────────
 
-export async function getOpportunityBookingRequests(db: DB, oppId: string): Promise<{ linked: (typeof humanWebsiteBookingRequests.$inferSelect)[]; available: (typeof humanWebsiteBookingRequests.$inferSelect)[] }> {
+export async function getOpportunityBookingRequests(db: DB, oppId: string): Promise<{
+  linked: { id: string; humanId: string; websiteBookingRequestId: string; opportunityId: string | null; linkedAt: string; humanFirstName: string; humanLastName: string; humanDisplayId: string | null }[];
+  available: { id: string; humanId: string; websiteBookingRequestId: string; opportunityId: string | null; linkedAt: string; humanFirstName: string; humanLastName: string; humanDisplayId: string | null }[];
+}> {
   const opp = await db.query.opportunities.findFirst({
     where: eq(opportunities.id, oppId),
   });
@@ -725,31 +728,30 @@ export async function getOpportunityBookingRequests(db: DB, oppId: string): Prom
     throw notFound(ERROR_CODES.OPPORTUNITY_NOT_FOUND, "Opportunity not found");
   }
 
+  const projection = {
+    id: humanWebsiteBookingRequests.id,
+    humanId: humanWebsiteBookingRequests.humanId,
+    websiteBookingRequestId: humanWebsiteBookingRequests.websiteBookingRequestId,
+    opportunityId: humanWebsiteBookingRequests.opportunityId,
+    linkedAt: humanWebsiteBookingRequests.linkedAt,
+    humanFirstName: humans.firstName,
+    humanLastName: humans.lastName,
+    humanDisplayId: humans.displayId,
+  };
+
   // Linked booking requests
   const linked = await db
-    .select()
+    .select(projection)
     .from(humanWebsiteBookingRequests)
+    .innerJoin(humans, eq(humanWebsiteBookingRequests.humanId, humans.id))
     .where(eq(humanWebsiteBookingRequests.opportunityId, oppId));
 
-  // Available = unlinked requests from humans linked to this opportunity
-  const linkedHumanIds = await db
-    .select({ humanId: opportunityHumans.humanId })
-    .from(opportunityHumans)
-    .where(eq(opportunityHumans.opportunityId, oppId));
-
-  const humanIds = linkedHumanIds.map((h) => h.humanId);
-
-  const available = humanIds.length > 0
-    ? await db
-        .select()
-        .from(humanWebsiteBookingRequests)
-        .where(
-          and(
-            inArray(humanWebsiteBookingRequests.humanId, humanIds),
-            isNull(humanWebsiteBookingRequests.opportunityId),
-          ),
-        )
-    : [];
+  // Available = all unlinked BORs that have a human link
+  const available = await db
+    .select(projection)
+    .from(humanWebsiteBookingRequests)
+    .innerJoin(humans, eq(humanWebsiteBookingRequests.humanId, humans.id))
+    .where(isNull(humanWebsiteBookingRequests.opportunityId));
 
   return { linked, available };
 }
@@ -792,6 +794,45 @@ export async function unlinkBookingRequest(db: DB, oppId: string, bookingRequest
     .update(humanWebsiteBookingRequests)
     .set({ opportunityId: null })
     .where(eq(humanWebsiteBookingRequests.id, bookingRequestLinkId));
+
+  return { success: true };
+}
+
+export async function linkBookingRequestFromBor(db: DB, websiteBookingRequestId: string, opportunityId: string): Promise<{ success: true }> {
+  const br = await db.query.humanWebsiteBookingRequests.findFirst({
+    where: eq(humanWebsiteBookingRequests.websiteBookingRequestId, websiteBookingRequestId),
+  });
+  if (br == null) {
+    throw notFound(ERROR_CODES.BOOKING_NOT_FOUND, "Booking request link not found");
+  }
+
+  const opp = await db.query.opportunities.findFirst({
+    where: eq(opportunities.id, opportunityId),
+  });
+  if (opp == null) {
+    throw notFound(ERROR_CODES.OPPORTUNITY_NOT_FOUND, "Opportunity not found");
+  }
+
+  await db
+    .update(humanWebsiteBookingRequests)
+    .set({ opportunityId })
+    .where(eq(humanWebsiteBookingRequests.id, br.id));
+
+  return { success: true };
+}
+
+export async function unlinkBookingRequestFromBor(db: DB, websiteBookingRequestId: string): Promise<{ success: true }> {
+  const br = await db.query.humanWebsiteBookingRequests.findFirst({
+    where: eq(humanWebsiteBookingRequests.websiteBookingRequestId, websiteBookingRequestId),
+  });
+  if (br == null) {
+    throw notFound(ERROR_CODES.BOOKING_NOT_FOUND, "Booking request link not found");
+  }
+
+  await db
+    .update(humanWebsiteBookingRequests)
+    .set({ opportunityId: null })
+    .where(eq(humanWebsiteBookingRequests.id, br.id));
 
   return { success: true };
 }

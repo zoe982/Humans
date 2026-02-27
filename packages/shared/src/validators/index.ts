@@ -137,6 +137,7 @@ export {
   updateOpportunityHumanSchema,
   linkOpportunityPetSchema,
   linkBookingRequestSchema,
+  linkOpportunityFromBorSchema,
   type CreateOpportunityInput,
   type UpdateOpportunityInput,
   type UpdateOpportunityStageInput,
@@ -145,6 +146,7 @@ export {
   type UpdateOpportunityHumanInput,
   type LinkOpportunityPetInput,
   type LinkBookingRequestInput,
+  type LinkOpportunityFromBorInput,
 } from "./opportunities";
 
 export {
