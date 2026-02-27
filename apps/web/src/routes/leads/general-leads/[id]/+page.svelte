@@ -5,6 +5,7 @@
   import RelatedListTable from "$lib/components/RelatedListTable.svelte";
   import ActivityConversationView from "$lib/components/ActivityConversationView.svelte";
   import HighlightText from "$lib/components/HighlightText.svelte";
+  import LinkHumanSection from "$lib/components/LinkHumanSection.svelte";
   import SearchableSelect from "$lib/components/SearchableSelect.svelte";
   import { invalidateAll } from "$app/navigation";
   import { api } from "$lib/api";
@@ -18,6 +19,7 @@
   import { resolve } from "$app/paths";
   import { page } from "$app/stores";
   import { Trash2 } from "lucide-svelte";
+  import { SvelteURLSearchParams } from "svelte/reactivity";
 
   let { data, form }: { data: PageData; form: ActionData } = $props();
 
@@ -82,6 +84,14 @@
 
   const lead = $derived(data.lead as Lead);
   let activities = $state<Activity[]>(data.activities as Activity[]);
+  const linkedHumanProp = $derived.by(() => {
+    if (lead.convertedHumanId == null) return null;
+    return {
+      humanId: lead.convertedHumanId,
+      humanDisplayId: lead.convertedHumanDisplayId ?? "",
+      humanName: lead.convertedHumanName ?? "",
+    };
+  });
   const platformConfigs = $derived((data.platformConfigs ?? []) as PlatformConfig[]);
   const colleaguesList = $derived((data.colleagues ?? []) as Colleague[]);
   const colleagueOptions = $derived(colleaguesList.map((c) => ({ value: c.id, label: `${c.displayId ?? ""} ${c.name}`.trim() })));
@@ -134,11 +144,6 @@
   let showDeleteConfirm = $state(false);
   let showRejectDialog = $state(false);
   let rejectReason = $state("");
-  let searchQuery = $state("");
-  let searchResults = $state<{ id: string; firstName: string; lastName: string; emails: { email: string }[] }[]>([]);
-  let searching = $state(false);
-  let converting = $state(false);
-
   // Link-existing state for emails, phones, social IDs
   let emailAddMode = $state<"create" | "link">("create");
   let phoneAddMode = $state<"create" | "link">("create");
@@ -228,25 +233,19 @@
     }
   }
 
-  function convertUrl(): string {
-    // eslint-disable-next-line svelte/prefer-svelte-reactivity
-    const params = new URLSearchParams();
+  const createNewHumanUrl = $derived.by(() => {
+    const params = new SvelteURLSearchParams();
     params.set("fromGeneralLead", lead.id);
     params.set("firstName", lead.firstName);
     if (lead.middleName) params.set("middleName", lead.middleName);
     params.set("lastName", lead.lastName);
     if (lead.notes) params.set("notes", lead.notes);
     return `/humans/new?${params.toString()}`;
-  }
+  });
 
   async function handleStatusChange(newStatus: string) {
     if (newStatus === "closed_rejected") {
       showRejectDialog = true;
-      return;
-    }
-    if (newStatus === "closed_converted") {
-      // Scroll to the Convert to Human card
-      document.getElementById("convert-to-human")?.scrollIntoView({ behavior: "smooth" });
       return;
     }
     try {
@@ -275,40 +274,6 @@
     }
   }
 
-  async function searchHumans() {
-    if (searchQuery.trim().length === 0) {
-      searchResults = [];
-      return;
-    }
-    searching = true;
-    try {
-      const res = await fetch(`/api/search-humans?q=${encodeURIComponent(searchQuery)}`);
-      if (res.ok) {
-        const json = await res.json();
-        searchResults = json.humans ?? [];
-      }
-    } finally {
-      searching = false;
-    }
-  }
-
-  async function linkExistingHuman(humanId: string) {
-    converting = true;
-    try {
-      await api(`/api/general-leads/${lead.id}/convert`, {
-        method: "POST",
-        body: JSON.stringify({ humanId }),
-      });
-      searchQuery = "";
-      searchResults = [];
-      toast("Lead converted successfully");
-      await invalidateAll();
-    } catch (err) {
-      toast(`Conversion failed: ${err instanceof Error ? err.message : "Unknown error"}`);
-    } finally {
-      converting = false;
-    }
-  }
 </script>
 
 <svelte:head>
@@ -371,7 +336,7 @@
         <div>
           <label for="sourceSelect" class="block text-sm font-medium text-text-secondary mb-1">Source</label>
           <select id="sourceSelect" name="source" class="glass-input block w-full px-3 py-2 text-sm">
-            <option value="">-- None --</option>
+            <option value="">-- Unknown --</option>
             {#each leadSources as src, i (i)}
               <option value={src.name} selected={lead.source === src.name}>{src.name}</option>
             {/each}
@@ -380,7 +345,7 @@
         <div>
           <label for="channelSelect" class="block text-sm font-medium text-text-secondary mb-1">Channel</label>
           <select id="channelSelect" name="channel" class="glass-input block w-full px-3 py-2 text-sm">
-            <option value="">-- None --</option>
+            <option value="">-- Unknown --</option>
             {#each leadChannels as ch, i (i)}
               <option value={ch.name} selected={lead.channel === ch.name}>{ch.name}</option>
             {/each}
@@ -411,7 +376,7 @@
       </div>
       {#if lead.convertedHumanId}
         <div>
-          <dt class="text-sm font-medium text-text-muted">Converted Human</dt>
+          <dt class="text-sm font-medium text-text-muted">Linked Human</dt>
           <dd class="mt-1 text-sm">
             <a href={resolve(`/humans/${lead.convertedHumanId}?from=${$page.url.pathname}`)} class="text-accent hover:text-[var(--link-hover)] font-mono">
               {lead.convertedHumanDisplayId}
@@ -681,50 +646,11 @@
     </RelatedListTable>
   </div>
 
-  <!-- Convert to Human -->
-  {#if !isClosed}
-    <div id="convert-to-human" class="glass-card p-3 mb-6">
-      <div class="relative">
-        <div class="flex items-center gap-3">
-          <span class="text-sm font-medium text-text-muted whitespace-nowrap shrink-0">Convert to Human</span>
-          <span class="text-glass-border shrink-0" aria-hidden="true">|</span>
-          <input
-            type="text"
-            bind:value={searchQuery}
-            oninput={() => { if (searchQuery.length >= 2) searchHumans(); else searchResults = []; }}
-            placeholder="Search by name to link existing..."
-            class="glass-input flex-1 px-3 py-2 text-sm"
-          />
-          {#if searching}
-            <span class="text-xs text-text-muted whitespace-nowrap shrink-0">Searching...</span>
-          {/if}
-          <a
-            href={resolve(convertUrl())}
-            class="btn-primary inline-block text-sm whitespace-nowrap shrink-0"
-          >
-            Create New Human
-          </a>
-        </div>
-        {#if searchResults.length > 0}
-          <ul class="absolute left-0 right-0 top-full mt-1 z-10 divide-y divide-glass-border rounded-xl border border-glass-border overflow-hidden" style="background: var(--glass-popover, rgba(20,55,90,0.92)); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);">
-            {#each searchResults as human, i (i)}
-              <li class="flex items-center justify-between px-4 py-3 hover:bg-glass-hover transition-colors duration-150">
-                <div>
-                  <p class="text-sm font-medium text-text-primary">{human.firstName} {human.lastName}</p>
-                  {#if human.emails?.[0]}
-                    <p class="text-xs text-text-muted">{human.emails[0].email}</p>
-                  {/if}
-                </div>
-                <Button type="button" size="sm" disabled={converting} onclick={() => linkExistingHuman(human.id)}>
-                  {converting ? "Linking..." : "Link"}
-                </Button>
-              </li>
-            {/each}
-          </ul>
-        {/if}
-      </div>
-    </div>
-  {/if}
+  <!-- Link Human -->
+  <LinkHumanSection
+    linkedHuman={linkedHumanProp}
+    createNewHumanUrl={createNewHumanUrl}
+  />
 
   <!-- Activities -->
   <div class="mb-6">

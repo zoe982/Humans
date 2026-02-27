@@ -182,35 +182,32 @@ export const actions = {
     return { success: true };
   },
 
-  convertToHuman: async ({ request, cookies, params }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
+  linkHuman: async ({ request, cookies, params }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
     const form = await request.formData();
     const sessionToken = cookies.get("humans_session");
     const humanId = getFormString(form, "humanId");
 
-    const res = await fetch(`${PUBLIC_API_URL}/api/humans/${humanId}/convert-from-booking-request`, {
+    const res = await fetch(`${PUBLIC_API_URL}/api/website-booking-requests/${params.id ?? ""}/link-human`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Cookie: `humans_session=${sessionToken ?? ""}`,
       },
-      body: JSON.stringify({ websiteBookingRequestId: params.id }),
+      body: JSON.stringify({ humanId }),
     });
 
     if (!res.ok) {
       const resBody: unknown = await res.json();
-      return failFromApi(resBody, res.status, "Failed to convert");
+      return failFromApi(resBody, res.status, "Failed to link human");
     }
 
     return { success: true };
   },
 
-  unlinkHuman: async ({ request, cookies }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
-    const form = await request.formData();
+  unlinkHuman: async ({ cookies, params }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
     const sessionToken = cookies.get("humans_session");
-    const humanId = getFormString(form, "humanId");
-    const linkId = getFormString(form, "linkId");
 
-    const res = await fetch(`${PUBLIC_API_URL}/api/humans/${humanId}/website-booking-requests/${linkId}`, {
+    const res = await fetch(`${PUBLIC_API_URL}/api/website-booking-requests/${params.id ?? ""}/link-human`, {
       method: "DELETE",
       headers: {
         Cookie: `humans_session=${sessionToken ?? ""}`,

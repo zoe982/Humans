@@ -1,8 +1,8 @@
 import { Hono } from "hono";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { sql, inArray } from "drizzle-orm";
-import { activities, leadScores } from "@humans/db/schema";
-import { updateRouteSignupSchema, updateEntityNextActionSchema, createEmailSchema, createPhoneNumberSchema, createSocialIdSchema, ERROR_CODES } from "@humans/shared";
+import { sql, inArray, eq } from "drizzle-orm";
+import { activities, leadScores, humanRouteSignups } from "@humans/db/schema";
+import { updateRouteSignupSchema, updateEntityNextActionSchema, createEmailSchema, createPhoneNumberSchema, createSocialIdSchema, linkHumanSchema, ERROR_CODES } from "@humans/shared";
 import { authMiddleware } from "../middleware/auth";
 import { requirePermission } from "../middleware/rbac";
 import { supabaseMiddleware } from "../middleware/supabase";
@@ -10,6 +10,7 @@ import { internal, notFound, badRequest } from "../lib/errors";
 import { sanitizePostgrestValue } from "../lib/supabase-sanitize";
 import { nextDisplayIdBatch } from "../lib/display-id";
 import { getNextAction, updateNextAction, completeNextAction } from "../services/entity-next-actions";
+import { linkRouteSignup, unlinkRouteSignup, getLinkedHumanForRouteSignup } from "../services/humans";
 import { createEmail, deleteEmail, listEmailsForEntity } from "../services/emails";
 import { createPhoneNumber, deletePhoneNumber, listPhoneNumbersForEntity } from "../services/phone-numbers";
 import { createSocialId, deleteSocialId, listSocialIdsForEntity } from "../services/social-ids";
@@ -291,6 +292,31 @@ routeSignupRoutes.post("/api/route-signups/:id/phone-numbers", requirePermission
 // DELETE /api/route-signups/:id/phone-numbers/:phoneId
 routeSignupRoutes.delete("/api/route-signups/:id/phone-numbers/:phoneId", requirePermission("manageRouteSignups"), async (c) => {
   await deletePhoneNumber(c.get("db"), c.req.param("phoneId"));
+  return c.json({ success: true });
+});
+
+// GET /api/route-signups/:id/linked-human
+routeSignupRoutes.get("/api/route-signups/:id/linked-human", requirePermission("viewRouteSignups"), async (c) => {
+  const db = c.get("db");
+  const data = await getLinkedHumanForRouteSignup(db, c.req.param("id"));
+  return c.json({ data });
+});
+
+// POST /api/route-signups/:id/link-human
+routeSignupRoutes.post("/api/route-signups/:id/link-human", requirePermission("manageRouteSignups"), async (c) => {
+  const body: unknown = await c.req.json();
+  const data = linkHumanSchema.parse(body);
+  await linkRouteSignup(c.get("db"), data.humanId, c.req.param("id"));
+  return c.json({ success: true });
+});
+
+// DELETE /api/route-signups/:id/link-human
+routeSignupRoutes.delete("/api/route-signups/:id/link-human", requirePermission("manageRouteSignups"), async (c) => {
+  const db = c.get("db");
+  const link = await db.select({ id: humanRouteSignups.id }).from(humanRouteSignups).where(eq(humanRouteSignups.routeSignupId, c.req.param("id"))).limit(1);
+  if (link[0] != null) {
+    await unlinkRouteSignup(db, link[0].id);
+  }
   return c.json({ success: true });
 });
 

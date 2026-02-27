@@ -81,7 +81,7 @@
     { key: "owner", label: "Owner" },
     { key: "notes", label: "Notes" },
     { key: "createdAt", label: "Created" },
-    { key: "convertedHuman", label: "Converted Human" },
+    { key: "convertedHuman", label: "Linked Human" },
   ]}
   clientPageSize={25}
   deleteAction="?/delete"

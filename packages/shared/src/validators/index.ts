@@ -163,6 +163,7 @@ export {
   updateGeneralLeadSchema,
   updateGeneralLeadStatusSchema,
   convertGeneralLeadSchema,
+  linkHumanSchema,
   type GeneralLeadStatus,
   type CreateGeneralLeadInput,
   type UpdateGeneralLeadInput,

@@ -47,6 +47,10 @@ export const convertGeneralLeadSchema = z.object({
   humanId: z.string(),
 });
 
+export const linkHumanSchema = z.object({
+  humanId: z.string().min(1),
+});
+
 export const importFromFrontSchema = z.object({
   frontId: z.string().min(1).max(100),
 });

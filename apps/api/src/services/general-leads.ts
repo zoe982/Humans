@@ -4,7 +4,7 @@ import type { GeneralLeadStatus } from "@humans/db/schema";
 import { createId } from "@humans/db";
 import { ERROR_CODES } from "@humans/shared";
 import { computeDiff, logAuditEntry } from "../lib/audit";
-import { notFound, badRequest } from "../lib/errors";
+import { notFound, badRequest, conflict } from "../lib/errors";
 import { nextDisplayId } from "../lib/display-id";
 import { completeNextAction } from "./entity-next-actions";
 import { createEmail } from "./emails";
@@ -322,11 +322,6 @@ export async function updateGeneralLeadStatus(
     }
   }
 
-  // closed_converted must go through the convert endpoint
-  if (data.status === "closed_converted") {
-    throw badRequest(ERROR_CODES.GENERAL_LEAD_INVALID_STATUS_TRANSITION, "Use the convert endpoint to set closed_converted status");
-  }
-
   const now = new Date().toISOString();
   const updateFields: Record<string, unknown> = { status: data.status, updatedAt: now };
   if (data.rejectReason != null) {
@@ -421,6 +416,110 @@ export async function convertGeneralLead(
     where: eq(generalLeads.id, id),
   });
   return { data: updated };
+}
+
+// ─── Link Human ───────────────────────────────────────────────────
+
+export async function linkHumanToGeneralLead(
+  db: DB,
+  leadId: string,
+  humanId: string,
+  colleagueId: string,
+): Promise<void> {
+  const existing = await db.query.generalLeads.findFirst({
+    where: eq(generalLeads.id, leadId),
+  });
+  if (existing == null) {
+    throw notFound(ERROR_CODES.GENERAL_LEAD_NOT_FOUND, "General lead not found");
+  }
+
+  const human = await db.query.humans.findFirst({ where: eq(humans.id, humanId) });
+  if (human == null) {
+    throw notFound(ERROR_CODES.HUMAN_NOT_FOUND, "Human not found");
+  }
+
+  // Idempotent — already linked to same human
+  if (existing.convertedHumanId === humanId) return;
+
+  // Conflict — linked to a different human
+  if (existing.convertedHumanId != null) {
+    throw conflict(ERROR_CODES.LEAD_ALREADY_LINKED, "Lead is already linked to a different human");
+  }
+
+  const now = new Date().toISOString();
+  await db.update(generalLeads).set({
+    convertedHumanId: humanId,
+    updatedAt: now,
+  }).where(eq(generalLeads.id, leadId));
+
+  // Dual-associate activities (keep generalLeadId, add humanId)
+  await db.update(activities).set({ humanId }).where(
+    and(eq(activities.generalLeadId, leadId), sql`${activities.humanId} IS NULL`),
+  );
+
+  // Dual-associate emails/phones/socialIds
+  await db.update(emails).set({ humanId }).where(
+    and(eq(emails.generalLeadId, leadId), sql`${emails.humanId} IS NULL`),
+  );
+  await db.update(phones).set({ humanId }).where(
+    and(eq(phones.generalLeadId, leadId), sql`${phones.humanId} IS NULL`),
+  );
+  await db.update(socialIds).set({ humanId }).where(
+    and(eq(socialIds.generalLeadId, leadId), sql`${socialIds.humanId} IS NULL`),
+  );
+
+  await logAuditEntry({
+    db,
+    colleagueId,
+    action: "LINK_HUMAN",
+    entityType: "general_lead",
+    entityId: leadId,
+    changes: { convertedHumanId: { old: null, new: humanId } },
+  });
+}
+
+export async function unlinkHumanFromGeneralLead(
+  db: DB,
+  leadId: string,
+  colleagueId: string,
+): Promise<void> {
+  const existing = await db.query.generalLeads.findFirst({
+    where: eq(generalLeads.id, leadId),
+  });
+  if (existing == null) {
+    throw notFound(ERROR_CODES.GENERAL_LEAD_NOT_FOUND, "General lead not found");
+  }
+
+  const previousHumanId = existing.convertedHumanId;
+  if (previousHumanId == null) return; // Nothing to unlink
+
+  await db.update(generalLeads).set({
+    convertedHumanId: null,
+    updatedAt: new Date().toISOString(),
+  }).where(eq(generalLeads.id, leadId));
+
+  // Clear humanId on records associated with this lead (compound WHERE — don't touch records linked directly to human)
+  await db.update(activities).set({ humanId: null }).where(
+    and(eq(activities.generalLeadId, leadId), eq(activities.humanId, previousHumanId)),
+  );
+  await db.update(emails).set({ humanId: null }).where(
+    and(eq(emails.generalLeadId, leadId), eq(emails.humanId, previousHumanId)),
+  );
+  await db.update(phones).set({ humanId: null }).where(
+    and(eq(phones.generalLeadId, leadId), eq(phones.humanId, previousHumanId)),
+  );
+  await db.update(socialIds).set({ humanId: null }).where(
+    and(eq(socialIds.generalLeadId, leadId), eq(socialIds.humanId, previousHumanId)),
+  );
+
+  await logAuditEntry({
+    db,
+    colleagueId,
+    action: "UNLINK_HUMAN",
+    entityType: "general_lead",
+    entityId: leadId,
+    changes: { convertedHumanId: { old: previousHumanId, new: null } },
+  });
 }
 
 // ─── Delete ──────────────────────────────────────────────────────

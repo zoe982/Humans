@@ -1,4 +1,4 @@
-import { sqliteTable, text } from "drizzle-orm/sqlite-core";
+import { sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
 import { humans } from "./humans";
 
 export const humanRouteSignups = sqliteTable("human_route_signups", {
@@ -8,4 +8,6 @@ export const humanRouteSignups = sqliteTable("human_route_signups", {
     .references(() => humans.id),
   routeSignupId: text("route_signup_id").notNull(),
   linkedAt: text("linked_at").notNull(),
-});
+}, (table) => [
+  uniqueIndex("human_route_signups_route_signup_id_unique").on(table.routeSignupId),
+]);

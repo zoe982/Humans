@@ -7,6 +7,7 @@
   import ActivityConversationView from "$lib/components/ActivityConversationView.svelte";
   import MarketingAttributionCard from "$lib/components/MarketingAttributionCard.svelte";
   import HighlightText from "$lib/components/HighlightText.svelte";
+  import LinkHumanSection from "$lib/components/LinkHumanSection.svelte";
   import { bookingRequestStatusColors } from "$lib/constants/colors";
   import { bookingRequestStatusLabels, depositStatusLabels, balanceStatusLabels, ACTIVITY_TYPE_OPTIONS } from "$lib/constants/labels";
   import SearchableSelect from "$lib/components/SearchableSelect.svelte";
@@ -20,6 +21,7 @@
   import { resolve } from "$app/paths";
   import { page } from "$app/stores";
   import { Trash2 } from "lucide-svelte";
+  import { SvelteURLSearchParams } from "svelte/reactivity";
 
   type ConfigItem = { id: string; name: string };
   let { data, form }: { data: PageData; form: ActionData } = $props();
@@ -108,6 +110,11 @@
   const marketingAttribution = $derived(data.marketingAttribution as MarketingAttr | null);
   let activities = $state<Activity[]>(data.activities as Activity[]);
   const linkedHumans = $derived((data.linkedHumans ?? []) as LinkedHuman[]);
+  const linkedHumanProp = $derived.by(() => {
+    const lh = linkedHumans[0];
+    if (lh == null) return null;
+    return { humanId: lh.humanId, humanDisplayId: lh.humanDisplayId, humanName: `${lh.humanFirstName} ${lh.humanLastName}`, linkedAt: lh.linkedAt, linkId: lh.id };
+  });
   const colleaguesList = $derived((data.colleagues ?? []) as Colleague[]);
   const colleagueOptions = $derived(colleaguesList.map((c) => ({ value: c.id, label: `${c.displayId ?? ""} ${c.name}`.trim() })));
   const isAdmin = $derived(data.user?.role === "admin");
@@ -164,9 +171,6 @@
   let showDeleteConfirm = $state(false);
   let editingNote = $state(false);
   let noteValue = $state("");
-  let searchQuery = $state("");
-  let searchResults = $state<{ id: string; firstName: string; lastName: string; emails: { email: string }[] }[]>([]);
-  let searching = $state(false);
 
   // Link-existing state for emails, phones, social IDs
   let emailAddMode = $state<"create" | "link">("create");
@@ -256,16 +260,15 @@
     return `€${Number(value).toFixed(2)}`;
   }
 
-  function convertUrl(): string {
-    // eslint-disable-next-line svelte/prefer-svelte-reactivity
-    const params = new URLSearchParams();
+  const createNewHumanUrl = $derived.by(() => {
+    const params = new SvelteURLSearchParams();
     params.set("fromBookingRequest", booking.id);
     if (booking.first_name) params.set("firstName", booking.first_name);
     if (booking.middle_name) params.set("middleName", booking.middle_name);
     if (booking.last_name) params.set("lastName", booking.last_name);
     if (booking.client_email) params.set("email", booking.client_email);
     return `/humans/new?${params.toString()}`;
-  }
+  });
 
   function startEditNote() {
     noteValue = booking.crm_note ?? "";
@@ -283,22 +286,6 @@
     }
   }
 
-  async function searchHumans() {
-    if (searchQuery.trim().length === 0) {
-      searchResults = [];
-      return;
-    }
-    searching = true;
-    try {
-      const res = await fetch(`/api/search-humans?q=${encodeURIComponent(searchQuery)}`);
-      if (res.ok) {
-        const json = await res.json();
-        searchResults = json.humans ?? [];
-      }
-    } finally {
-      searching = false;
-    }
-  }
 </script>
 
 <svelte:head>
@@ -317,8 +304,8 @@
     statusFormAction="?/updateStatus"
   >
     {#snippet actions()}
-      <a href={resolve(convertUrl())} class="btn-primary text-sm py-1.5">
-        Convert to Human
+      <a href={resolve(createNewHumanUrl)} class="btn-primary text-sm py-1.5">
+        Create New Human
       </a>
     {/snippet}
   </RecordManagementBar>
@@ -351,7 +338,7 @@
         <div>
           <label for="sourceSelect" class="block text-sm font-medium text-text-secondary mb-1">Source</label>
           <select id="sourceSelect" name="source" class="glass-input block w-full px-3 py-2 text-sm">
-            <option value="">-- None --</option>
+            <option value="">-- Unknown --</option>
             {#each leadSources as src, i (i)}
               <option value={src.name} selected={booking.crm_source === src.name}>{src.name}</option>
             {/each}
@@ -360,7 +347,7 @@
         <div>
           <label for="channelSelect" class="block text-sm font-medium text-text-secondary mb-1">Channel</label>
           <select id="channelSelect" name="channel" class="glass-input block w-full px-3 py-2 text-sm">
-            <option value="">-- None --</option>
+            <option value="">-- Unknown --</option>
             {#each leadChannels as ch, i (i)}
               <option value={ch.name} selected={booking.crm_channel === ch.name}>{ch.name}</option>
             {/each}
@@ -544,73 +531,11 @@
     {/if}
   </div>
 
-  <!-- Linked Human / Convert to Human -->
-  {#if linkedHumans.length > 0}
-    <div class="glass-card p-6 mb-6">
-      <h2 class="text-lg font-semibold text-text-primary">Linked Human</h2>
-      {#each linkedHumans as lh, i (i)}
-        <div class="mt-4 flex items-center justify-between">
-          <div>
-            <a href={resolve(`/humans/${lh.humanId}?from=${$page.url.pathname}`)} class="text-sm font-medium text-accent-primary hover:underline">
-              {lh.humanFirstName} {lh.humanLastName}
-            </a>
-            <p class="text-xs text-text-muted">{lh.humanDisplayId}</p>
-            <p class="text-xs text-text-muted">Linked {formatDateTime(lh.linkedAt)}</p>
-          </div>
-          <form method="POST" action="?/unlinkHuman">
-            <input type="hidden" name="humanId" value={lh.humanId} />
-            <input type="hidden" name="linkId" value={lh.id} />
-            <Button type="submit" variant="ghost" size="sm">Unlink</Button>
-          </form>
-        </div>
-      {/each}
-    </div>
-  {:else}
-    <div class="glass-card p-3 mb-6">
-      <div class="relative">
-        <div class="flex items-center gap-3">
-          <span class="text-sm font-medium text-text-muted whitespace-nowrap shrink-0">Convert to Human</span>
-          <span class="text-glass-border shrink-0" aria-hidden="true">|</span>
-          <input
-            type="text"
-            bind:value={searchQuery}
-            oninput={() => { if (searchQuery.length >= 2) searchHumans(); else searchResults = []; }}
-            placeholder="Search by name to link existing..."
-            class="glass-input flex-1 px-3 py-2 text-sm"
-          />
-          {#if searching}
-            <span class="text-xs text-text-muted whitespace-nowrap shrink-0">Searching...</span>
-          {/if}
-          <a
-            href={resolve(convertUrl())}
-            class="btn-primary inline-block text-sm whitespace-nowrap shrink-0"
-          >
-            Create New Human
-          </a>
-        </div>
-        {#if searchResults.length > 0}
-          <ul class="absolute left-0 right-0 top-full mt-1 z-10 divide-y divide-glass-border rounded-xl border border-glass-border overflow-hidden" style="background: var(--glass-popover, rgba(20,55,90,0.92)); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);">
-            {#each searchResults as human, i (i)}
-              <li class="flex items-center justify-between px-4 py-3 hover:bg-glass-hover transition-colors duration-150">
-                <div>
-                  <p class="text-sm font-medium text-text-primary">{human.firstName} {human.lastName}</p>
-                  {#if human.emails?.[0]}
-                    <p class="text-xs text-text-muted">{human.emails[0].email}</p>
-                  {/if}
-                </div>
-                <form method="POST" action="?/convertToHuman">
-                  <input type="hidden" name="humanId" value={human.id} />
-                  <Button type="submit" size="sm">
-                    Link
-                  </Button>
-                </form>
-              </li>
-            {/each}
-          </ul>
-        {/if}
-      </div>
-    </div>
-  {/if}
+  <!-- Link Human -->
+  <LinkHumanSection
+    linkedHuman={linkedHumanProp}
+    createNewHumanUrl={createNewHumanUrl}
+  />
 
   <!-- Emails -->
   <div class="mb-6">

@@ -17,7 +17,7 @@
 
 <div class="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
   <PageHeader
-    title={prefill.fromSignup ? "Convert Signup to Human" : prefill.fromGeneralLead ? "Convert Lead to Human" : "New Human"}
+    title={prefill.fromSignup ? "Create & Link to Signup" : prefill.fromGeneralLead ? "Create & Link to Lead" : prefill.fromBookingRequest ? "Create & Link to Booking" : "New Human"}
     breadcrumbs={[{ label: "Humans", href: "/humans" }, { label: "New" }]}
   />
 
@@ -31,6 +31,9 @@
     {/if}
     {#if prefill.fromGeneralLead}
       <input type="hidden" name="fromGeneralLead" value={prefill.fromGeneralLead} />
+    {/if}
+    {#if prefill.fromBookingRequest}
+      <input type="hidden" name="fromBookingRequest" value={prefill.fromBookingRequest} />
     {/if}
 
     <div class="grid gap-4 sm:grid-cols-3">
@@ -70,10 +73,10 @@
 
     <div class="flex gap-3">
       <Button type="submit">
-        {prefill.fromSignup || prefill.fromGeneralLead ? "Create & Convert" : "Create Human"}
+        {prefill.fromSignup || prefill.fromGeneralLead || prefill.fromBookingRequest ? "Create & Link" : "Create Human"}
       </Button>
       <!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
-      <a href={prefill.fromSignup ? resolve('/leads/route-signups') : prefill.fromGeneralLead ? resolve('/leads/general-leads') : resolve('/humans')} class="btn-ghost">
+      <a href={prefill.fromSignup ? resolve('/leads/route-signups') : prefill.fromGeneralLead ? resolve('/leads/general-leads') : prefill.fromBookingRequest ? resolve('/leads/website-booking-requests') : resolve('/humans')} class="btn-ghost">
         Cancel
       </a>
     </div>

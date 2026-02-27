@@ -23,6 +23,7 @@ import {
   websites,
   humanRelationships,
   humanRelationshipLabelsConfig,
+  activities,
 } from "@humans/db/schema";
 import type { HumanStatus, HumanType } from "@humans/db/schema";
 import { createId } from "@humans/db";
@@ -513,10 +514,43 @@ export async function linkRouteSignup(db: DB, humanId: string, routeSignupId: st
     linkedAt: new Date().toISOString(),
   };
   await db.insert(humanRouteSignups).values(link);
+
+  // Dual-associate activities/emails/phones/socialIds (keep routeSignupId, add humanId)
+  await db.update(activities).set({ humanId }).where(
+    and(eq(activities.routeSignupId, routeSignupId), sql`${activities.humanId} IS NULL`),
+  );
+  await db.update(emails).set({ humanId }).where(
+    and(eq(emails.routeSignupId, routeSignupId), sql`${emails.humanId} IS NULL`),
+  );
+  await db.update(phones).set({ humanId }).where(
+    and(eq(phones.routeSignupId, routeSignupId), sql`${phones.humanId} IS NULL`),
+  );
+  await db.update(socialIds).set({ humanId }).where(
+    and(eq(socialIds.routeSignupId, routeSignupId), sql`${socialIds.humanId} IS NULL`),
+  );
+
   return link;
 }
 
 export async function unlinkRouteSignup(db: DB, linkId: string): Promise<void> {
+  const link = await db.query.humanRouteSignups.findFirst({
+    where: eq(humanRouteSignups.id, linkId),
+  });
+  if (link != null) {
+    // Clear humanId from records associated with this signup (compound WHERE)
+    await db.update(activities).set({ humanId: null }).where(
+      and(eq(activities.routeSignupId, link.routeSignupId), eq(activities.humanId, link.humanId)),
+    );
+    await db.update(emails).set({ humanId: null }).where(
+      and(eq(emails.routeSignupId, link.routeSignupId), eq(emails.humanId, link.humanId)),
+    );
+    await db.update(phones).set({ humanId: null }).where(
+      and(eq(phones.routeSignupId, link.routeSignupId), eq(phones.humanId, link.humanId)),
+    );
+    await db.update(socialIds).set({ humanId: null }).where(
+      and(eq(socialIds.routeSignupId, link.routeSignupId), eq(socialIds.humanId, link.humanId)),
+    );
+  }
   await db.delete(humanRouteSignups).where(eq(humanRouteSignups.id, linkId));
 }
 
@@ -535,10 +569,43 @@ export async function linkWebsiteBookingRequest(db: DB, humanId: string, website
     linkedAt: new Date().toISOString(),
   };
   await db.insert(humanWebsiteBookingRequests).values(link);
+
+  // Dual-associate activities/emails/phones/socialIds (keep websiteBookingRequestId, add humanId)
+  await db.update(activities).set({ humanId }).where(
+    and(eq(activities.websiteBookingRequestId, websiteBookingRequestId), sql`${activities.humanId} IS NULL`),
+  );
+  await db.update(emails).set({ humanId }).where(
+    and(eq(emails.websiteBookingRequestId, websiteBookingRequestId), sql`${emails.humanId} IS NULL`),
+  );
+  await db.update(phones).set({ humanId }).where(
+    and(eq(phones.websiteBookingRequestId, websiteBookingRequestId), sql`${phones.humanId} IS NULL`),
+  );
+  await db.update(socialIds).set({ humanId }).where(
+    and(eq(socialIds.websiteBookingRequestId, websiteBookingRequestId), sql`${socialIds.humanId} IS NULL`),
+  );
+
   return link;
 }
 
 export async function unlinkWebsiteBookingRequest(db: DB, linkId: string): Promise<void> {
+  const link = await db.query.humanWebsiteBookingRequests.findFirst({
+    where: eq(humanWebsiteBookingRequests.id, linkId),
+  });
+  if (link != null) {
+    // Clear humanId from records associated with this booking request (compound WHERE)
+    await db.update(activities).set({ humanId: null }).where(
+      and(eq(activities.websiteBookingRequestId, link.websiteBookingRequestId), eq(activities.humanId, link.humanId)),
+    );
+    await db.update(emails).set({ humanId: null }).where(
+      and(eq(emails.websiteBookingRequestId, link.websiteBookingRequestId), eq(emails.humanId, link.humanId)),
+    );
+    await db.update(phones).set({ humanId: null }).where(
+      and(eq(phones.websiteBookingRequestId, link.websiteBookingRequestId), eq(phones.humanId, link.humanId)),
+    );
+    await db.update(socialIds).set({ humanId: null }).where(
+      and(eq(socialIds.websiteBookingRequestId, link.websiteBookingRequestId), eq(socialIds.humanId, link.humanId)),
+    );
+  }
   await db.delete(humanWebsiteBookingRequests).where(eq(humanWebsiteBookingRequests.id, linkId));
 }
 
@@ -560,6 +627,27 @@ export async function getLinkedHumansForBookingRequest(
     .where(eq(humanWebsiteBookingRequests.websiteBookingRequestId, websiteBookingRequestId));
 
   return links;
+}
+
+export async function getLinkedHumanForRouteSignup(
+  db: DB,
+  routeSignupId: string,
+): Promise<{ id: string; humanId: string; humanDisplayId: string; humanFirstName: string; humanLastName: string; linkedAt: string } | null> {
+  const links = await db
+    .select({
+      id: humanRouteSignups.id,
+      humanId: humanRouteSignups.humanId,
+      humanDisplayId: humans.displayId,
+      humanFirstName: humans.firstName,
+      humanLastName: humans.lastName,
+      linkedAt: humanRouteSignups.linkedAt,
+    })
+    .from(humanRouteSignups)
+    .innerJoin(humans, eq(humanRouteSignups.humanId, humans.id))
+    .where(eq(humanRouteSignups.routeSignupId, routeSignupId))
+    .limit(1);
+
+  return links[0] ?? null;
 }
 
 export async function getHumanRelationships(db: DB, humanId: string): Promise<{ id: string; displayId: string; otherHumanId: string; otherHumanName: string; otherHumanDisplayId: string | null; labelId: string | null; labelName: string | null; createdAt: string }[]> {

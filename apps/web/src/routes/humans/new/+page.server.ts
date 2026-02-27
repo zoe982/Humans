@@ -12,13 +12,14 @@ function getFormString(form: FormData, key: string): string {
   return typeof raw === "string" ? raw : "";
 }
 
-export const load = ({ locals, url }: RequestEvent): { prefill: { fromSignup: string; fromGeneralLead: string; firstName: string; middleName: string; lastName: string; notes: string } } => {
+export const load = ({ locals, url }: RequestEvent): { prefill: { fromSignup: string; fromGeneralLead: string; fromBookingRequest: string; firstName: string; middleName: string; lastName: string; notes: string } } => {
   if (locals.user == null) redirect(302, "/login");
 
   return {
     prefill: {
       fromSignup: url.searchParams.get("fromSignup") ?? "",
       fromGeneralLead: url.searchParams.get("fromGeneralLead") ?? "",
+      fromBookingRequest: url.searchParams.get("fromBookingRequest") ?? "",
       firstName: url.searchParams.get("firstName") ?? "",
       middleName: url.searchParams.get("middleName") ?? "",
       lastName: url.searchParams.get("lastName") ?? "",
@@ -47,6 +48,7 @@ export const actions = {
 
     const fromSignup = getFormString(form, "fromSignup");
     const fromGeneralLead = getFormString(form, "fromGeneralLead");
+    const fromBookingRequest = getFormString(form, "fromBookingRequest");
 
     // Create the human
     const res = await fetch(`${PUBLIC_API_URL}/api/humans`, {
@@ -70,26 +72,9 @@ export const actions = {
 
     const humanId = created.data.id;
 
-    // If converting from a signup, call the convert endpoint
+    // Auto-link to source lead using lead-centric endpoints
     if (fromSignup !== "") {
-      const convertRes = await fetch(`${PUBLIC_API_URL}/api/humans/${humanId}/convert-from-signup`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Cookie: `humans_session=${sessionToken ?? ""}`,
-        },
-        body: JSON.stringify({ routeSignupId: fromSignup }),
-      });
-
-      if (!convertRes.ok) {
-        // Human was created but convert failed — redirect to human anyway
-        redirect(302, `/humans/${humanId}`);
-      }
-    }
-
-    // If converting from a general lead, call the convert endpoint
-    if (fromGeneralLead !== "") {
-      const convertRes = await fetch(`${PUBLIC_API_URL}/api/general-leads/${fromGeneralLead}/convert`, {
+      const linkRes = await fetch(`${PUBLIC_API_URL}/api/route-signups/${fromSignup}/link-human`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -98,8 +83,40 @@ export const actions = {
         body: JSON.stringify({ humanId }),
       });
 
-      if (!convertRes.ok) {
-        // Human was created but convert failed — redirect to human anyway
+      if (!linkRes.ok) {
+        // Human was created but link failed — redirect to human anyway
+        redirect(302, `/humans/${humanId}`);
+      }
+    }
+
+    if (fromGeneralLead !== "") {
+      const linkRes = await fetch(`${PUBLIC_API_URL}/api/general-leads/${fromGeneralLead}/link-human`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Cookie: `humans_session=${sessionToken ?? ""}`,
+        },
+        body: JSON.stringify({ humanId }),
+      });
+
+      if (!linkRes.ok) {
+        // Human was created but link failed — redirect to human anyway
+        redirect(302, `/humans/${humanId}`);
+      }
+    }
+
+    if (fromBookingRequest !== "") {
+      const linkRes = await fetch(`${PUBLIC_API_URL}/api/website-booking-requests/${fromBookingRequest}/link-human`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Cookie: `humans_session=${sessionToken ?? ""}`,
+        },
+        body: JSON.stringify({ humanId }),
+      });
+
+      if (!linkRes.ok) {
+        // Human was created but link failed — redirect to human anyway
         redirect(302, `/humans/${humanId}`);
       }
     }

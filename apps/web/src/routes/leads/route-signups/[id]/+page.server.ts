@@ -8,7 +8,7 @@ function getFormString(form: FormData, key: string): string {
   return typeof raw === "string" ? raw : "";
 }
 
-export const load = async ({ locals, cookies, params }: RequestEvent): Promise<{ signup: unknown; activities: unknown[]; colleagues: unknown[]; marketingAttribution: unknown; leadScore: Record<string, unknown> | null; emails: unknown[]; phoneNumbers: unknown[]; socialIds: unknown[]; platformConfigs: unknown[]; leadSources: unknown[]; leadChannels: unknown[]; user: NonNullable<typeof locals.user> }> => {
+export const load = async ({ locals, cookies, params }: RequestEvent): Promise<{ signup: unknown; activities: unknown[]; colleagues: unknown[]; linkedHuman: unknown; marketingAttribution: unknown; leadScore: Record<string, unknown> | null; emails: unknown[]; phoneNumbers: unknown[]; socialIds: unknown[]; platformConfigs: unknown[]; leadSources: unknown[]; leadChannels: unknown[]; user: NonNullable<typeof locals.user> }> => {
   if (locals.user == null) redirect(302, "/login");
 
   const sessionToken = cookies.get("humans_session") ?? "";
@@ -27,10 +27,17 @@ export const load = async ({ locals, cookies, params }: RequestEvent): Promise<{
   const marketingAttributionId = typeof signup["marketing_attribution_id"] === "string" ? signup["marketing_attribution_id"] : null;
 
   // Batch 1 (4 concurrent — Cloudflare Workers limit: 6 TCP, auth uses 1, safety margin 1)
-  const [activities, colleagues, leadScore, emails] = await Promise.all([
+  const [activities, colleagues, leadScore, linkedHumanObj] = await Promise.all([
     fetchList(`${PUBLIC_API_URL}/api/activities?routeSignupId=${id ?? ""}&include=linkedEntities`, sessionToken),
     fetchList(`${PUBLIC_API_URL}/api/colleagues`, sessionToken),
     fetchObj(`${PUBLIC_API_URL}/api/lead-scores/by-parent/route_signup/${id ?? ""}`, sessionToken),
+    fetchObj(`${PUBLIC_API_URL}/api/route-signups/${id ?? ""}/linked-human`, sessionToken),
+  ]);
+
+  const linkedHuman = linkedHumanObj ?? null;
+
+  // Batch 2a
+  const [emails] = await Promise.all([
     fetchList(`${PUBLIC_API_URL}/api/route-signups/${id ?? ""}/emails`, sessionToken),
   ]);
 
@@ -46,7 +53,7 @@ export const load = async ({ locals, cookies, params }: RequestEvent): Promise<{
     ? await fetchObj(`${PUBLIC_API_URL}/api/marketing-attributions/${marketingAttributionId}`, sessionToken)
     : null;
 
-  return { signup, activities, colleagues, marketingAttribution, leadScore, emails, phoneNumbers, socialIds, platformConfigs: configs["social-id-platforms"] ?? [], leadSources: configs["lead-sources"] ?? [], leadChannels: configs["lead-channels"] ?? [], user: locals.user };
+  return { signup, activities, colleagues, linkedHuman, marketingAttribution, leadScore, emails, phoneNumbers, socialIds, platformConfigs: configs["social-id-platforms"] ?? [], leadSources: configs["lead-sources"] ?? [], leadChannels: configs["lead-channels"] ?? [], user: locals.user };
 };
 
 export const actions = {
@@ -167,23 +174,41 @@ export const actions = {
     return { success: true };
   },
 
-  convertToHuman: async ({ request, cookies, params }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
+  linkHuman: async ({ request, cookies, params }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
     const form = await request.formData();
     const sessionToken = cookies.get("humans_session");
     const humanId = getFormString(form, "humanId");
 
-    const res = await fetch(`${PUBLIC_API_URL}/api/humans/${humanId}/convert-from-signup`, {
+    const res = await fetch(`${PUBLIC_API_URL}/api/route-signups/${params.id ?? ""}/link-human`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Cookie: `humans_session=${sessionToken ?? ""}`,
       },
-      body: JSON.stringify({ routeSignupId: params.id }),
+      body: JSON.stringify({ humanId }),
     });
 
     if (!res.ok) {
       const resBody: unknown = await res.json();
-      return failFromApi(resBody, res.status, "Failed to convert");
+      return failFromApi(resBody, res.status, "Failed to link human");
+    }
+
+    return { success: true };
+  },
+
+  unlinkHuman: async ({ cookies, params }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
+    const sessionToken = cookies.get("humans_session");
+
+    const res = await fetch(`${PUBLIC_API_URL}/api/route-signups/${params.id ?? ""}/link-human`, {
+      method: "DELETE",
+      headers: {
+        Cookie: `humans_session=${sessionToken ?? ""}`,
+      },
+    });
+
+    if (!res.ok) {
+      const resBody: unknown = await res.json();
+      return failFromApi(resBody, res.status, "Failed to unlink human");
     }
 
     return { success: true };

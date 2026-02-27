@@ -4,6 +4,7 @@ import {
   updateGeneralLeadSchema,
   updateGeneralLeadStatusSchema,
   convertGeneralLeadSchema,
+  linkHumanSchema,
   updateEntityNextActionSchema,
   createEmailSchema,
   createPhoneNumberSchema,
@@ -21,6 +22,8 @@ import {
   updateGeneralLead,
   updateGeneralLeadStatus,
   convertGeneralLead,
+  linkHumanToGeneralLead,
+  unlinkHumanFromGeneralLead,
   deleteGeneralLead,
   importLeadFromFront,
 } from "../services/general-leads";
@@ -117,6 +120,24 @@ generalLeadRoutes.post("/api/general-leads/:id/convert", requirePermission("mana
   if (session === null) return c.json({ error: "Unauthorized" }, 401);
   const result = await convertGeneralLead(c.get("db"), c.req.param("id"), data.humanId, session.colleagueId);
   return c.json(result);
+});
+
+// POST /api/general-leads/:id/link-human
+generalLeadRoutes.post("/api/general-leads/:id/link-human", requirePermission("manageGeneralLeads"), async (c) => {
+  const body: unknown = await c.req.json();
+  const data = linkHumanSchema.parse(body);
+  const session = c.get("session");
+  if (session === null) return c.json({ error: "Unauthorized" }, 401);
+  await linkHumanToGeneralLead(c.get("db"), c.req.param("id"), data.humanId, session.colleagueId);
+  return c.json({ success: true });
+});
+
+// DELETE /api/general-leads/:id/link-human
+generalLeadRoutes.delete("/api/general-leads/:id/link-human", requirePermission("manageGeneralLeads"), async (c) => {
+  const session = c.get("session");
+  if (session === null) return c.json({ error: "Unauthorized" }, 401);
+  await unlinkHumanFromGeneralLead(c.get("db"), c.req.param("id"), session.colleagueId);
+  return c.json({ success: true });
 });
 
 // DELETE /api/general-leads/:id
