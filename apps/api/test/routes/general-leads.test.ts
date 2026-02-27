@@ -217,7 +217,7 @@ describe("PATCH /api/general-leads/:id", () => {
 
   it("blocks owner change on closed lead", async () => {
     const db = getDb();
-    const lead = buildGeneralLead({ status: "closed_rejected", rejectReason: "Not a fit" });
+    const lead = buildGeneralLead({ status: "closed_lost", lossReason: "Not a fit" });
     await db.insert(schema.generalLeads).values(lead);
 
     const { token } = await createUserAndSession("agent");
@@ -265,7 +265,7 @@ describe("PATCH /api/general-leads/:id/status", () => {
     expect(body.data.status).toBe("qualified");
   });
 
-  it("transitions to closed_rejected with reject reason", async () => {
+  it("transitions to closed_lost with loss reason", async () => {
     const db = getDb();
     const lead = buildGeneralLead({ status: "open" });
     await db.insert(schema.generalLeads).values(lead);
@@ -274,15 +274,15 @@ describe("PATCH /api/general-leads/:id/status", () => {
     const res = await SELF.fetch(`${BASE}/${lead.id}/status`, {
       method: "PATCH",
       headers: jsonHeaders(token),
-      body: JSON.stringify({ status: "closed_rejected", rejectReason: "Not a real lead" }),
+      body: JSON.stringify({ status: "closed_lost", lossReason: "Not a real lead" }),
     });
     expect(res.status).toBe(200);
-    const body = (await res.json()) as { data: { status: string; rejectReason: string } };
-    expect(body.data.status).toBe("closed_rejected");
-    expect(body.data.rejectReason).toBe("Not a real lead");
+    const body = (await res.json()) as { data: { status: string; lossReason: string } };
+    expect(body.data.status).toBe("closed_lost");
+    expect(body.data.lossReason).toBe("Not a real lead");
   });
 
-  it("rejects closed_rejected without reject reason", async () => {
+  it("rejects closed_lost without loss reason", async () => {
     const db = getDb();
     const lead = buildGeneralLead({ status: "open" });
     await db.insert(schema.generalLeads).values(lead);
@@ -291,7 +291,7 @@ describe("PATCH /api/general-leads/:id/status", () => {
     const res = await SELF.fetch(`${BASE}/${lead.id}/status`, {
       method: "PATCH",
       headers: jsonHeaders(token),
-      body: JSON.stringify({ status: "closed_rejected" }),
+      body: JSON.stringify({ status: "closed_lost" }),
     });
     expect(res.status).toBe(400);
   });
@@ -312,7 +312,7 @@ describe("PATCH /api/general-leads/:id/status", () => {
 
   it("blocks transition from closed status", async () => {
     const db = getDb();
-    const lead = buildGeneralLead({ status: "closed_rejected", rejectReason: "No" });
+    const lead = buildGeneralLead({ status: "closed_lost", lossReason: "No" });
     await db.insert(schema.generalLeads).values(lead);
 
     const { token } = await createUserAndSession("agent");
