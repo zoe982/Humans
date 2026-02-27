@@ -424,6 +424,62 @@ describe("general-leads/[id] delete action", () => {
   });
 });
 
+describe("general-leads/[id] updateName action", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("returns success when name fields are updated", async () => {
+    const mockFetch = createMockFetch({
+      "/api/general-leads/lea-1": { status: 200, body: {} },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent({ formData: { firstName: "Alice", middleName: "Marie", lastName: "Johnson" } });
+    const result = await actions.updateName(event as any);
+    expect(result).toEqual({ success: true });
+
+    const patchCall = mockFetch.mock.calls.find(
+      (call: unknown[]) => typeof call[0] === "string" && (call[0] as string).includes("/api/general-leads/lea-1"),
+    ) as [string, RequestInit] | undefined;
+    expect(patchCall).toBeDefined();
+    const sentBody = JSON.parse(patchCall![1].body as string) as { firstName: string; middleName: string; lastName: string };
+    expect(sentBody).toEqual({ firstName: "Alice", middleName: "Marie", lastName: "Johnson" });
+  });
+
+  it("sends null for empty middleName", async () => {
+    const mockFetch = createMockFetch({
+      "/api/general-leads/lea-1": { status: 200, body: {} },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent({ formData: { firstName: "Bob", middleName: "", lastName: "Doe" } });
+    const result = await actions.updateName(event as any);
+    expect(result).toEqual({ success: true });
+
+    const patchCall = mockFetch.mock.calls.find(
+      (call: unknown[]) => typeof call[0] === "string" && (call[0] as string).includes("/api/general-leads/lea-1"),
+    ) as [string, RequestInit] | undefined;
+    expect(patchCall).toBeDefined();
+    const sentBody = JSON.parse(patchCall![1].body as string) as { firstName: string; middleName: null; lastName: string };
+    expect(sentBody).toEqual({ firstName: "Bob", middleName: null, lastName: "Doe" });
+  });
+
+  it("returns failure when API returns error", async () => {
+    const mockFetch = createMockFetch({
+      "/api/general-leads/lea-1": { status: 400, body: { error: "Invalid name" } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent({ formData: { firstName: "", middleName: "", lastName: "" } });
+    const result = await actions.updateName(event as any);
+    expect(isActionFailure(result)).toBe(true);
+    if (isActionFailure(result)) {
+      expect(result.data.error).toBe("Invalid name");
+    }
+  });
+});
+
 describe("general-leads/[id] updateSourceChannel action", () => {
   afterEach(() => {
     vi.unstubAllGlobals();

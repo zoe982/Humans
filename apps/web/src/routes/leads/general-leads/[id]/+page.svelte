@@ -18,7 +18,7 @@
   import LeadScoreInlineFlags from "$lib/components/LeadScoreInlineFlags.svelte";
   import { resolve } from "$app/paths";
   import { page } from "$app/stores";
-  import { Trash2 } from "lucide-svelte";
+  import { Trash2, Pencil, Check, X } from "lucide-svelte";
   import { SvelteURLSearchParams } from "svelte/reactivity";
   import DuplicateContactBanner from "$lib/components/DuplicateContactBanner.svelte";
 
@@ -161,6 +161,25 @@
   let socialIdLinkResults = $state<{ id: string; displayId: string; handle: string; platformName: string | null; humanName: string | null; accountName: string | null }[]>([]);
   let linkSearching = $state(false);
   let linking = $state(false);
+
+  // Inline name editing
+  let editingName = $state(false);
+  let editFirstName = $state("");
+  let editMiddleName = $state("");
+  let editLastName = $state("");
+
+  function startEditName() {
+    editFirstName = lead.firstName;
+    editMiddleName = lead.middleName ?? "";
+    editLastName = lead.lastName;
+    editingName = true;
+  }
+
+  function cancelEditName() {
+    editingName = false;
+  }
+
+  const nameFormValid = $derived(editFirstName.trim() !== "" && editLastName.trim() !== "");
 
   async function searchEmails() {
     if (emailLinkQuery.trim().length < 2) { emailLinkResults = []; return; }
@@ -383,9 +402,43 @@
   <div class="glass-card p-6 mt-4 mb-6">
     <h2 class="text-lg font-semibold text-text-primary">Metadata</h2>
     <dl class="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
-      <div>
+      <div class="col-span-2">
         <dt class="text-sm font-medium text-text-muted">Name</dt>
-        <dd class="mt-1 text-sm text-text-primary">{[lead.firstName, lead.middleName, lead.lastName].filter(Boolean).join(" ")}</dd>
+        {#if editingName}
+          <dd class="mt-1">
+            <form method="POST" action="?/updateName" onsubmit={() => { editingName = false; }}>
+              <div class="grid grid-cols-3 gap-2">
+                <div>
+                  <label for="editFirstName" class="block text-xs text-text-muted mb-1">First</label>
+                  <input id="editFirstName" name="firstName" type="text" required bind:value={editFirstName} class="glass-input block w-full px-2 py-1.5 text-sm" />
+                </div>
+                <div>
+                  <label for="editMiddleName" class="block text-xs text-text-muted mb-1">Middle</label>
+                  <input id="editMiddleName" name="middleName" type="text" bind:value={editMiddleName} class="glass-input block w-full px-2 py-1.5 text-sm" />
+                </div>
+                <div>
+                  <label for="editLastName" class="block text-xs text-text-muted mb-1">Last</label>
+                  <input id="editLastName" name="lastName" type="text" required bind:value={editLastName} class="glass-input block w-full px-2 py-1.5 text-sm" />
+                </div>
+              </div>
+              <div class="mt-2 flex gap-2">
+                <button type="submit" disabled={!nameFormValid} class="flex items-center gap-1 px-2 py-1 text-xs rounded-lg bg-accent text-white hover:bg-accent/80 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+                  <Check size={12} /> Save
+                </button>
+                <button type="button" onclick={cancelEditName} class="flex items-center gap-1 px-2 py-1 text-xs rounded-lg bg-glass-hover text-text-muted hover:text-text-primary transition-colors">
+                  <X size={12} /> Cancel
+                </button>
+              </div>
+            </form>
+          </dd>
+        {:else}
+          <dd class="mt-1 text-sm text-text-primary flex items-center gap-2">
+            {[lead.firstName, lead.middleName, lead.lastName].filter(Boolean).join(" ")}
+            <button type="button" onclick={startEditName} class="flex items-center justify-center w-6 h-6 rounded-md text-text-muted hover:text-accent hover:bg-glass-hover transition-colors" aria-label="Edit name">
+              <Pencil size={12} />
+            </button>
+          </dd>
+        {/if}
       </div>
       <div>
         <dt class="text-sm font-medium text-text-muted">Owner</dt>

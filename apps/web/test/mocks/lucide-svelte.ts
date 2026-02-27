@@ -70,6 +70,7 @@ export const Copy = IconStub;
 export const Clipboard = IconStub;
 export const Loader2 = IconStub;
 export const Trash2 = IconStub;
+export const Pencil = IconStub;
 export const Building2 = IconStub;
 export const ClipboardList = IconStub;
 export const Globe2 = IconStub;

@@ -66,6 +66,36 @@ export const actions = {
     return { success: true };
   },
 
+  updateName: async ({ request, cookies, params }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
+    const form = await request.formData();
+    const sessionToken = cookies.get("humans_session");
+    const id = params.id ?? "";
+
+    const firstName = formStr(form.get("firstName"));
+    const middleNameRaw = formStr(form.get("middleName"));
+    const lastName = formStr(form.get("lastName"));
+
+    const res = await fetch(`${PUBLIC_API_URL}/api/general-leads/${id}`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        Cookie: `humans_session=${sessionToken ?? ""}`,
+      },
+      body: JSON.stringify({
+        firstName,
+        middleName: middleNameRaw === "" ? null : middleNameRaw,
+        lastName,
+      }),
+    });
+
+    if (!res.ok) {
+      const resBody: unknown = await res.json();
+      return failFromApi(resBody, res.status, "Failed to update name");
+    }
+
+    return { success: true };
+  },
+
   addEmail: async ({ request, cookies, params }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string; details?: unknown }> | { success: true }> => {
     const form = await request.formData();
     const sessionToken = cookies.get("humans_session");
