@@ -27,14 +27,19 @@
     platformId: string | null;
     platformName: string | null;
     humanId: string | null;
+    humanDisplayId: string | null;
     humanName: string | null;
     accountId: string | null;
+    accountDisplayId: string | null;
     accountName: string | null;
     generalLeadId: string | null;
+    generalLeadDisplayId: string | null;
     generalLeadName: string | null;
     websiteBookingRequestId: string | null;
+    websiteBookingRequestDisplayId: string | null;
     websiteBookingRequestName: string | null;
     routeSignupId: string | null;
+    routeSignupDisplayId: string | null;
     routeSignupName: string | null;
   };
 
@@ -217,6 +222,14 @@
           onSelect={handlePlatformChange}
         />
       </div>
+    </div>
+  </div>
+
+  <!-- Relationships -->
+  <div class="mt-6 glass-card p-6 space-y-6">
+    <div class="flex items-center gap-3">
+      <h2 class="text-lg font-semibold text-text-primary">Relationships</h2>
+      <SaveIndicator status={saveStatus} />
     </div>
 
     <div>

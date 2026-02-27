@@ -244,6 +244,14 @@
         Primary
       </label>
     </div>
+  </div>
+
+  <!-- Relationships -->
+  <div class="mt-6 glass-card p-6 space-y-6">
+    <div class="flex items-center gap-3">
+      <h2 class="text-lg font-semibold text-text-primary">Relationships</h2>
+      <SaveIndicator status={saveStatus} />
+    </div>
 
     <div>
       <label for="human" class="block text-sm font-medium text-text-secondary">Human</label>
