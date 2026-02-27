@@ -22,6 +22,7 @@
   import LeadScoreInlineFlags from "$lib/components/LeadScoreInlineFlags.svelte";
   import { Trash2 } from "lucide-svelte";
   import { SvelteURLSearchParams } from "svelte/reactivity";
+  import DuplicateContactBanner from "$lib/components/DuplicateContactBanner.svelte";
 
   type ConfigItem = { id: string; name: string };
   let { data, form }: { data: PageData; form: ActionData } = $props();
@@ -327,7 +328,17 @@
 
   <!-- Alerts -->
   {#if form?.error}
-    <AlertBanner type="error" message={form.error} />
+    {#if form.code?.endsWith("_DUPLICATE") && form.details}
+      <DuplicateContactBanner
+        details={form.details as { existingId: string; existingDisplayId: string; existingOwners: { type: string; id: string; displayId: string; name: string }[] }}
+        entityType={form.code === "EMAIL_DUPLICATE" ? "emails" : form.code === "PHONE_DUPLICATE" ? "phone-numbers" : "social-ids"}
+        parentType="routeSignup"
+        parentId={signup.id}
+        parentField="routeSignupId"
+      />
+    {:else}
+      <AlertBanner type="error" message={form.error} />
+    {/if}
   {/if}
   {#if form?.success}
     <AlertBanner type="success" message="Saved successfully." />

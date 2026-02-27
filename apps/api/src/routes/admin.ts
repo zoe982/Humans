@@ -9,6 +9,7 @@ import {
   updateColleague,
   listAuditLog,
 } from "../services/admin";
+import { deduplicateContacts } from "../services/dedup-contacts";
 import type { AppContext } from "../types";
 
 const adminRoutes = new Hono<AppContext>();
@@ -46,6 +47,12 @@ adminRoutes.get("/api/admin/audit-log", requirePermission("viewAuditLog"), async
   const offset = Number(c.req.query("offset") ?? 0);
   const data = await listAuditLog(c.get("db"), limit, offset);
   return c.json({ data });
+});
+
+// Deduplicate contacts (one-time admin tool)
+adminRoutes.post("/api/admin/deduplicate-contacts", requirePermission("manageColleagues"), async (c) => {
+  const result = await deduplicateContacts(c.get("db"));
+  return c.json({ data: result });
 });
 
 export { adminRoutes };

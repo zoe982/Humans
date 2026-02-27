@@ -43,8 +43,8 @@ export function unauthorized(code: ErrorCode, message: string): AppError {
   return new AppError(code, 401, message);
 }
 
-export function conflict(code: ErrorCode, message: string): AppError {
-  return new AppError(code, 409, message);
+export function conflict(code: ErrorCode, message: string, details?: unknown): AppError {
+  return new AppError(code, 409, message, details);
 }
 
 export function internal(code: ErrorCode, message: string): AppError {

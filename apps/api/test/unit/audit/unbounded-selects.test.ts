@@ -21,7 +21,7 @@ const SERVICES_DIR = path.resolve(__dirname, "../../../src/services");
  * Files that intentionally load full tables (batch jobs, sync processes).
  * These are not API request handlers and don't cause SSR timeouts.
  */
-const EXCLUDED_FILES = new Set(["front-sync.ts"]);
+const EXCLUDED_FILES = new Set(["front-sync.ts", "dedup-contacts.ts"]);
 
 /**
  * Known list-all endpoints: "file:line:table" entries that intentionally
@@ -31,11 +31,11 @@ const EXCLUDED_FILES = new Set(["front-sync.ts"]);
  */
 const KNOWN_LIST_ALL = new Set([
   // listAccounts — lists all accounts (< 200 in this CRM)
-  "accounts.ts:28:accounts",
+  "accounts.ts:40:accounts",
   // listEmails — lists all emails to show admin view
-  "emails.ts:32:emails",
+  "emails.ts:35:emails",
   // listPhoneNumbers — lists all phones to show admin view
-  "phone-numbers.ts:32:phones",
+  "phone-numbers.ts:35:phones",
 ]);
 
 /**

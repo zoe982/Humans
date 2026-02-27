@@ -93,7 +93,7 @@
       {#if status && statusOptions.length > 0}
         {#if onStatusChange}
           <Select.Root type="single" value={selectedStatus} onValueChange={handleBitsStatusChange}>
-            <Select.Trigger class="w-40 text-sm" aria-label="Status">
+            <Select.Trigger class="w-52 text-sm" aria-label="Status">
               <!-- eslint-disable-next-line security/detect-object-injection -->
               {statusLabels?.[selectedStatus] ?? selectedStatus ?? "Select status..."}
             </Select.Trigger>
@@ -108,7 +108,7 @@
           <form method="POST" action={statusFormAction} class="flex items-center gap-2">
             <input type="hidden" name="status" value={selectedStatus} />
             <Select.Root type="single" value={selectedStatus} onValueChange={(v) => { if (v) selectedStatus = v; }}>
-              <Select.Trigger class="w-40 text-sm" aria-label="Status">
+              <Select.Trigger class="w-52 text-sm" aria-label="Status">
                 <!-- eslint-disable-next-line security/detect-object-injection -->
                 {statusLabels?.[selectedStatus] ?? selectedStatus ?? "Select status..."}
               </Select.Trigger>

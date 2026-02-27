@@ -1,11 +1,39 @@
-import { eq, inArray, like } from "drizzle-orm";
+import { eq, and, ne, isNull, inArray, like } from "drizzle-orm";
 import { socialIds, socialIdPlatformsConfig, humans, accounts, generalLeads } from "@humans/db/schema";
 import { createId } from "@humans/db";
-import { ERROR_CODES } from "@humans/shared";
-import { notFound } from "../lib/errors";
+import { ERROR_CODES, normalizeSocialHandle } from "@humans/shared";
+import { notFound, conflict } from "../lib/errors";
 import { nextDisplayId } from "../lib/display-id";
+import { resolveOwnerSummary } from "../lib/owner-summary";
 import { rematchActivitiesBySocialId } from "./activity-rematch";
 import type { DB } from "./types";
+
+/** Check for duplicate social ID with same platform + handle. */
+async function checkSocialIdDuplicate(
+  db: DB,
+  handle: string,
+  platformId: string | null,
+  excludeId?: string,
+): Promise<void> {
+  const platformCondition = platformId != null
+    ? eq(socialIds.platformId, platformId)
+    : isNull(socialIds.platformId);
+
+  const conditions = [eq(socialIds.handle, handle), platformCondition];
+  if (excludeId != null) {
+    conditions.push(ne(socialIds.id, excludeId));
+  }
+
+  const existing = await db.select().from(socialIds).where(and(...conditions));
+  if (existing[0] != null) {
+    const existingOwners = await resolveOwnerSummary(db, existing[0]);
+    throw conflict(ERROR_CODES.SOCIAL_ID_DUPLICATE, "A social ID with this platform and handle already exists", {
+      existingId: existing[0].id,
+      existingDisplayId: existing[0].displayId,
+      existingOwners,
+    });
+  }
+}
 
 export async function listSocialIds(db: DB, query?: string): Promise<{ humanName: string | null; humanDisplayId: string | null; accountName: string | null; accountDisplayId: string | null; generalLeadName: string | null; generalLeadDisplayId: string | null; platformName: string | null; id: string; displayId: string; handle: string; platformId: string | null; humanId: string | null; accountId: string | null; generalLeadId: string | null; websiteBookingRequestId: string | null; routeSignupId: string | null; createdAt: string }[]> {
   const allSocialIds = query != null && query !== ""
@@ -109,14 +137,19 @@ export async function createSocialId(
     routeSignupId?: string | null | undefined;
   },
 ): Promise<{ id: string; displayId: string; handle: string; platformId: string | null; humanId: string | null; accountId: string | null; generalLeadId: string | null; websiteBookingRequestId: string | null; routeSignupId: string | null; createdAt: string }> {
+  const normalizedHandle = normalizeSocialHandle(data.handle);
+  const platformId = data.platformId ?? null;
+
+  await checkSocialIdDuplicate(db, normalizedHandle, platformId);
+
   const now = new Date().toISOString();
   const displayId = await nextDisplayId(db, "SOC");
 
   const record = {
     id: createId(),
     displayId,
-    handle: data.handle,
-    platformId: data.platformId ?? null,
+    handle: normalizedHandle,
+    platformId,
     humanId: data.humanId ?? null,
     accountId: data.accountId ?? null,
     generalLeadId: data.generalLeadId ?? null,
@@ -146,9 +179,23 @@ export async function updateSocialId(
     throw notFound(ERROR_CODES.SOCIAL_ID_NOT_FOUND, "Social ID not found");
   }
 
+  // Normalize and check duplicates if handle or platformId changed
+  const updates = { ...data };
+  const newHandle = typeof updates['handle'] === "string" ? normalizeSocialHandle(updates['handle']) : existing.handle;
+  const rawPlatformId = "platformId" in updates ? updates['platformId'] : existing.platformId;
+  const newPlatformId: string | null =
+    rawPlatformId == null ? null : typeof rawPlatformId === "string" ? rawPlatformId : existing.platformId;
+  if (typeof updates['handle'] === "string") {
+    updates['handle'] = newHandle;
+  }
+
+  if (typeof updates['handle'] === "string" || "platformId" in updates) {
+    await checkSocialIdDuplicate(db, newHandle, newPlatformId, id);
+  }
+
   await db
     .update(socialIds)
-    .set(data)
+    .set(updates)
     .where(eq(socialIds.id, id));
 
   const updated = await db.query.socialIds.findFirst({

@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/svelte";
 import MobileNav from "./MobileNav.svelte";
 
@@ -14,6 +14,17 @@ const links = [
 ];
 
 describe("MobileNav", () => {
+  // bits-ui body-scroll-lock schedules a cleanup timer that fires after test
+  // teardown. Use fake timers so we can flush it while document still exists.
+  beforeEach(() => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+  });
+
+  afterEach(() => {
+    vi.runAllTimers();
+    vi.useRealTimers();
+  });
+
   // ── Static/initial-render tests ────────────────────────────────────────
 
   it("renders the hamburger toggle button", () => {

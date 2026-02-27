@@ -5,6 +5,7 @@
   import RelatedListTable from "$lib/components/RelatedListTable.svelte";
   import ActivityConversationView from "$lib/components/ActivityConversationView.svelte";
   import AlertBanner from "$lib/components/AlertBanner.svelte";
+  import DuplicateContactBanner from "$lib/components/DuplicateContactBanner.svelte";
   import SearchableSelect from "$lib/components/SearchableSelect.svelte";
   import GeoInterestPicker from "$lib/components/GeoInterestPicker.svelte";
   import RouteInterestPicker from "$lib/components/RouteInterestPicker.svelte";
@@ -465,7 +466,17 @@
 
   <!-- Alerts -->
   {#if form?.error}
-    <AlertBanner type="error" message={form.error} />
+    {#if form.code?.endsWith("_DUPLICATE") && form.details}
+      <DuplicateContactBanner
+        details={form.details as { existingId: string; existingDisplayId: string; existingOwners: { type: string; id: string; displayId: string; name: string }[] }}
+        entityType={form.code === "EMAIL_DUPLICATE" ? "emails" : form.code === "PHONE_DUPLICATE" ? "phone-numbers" : form.code === "SOCIAL_ID_DUPLICATE" ? "social-ids" : "websites"}
+        parentType="human"
+        parentId={human.id}
+        parentField="humanId"
+      />
+    {:else}
+      <AlertBanner type="error" message={form.error} />
+    {/if}
   {/if}
 
   <!-- Details (auto-save, no form submission) -->

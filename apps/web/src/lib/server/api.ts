@@ -13,9 +13,11 @@ export function isObjData(value: unknown): value is { data: Record<string, unkno
   return typeof value === "object" && value !== null && "data" in value;
 }
 
-export function failFromApi(resBody: unknown, status: number, fallback: string): ActionFailure<{ error: string; code?: string; requestId?: string }> {
+export function failFromApi(resBody: unknown, status: number, fallback: string): ActionFailure<{ error: string; code?: string; requestId?: string; details?: unknown }> {
   const info = extractApiErrorInfo(resBody, fallback);
-  return fail(status, { error: info.message, code: info.code, requestId: info.requestId });
+  const body = typeof resBody === "object" && resBody !== null ? resBody : {};
+  const details = "details" in body ? (body as { details: unknown }).details : undefined;
+  return fail(status, { error: info.message, code: info.code, requestId: info.requestId, details });
 }
 
 export function authHeaders(sessionToken: string): { Cookie: string } {

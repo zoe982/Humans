@@ -9,6 +9,7 @@ import {
   deletePhoneNumber,
   listPhoneNumbersForEntity,
 } from "../../../src/services/phone-numbers";
+import { AppError } from "../../../src/lib/errors";
 import * as schema from "@humans/db/schema";
 
 function now() {
@@ -328,6 +329,83 @@ describe("createPhoneNumber", () => {
 
     expect(result.hasWhatsapp).toBe(true);
     expect(result.isPrimary).toBe(true);
+  });
+});
+
+describe("createPhoneNumber — duplicate detection", () => {
+  it("throws 409 when creating phone with same normalized number", async () => {
+    const db = getTestDb();
+    await seedHuman(db, "h-1", "John", "Doe");
+    await seedHuman(db, "h-2", "Jane", "Smith");
+    await seedPhone(db, "ph-1", "+15551234567", { humanId: "h-1" });
+
+    await expect(
+      createPhoneNumber(db, { humanId: "h-2", phoneNumber: "+15551234567" }),
+    ).rejects.toThrowError("A phone number with this number already exists");
+  });
+
+  it("normalizes phone before duplicate check (strips formatting)", async () => {
+    const db = getTestDb();
+    await seedHuman(db, "h-1", "John", "Doe");
+    await seedHuman(db, "h-2", "Jane", "Smith");
+    await seedPhone(db, "ph-1", "+15551234567", { humanId: "h-1" });
+
+    await expect(
+      createPhoneNumber(db, { humanId: "h-2", phoneNumber: "+1 (555) 123-4567" }),
+    ).rejects.toThrowError("A phone number with this number already exists");
+  });
+
+  it("stores normalized phone value", async () => {
+    const db = getTestDb();
+    await seedHuman(db, "h-1", "John", "Doe");
+
+    const result = await createPhoneNumber(db, { humanId: "h-1", phoneNumber: "+1 (555) 999-8888" });
+
+    expect(result.phoneNumber).toBe("+15559998888");
+  });
+
+  it("includes existingId and existingOwners in 409 details", async () => {
+    const db = getTestDb();
+    await seedHuman(db, "h-1", "John", "Doe");
+    await seedPhone(db, "ph-1", "+15551234567", { humanId: "h-1" });
+
+    try {
+      await createPhoneNumber(db, { phoneNumber: "+15551234567" });
+      expect.unreachable("Should have thrown");
+    } catch (err) {
+      expect(err).toBeInstanceOf(AppError);
+      const appErr = err as AppError;
+      expect(appErr.status).toBe(409);
+      expect(appErr.code).toBe("PHONE_DUPLICATE");
+      const details = appErr.details as { existingId: string; existingDisplayId: string; existingOwners: unknown[] };
+      expect(details.existingId).toBe("ph-1");
+      expect(details.existingDisplayId).toMatch(/^FON-/);
+      expect(details.existingOwners).toEqual([
+        expect.objectContaining({ type: "human", id: "h-1", name: "John Doe" }),
+      ]);
+    }
+  });
+});
+
+describe("updatePhoneNumber — duplicate detection", () => {
+  it("throws 409 when updating to a duplicate phone number", async () => {
+    const db = getTestDb();
+    await seedHuman(db, "h-1", "John", "Doe");
+    await seedPhone(db, "ph-1", "+15551234567", { humanId: "h-1" });
+    await seedPhone(db, "ph-2", "+15559999999", { humanId: "h-1" });
+
+    await expect(
+      updatePhoneNumber(db, "ph-2", { phoneNumber: "+15551234567" }),
+    ).rejects.toThrowError("A phone number with this number already exists");
+  });
+
+  it("allows updating to the same value (self-update)", async () => {
+    const db = getTestDb();
+    await seedHuman(db, "h-1", "John", "Doe");
+    await seedPhone(db, "ph-1", "+15551234567", { humanId: "h-1" });
+
+    const result = await updatePhoneNumber(db, "ph-1", { phoneNumber: "+15551234567" });
+    expect(result!.phoneNumber).toBe("+15551234567");
   });
 });
 

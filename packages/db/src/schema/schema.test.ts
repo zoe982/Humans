@@ -235,9 +235,9 @@ describe("table indexes", () => {
     expect(config.indexes.length).toBe(2);
   });
 
-  it("websites table has 2 indexes", () => {
+  it("websites table has 3 indexes", () => {
     const config = getTableConfig(websites);
-    expect(config.indexes.length).toBe(2);
+    expect(config.indexes.length).toBe(3);
   });
 });
 

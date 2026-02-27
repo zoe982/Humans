@@ -35,4 +35,11 @@ describe("shared/index re-exports", () => {
     expect(shared.ERROR_CODES).toBeDefined();
     expect(shared.ERROR_CODES.AUTH_REQUIRED).toBe("AUTH_REQUIRED");
   });
+
+  it("re-exports normalize functions", () => {
+    expect(shared.normalizeEmail).toBeDefined();
+    expect(shared.normalizePhone).toBeDefined();
+    expect(shared.normalizeUrl).toBeDefined();
+    expect(shared.normalizeSocialHandle).toBeDefined();
+  });
 });

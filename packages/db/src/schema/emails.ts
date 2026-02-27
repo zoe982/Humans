@@ -1,4 +1,4 @@
-import { sqliteTable, text, integer, index } from "drizzle-orm/sqlite-core";
+import { sqliteTable, text, integer, index, uniqueIndex } from "drizzle-orm/sqlite-core";
 
 export const emails = sqliteTable(
   "emails",
@@ -16,6 +16,7 @@ export const emails = sqliteTable(
     createdAt: text("created_at").notNull(),
   },
   (table) => [
+    uniqueIndex("emails_email_unique").on(table.email),
     index("emails_human_id_idx").on(table.humanId),
     index("emails_account_id_idx").on(table.accountId),
     index("emails_general_lead_id_idx").on(table.generalLeadId),

@@ -3,3 +3,4 @@ export * from "./constants";
 export * from "./countries";
 export * from "./country-phone-codes";
 export * from "./error-codes";
+export * from "./normalize";

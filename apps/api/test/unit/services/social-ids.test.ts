@@ -7,6 +7,7 @@ import {
   updateSocialId,
   deleteSocialId,
 } from "../../../src/services/social-ids";
+import { AppError } from "../../../src/lib/errors";
 import * as schema from "@humans/db/schema";
 
 function now() {
@@ -327,6 +328,70 @@ describe("createSocialId", () => {
     expect(result.platformId).toBe("plat-1");
   });
 
+  it("throws 409 when creating social ID with same platform + handle", async () => {
+    const db = getTestDb();
+    await seedHuman(db, "h-1", "John", "Doe");
+    await seedPlatform(db, "plat-1", "Instagram");
+    await seedSocialId(db, "soc-1", "@johndoe", { humanId: "h-1", platformId: "plat-1" });
+
+    await expect(
+      createSocialId(db, { handle: "@johndoe", platformId: "plat-1" }),
+    ).rejects.toThrowError("A social ID with this platform and handle already exists");
+  });
+
+  it("allows same handle on different platforms", async () => {
+    const db = getTestDb();
+    await seedPlatform(db, "plat-1", "Instagram");
+    await seedPlatform(db, "plat-2", "Twitter");
+    await seedSocialId(db, "soc-1", "@johndoe", { platformId: "plat-1" });
+
+    const result = await createSocialId(db, { handle: "@johndoe", platformId: "plat-2" });
+    expect(result.handle).toBe("@johndoe");
+    expect(result.platformId).toBe("plat-2");
+  });
+
+  it("trims handle whitespace before duplicate check", async () => {
+    const db = getTestDb();
+    await seedPlatform(db, "plat-1", "Instagram");
+    await seedSocialId(db, "soc-1", "@johndoe", { platformId: "plat-1" });
+
+    await expect(
+      createSocialId(db, { handle: "  @johndoe  ", platformId: "plat-1" }),
+    ).rejects.toThrowError("A social ID with this platform and handle already exists");
+  });
+
+  it("includes existingId and existingOwners in 409 details", async () => {
+    const db = getTestDb();
+    await seedHuman(db, "h-1", "John", "Doe");
+    await seedPlatform(db, "plat-1", "Instagram");
+    await seedSocialId(db, "soc-1", "@johndoe", { humanId: "h-1", platformId: "plat-1" });
+
+    try {
+      await createSocialId(db, { handle: "@johndoe", platformId: "plat-1" });
+      expect.unreachable("Should have thrown");
+    } catch (err) {
+      expect(err).toBeInstanceOf(AppError);
+      const appErr = err as AppError;
+      expect(appErr.status).toBe(409);
+      expect(appErr.code).toBe("SOCIAL_ID_DUPLICATE");
+      const details = appErr.details as { existingId: string; existingDisplayId: string; existingOwners: unknown[] };
+      expect(details.existingId).toBe("soc-1");
+      expect(details.existingDisplayId).toMatch(/^SOC-/);
+      expect(details.existingOwners).toEqual([
+        expect.objectContaining({ type: "human", id: "h-1", name: "John Doe" }),
+      ]);
+    }
+  });
+
+  it("treats null platform as its own namespace for duplicates", async () => {
+    const db = getTestDb();
+    await seedSocialId(db, "soc-1", "@johndoe"); // null platform
+
+    await expect(
+      createSocialId(db, { handle: "@johndoe" }), // null platform
+    ).rejects.toThrowError("A social ID with this platform and handle already exists");
+  });
+
   it("uses null for undefined optional fields", async () => {
     const db = getTestDb();
     const result = await createSocialId(db, {
@@ -345,6 +410,28 @@ describe("createSocialId", () => {
 // ---------------------------------------------------------------------------
 // updateSocialId
 // ---------------------------------------------------------------------------
+
+describe("updateSocialId — duplicate detection", () => {
+  it("throws 409 when updating handle to match existing on same platform", async () => {
+    const db = getTestDb();
+    await seedPlatform(db, "plat-1", "Instagram");
+    await seedSocialId(db, "soc-1", "@johndoe", { platformId: "plat-1" });
+    await seedSocialId(db, "soc-2", "@janedoe", { platformId: "plat-1" });
+
+    await expect(
+      updateSocialId(db, "soc-2", { handle: "@johndoe" }),
+    ).rejects.toThrowError("A social ID with this platform and handle already exists");
+  });
+
+  it("allows updating to the same handle (self-update)", async () => {
+    const db = getTestDb();
+    await seedPlatform(db, "plat-1", "Instagram");
+    await seedSocialId(db, "soc-1", "@johndoe", { platformId: "plat-1" });
+
+    const result = await updateSocialId(db, "soc-1", { handle: "@johndoe" });
+    expect(result!.handle).toBe("@johndoe");
+  });
+});
 
 describe("updateSocialId", () => {
   it("throws notFound for missing social ID", async () => {

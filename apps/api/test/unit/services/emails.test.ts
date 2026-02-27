@@ -8,6 +8,7 @@ import {
   deleteEmail,
   listEmailsForEntity,
 } from "../../../src/services/emails";
+import { AppError } from "../../../src/lib/errors";
 import * as schema from "@humans/db/schema";
 
 function now() {
@@ -349,6 +350,83 @@ describe("createEmail", () => {
     });
 
     expect(result.isPrimary).toBe(true);
+  });
+});
+
+describe("createEmail — duplicate detection", () => {
+  it("throws 409 when creating email with same normalized address", async () => {
+    const db = getTestDb();
+    await seedHuman(db, "h-1", "John", "Doe");
+    await seedHuman(db, "h-2", "Jane", "Smith");
+    await seedEmail(db, "em-1", "john@example.com", { humanId: "h-1" });
+
+    await expect(
+      createEmail(db, { humanId: "h-2", email: "john@example.com" }),
+    ).rejects.toThrowError("An email with this address already exists");
+  });
+
+  it("normalizes email before duplicate check (case-insensitive)", async () => {
+    const db = getTestDb();
+    await seedHuman(db, "h-1", "John", "Doe");
+    await seedHuman(db, "h-2", "Jane", "Smith");
+    await seedEmail(db, "em-1", "john@example.com", { humanId: "h-1" });
+
+    await expect(
+      createEmail(db, { humanId: "h-2", email: "  JOHN@EXAMPLE.COM  " }),
+    ).rejects.toThrowError("An email with this address already exists");
+  });
+
+  it("stores normalized email value", async () => {
+    const db = getTestDb();
+    await seedHuman(db, "h-1", "John", "Doe");
+
+    const result = await createEmail(db, { humanId: "h-1", email: "  Alice@EXAMPLE.COM  " });
+
+    expect(result.email).toBe("alice@example.com");
+  });
+
+  it("includes existingId and existingOwners in 409 details", async () => {
+    const db = getTestDb();
+    await seedHuman(db, "h-1", "John", "Doe");
+    await seedEmail(db, "em-1", "john@example.com", { humanId: "h-1" });
+
+    try {
+      await createEmail(db, { email: "john@example.com" });
+      expect.unreachable("Should have thrown");
+    } catch (err) {
+      expect(err).toBeInstanceOf(AppError);
+      const appErr = err as AppError;
+      expect(appErr.status).toBe(409);
+      expect(appErr.code).toBe("EMAIL_DUPLICATE");
+      const details = appErr.details as { existingId: string; existingDisplayId: string; existingOwners: unknown[] };
+      expect(details.existingId).toBe("em-1");
+      expect(details.existingDisplayId).toMatch(/^EML-/);
+      expect(details.existingOwners).toEqual([
+        expect.objectContaining({ type: "human", id: "h-1", name: "John Doe" }),
+      ]);
+    }
+  });
+});
+
+describe("updateEmail — duplicate detection", () => {
+  it("throws 409 when updating to a duplicate email address", async () => {
+    const db = getTestDb();
+    await seedHuman(db, "h-1", "John", "Doe");
+    await seedEmail(db, "em-1", "john@example.com", { humanId: "h-1" });
+    await seedEmail(db, "em-2", "other@example.com", { humanId: "h-1" });
+
+    await expect(
+      updateEmail(db, "em-2", { email: "john@example.com" }),
+    ).rejects.toThrowError("An email with this address already exists");
+  });
+
+  it("allows updating to the same value (self-update)", async () => {
+    const db = getTestDb();
+    await seedHuman(db, "h-1", "John", "Doe");
+    await seedEmail(db, "em-1", "john@example.com", { humanId: "h-1" });
+
+    const result = await updateEmail(db, "em-1", { email: "john@example.com" });
+    expect(result!.email).toBe("john@example.com");
   });
 });
 

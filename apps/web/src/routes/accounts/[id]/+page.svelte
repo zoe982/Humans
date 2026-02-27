@@ -6,6 +6,7 @@
   import RelatedListTable from "$lib/components/RelatedListTable.svelte";
   import ActivityConversationView from "$lib/components/ActivityConversationView.svelte";
   import AlertBanner from "$lib/components/AlertBanner.svelte";
+  import DuplicateContactBanner from "$lib/components/DuplicateContactBanner.svelte";
   import PhoneInput from "$lib/components/PhoneInput.svelte";
   import SaveIndicator from "$lib/components/SaveIndicator.svelte";
   import { toast } from "svelte-sonner";
@@ -110,6 +111,8 @@
   let loadError = $state<string | null>(null);
   let loadErrorDetail = $state<string | null>(null);
   let formError = $state<string | null>(null);
+  let formCode = $state<string | null>(null);
+  let formDetails = $state<unknown>(null);
 
   const humanOptions = $derived(allHumans.map((h) => ({ value: h.id, label: `${h.firstName} ${h.lastName}` })));
   const emailLabelOptions = $derived(emailLabelConfigs.map((l) => ({ value: l.id, label: l.name })));
@@ -258,11 +261,16 @@
   // Form enhance handler — prevents default SSR invalidation, refreshes client-side instead
   const formEnhance: SubmitFunction = () => {
     formError = null;
+    formCode = null;
+    formDetails = null;
     return async ({ result }) => {
       if (result.type === "success") {
         await loadData();
       } else if (result.type === "failure") {
-        formError = (result.data as { error?: string } | null)?.error ?? "An error occurred";
+        const data = result.data as { error?: string; code?: string; details?: unknown } | null;
+        formError = data?.error ?? "An error occurred";
+        formCode = data?.code ?? null;
+        formDetails = data?.details ?? null;
       }
     };
   };
@@ -457,7 +465,17 @@
     <AlertBanner type="error" message={loadErrorDetail} />
   {/if}
   {#if formError}
-    <AlertBanner type="error" message={formError} />
+    {#if formCode?.endsWith("_DUPLICATE") && formDetails}
+      <DuplicateContactBanner
+        details={formDetails as { existingId: string; existingDisplayId: string; existingOwners: { type: string; id: string; displayId: string; name: string }[] }}
+        entityType={formCode === "EMAIL_DUPLICATE" ? "emails" : formCode === "PHONE_DUPLICATE" ? "phone-numbers" : formCode === "SOCIAL_ID_DUPLICATE" ? "social-ids" : "websites"}
+        parentType="account"
+        parentId={accountId}
+        parentField="accountId"
+      />
+    {:else}
+      <AlertBanner type="error" message={formError} />
+    {/if}
   {/if}
 
   <!-- Details (auto-save, no form submission) -->

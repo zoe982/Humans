@@ -1,9 +1,10 @@
-import { eq, inArray } from "drizzle-orm";
+import { eq, and, ne, inArray } from "drizzle-orm";
 import { websites, humans, accounts } from "@humans/db/schema";
 import { createId } from "@humans/db";
-import { ERROR_CODES } from "@humans/shared";
-import { notFound } from "../lib/errors";
+import { ERROR_CODES, normalizeUrl } from "@humans/shared";
+import { notFound, conflict } from "../lib/errors";
 import { nextDisplayId } from "../lib/display-id";
+import { resolveOwnerSummary } from "../lib/owner-summary";
 import type { DB } from "./types";
 
 export async function listWebsites(db: DB): Promise<{ humanName: string | null; humanDisplayId: string | null; accountName: string | null; accountDisplayId: string | null; id: string; displayId: string; url: string; humanId: string | null; accountId: string | null; createdAt: string }[]> {
@@ -68,13 +69,26 @@ export async function createWebsite(
     accountId?: string | null | undefined;
   },
 ): Promise<{ id: string; displayId: string; url: string; humanId: string | null; accountId: string | null; createdAt: string }> {
+  const normalized = normalizeUrl(data.url);
+
+  // Check for duplicates
+  const existing = await db.select().from(websites).where(eq(websites.url, normalized));
+  if (existing[0] != null) {
+    const existingOwners = await resolveOwnerSummary(db, { humanId: existing[0].humanId, accountId: existing[0].accountId, generalLeadId: null });
+    throw conflict(ERROR_CODES.WEBSITE_DUPLICATE, "A website with this URL already exists", {
+      existingId: existing[0].id,
+      existingDisplayId: existing[0].displayId,
+      existingOwners,
+    });
+  }
+
   const now = new Date().toISOString();
   const displayId = await nextDisplayId(db, "WEB");
 
   const record = {
     id: createId(),
     displayId,
-    url: data.url,
+    url: normalized,
     humanId: data.humanId ?? null,
     accountId: data.accountId ?? null,
     createdAt: now,
@@ -96,9 +110,25 @@ export async function updateWebsite(
     throw notFound(ERROR_CODES.WEBSITE_NOT_FOUND, "Website not found");
   }
 
+  // Normalize and check duplicates if url is being changed
+  const updates = { ...data };
+  if (typeof updates['url'] === "string") {
+    const normalized = normalizeUrl(updates['url']);
+    updates['url'] = normalized;
+    const dupes = await db.select().from(websites).where(and(eq(websites.url, normalized), ne(websites.id, id)));
+    if (dupes[0] != null) {
+      const existingOwners = await resolveOwnerSummary(db, { humanId: dupes[0].humanId, accountId: dupes[0].accountId, generalLeadId: null });
+      throw conflict(ERROR_CODES.WEBSITE_DUPLICATE, "A website with this URL already exists", {
+        existingId: dupes[0].id,
+        existingDisplayId: dupes[0].displayId,
+        existingOwners,
+      });
+    }
+  }
+
   await db
     .update(websites)
-    .set(data)
+    .set(updates)
     .where(eq(websites.id, id));
 
   const updated = await db.query.websites.findFirst({

@@ -1,9 +1,10 @@
-import { eq, inArray, like } from "drizzle-orm";
+import { eq, and, ne, inArray, like } from "drizzle-orm";
 import { phones, humans, accounts, generalLeads, humanPhoneLabelsConfig, accountPhoneLabelsConfig } from "@humans/db/schema";
 import { createId } from "@humans/db";
-import { ERROR_CODES } from "@humans/shared";
-import { notFound } from "../lib/errors";
+import { ERROR_CODES, normalizePhone } from "@humans/shared";
+import { notFound, conflict } from "../lib/errors";
 import { nextDisplayId } from "../lib/display-id";
+import { resolveOwnerSummary } from "../lib/owner-summary";
 import { rematchActivitiesByPhone } from "./activity-rematch";
 import type { DB } from "./types";
 
@@ -129,6 +130,19 @@ export async function createPhoneNumber(
     isPrimary?: boolean | undefined;
   },
 ): Promise<typeof phones.$inferSelect> {
+  const normalized = normalizePhone(data.phoneNumber);
+
+  // Check for duplicates
+  const existing = await db.select().from(phones).where(eq(phones.phoneNumber, normalized));
+  if (existing[0] != null) {
+    const existingOwners = await resolveOwnerSummary(db, existing[0]);
+    throw conflict(ERROR_CODES.PHONE_DUPLICATE, "A phone number with this number already exists", {
+      existingId: existing[0].id,
+      existingDisplayId: existing[0].displayId,
+      existingOwners,
+    });
+  }
+
   const now = new Date().toISOString();
   const displayId = await nextDisplayId(db, "FON");
 
@@ -140,7 +154,7 @@ export async function createPhoneNumber(
     generalLeadId: data.generalLeadId ?? null,
     websiteBookingRequestId: data.websiteBookingRequestId ?? null,
     routeSignupId: data.routeSignupId ?? null,
-    phoneNumber: data.phoneNumber,
+    phoneNumber: normalized,
     labelId: data.labelId ?? null,
     hasWhatsapp: data.hasWhatsapp ?? false,
     isPrimary: data.isPrimary ?? false,
@@ -169,9 +183,25 @@ export async function updatePhoneNumber(
     throw notFound(ERROR_CODES.PHONE_NUMBER_NOT_FOUND, "Phone number not found");
   }
 
+  // Normalize and check duplicates if phoneNumber is being changed
+  const updates = { ...data };
+  if (typeof updates['phoneNumber'] === "string") {
+    const normalized = normalizePhone(updates['phoneNumber']);
+    updates['phoneNumber'] = normalized;
+    const dupes = await db.select().from(phones).where(and(eq(phones.phoneNumber, normalized), ne(phones.id, id)));
+    if (dupes[0] != null) {
+      const existingOwners = await resolveOwnerSummary(db, dupes[0]);
+      throw conflict(ERROR_CODES.PHONE_DUPLICATE, "A phone number with this number already exists", {
+        existingId: dupes[0].id,
+        existingDisplayId: dupes[0].displayId,
+        existingOwners,
+      });
+    }
+  }
+
   await db
     .update(phones)
-    .set(data)
+    .set(updates)
     .where(eq(phones.id, id));
 
   const updated = await db.query.phones.findFirst({

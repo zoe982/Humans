@@ -1,9 +1,10 @@
-import { eq, inArray, like } from "drizzle-orm";
+import { eq, and, ne, inArray, like } from "drizzle-orm";
 import { emails, humans, accounts, generalLeads, humanEmailLabelsConfig, accountEmailLabelsConfig } from "@humans/db/schema";
 import { createId } from "@humans/db";
-import { ERROR_CODES } from "@humans/shared";
-import { notFound } from "../lib/errors";
+import { ERROR_CODES, normalizeEmail } from "@humans/shared";
+import { notFound, conflict } from "../lib/errors";
 import { nextDisplayId } from "../lib/display-id";
+import { resolveOwnerSummary } from "../lib/owner-summary";
 import { rematchActivitiesByEmail } from "./activity-rematch";
 import type { DB } from "./types";
 
@@ -119,9 +120,25 @@ export async function updateEmail(
     throw notFound(ERROR_CODES.EMAIL_NOT_FOUND, "Email not found");
   }
 
+  // Normalize and check duplicates if email is being changed
+  const updates = { ...data };
+  if (typeof updates['email'] === "string") {
+    const normalized = normalizeEmail(updates['email']);
+    updates['email'] = normalized;
+    const dupes = await db.select().from(emails).where(and(eq(emails.email, normalized), ne(emails.id, id)));
+    if (dupes[0] != null) {
+      const existingOwners = await resolveOwnerSummary(db, dupes[0]);
+      throw conflict(ERROR_CODES.EMAIL_DUPLICATE, "An email with this address already exists", {
+        existingId: dupes[0].id,
+        existingDisplayId: dupes[0].displayId,
+        existingOwners,
+      });
+    }
+  }
+
   await db
     .update(emails)
-    .set(data)
+    .set(updates)
     .where(eq(emails.id, id));
 
   const updated = await db.query.emails.findFirst({
@@ -143,6 +160,19 @@ export async function createEmail(
     isPrimary?: boolean | undefined;
   },
 ): Promise<typeof emails.$inferSelect> {
+  const normalized = normalizeEmail(data.email);
+
+  // Check for duplicates
+  const existing = await db.select().from(emails).where(eq(emails.email, normalized));
+  if (existing[0] != null) {
+    const existingOwners = await resolveOwnerSummary(db, existing[0]);
+    throw conflict(ERROR_CODES.EMAIL_DUPLICATE, "An email with this address already exists", {
+      existingId: existing[0].id,
+      existingDisplayId: existing[0].displayId,
+      existingOwners,
+    });
+  }
+
   const now = new Date().toISOString();
   const displayId = await nextDisplayId(db, "EML");
 
@@ -154,7 +184,7 @@ export async function createEmail(
     generalLeadId: data.generalLeadId ?? null,
     websiteBookingRequestId: data.websiteBookingRequestId ?? null,
     routeSignupId: data.routeSignupId ?? null,
-    email: data.email,
+    email: normalized,
     labelId: data.labelId ?? null,
     isPrimary: data.isPrimary ?? false,
     createdAt: now,

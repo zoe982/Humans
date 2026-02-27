@@ -227,7 +227,7 @@ export const actions = {
     return { success: true };
   },
 
-  addEmail: async ({ request, cookies, params }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
+  addEmail: async ({ request, cookies, params }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string; details?: unknown }> | { success: true }> => {
     const form = await request.formData();
     const sessionToken = cookies.get("humans_session");
     const id = params.id ?? "";
@@ -269,7 +269,7 @@ export const actions = {
     return { success: true };
   },
 
-  addPhoneNumber: async ({ request, cookies, params }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
+  addPhoneNumber: async ({ request, cookies, params }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string; details?: unknown }> | { success: true }> => {
     const form = await request.formData();
     const sessionToken = cookies.get("humans_session");
     const id = params.id ?? "";
@@ -311,7 +311,7 @@ export const actions = {
     return { success: true };
   },
 
-  addSocialId: async ({ request, cookies, params }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
+  addSocialId: async ({ request, cookies, params }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string; details?: unknown }> | { success: true }> => {
     const form = await request.formData();
     const sessionToken = cookies.get("humans_session");
     const id = params.id ?? "";

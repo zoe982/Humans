@@ -36,7 +36,7 @@ export const load = async ({ locals, cookies }: RequestEvent): Promise<{ allHuma
 };
 
 export const actions = {
-  create: async ({ request, cookies }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
+  create: async ({ request, cookies }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string; details?: unknown }> | { success: true }> => {
     const form = await request.formData();
     const sessionToken = cookies.get("humans_session");
 

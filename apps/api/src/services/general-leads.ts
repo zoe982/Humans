@@ -4,11 +4,11 @@ import type { GeneralLeadStatus } from "@humans/db/schema";
 import { createId } from "@humans/db";
 import { ERROR_CODES } from "@humans/shared";
 import { computeDiff, logAuditEntry } from "../lib/audit";
-import { notFound, badRequest, conflict } from "../lib/errors";
+import { AppError, notFound, badRequest, conflict } from "../lib/errors";
 import { nextDisplayId } from "../lib/display-id";
 import { completeNextAction } from "./entity-next-actions";
-import { createEmail } from "./emails";
-import { createPhoneNumber } from "./phone-numbers";
+import { createEmail, updateEmail } from "./emails";
+import { createPhoneNumber, updatePhoneNumber } from "./phone-numbers";
 import {
   frontFetch,
   classifyChannel,
@@ -25,6 +25,15 @@ const generalLeadStatusesSet = new Set<string>(generalLeadStatuses);
 
 function isGeneralLeadStatus(value: string): value is GeneralLeadStatus {
   return generalLeadStatusesSet.has(value);
+}
+
+function hasDuplicateDetails(d: unknown): d is { existingId: string } {
+  return (
+    d != null &&
+    typeof d === "object" &&
+    "existingId" in d &&
+    typeof (d as Record<string, unknown>)['existingId'] === "string"
+  );
 }
 
 function toGeneralLeadStatus(value: string): GeneralLeadStatus {
@@ -696,13 +705,25 @@ export async function importLeadFromFront(
   const activityType = classifyChannel(undefined, contactHandle, firstMsg?.type);
 
   if (contactHandle.includes("@")) {
-    await createEmail(db, { generalLeadId: lead.id, email: contactHandle });
+    try {
+      await createEmail(db, { generalLeadId: lead.id, email: contactHandle });
+    } catch (err) {
+      if (err instanceof AppError && err.code === ERROR_CODES.EMAIL_DUPLICATE && hasDuplicateDetails(err.details)) {
+        await updateEmail(db, err.details.existingId, { generalLeadId: lead.id });
+      } else throw err;
+    }
   } else if (/^\+?\d[\d\s-]{6,}$/.test(contactHandle)) {
-    await createPhoneNumber(db, {
-      generalLeadId: lead.id,
-      phoneNumber: contactHandle,
-      hasWhatsapp: activityType === "whatsapp_message",
-    });
+    try {
+      await createPhoneNumber(db, {
+        generalLeadId: lead.id,
+        phoneNumber: contactHandle,
+        hasWhatsapp: activityType === "whatsapp_message",
+      });
+    } catch (err) {
+      if (err instanceof AppError && err.code === ERROR_CODES.PHONE_DUPLICATE && hasDuplicateDetails(err.details)) {
+        await updatePhoneNumber(db, err.details.existingId, { generalLeadId: lead.id });
+      } else throw err;
+    }
   }
 
   // 9. Import activities

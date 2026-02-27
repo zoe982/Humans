@@ -351,6 +351,57 @@ describe("importLeadFromFront", () => {
     expect(result.contactHandle).toBe("user@example.com");
   });
 
+  it("links existing email when duplicate detected during import", async () => {
+    const db = getTestDb();
+    await seedColleague(db);
+
+    // Pre-seed an email on a different entity
+    const ts = now();
+    await db.insert(schema.humans).values({
+      id: "h-existing",
+      displayId: "HUM-AAA-001",
+      firstName: "Existing",
+      lastName: "Human",
+      status: "open",
+      createdAt: ts,
+      updatedAt: ts,
+    });
+    await db.insert(schema.emails).values({
+      id: "em-existing",
+      displayId: "EML-AAA-001",
+      email: "john@example.com",
+      humanId: "h-existing",
+      accountId: null,
+      generalLeadId: null,
+      websiteBookingRequestId: null,
+      routeSignupId: null,
+      labelId: null,
+      isPrimary: false,
+      createdAt: ts,
+    });
+
+    const conversation = buildConversation({
+      recipient: { handle: "john@example.com", name: "John Doe" },
+    });
+    const messages = [buildMessage({ id: "msg_1" })];
+
+    mockFrontFetch.mockResolvedValueOnce(conversation);
+    mockFrontFetch.mockResolvedValueOnce(buildPaginatedResponse(messages));
+
+    const result = await importLeadFromFront(db, "cnv_test1", "fake-token", "col-1");
+
+    // Lead should still be created
+    expect(result.lead.displayId).toMatch(/^LEA-/);
+
+    // Email should now also be linked to the general lead
+    const emailRows = await db.select().from(schema.emails);
+    expect(emailRows).toHaveLength(1);
+    expect(emailRows[0]!.id).toBe("em-existing");
+    expect(emailRows[0]!.generalLeadId).toBe(result.lead.id);
+    // Should still keep original human link
+    expect(emailRows[0]!.humanId).toBe("h-existing");
+  });
+
   it("uses onConflictDoNothing for duplicate activity frontIds", async () => {
     const db = getTestDb();
     await seedColleague(db);

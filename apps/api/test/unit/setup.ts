@@ -80,6 +80,7 @@ const MIGRATION_STATEMENTS = [
     \`last_name\` text NOT NULL DEFAULT '',
     \`notes\` text,
     \`reject_reason\` text,
+    \`loss_reason\` text,
     \`converted_human_id\` text REFERENCES \`humans\`(\`id\`),
     \`owner_id\` text REFERENCES \`colleagues\`(\`id\`),
     \`front_conversation_id\` text,
@@ -155,6 +156,11 @@ const MIGRATION_STATEMENTS = [
   `CREATE TABLE IF NOT EXISTS \`lead_channels_config\` (
     \`id\` text PRIMARY KEY NOT NULL,
     \`name\` text NOT NULL UNIQUE,
+    \`created_at\` text NOT NULL
+  )`,
+  `CREATE TABLE IF NOT EXISTS \`loss_reasons_config\` (
+    \`id\` text PRIMARY KEY NOT NULL,
+    \`name\` text NOT NULL,
     \`created_at\` text NOT NULL
   )`,
   `CREATE TABLE IF NOT EXISTS \`opportunity_stage_cadence_config\` (
@@ -587,6 +593,11 @@ const MIGRATION_STATEMENTS = [
   `CREATE INDEX IF NOT EXISTS \`documents_key_idx\` ON \`documents\` (\`key\`)`,
   `CREATE UNIQUE INDEX IF NOT EXISTS \`activities_front_id_unique\` ON \`activities\` (\`front_id\`) WHERE \`front_id\` IS NOT NULL`,
   `CREATE UNIQUE INDEX IF NOT EXISTS \`general_leads_front_conversation_id_unique\` ON \`general_leads\` (\`front_conversation_id\`) WHERE \`front_conversation_id\` IS NOT NULL`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS \`loss_reasons_config_name_unique\` ON \`loss_reasons_config\` (\`name\`)`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS \`emails_email_unique\` ON \`emails\` (\`email\`)`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS \`phones_phone_number_unique\` ON \`phones\` (\`phone_number\`)`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS \`social_ids_platform_handle_unique\` ON \`social_ids\` (COALESCE(\`platform_id\`, '__no_platform__'), \`handle\`)`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS \`websites_url_unique\` ON \`websites\` (\`url\`)`,
 ];
 
 // Clean tables in FK-safe order (children first)
@@ -633,6 +644,7 @@ const CLEANUP_TABLES = [
   "agreement_types_config",
   "email_labels_config",
   "phone_labels_config",
+  "loss_reasons_config",
   "display_id_counters",
   "opportunity_human_roles_config",
   "opportunity_stage_cadence_config",

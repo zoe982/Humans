@@ -7,6 +7,7 @@ import {
   updateWebsite,
   deleteWebsite,
 } from "../../../src/services/websites";
+import { AppError } from "../../../src/lib/errors";
 import * as schema from "@humans/db/schema";
 
 function now() {
@@ -222,7 +223,7 @@ describe("createWebsite", () => {
     const result = await createWebsite(db, { url: "https://new.com" });
 
     expect(result.id).toBeDefined();
-    expect(result.url).toBe("https://new.com");
+    expect(result.url).toBe("new.com");
     expect(result.displayId).toMatch(/^WEB-/);
     expect(result.humanId).toBeNull();
     expect(result.accountId).toBeNull();
@@ -230,7 +231,7 @@ describe("createWebsite", () => {
 
     const rows = await db.select().from(schema.websites);
     expect(rows).toHaveLength(1);
-    expect(rows[0]!.url).toBe("https://new.com");
+    expect(rows[0]!.url).toBe("new.com");
   });
 
   it("creates a website linked to a human", async () => {
@@ -284,6 +285,67 @@ describe("createWebsite", () => {
   });
 });
 
+describe("createWebsite — duplicate detection", () => {
+  it("throws 409 when creating website with same normalized URL", async () => {
+    const db = getTestDb();
+    await seedHuman(db, "h-1", "John", "Doe");
+    await seedWebsite(db, "web-1", "example.com", { humanId: "h-1" });
+
+    await expect(
+      createWebsite(db, { url: "https://www.Example.COM/" }),
+    ).rejects.toThrowError("A website with this URL already exists");
+  });
+
+  it("stores normalized URL value", async () => {
+    const db = getTestDb();
+    const result = await createWebsite(db, { url: "HTTPS://WWW.Example.COM/path/" });
+
+    expect(result.url).toBe("example.com/path");
+  });
+
+  it("includes existingId and existingOwners in 409 details", async () => {
+    const db = getTestDb();
+    await seedHuman(db, "h-1", "John", "Doe");
+    await seedWebsite(db, "web-1", "example.com", { humanId: "h-1" });
+
+    try {
+      await createWebsite(db, { url: "https://example.com" });
+      expect.unreachable("Should have thrown");
+    } catch (err) {
+      expect(err).toBeInstanceOf(AppError);
+      const appErr = err as AppError;
+      expect(appErr.status).toBe(409);
+      expect(appErr.code).toBe("WEBSITE_DUPLICATE");
+      const details = appErr.details as { existingId: string; existingDisplayId: string; existingOwners: unknown[] };
+      expect(details.existingId).toBe("web-1");
+      expect(details.existingDisplayId).toMatch(/^WEB-/);
+      expect(details.existingOwners).toEqual([
+        expect.objectContaining({ type: "human", id: "h-1", name: "John Doe" }),
+      ]);
+    }
+  });
+});
+
+describe("updateWebsite — duplicate detection", () => {
+  it("throws 409 when updating to a duplicate URL", async () => {
+    const db = getTestDb();
+    await seedWebsite(db, "web-1", "example.com");
+    await seedWebsite(db, "web-2", "other.com");
+
+    await expect(
+      updateWebsite(db, "web-2", { url: "https://example.com" }),
+    ).rejects.toThrowError("A website with this URL already exists");
+  });
+
+  it("allows updating to the same URL (self-update)", async () => {
+    const db = getTestDb();
+    await seedWebsite(db, "web-1", "example.com");
+
+    const result = await updateWebsite(db, "web-1", { url: "https://example.com" });
+    expect(result!.url).toBe("example.com");
+  });
+});
+
 // ---------------------------------------------------------------------------
 // updateWebsite
 // ---------------------------------------------------------------------------
@@ -298,10 +360,10 @@ describe("updateWebsite", () => {
 
   it("updates the URL field", async () => {
     const db = getTestDb();
-    await seedWebsite(db, "web-1", "https://old.com");
+    await seedWebsite(db, "web-1", "old.com");
 
     const result = await updateWebsite(db, "web-1", { url: "https://new.com" });
-    expect(result!.url).toBe("https://new.com");
+    expect(result!.url).toBe("new.com");
   });
 
   it("updates humanId to link a human", async () => {
@@ -324,25 +386,25 @@ describe("updateWebsite", () => {
 
   it("persists updated values in the database", async () => {
     const db = getTestDb();
-    await seedWebsite(db, "web-1", "https://before.com");
+    await seedWebsite(db, "web-1", "before.com");
 
     await updateWebsite(db, "web-1", { url: "https://after.com" });
 
     const rows = await db.select().from(schema.websites);
     expect(rows).toHaveLength(1);
-    expect(rows[0]!.url).toBe("https://after.com");
+    expect(rows[0]!.url).toBe("after.com");
   });
 
   it("does not affect other websites when updating one", async () => {
     const db = getTestDb();
-    await seedWebsite(db, "web-1", "https://one.com");
-    await seedWebsite(db, "web-2", "https://two.com");
+    await seedWebsite(db, "web-1", "one.com");
+    await seedWebsite(db, "web-2", "two.com");
 
     await updateWebsite(db, "web-1", { url: "https://updated-one.com" });
 
     const rows = await db.select().from(schema.websites);
     const two = rows.find((r) => r.id === "web-2");
-    expect(two!.url).toBe("https://two.com");
+    expect(two!.url).toBe("two.com");
   });
 });
 
