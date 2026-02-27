@@ -1,9 +1,11 @@
 import { describe, it, expect } from "vitest";
 import {
   generalLeadStatuses,
+  generalLeadStages,
   createGeneralLeadSchema,
   updateGeneralLeadSchema,
   updateGeneralLeadStatusSchema,
+  updateGeneralLeadStageSchema,
   convertGeneralLeadSchema,
   importFromFrontSchema,
 } from "./general-leads";
@@ -258,5 +260,49 @@ describe("importFromFrontSchema", () => {
 
   it("rejects frontId over 100 chars", () => {
     expect(() => importFromFrontSchema.parse({ frontId: "a".repeat(101) })).toThrowError();
+  });
+});
+
+describe("generalLeadStages", () => {
+  it("contains all expected stages", () => {
+    expect(generalLeadStages).toContain("open");
+    expect(generalLeadStages).toContain("pending_response");
+    expect(generalLeadStages).toContain("qualified");
+    expect(generalLeadStages).toContain("closed_lost");
+    expect(generalLeadStages).toContain("closed_converted");
+  });
+
+  it("has exactly 5 stages", () => {
+    expect(generalLeadStages).toHaveLength(5);
+  });
+});
+
+describe("updateGeneralLeadStageSchema", () => {
+  it("accepts valid stage open", () => {
+    const result = updateGeneralLeadStageSchema.parse({ stage: "open" });
+    expect(result.stage).toBe("open");
+  });
+
+  it("accepts pending_response stage", () => {
+    const result = updateGeneralLeadStageSchema.parse({ stage: "pending_response" });
+    expect(result.stage).toBe("pending_response");
+  });
+
+  it("accepts closed_lost stage", () => {
+    const result = updateGeneralLeadStageSchema.parse({ stage: "closed_lost" });
+    expect(result.stage).toBe("closed_lost");
+  });
+
+  it("accepts closed_converted stage", () => {
+    const result = updateGeneralLeadStageSchema.parse({ stage: "closed_converted" });
+    expect(result.stage).toBe("closed_converted");
+  });
+
+  it("rejects invalid stage", () => {
+    expect(() => updateGeneralLeadStageSchema.parse({ stage: "invalid" })).toThrowError();
+  });
+
+  it("rejects missing stage", () => {
+    expect(() => updateGeneralLeadStageSchema.parse({})).toThrowError();
   });
 });

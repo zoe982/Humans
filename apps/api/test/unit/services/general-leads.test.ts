@@ -6,6 +6,7 @@ import {
   createGeneralLead,
   updateGeneralLead,
   updateGeneralLeadStatus,
+  updateGeneralLeadStage,
   convertGeneralLead,
   deleteGeneralLead,
 } from "../../../src/services/general-leads";
@@ -522,7 +523,7 @@ describe("updateGeneralLeadStatus", () => {
 
     await expect(
       updateGeneralLeadStatus(db, "lead-1", { status: "closed_converted" }, "col-1"),
-    ).rejects.toThrowError("Use the convert endpoint to set closed_converted status");
+    ).rejects.toThrowError("Use the convert endpoint to close as converted");
   });
 
   it("writes an audit log entry on status change", async () => {
@@ -694,3 +695,126 @@ describe("deleteGeneralLead", () => {
     expect(actOther!.generalLeadId).toBe("lead-2");
   });
 });
+
+// ─── updateGeneralLeadStage ──────────────────────────────────────────────────
+
+describe("updateGeneralLeadStage", () => {
+  it("throws notFound for missing lead", async () => {
+    const db = getTestDb();
+    await expect(
+      updateGeneralLeadStage(db, "nonexistent", { stage: "qualified" }, "col-1"),
+    ).rejects.toThrowError("General lead not found");
+  });
+
+  it("updates stage from open to pending_response", async () => {
+    const db = getTestDb();
+    const colId = await seedColleague(db, "col-1");
+    await seedLead(db, "lead-1");
+
+    const result = await updateGeneralLeadStage(db, "lead-1", { stage: "pending_response" }, colId);
+    expect(result.data?.stage).toBe("pending_response");
+  });
+
+  it("updates stage from open to qualified", async () => {
+    const db = getTestDb();
+    const colId = await seedColleague(db, "col-1");
+    await seedLead(db, "lead-1");
+
+    const result = await updateGeneralLeadStage(db, "lead-1", { stage: "qualified" }, colId);
+    expect(result.data?.stage).toBe("qualified");
+  });
+
+  it("updates stage to closed_lost", async () => {
+    const db = getTestDb();
+    const colId = await seedColleague(db, "col-1");
+    await seedLead(db, "lead-1");
+
+    const result = await updateGeneralLeadStage(db, "lead-1", { stage: "closed_lost" }, colId);
+    expect(result.data?.stage).toBe("closed_lost");
+  });
+
+  it("updates stage to closed_converted", async () => {
+    const db = getTestDb();
+    const colId = await seedColleague(db, "col-1");
+    await seedLead(db, "lead-1");
+
+    const result = await updateGeneralLeadStage(db, "lead-1", { stage: "closed_converted" }, colId);
+    expect(result.data?.stage).toBe("closed_converted");
+  });
+
+  it("rejects invalid stage value", async () => {
+    const db = getTestDb();
+    const colId = await seedColleague(db, "col-1");
+    await seedLead(db, "lead-1");
+
+    await expect(
+      updateGeneralLeadStage(db, "lead-1", { stage: "invalid_stage" }, colId),
+    ).rejects.toThrowError("Invalid stage value");
+  });
+
+  it("creates audit log entry on stage change", async () => {
+    const db = getTestDb();
+    const colId = await seedColleague(db, "col-1");
+    await seedLead(db, "lead-1");
+
+    await updateGeneralLeadStage(db, "lead-1", { stage: "qualified" }, colId);
+
+    const auditRows = await db.select().from(schema.auditLog);
+    const stageEntry = auditRows.find(
+      (row) => row.entityId === "lead-1" && row.action === "STAGE_CHANGE",
+    );
+    expect(stageEntry).toBeDefined();
+  });
+
+  it("does not create audit log when stage is unchanged", async () => {
+    const db = getTestDb();
+    const colId = await seedColleague(db, "col-1");
+    await seedLead(db, "lead-1");
+
+    await updateGeneralLeadStage(db, "lead-1", { stage: "open" }, colId);
+
+    const auditRows = await db.select().from(schema.auditLog);
+    const stageEntries = auditRows.filter(
+      (row) => row.entityId === "lead-1" && row.action === "STAGE_CHANGE",
+    );
+    expect(stageEntries).toHaveLength(0);
+  });
+});
+
+// ─── createGeneralLead stage default ──────────────────────────────────────────
+
+describe("createGeneralLead stage default", () => {
+  it("defaults stage to open on creation", async () => {
+    const db = getTestDb();
+    const colId = await seedColleague(db, "col-1");
+
+    const result = await createGeneralLead(db, { firstName: "New", lastName: "Lead" }, colId);
+    const lead = await getGeneralLead(db, result.id);
+    expect(lead.stage).toBe("open");
+  });
+});
+
+// ─── getGeneralLead returns stage ──────────────────────────────────────────
+
+describe("getGeneralLead returns stage", () => {
+  it("includes stage in the response", async () => {
+    const db = getTestDb();
+    await seedLead(db, "lead-1");
+
+    const lead = await getGeneralLead(db, "lead-1");
+    expect(lead.stage).toBe("open");
+  });
+});
+
+// ─── listGeneralLeads returns stage ──────────────────────────────────────────
+
+describe("listGeneralLeads returns stage", () => {
+  it("includes stage in list items", async () => {
+    const db = getTestDb();
+    await seedLead(db, "lead-1");
+
+    const result = await listGeneralLeads(db, 1, 25, {});
+    expect(result.data[0]?.stage).toBe("open");
+  });
+});
+

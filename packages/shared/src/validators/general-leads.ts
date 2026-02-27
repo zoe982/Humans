@@ -10,6 +10,15 @@ export const generalLeadStatuses = [
 
 export type GeneralLeadStatus = (typeof generalLeadStatuses)[number];
 
+export const generalLeadStages = [
+  "open",
+  "pending_response",
+  "qualified",
+  "closed_lost",
+  "closed_converted",
+] as const;
+export type GeneralLeadStage = (typeof generalLeadStages)[number];
+
 export const createGeneralLeadSchema = z.object({
   firstName: z.string().min(1).max(255),
   middleName: z.string().max(255).optional(),
@@ -43,6 +52,11 @@ export const updateGeneralLeadStatusSchema = z
       });
     }
   });
+
+export const updateGeneralLeadStageSchema = z.object({
+  stage: z.enum(generalLeadStages),
+});
+export type UpdateGeneralLeadStageInput = z.infer<typeof updateGeneralLeadStageSchema>;
 
 export const convertGeneralLeadSchema = z.object({
   humanId: z.string(),

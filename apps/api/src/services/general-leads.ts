@@ -1,6 +1,6 @@
 import { eq, sql, like, or, and, desc, asc } from "drizzle-orm";
-import { generalLeads, generalLeadStatuses, activities, colleagues, humans, emails, phones, socialIds, socialIdPlatformsConfig, leadScores } from "@humans/db/schema";
-import type { GeneralLeadStatus } from "@humans/db/schema";
+import { generalLeads, generalLeadStatuses, generalLeadStages, activities, colleagues, humans, emails, phones, socialIds, socialIdPlatformsConfig, leadScores } from "@humans/db/schema";
+import type { GeneralLeadStatus, GeneralLeadStage } from "@humans/db/schema";
 import { createId } from "@humans/db";
 import { ERROR_CODES } from "@humans/shared";
 import { computeDiff, logAuditEntry } from "../lib/audit";
@@ -25,6 +25,12 @@ const generalLeadStatusesSet = new Set<string>(generalLeadStatuses);
 
 function isGeneralLeadStatus(value: string): value is GeneralLeadStatus {
   return generalLeadStatusesSet.has(value);
+}
+
+const generalLeadStagesSet = new Set<string>(generalLeadStages);
+
+function isGeneralLeadStage(value: string): value is GeneralLeadStage {
+  return generalLeadStagesSet.has(value);
 }
 
 function hasDuplicateDetails(d: unknown): d is { existingId: string } {
@@ -75,6 +81,7 @@ export async function listGeneralLeads(
       id: generalLeads.id,
       displayId: generalLeads.displayId,
       status: generalLeads.status,
+      stage: generalLeads.stage,
       firstName: generalLeads.firstName,
       middleName: generalLeads.middleName,
       lastName: generalLeads.lastName,
@@ -125,6 +132,7 @@ export async function getGeneralLead(db: DB, id: string): Promise<{ convertedHum
       id: generalLeads.id,
       displayId: generalLeads.displayId,
       status: generalLeads.status,
+      stage: generalLeads.stage,
       firstName: generalLeads.firstName,
       middleName: generalLeads.middleName,
       lastName: generalLeads.lastName,
@@ -364,6 +372,46 @@ export async function updateGeneralLeadStatus(
   // Clear next action when transitioning to a closed status
   if (CLOSED_STATUSES.includes(data.status)) {
     await completeNextAction(db, "general_lead", id, colleagueId);
+  }
+
+  const updated = await db.query.generalLeads.findFirst({
+    where: eq(generalLeads.id, id),
+  });
+  return { data: updated };
+}
+
+// ─── Stage ───────────────────────────────────────────────────────
+
+export async function updateGeneralLeadStage(
+  db: DB,
+  id: string,
+  data: { stage: string },
+  colleagueId: string,
+): Promise<{ data: typeof generalLeads.$inferSelect | undefined }> {
+  const existing = await db.query.generalLeads.findFirst({
+    where: eq(generalLeads.id, id),
+  });
+  if (existing == null) {
+    throw notFound(ERROR_CODES.GENERAL_LEAD_NOT_FOUND, "General lead not found");
+  }
+
+  if (!isGeneralLeadStage(data.stage)) {
+    throw badRequest(ERROR_CODES.VALIDATION_FAILED, "Invalid stage value");
+  }
+
+  const now = new Date().toISOString();
+  await db.update(generalLeads).set({ stage: data.stage, updatedAt: now }).where(eq(generalLeads.id, id));
+
+  const diff = computeDiff({ stage: existing.stage }, { stage: data.stage });
+  if (diff != null) {
+    await logAuditEntry({
+      db,
+      colleagueId,
+      action: "STAGE_CHANGE",
+      entityType: "general_lead",
+      entityId: id,
+      changes: diff,
+    });
   }
 
   const updated = await db.query.generalLeads.findFirst({

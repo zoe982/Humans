@@ -11,10 +11,20 @@ export const generalLeadStatuses = [
 ] as const;
 export type GeneralLeadStatus = (typeof generalLeadStatuses)[number];
 
+export const generalLeadStages = [
+  "open",
+  "pending_response",
+  "qualified",
+  "closed_lost",
+  "closed_converted",
+] as const;
+export type GeneralLeadStage = (typeof generalLeadStages)[number];
+
 export const generalLeads = sqliteTable("general_leads", {
   id: text("id").primaryKey(),
   displayId: text("display_id").notNull().unique(),
   status: text("status", { enum: generalLeadStatuses }).notNull().default("open"),
+  stage: text("stage", { enum: generalLeadStages }).notNull().default("open"),
   firstName: text("first_name").notNull(),
   middleName: text("middle_name"),
   lastName: text("last_name").notNull(),

@@ -3,6 +3,7 @@ import {
   createGeneralLeadSchema,
   updateGeneralLeadSchema,
   updateGeneralLeadStatusSchema,
+  updateGeneralLeadStageSchema,
   convertGeneralLeadSchema,
   linkHumanSchema,
   updateEntityNextActionSchema,
@@ -21,6 +22,7 @@ import {
   createGeneralLead,
   updateGeneralLead,
   updateGeneralLeadStatus,
+  updateGeneralLeadStage,
   convertGeneralLead,
   linkHumanToGeneralLead,
   unlinkHumanFromGeneralLead,
@@ -109,6 +111,16 @@ generalLeadRoutes.patch("/api/general-leads/:id/status", requirePermission("mana
   const session = c.get("session");
   if (session === null) return c.json({ error: "Unauthorized" }, 401);
   const result = await updateGeneralLeadStatus(c.get("db"), c.req.param("id"), data, session.colleagueId);
+  return c.json(result);
+});
+
+// PATCH /api/general-leads/:id/stage
+generalLeadRoutes.patch("/api/general-leads/:id/stage", requirePermission("manageGeneralLeads"), async (c) => {
+  const body: unknown = await c.req.json();
+  const data = updateGeneralLeadStageSchema.parse(body);
+  const session = c.get("session");
+  if (session === null) return c.json({ error: "Unauthorized" }, 401);
+  const result = await updateGeneralLeadStage(c.get("db"), c.req.param("id"), data, session.colleagueId);
   return c.json(result);
 });
 

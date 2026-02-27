@@ -75,6 +75,7 @@ const MIGRATION_STATEMENTS = [
     \`id\` text PRIMARY KEY NOT NULL,
     \`display_id\` text NOT NULL UNIQUE,
     \`status\` text DEFAULT 'open' NOT NULL,
+    \`stage\` text DEFAULT 'open' NOT NULL,
     \`first_name\` text NOT NULL DEFAULT '',
     \`middle_name\` text,
     \`last_name\` text NOT NULL DEFAULT '',
