@@ -303,7 +303,7 @@
 
     <div class="grid gap-4 sm:grid-cols-2">
       <div>
-        <label for="humanId" class="block text-sm font-medium text-text-secondary">Linked Human</label>
+        <label for="humanId" class="block text-sm font-medium text-text-secondary">Human</label>
         <SearchableSelect
           options={humanOptions}
           name="humanId"
@@ -318,7 +318,7 @@
         {/if}
       </div>
       <div>
-        <label for="accountId" class="block text-sm font-medium text-text-secondary">Linked Account</label>
+        <label for="accountId" class="block text-sm font-medium text-text-secondary">Account</label>
         <SearchableSelect
           options={accountOptions}
           name="accountId"
@@ -336,7 +336,7 @@
 
     <div class="grid gap-4 sm:grid-cols-2">
       <div>
-        <label for="routeSignupId" class="block text-sm font-medium text-text-secondary">Linked Route Signup</label>
+        <label for="routeSignupId" class="block text-sm font-medium text-text-secondary">Route Signup</label>
         <SearchableSelect
           options={routeSignupOptions}
           name="routeSignupId"
@@ -351,7 +351,7 @@
         {/if}
       </div>
       <div>
-        <label for="websiteBookingRequestId" class="block text-sm font-medium text-text-secondary">Linked Booking Request</label>
+        <label for="websiteBookingRequestId" class="block text-sm font-medium text-text-secondary">Booking Request</label>
         <SearchableSelect
           options={bookingRequestOptions}
           name="websiteBookingRequestId"
@@ -369,7 +369,7 @@
 
     <div class="grid gap-4 sm:grid-cols-2">
       <div>
-        <label for="generalLeadId" class="block text-sm font-medium text-text-secondary">Linked General Lead</label>
+        <label for="generalLeadId" class="block text-sm font-medium text-text-secondary">General Lead</label>
         <SearchableSelect
           options={generalLeadOptions}
           name="generalLeadId"

@@ -42,7 +42,7 @@
   function labelForValue(v: string): string {
     if (emptyOption && v === "") return emptyOption;
     const found = normalizedOptions.find((o) => o.value === v);
-    return found ? found.label : v;
+    return found ? found.label : "Unknown";
   }
 
   // eslint-disable-next-line svelte/prefer-writable-derived

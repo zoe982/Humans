@@ -55,8 +55,55 @@ export const load = async ({ locals, cookies, params }: RequestEvent): Promise<{
     fetchList(`${PUBLIC_API_URL}/api/opportunities?limit=100`),
   ]);
 
-  // Ensure the currently linked route signup is in the options list (may be outside the top 100)
+  // Ensure the currently linked entities are in the options lists (may be outside the top 100)
   const activityRecord = activity;
+
+  // Ensure the currently linked human is in the options list
+  const linkedHumanId = activityRecord.humanId;
+  if (typeof linkedHumanId === "string" && linkedHumanId !== "") {
+    const alreadyPresent = humans.some((h) => typeof h === "object" && h !== null && "id" in h && h.id === linkedHumanId);
+    if (!alreadyPresent) {
+      const res = await fetch(`${PUBLIC_API_URL}/api/humans/${linkedHumanId}`, { headers });
+      if (res.ok) {
+        const raw: unknown = await res.json();
+        if (isObjData(raw)) {
+          humans.unshift(raw.data);
+        }
+      }
+    }
+  }
+
+  // Ensure the currently linked account is in the options list
+  const linkedAccountId = activityRecord.accountId;
+  if (typeof linkedAccountId === "string" && linkedAccountId !== "") {
+    const alreadyPresent = accounts.some((a) => typeof a === "object" && a !== null && "id" in a && a.id === linkedAccountId);
+    if (!alreadyPresent) {
+      const res = await fetch(`${PUBLIC_API_URL}/api/accounts/${linkedAccountId}`, { headers });
+      if (res.ok) {
+        const raw: unknown = await res.json();
+        if (isObjData(raw)) {
+          accounts.unshift(raw.data);
+        }
+      }
+    }
+  }
+
+  // Ensure the currently linked general lead is in the options list
+  const linkedGeneralLeadId = activityRecord.generalLeadId;
+  if (typeof linkedGeneralLeadId === "string" && linkedGeneralLeadId !== "") {
+    const alreadyPresent = generalLeads.some((g) => typeof g === "object" && g !== null && "id" in g && g.id === linkedGeneralLeadId);
+    if (!alreadyPresent) {
+      const res = await fetch(`${PUBLIC_API_URL}/api/general-leads/${linkedGeneralLeadId}`, { headers });
+      if (res.ok) {
+        const raw: unknown = await res.json();
+        if (isObjData(raw)) {
+          generalLeads.unshift(raw.data);
+        }
+      }
+    }
+  }
+
+  // Ensure the currently linked route signup is in the options list
   const linkedRouteSignupId = activityRecord.routeSignupId;
   if (typeof linkedRouteSignupId === "string" && linkedRouteSignupId !== "") {
     const alreadyPresent = routeSignups.some((s) => typeof s === "object" && s !== null && "id" in s && s.id === linkedRouteSignupId);
