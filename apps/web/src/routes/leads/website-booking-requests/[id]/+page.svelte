@@ -191,6 +191,35 @@
   let selectedLossReason = $state("");
   let lossNotes = $state("");
 
+  // Editable loss details (for closed_lost records)
+  let editLossReason = $state(booking.crm_loss_reason ?? "");
+  let editLossNotes = $state(booking.crm_loss_notes ?? "");
+  let savingLoss = $state(false);
+
+  $effect(() => {
+    editLossReason = booking.crm_loss_reason ?? "";
+    editLossNotes = booking.crm_loss_notes ?? "";
+  });
+
+  async function saveLossDetails() {
+    savingLoss = true;
+    try {
+      await api(`/api/website-booking-requests/${booking.id}`, {
+        method: "PATCH",
+        body: JSON.stringify({
+          crm_loss_reason: editLossReason || null,
+          crm_loss_notes: editLossNotes || null,
+        }),
+      });
+      toast.success("Loss details saved");
+      await invalidateAll();
+    } catch {
+      toast.error("Failed to save loss details");
+    } finally {
+      savingLoss = false;
+    }
+  }
+
   // Link-existing state for emails, phones, social IDs
   let emailAddMode = $state<"create" | "link">("create");
   let phoneAddMode = $state<"create" | "link">("create");
@@ -482,18 +511,6 @@
           {/if}
         </dd>
       </div>
-      {#if booking.crm_loss_reason}
-        <div>
-          <dt class="text-sm font-medium text-text-muted">Loss Reason</dt>
-          <dd class="mt-1 text-sm text-text-primary">{booking.crm_loss_reason}</dd>
-        </div>
-      {/if}
-      {#if booking.crm_loss_notes}
-        <div class="col-span-2">
-          <dt class="text-sm font-medium text-text-muted">Loss Notes</dt>
-          <dd class="mt-1 text-sm text-text-secondary">{booking.crm_loss_notes}</dd>
-        </div>
-      {/if}
     </dl>
     {#if booking.additional_information}
       <div class="mt-4">
@@ -502,6 +519,39 @@
       </div>
     {/if}
   </div>
+
+  <!-- Loss Details (editable, shown when closed_lost) -->
+  {#if booking.status === "closed_lost"}
+    <div class="glass-card p-6 mb-6">
+      <h2 class="text-lg font-semibold text-text-primary mb-4">Loss Details</h2>
+      <div class="space-y-3">
+        <div>
+          <label for="editLossReason" class="block text-sm font-medium text-text-secondary mb-1">Loss Reason</label>
+          <select id="editLossReason" class="glass-input block w-full px-3 py-2 text-sm" bind:value={editLossReason}>
+            <option value="">-- Select --</option>
+            {#each lossReasons as reason, i (i)}
+              <option value={reason.name}>{reason.name}</option>
+            {/each}
+          </select>
+        </div>
+        <div>
+          <label for="editLossNotes" class="block text-sm font-medium text-text-secondary mb-1">Loss Notes</label>
+          <textarea
+            id="editLossNotes"
+            bind:value={editLossNotes}
+            rows="3"
+            class="glass-input block w-full px-3 py-2 text-sm"
+            placeholder="Loss notes..."
+          ></textarea>
+        </div>
+        <div class="flex justify-end">
+          <Button size="sm" onclick={saveLossDetails} disabled={savingLoss}>
+            {savingLoss ? "Saving..." : "Save"}
+          </Button>
+        </div>
+      </div>
+    </div>
+  {/if}
 
   <!-- Marketing Attribution -->
   <div class="glass-card p-6 mb-6">
@@ -960,7 +1010,7 @@
 </div>
 
 {#if showLossDialog}
-  <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+  <div class="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm">
     <div class="glass-card p-6 max-w-md w-full mx-4">
       <h3 class="text-lg font-semibold text-text-primary">Close as Lost</h3>
       <p class="mt-2 text-sm text-text-secondary">Optionally provide details for closing this booking request.</p>
