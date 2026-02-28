@@ -221,7 +221,7 @@
   <title>{agreement.displayId} — {agreement.title} - Humans</title>
 </svelte:head>
 
-<div class="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
+<div class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
   <RecordManagementBar
     backHref="/agreements"
     backLabel="Agreements"

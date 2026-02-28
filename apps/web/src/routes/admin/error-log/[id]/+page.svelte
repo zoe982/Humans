@@ -4,6 +4,7 @@
   import { Copy, Check } from "lucide-svelte";
   import { toast } from "svelte-sonner";
   import { formatErrorForClipboard } from "$lib/utils/error-format";
+  import { formatDateTime } from "$lib/utils/format";
 
   let { data }: { data: PageData } = $props();
 
@@ -124,7 +125,7 @@
       </div>
       <div>
         <dt class="text-xs text-text-muted uppercase tracking-wider">Created At</dt>
-        <dd class="mt-1 text-text-secondary">{new Date(entry.createdAt).toLocaleString()}</dd>
+        <dd class="mt-1 text-text-secondary">{formatDateTime(entry.createdAt)}</dd>
       </div>
     </div>
 

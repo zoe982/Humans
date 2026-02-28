@@ -5,6 +5,7 @@
   import SearchableSelect from "$lib/components/SearchableSelect.svelte";
   import { COUNTRIES } from "@humans/shared";
   import { Button } from "$lib/components/ui/button";
+  import { formatDate } from "$lib/utils/format";
   import { resolve } from "$app/paths";
 
   let { data, form }: { data: PageData; form: ActionData } = $props();
@@ -119,7 +120,7 @@
     <td>{gi.country}</td>
     <td>{gi.humanCount}</td>
     <td>{gi.expressionCount}</td>
-    <td class="text-text-muted text-sm">{new Date(gi.createdAt).toLocaleDateString()}</td>
+    <td class="text-text-muted text-sm">{formatDate(gi.createdAt)}</td>
   {/snippet}
   {#snippet mobileCard(gi)}
     <a href={resolve(`/geo-interests/${gi.id}`)} class="glass-card p-4 block hover:ring-1 hover:ring-accent/40 transition">

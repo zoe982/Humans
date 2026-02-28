@@ -39,7 +39,7 @@
 
   <form method="POST" action="?/create" class="space-y-6 glass-card p-6">
     <div>
-      <label for="handle" class="block text-sm font-medium text-text-secondary mb-1">Handle <span class="text-red-400">*</span></label>
+      <label for="handle" class="block text-sm font-medium text-text-secondary mb-1">Handle <span class="text-required">*</span></label>
       <input
         id="handle" name="handle" type="text" required
         class="glass-input block w-full px-3 py-2 text-sm"

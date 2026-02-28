@@ -17,6 +17,7 @@
   import { generalLeadStatuses } from "@humans/shared";
   import LeadScoreInlineFlags from "$lib/components/LeadScoreInlineFlags.svelte";
   import { resolve } from "$app/paths";
+  import { formatDateTime } from "$lib/utils/format";
   import { page } from "$app/stores";
   import { Trash2, Pencil, Check, X } from "lucide-svelte";
   import { SvelteURLSearchParams } from "svelte/reactivity";
@@ -240,11 +241,6 @@
     finally { linking = false; }
   }
 
-  function formatDatetime(iso: string): string {
-    const d = new Date(iso);
-    return d.toLocaleDateString() + " " + d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-  }
-
   async function deleteActivity(id: string) {
     activities = activities.filter((a) => a.id !== id);
     try {
@@ -307,7 +303,7 @@
   <title>{lead.displayId} {lead.firstName} {lead.lastName} - General Lead</title>
 </svelte:head>
 
-<div class="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
+<div class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
   <!-- Record Management Bar -->
   <RecordManagementBar
     backHref="/leads/general-leads"
@@ -443,7 +439,7 @@
       </div>
       <div>
         <dt class="text-sm font-medium text-text-muted">Created</dt>
-        <dd class="mt-1 text-sm text-text-primary">{formatDatetime(lead.createdAt)}</dd>
+        <dd class="mt-1 text-sm text-text-primary">{formatDateTime(lead.createdAt)}</dd>
       </div>
       {#if lead.convertedHumanId}
         <div>
@@ -784,7 +780,7 @@
 
   <!-- Danger Zone (Admin only) -->
   {#if isAdmin}
-    <div class="glass-card p-6 border-red-500/20 bg-red-500/5">
+    <div class="glass-card p-6 border-[var(--btn-danger-border)] bg-destructive">
       <h2 class="text-lg font-semibold text-destructive-foreground">Danger Zone</h2>
       {#if showDeleteConfirm}
         <p class="mt-2 text-sm text-destructive-foreground/80">Are you sure you want to delete this lead? This cannot be undone.</p>

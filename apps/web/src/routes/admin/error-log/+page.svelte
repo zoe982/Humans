@@ -4,6 +4,7 @@
   import { resolve } from "$app/paths";
   import { ChevronLeft, ChevronRight, Copy, Check } from "lucide-svelte";
   import { formatErrorForClipboard } from "$lib/utils/error-format";
+  import { formatDateTime } from "$lib/utils/format";
   import { Button } from "$lib/components/ui/button";
   import * as Select from "$lib/components/ui/select";
 
@@ -120,7 +121,7 @@
                 <a href={resolve(`/admin/error-log/${entry.id}`)} class="text-accent hover:text-[var(--link-hover)]">{entry.displayId}</a>
               </td>
               <td class="text-text-muted font-mono text-xs whitespace-nowrap">
-                {new Date(entry.createdAt).toLocaleString()}
+                {formatDateTime(entry.createdAt)}
               </td>
               <td>
                 <span class="glass-badge {entry.status >= 500 ? 'badge-red' : 'badge-yellow'}">

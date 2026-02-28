@@ -48,7 +48,7 @@
 
   <form method="POST" action="?/create" enctype="multipart/form-data" class="space-y-6 glass-card p-6">
     <div>
-      <label for="title" class="block text-sm font-medium text-text-secondary mb-1">Title <span class="text-red-400">*</span></label>
+      <label for="title" class="block text-sm font-medium text-text-secondary mb-1">Title <span class="text-required">*</span></label>
       <input
         id="title" name="title" type="text" required
         class="glass-input block w-full px-3 py-2 text-sm"

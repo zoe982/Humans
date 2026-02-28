@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { PageData } from "./$types";
   import PageHeader from "$lib/components/PageHeader.svelte";
+  import { formatDate } from "$lib/utils/format";
   import { resolve } from "$app/paths";
 
   let { data }: { data: PageData } = $props();
@@ -61,7 +62,7 @@
               {/if}
             </td>
             <td class="text-text-secondary text-sm">{expr.notes ?? "—"}</td>
-            <td class="text-text-muted text-sm">{new Date(expr.createdAt).toLocaleDateString()}</td>
+            <td class="text-text-muted text-sm">{formatDate(expr.createdAt)}</td>
           </tr>
         {:else}
           <tr>

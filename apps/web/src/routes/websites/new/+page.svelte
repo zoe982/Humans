@@ -39,7 +39,7 @@
 
   <form method="POST" action="?/create" class="space-y-6 glass-card p-6">
     <div>
-      <label for="url" class="block text-sm font-medium text-text-secondary mb-1">URL <span class="text-red-400">*</span></label>
+      <label for="url" class="block text-sm font-medium text-text-secondary mb-1">URL <span class="text-required">*</span></label>
       <input
         id="url" name="url" type="url" required
         class="glass-input block w-full px-3 py-2 text-sm"

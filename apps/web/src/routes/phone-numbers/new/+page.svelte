@@ -40,7 +40,7 @@
 
   <form method="POST" action="?/create" class="space-y-6 glass-card p-6">
     <div>
-      <label for="owner" class="block text-sm font-medium text-text-secondary mb-1">Owner <span class="text-red-400">*</span></label>
+      <label for="owner" class="block text-sm font-medium text-text-secondary mb-1">Owner <span class="text-required">*</span></label>
       <SearchableSelect
         options={humanOptions}
         name="humanId"
@@ -50,7 +50,7 @@
     </div>
 
     <div>
-      <label for="phoneNumber" class="block text-sm font-medium text-text-secondary mb-1">Phone Number <span class="text-red-400">*</span></label>
+      <label for="phoneNumber" class="block text-sm font-medium text-text-secondary mb-1">Phone Number <span class="text-required">*</span></label>
       <PhoneInput name="phoneNumber" id="phoneNumber" />
     </div>
 

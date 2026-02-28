@@ -17,7 +17,7 @@
   import { Button } from "$lib/components/ui/button";
   import { resolve } from "$app/paths";
   import { page } from "$app/stores";
-  import { formatRelativeTime } from "$lib/utils/format";
+  import { formatRelativeTime, formatDateTime } from "$lib/utils/format";
   import { routeSignupStatuses } from "@humans/shared";
   import LeadScoreInlineFlags from "$lib/components/LeadScoreInlineFlags.svelte";
   import { Trash2 } from "lucide-svelte";
@@ -250,11 +250,6 @@
     return parts.length > 0 ? parts.join(" ") : "—";
   }
 
-  function formatDatetime(iso: string): string {
-    const d = new Date(iso);
-    return d.toLocaleDateString() + " " + d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-  }
-
   const createNewHumanUrl = $derived.by(() => {
     const params = new SvelteURLSearchParams();
     params.set("fromSignup", signup.id);
@@ -307,7 +302,7 @@
   <title>{signup.display_id ? signup.display_id + ' — ' : ''}{displayName(signup)} - Route Signup - Humans</title>
 </svelte:head>
 
-<div class="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
+<div class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
   <!-- Record Management Bar -->
   <RecordManagementBar
     backHref="/leads/route-signups"
@@ -412,7 +407,7 @@
       </div>
       <div>
         <dt class="text-sm font-medium text-text-muted">Created</dt>
-        <dd class="mt-1 text-sm text-text-primary">{formatDatetime(signup.inserted_at)}</dd>
+        <dd class="mt-1 text-sm text-text-primary">{formatDateTime(signup.inserted_at)}</dd>
       </div>
       <div>
         <dt class="text-sm font-medium text-text-muted">Last Activity</dt>
@@ -758,7 +753,7 @@
 
   <!-- Danger Zone (Admin only) -->
   {#if isAdmin}
-    <div class="glass-card p-6 border-red-500/20 bg-red-500/5">
+    <div class="glass-card p-6 border-[var(--btn-danger-border)] bg-destructive">
       <h2 class="text-lg font-semibold text-destructive-foreground">Danger Zone</h2>
       {#if showDeleteConfirm}
         <p class="mt-2 text-sm text-destructive-foreground/80">Are you sure you want to delete this signup? This cannot be undone.</p>

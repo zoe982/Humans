@@ -16,7 +16,7 @@ describe("AlertBanner", () => {
   it("applies success styles by default", () => {
     const { container } = render(AlertBanner, { props: { message: "Success" } });
     const banner = container.querySelector("div.glass-card");
-    expect(banner?.className).toContain("bg-green-500/10");
+    expect(banner?.className).toContain("bg-success-bg");
   });
 
   it("applies error styles when type is error", () => {

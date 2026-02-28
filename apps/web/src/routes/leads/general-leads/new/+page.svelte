@@ -30,7 +30,7 @@
   <form method="POST" action="?/create" class="space-y-6 glass-card p-6">
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
       <div>
-        <label for="firstName" class="block text-sm font-medium text-text-secondary mb-1">First Name <span class="text-red-400">*</span></label>
+        <label for="firstName" class="block text-sm font-medium text-text-secondary mb-1">First Name <span class="text-required">*</span></label>
         <input
           id="firstName" name="firstName" type="text" required
           class="glass-input block w-full px-3 py-2 text-sm"
@@ -46,7 +46,7 @@
         />
       </div>
       <div>
-        <label for="lastName" class="block text-sm font-medium text-text-secondary mb-1">Last Name <span class="text-red-400">*</span></label>
+        <label for="lastName" class="block text-sm font-medium text-text-secondary mb-1">Last Name <span class="text-required">*</span></label>
         <input
           id="lastName" name="lastName" type="text" required
           class="glass-input block w-full px-3 py-2 text-sm"

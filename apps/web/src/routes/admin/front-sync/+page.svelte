@@ -515,7 +515,7 @@
               {#if expandedRunId === run.id && runUnmatched.length > 0}
                 <tr>
                   <td colspan="10" class="p-0">
-                    <div class="border-t border-b border-yellow-500/30 bg-yellow-500/5 p-4">
+                    <div class="border-t border-b border-warning-border bg-warning-bg p-4">
                       <p class="text-sm font-medium text-[var(--badge-yellow-text)] mb-2">
                         Unmatched Contacts ({runUnmatched.length})
                       </p>
@@ -532,7 +532,7 @@
                         <tbody>
                           {#each runUnmatched as contact, i (i)}
                             <tr
-                              class="border-t border-yellow-500/10 hover:bg-yellow-500/10 cursor-pointer transition-colors"
+                              class="border-t border-warning-border hover:bg-warning-bg cursor-pointer transition-colors"
                               onclick={() => openDebugSheet(contact)}
                             >
                               <td class="py-1 pr-3 font-mono">{contact.handle}</td>
@@ -568,7 +568,7 @@
         <button
           type="submit"
           disabled={syncing || reclassifying || backfilling || deduplicating}
-          class="inline-flex items-center gap-2 rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          class="btn-primary"
         >
           {#if syncing}
             <Loader2 size={16} class="animate-spin" />
@@ -583,7 +583,7 @@
         type="button"
         disabled={syncing || reclassifying || backfilling || deduplicating}
         onclick={startReclassify}
-        class="inline-flex items-center gap-2 rounded-lg border border-glass-border bg-glass-bg px-4 py-2 text-sm font-medium text-text-primary hover:bg-glass-bg/80 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        class="btn-ghost"
       >
         {#if reclassifying}
           <Loader2 size={16} class="animate-spin" />
@@ -597,7 +597,7 @@
         type="button"
         disabled={syncing || reclassifying || backfilling || deduplicating}
         onclick={startBackfill}
-        class="inline-flex items-center gap-2 rounded-lg border border-glass-border bg-glass-bg px-4 py-2 text-sm font-medium text-text-primary hover:bg-glass-bg/80 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        class="btn-ghost"
       >
         {#if backfilling}
           <Loader2 size={16} class="animate-spin" />
@@ -611,7 +611,7 @@
         type="button"
         disabled={syncing || reclassifying || backfilling || deduplicating}
         onclick={() => { showDeduplicateConfirm = true; }}
-        class="inline-flex items-center gap-2 rounded-lg border border-glass-border bg-glass-bg px-4 py-2 text-sm font-medium text-text-primary hover:bg-glass-bg/80 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        class="btn-ghost"
       >
         {#if deduplicating}
           <Loader2 size={16} class="animate-spin" />
@@ -623,7 +623,7 @@
     </div>
 
     {#if reclassifyFinished}
-      <div class="mt-4 rounded-lg border border-green-500/30 bg-green-500/5 p-4">
+      <div class="mt-4 rounded-lg border border-success-border bg-success-bg p-4">
         <p class="text-sm font-medium text-[var(--badge-green-text)]">
           Reclassification complete: {reclassifyUpdated} conversations updated, {reclassifyChecked} checked across {reclassifyBatches} batches.
         </p>
@@ -639,7 +639,7 @@
     {/if}
 
     {#if backfillFinished}
-      <div class="mt-4 rounded-lg border border-green-500/30 bg-green-500/5 p-4">
+      <div class="mt-4 rounded-lg border border-success-border bg-success-bg p-4">
         <p class="text-sm font-medium text-[var(--badge-green-text)]">
           Author backfill complete: {backfillUpdated} activities updated, {backfillChecked} checked across {backfillBatches} batches.
         </p>
@@ -655,7 +655,7 @@
     {/if}
 
     {#if deduplicateResult}
-      <div class="mt-4 rounded-lg border border-green-500/30 bg-green-500/5 p-4">
+      <div class="mt-4 rounded-lg border border-success-border bg-success-bg p-4">
         <p class="text-sm font-medium text-[var(--badge-green-text)]">
           Deduplication complete: {deduplicateResult.deleted} duplicate activities deleted across {deduplicateResult.duplicateGroups} groups.
         </p>
@@ -667,19 +667,19 @@
 
     {#if batchCount > 0}
       <div class="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
-        <div class="rounded-lg border border-glass-border bg-glass-bg p-4">
+        <div class="rounded-lg border border-glass-border bg-glass p-4">
           <p class="text-xs font-medium uppercase text-text-muted">Imported</p>
           <p class="mt-1 text-2xl font-bold text-[var(--badge-green-text)]">{totals.imported}</p>
         </div>
-        <div class="rounded-lg border border-glass-border bg-glass-bg p-4">
+        <div class="rounded-lg border border-glass-border bg-glass p-4">
           <p class="text-xs font-medium uppercase text-text-muted">Skipped</p>
           <p class="mt-1 text-2xl font-bold text-text-secondary">{totals.skipped}</p>
         </div>
-        <div class="rounded-lg border border-glass-border bg-glass-bg p-4">
+        <div class="rounded-lg border border-glass-border bg-glass p-4">
           <p class="text-xs font-medium uppercase text-text-muted">Unmatched</p>
           <p class="mt-1 text-2xl font-bold text-[var(--badge-yellow-text)]">{totals.unmatched}</p>
         </div>
-        <div class="rounded-lg border border-glass-border bg-glass-bg p-4">
+        <div class="rounded-lg border border-glass-border bg-glass p-4">
           <p class="text-xs font-medium uppercase text-text-muted">Errors</p>
           <p class="mt-1 text-2xl font-bold text-destructive-foreground">{totals.errors}</p>
         </div>
@@ -687,27 +687,27 @@
 
       {#if linkStats.humans > 0 || linkStats.accounts > 0 || linkStats.routeSignups > 0 || linkStats.bookings > 0 || linkStats.generalLeads > 0 || linkStats.colleagues > 0}
         <div class="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
-          <div class="rounded-lg border border-glass-border bg-glass-bg p-3">
+          <div class="rounded-lg border border-glass-border bg-glass p-3">
             <p class="text-xs font-medium uppercase text-text-muted">Humans</p>
             <p class="mt-1 text-lg font-bold text-text-primary">{linkStats.humans}</p>
           </div>
-          <div class="rounded-lg border border-glass-border bg-glass-bg p-3">
+          <div class="rounded-lg border border-glass-border bg-glass p-3">
             <p class="text-xs font-medium uppercase text-text-muted">Accounts</p>
             <p class="mt-1 text-lg font-bold text-text-primary">{linkStats.accounts}</p>
           </div>
-          <div class="rounded-lg border border-glass-border bg-glass-bg p-3">
+          <div class="rounded-lg border border-glass-border bg-glass p-3">
             <p class="text-xs font-medium uppercase text-text-muted">Route Signups</p>
             <p class="mt-1 text-lg font-bold text-text-primary">{linkStats.routeSignups}</p>
           </div>
-          <div class="rounded-lg border border-glass-border bg-glass-bg p-3">
+          <div class="rounded-lg border border-glass-border bg-glass p-3">
             <p class="text-xs font-medium uppercase text-text-muted">Bookings</p>
             <p class="mt-1 text-lg font-bold text-text-primary">{linkStats.bookings}</p>
           </div>
-          <div class="rounded-lg border border-glass-border bg-glass-bg p-3">
+          <div class="rounded-lg border border-glass-border bg-glass p-3">
             <p class="text-xs font-medium uppercase text-text-muted">General Leads</p>
             <p class="mt-1 text-lg font-bold text-text-primary">{linkStats.generalLeads}</p>
           </div>
-          <div class="rounded-lg border border-glass-border bg-glass-bg p-3">
+          <div class="rounded-lg border border-glass-border bg-glass p-3">
             <p class="text-xs font-medium uppercase text-text-muted">Colleagues</p>
             <p class="mt-1 text-lg font-bold text-text-primary">{linkStats.colleagues}</p>
           </div>
@@ -723,7 +723,7 @@
       </p>
 
       {#if unmatchedContacts.length > 0}
-        <div class="mt-4 rounded-lg border border-yellow-500/30 bg-yellow-500/5 p-4">
+        <div class="mt-4 rounded-lg border border-warning-border bg-warning-bg p-4">
           <p class="text-sm font-medium text-[var(--badge-yellow-text)] mb-2">
             Unmatched Contacts ({unmatchedContacts.length})
           </p>
@@ -743,7 +743,7 @@
               </thead>
               <tbody>
                 {#each unmatchedContacts as contact, i (i)}
-                  <tr class="border-t border-yellow-500/10">
+                  <tr class="border-t border-warning-border">
                     <td class="py-1 pr-3 font-mono">{contact.handle}</td>
                     <td class="py-1 pr-3 text-text-secondary">{contact.name ?? "—"}</td>
                     <td class="py-1 pr-3 text-text-muted">{contact.type}</td>
@@ -758,7 +758,7 @@
       {/if}
 
       {#if errorMessages.length > 0}
-        <div class="mt-4 rounded-lg border border-red-500/30 bg-red-500/10 p-4">
+        <div class="mt-4 rounded-lg border border-[var(--btn-danger-border)] bg-destructive p-4">
           <p class="text-sm font-medium text-destructive-foreground mb-2">Errors ({errorMessages.length}):</p>
           <ul class="space-y-1 text-xs text-destructive-foreground max-h-40 overflow-y-auto">
             {#each errorMessages as err (err)}
@@ -849,7 +849,7 @@
           <span class="text-sm text-text-muted">Loading debug info from Front API...</span>
         </div>
       {:else if sheetError}
-        <div class="mt-6 rounded-lg border border-red-500/30 bg-red-500/10 p-4">
+        <div class="mt-6 rounded-lg border border-[var(--btn-danger-border)] bg-destructive p-4">
           <p class="text-sm text-destructive-foreground">{sheetError}</p>
         </div>
       {:else if sheetDebug}
@@ -910,7 +910,7 @@
             {/if}
           </div>
           {#if showRawConversation}
-            <pre class="mt-2 rounded-lg border border-glass-border bg-glass-bg p-3 text-xs font-mono overflow-x-auto max-h-96 overflow-y-auto">{JSON.stringify(sheetDebug.conversation, null, 2)}</pre>
+            <pre class="mt-2 rounded-lg border border-glass-border bg-glass p-3 text-xs font-mono overflow-x-auto max-h-96 overflow-y-auto">{JSON.stringify(sheetDebug.conversation, null, 2)}</pre>
           {/if}
         </div>
 
@@ -945,7 +945,7 @@
             {/if}
           </div>
           {#if showRawMessages}
-            <pre class="mt-2 rounded-lg border border-glass-border bg-glass-bg p-3 text-xs font-mono overflow-x-auto max-h-96 overflow-y-auto">{JSON.stringify(sheetDebug.messages, null, 2)}</pre>
+            <pre class="mt-2 rounded-lg border border-glass-border bg-glass p-3 text-xs font-mono overflow-x-auto max-h-96 overflow-y-auto">{JSON.stringify(sheetDebug.messages, null, 2)}</pre>
           {/if}
         </div>
       {/if}

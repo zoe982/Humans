@@ -7,6 +7,7 @@
   import ConfirmDialog from "$lib/components/ConfirmDialog.svelte";
   import { toast } from "svelte-sonner";
   import { createAutoSaver, type SaveStatus } from "$lib/autosave";
+  import { formatDateTime } from "$lib/utils/format";
   import { onDestroy } from "svelte";
   import { resolve } from "$app/paths";
   import { page } from "$app/stores";
@@ -113,7 +114,7 @@
   <title>{expr.displayId} — Route Interest Expression - Humans</title>
 </svelte:head>
 
-<div class="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
+<div class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
   <RecordManagementBar
     backHref="/route-interests/{expr.routeInterestId}"
     backLabel="Route Interest"
@@ -252,7 +253,7 @@
       </div>
       <div>
         <dt class="text-text-muted">Created</dt>
-        <dd class="text-text-primary">{new Date(expr.createdAt).toLocaleString()}</dd>
+        <dd class="text-text-primary">{formatDateTime(expr.createdAt)}</dd>
       </div>
     </dl>
   </div>

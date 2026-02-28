@@ -20,9 +20,9 @@
       <p class="mt-2 text-text-secondary">Sign in to manage Pet Air Valet</p>
     </div>
     {#if data.errorMessage}
-      <div class="mb-6 flex items-start gap-3 rounded-lg bg-red-500/10 border border-red-500/20 p-4">
-        <AlertTriangle size={20} class="mt-0.5 shrink-0 text-red-400" />
-        <p class="text-sm text-red-300">{data.errorMessage}</p>
+      <div class="mb-6 flex items-start gap-3 rounded-lg bg-destructive border border-[var(--btn-danger-border)] p-4">
+        <AlertTriangle size={20} class="mt-0.5 shrink-0 text-destructive-foreground" />
+        <p class="text-sm text-destructive-foreground">{data.errorMessage}</p>
       </div>
     {/if}
     {#if !isFatal}

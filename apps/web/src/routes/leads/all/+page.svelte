@@ -5,6 +5,7 @@
   import { leadTypeColors, allLeadStatusColors } from "$lib/constants/colors";
   import { leadTypeLabels, allLeadStatusLabels, generalLeadStatusLabels, signupStatusLabels, bookingRequestStatusLabels } from "$lib/constants/labels";
   import { resolve } from "$app/paths";
+  import { formatDate } from "$lib/utils/format";
   import { api } from "$lib/api";
   import { toast } from "svelte-sonner";
   import { SvelteMap } from "svelte/reactivity";
@@ -249,7 +250,7 @@
         {/each}
       </select>
     </td>
-    <td class="text-text-muted text-sm whitespace-nowrap">{lead.createdAt ? new Date(lead.createdAt).toLocaleDateString() : "\u2014"}</td>
+    <td class="text-text-muted text-sm whitespace-nowrap">{lead.createdAt ? formatDate(lead.createdAt) : "\u2014"}</td>
     <td class="font-semibold text-text-primary text-sm">{formatName(lead)}</td>
     <td class="text-text-secondary text-sm">{lead.channel ?? "\u2014"}</td>
     <td class="text-text-secondary text-sm">{lead.source ?? "\u2014"}</td>
@@ -267,7 +268,7 @@
         </div>
         {#if lead.nextAction.dueDate}
           <div class="text-xs {isOverdue(lead.nextAction.dueDate) ? 'text-[var(--badge-red-text)]' : 'text-text-muted'}">
-            Due {new Date(lead.nextAction.dueDate).toLocaleDateString()}
+            Due {formatDate(lead.nextAction.dueDate)}
           </div>
         {/if}
       {:else}
@@ -308,7 +309,7 @@
           Next: {#if lead.nextAction.type}{lead.nextAction.type}: {/if}{lead.nextAction.description ?? ""}
         </p>
       {/if}
-      <div class="mt-2 text-xs text-text-muted">{lead.createdAt ? new Date(lead.createdAt).toLocaleDateString() : "\u2014"}</div>
+      <div class="mt-2 text-xs text-text-muted">{lead.createdAt ? formatDate(lead.createdAt) : "\u2014"}</div>
     </a>
   {/snippet}
 </EntityListPage>

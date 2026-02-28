@@ -414,7 +414,7 @@
 </svelte:head>
 
 {#if loading}
-  <div class="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
+  <div class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
     <div class="glass-card p-6">
       <div class="animate-pulse space-y-4">
         <div class="h-8 bg-glass rounded w-1/3"></div>
@@ -425,9 +425,9 @@
     </div>
   </div>
 {:else if loadError}
-  <div class="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
-    <div class="glass-card p-6 space-y-4 border border-red-500/30">
-      <h2 class="text-lg font-semibold text-red-400">Failed to load account</h2>
+  <div class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+    <div class="glass-card p-6 space-y-4 border border-[var(--btn-danger-border)]">
+      <h2 class="text-lg font-semibold text-destructive-foreground">Failed to load account</h2>
       <p class="text-sm text-text-primary">{loadError}</p>
       {#if loadErrorDetail}
         <pre class="text-xs text-text-muted bg-glass p-3 rounded overflow-auto max-h-48 whitespace-pre-wrap">{loadErrorDetail}</pre>
@@ -438,7 +438,7 @@
   </div>
 {:else if account}
 
-<div class="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
+<div class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
   <!-- Record Management Bar -->
   <RecordManagementBar
     backHref="/accounts"
@@ -1275,7 +1275,7 @@
         <form method="POST" action="?/addAgreement" enctype="multipart/form-data" use:enhance={formEnhance} class="space-y-3">
           <div class="grid gap-3 sm:grid-cols-2">
             <div>
-              <label for="agrTitle" class="block text-sm font-medium text-text-secondary">Title <span class="text-red-400">*</span></label>
+              <label for="agrTitle" class="block text-sm font-medium text-text-secondary">Title <span class="text-required">*</span></label>
               <input id="agrTitle" name="title" type="text" required class="glass-input mt-1 block w-full" placeholder="Agreement title" />
             </div>
             <div>

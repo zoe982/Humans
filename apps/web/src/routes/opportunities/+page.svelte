@@ -5,6 +5,7 @@
   import SearchableSelect from "$lib/components/SearchableSelect.svelte";
   import { opportunityStageColors } from "$lib/constants/colors";
   import { opportunityStageLabels, OPPORTUNITY_STAGE_OPTIONS } from "$lib/constants/labels";
+  import { formatDate } from "$lib/utils/format";
   import { resolve } from "$app/paths";
 
   let { data, form }: { data: PageData; form: ActionData } = $props();
@@ -156,8 +157,8 @@
     </td>
     <td class="text-sm whitespace-nowrap">
       {#if opp.nextActionDueDate}
-        <span class={opp.isOverdue ? "text-red-400 font-medium" : "text-text-muted"}>
-          {new Date(opp.nextActionDueDate).toLocaleDateString()}
+        <span class={opp.isOverdue ? "text-destructive-foreground font-medium" : "text-text-muted"}>
+          {formatDate(opp.nextActionDueDate)}
         </span>
         {#if opp.isOverdue}
           <span class="glass-badge badge-red text-xs ml-1">Overdue</span>
@@ -174,7 +175,7 @@
         —
       {/if}
     </td>
-    <td class="text-text-muted text-sm">{opp.updatedAt ? new Date(opp.updatedAt).toLocaleDateString() : "—"}</td>
+    <td class="text-text-muted text-sm">{opp.updatedAt ? formatDate(opp.updatedAt) : "—"}</td>
   {/snippet}
   {#snippet mobileCard(opp)}
     <a href={resolve(`/opportunities/${opp.id}`)} class="glass-card p-4 block hover:ring-1 hover:ring-accent/40 transition">
@@ -195,8 +196,8 @@
         {#if opp.nextActionDescription}
           <span class="truncate max-w-[180px]">NA: {opp.nextActionDescription}</span>
           {#if opp.nextActionDueDate}
-            <span class={opp.isOverdue ? "text-red-400 font-medium" : ""}>
-              {new Date(opp.nextActionDueDate).toLocaleDateString()}
+            <span class={opp.isOverdue ? "text-destructive-foreground font-medium" : ""}>
+              {formatDate(opp.nextActionDueDate)}
             </span>
           {/if}
           {#if opp.isOverdue}

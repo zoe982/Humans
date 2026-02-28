@@ -7,6 +7,7 @@
   import { bookingRequestStatusLabels, depositStatusLabels } from "$lib/constants/labels";
   import { bookingRequestStatusColors } from "$lib/constants/colors";
   import { resolve } from "$app/paths";
+  import { formatDateTime } from "$lib/utils/format";
   import InlineNoteEditor from "$lib/components/InlineNoteEditor.svelte";
   import { api } from "$lib/api";
 
@@ -40,11 +41,6 @@
   function displayName(b: Booking): string {
     const parts = [b.first_name, b.middle_name, b.last_name].filter(Boolean);
     return parts.length > 0 ? parts.join(" ") : "—";
-  }
-
-  function formatDatetime(iso: string): string {
-    const d = new Date(iso);
-    return d.toLocaleDateString() + " " + d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
   }
 
   function searchFilter(item: Booking, q: string): boolean {
@@ -133,7 +129,7 @@
         }}
       />
     </td>
-    <td class="text-text-muted">{formatDatetime(booking.inserted_at)}</td>
+    <td class="text-text-muted">{formatDateTime(booking.inserted_at)}</td>
   {/snippet}
   {#snippet mobileCard(booking)}
     <a href={resolve(`/leads/website-booking-requests/${booking.id}`)} class="glass-card p-4 block hover:ring-1 hover:ring-accent/40 transition">
@@ -167,7 +163,7 @@
           }} />
         {/if}
       </div>
-      <div class="mt-2 text-xs text-text-muted">{formatDatetime(booking.inserted_at)}</div>
+      <div class="mt-2 text-xs text-text-muted">{formatDateTime(booking.inserted_at)}</div>
     </a>
   {/snippet}
 </EntityListPage>

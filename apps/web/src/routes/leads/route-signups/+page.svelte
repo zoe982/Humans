@@ -6,7 +6,7 @@
   import { getLeadScoreBand } from "@humans/shared";
   import { Search } from "lucide-svelte";
   import { signupStatusLabels } from "$lib/constants/labels";
-  import { formatRelativeTime } from "$lib/utils/format";
+  import { formatRelativeTime, formatDateTime } from "$lib/utils/format";
   import { resolve } from "$app/paths";
   import InlineNoteEditor from "$lib/components/InlineNoteEditor.svelte";
   import { api } from "$lib/api";
@@ -62,11 +62,6 @@
   function displayName(s: Signup): string {
     const parts = [s.first_name, s.middle_name, s.last_name].filter(Boolean);
     return parts.length > 0 ? parts.join(" ") : "\u2014";
-  }
-
-  function formatDatetime(iso: string): string {
-    const d = new Date(iso);
-    return d.toLocaleDateString() + " " + d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
   }
 
   const statusColorMap: Record<string, string> = {
@@ -178,7 +173,7 @@
         }}
       />
     </td>
-    <td class="text-text-muted">{formatDatetime(signup.inserted_at)}</td>
+    <td class="text-text-muted">{formatDateTime(signup.inserted_at)}</td>
   {/snippet}
   {#snippet mobileCard(signup)}
     <a href={resolve(`/leads/route-signups/${signup.id}`)} class="glass-card p-4 block hover:ring-1 hover:ring-accent/40 transition">
@@ -205,7 +200,7 @@
       {#if signup.lastActivityDate}
         <p class="mt-1 text-xs text-text-muted">Last activity: {formatRelativeTime(signup.lastActivityDate)}</p>
       {/if}
-      <div class="mt-2 text-xs text-text-muted">{formatDatetime(signup.inserted_at)}</div>
+      <div class="mt-2 text-xs text-text-muted">{formatDateTime(signup.inserted_at)}</div>
     </a>
   {/snippet}
 </EntityListPage>

@@ -5,6 +5,7 @@
   import { resolve } from "$app/paths";
   import { api } from "$lib/api";
   import { getLeadScoreBand } from "@humans/shared";
+  import { formatDateTime } from "$lib/utils/format";
 
   let { data }: { data: PageData } = $props();
 
@@ -90,7 +91,7 @@
   <title>{score.displayId} - Lead Score - Humans</title>
 </svelte:head>
 
-<div class="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
+<div class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
   <!-- Header -->
   <RecordManagementBar
     backHref="/reports/lead-scores"
@@ -111,19 +112,19 @@
       </div>
       <div class="flex gap-4 text-sm">
         <div class="text-center">
-          <div class="text-lg font-semibold text-green-400">+{score.scoreFit}</div>
+          <div class="text-lg font-semibold text-[var(--badge-green-text)]">+{score.scoreFit}</div>
           <div class="text-text-muted">Fit</div>
         </div>
         <div class="text-center">
-          <div class="text-lg font-semibold text-blue-400">+{score.scoreIntent}</div>
+          <div class="text-lg font-semibold text-[var(--badge-blue-text)]">+{score.scoreIntent}</div>
           <div class="text-text-muted">Intent</div>
         </div>
         <div class="text-center">
-          <div class="text-lg font-semibold text-purple-400">+{score.scoreEngagement}</div>
+          <div class="text-lg font-semibold text-[var(--badge-purple-text)]">+{score.scoreEngagement}</div>
           <div class="text-text-muted">Engage</div>
         </div>
         <div class="text-center">
-          <div class="text-lg font-semibold text-red-400">-{score.scoreNegative}</div>
+          <div class="text-lg font-semibold text-[var(--badge-red-text)]">-{score.scoreNegative}</div>
           <div class="text-text-muted">Negative</div>
         </div>
       </div>
@@ -377,7 +378,7 @@
           class="h-4 w-4 rounded border-glass-border bg-glass accent-accent"
         />
         <span class="text-sm text-text-primary">No contact method</span>
-        <span class="ml-auto text-xs text-red-400">-30 pts</span>
+        <span class="ml-auto text-xs text-[var(--badge-red-text)]">-30 pts</span>
       </label>
       <label class="flex items-center gap-3 cursor-pointer">
         <input
@@ -388,7 +389,7 @@
           class="h-4 w-4 rounded border-glass-border bg-glass accent-accent"
         />
         <span class="text-sm text-text-primary">Off-network request</span>
-        <span class="ml-auto text-xs text-red-400">-25 pts</span>
+        <span class="ml-auto text-xs text-[var(--badge-red-text)]">-25 pts</span>
       </label>
       <label class="flex items-center gap-3 cursor-pointer">
         <input
@@ -399,7 +400,7 @@
           class="h-4 w-4 rounded border-glass-border bg-glass accent-accent"
         />
         <span class="text-sm text-text-primary">Price objection</span>
-        <span class="ml-auto text-xs text-red-400">-20 pts</span>
+        <span class="ml-auto text-xs text-[var(--badge-red-text)]">-20 pts</span>
       </label>
       <label class="flex items-center gap-3 cursor-pointer">
         <input
@@ -410,7 +411,7 @@
           class="h-4 w-4 rounded border-glass-border bg-glass accent-accent"
         />
         <span class="text-sm text-text-primary">Ghosted after payment sent</span>
-        <span class="ml-auto text-xs text-red-400">-15 pts</span>
+        <span class="ml-auto text-xs text-[var(--badge-red-text)]">-15 pts</span>
       </label>
     </div>
   </div>
@@ -447,16 +448,16 @@
       </div>
       <div>
         <dt class="text-text-muted">Created</dt>
-        <dd class="text-text-secondary">{new Date(score.createdAt).toLocaleString()}</dd>
+        <dd class="text-text-secondary">{formatDateTime(score.createdAt)}</dd>
       </div>
       <div>
         <dt class="text-text-muted">Last Updated</dt>
-        <dd class="text-text-secondary">{new Date(score.updatedAt).toLocaleString()}</dd>
+        <dd class="text-text-secondary">{formatDateTime(score.updatedAt)}</dd>
       </div>
       {#if score.scoreUpdatedAt != null}
         <div>
           <dt class="text-text-muted">Score Last Computed</dt>
-          <dd class="text-text-secondary">{new Date(score.scoreUpdatedAt).toLocaleString()}</dd>
+          <dd class="text-text-secondary">{formatDateTime(score.scoreUpdatedAt)}</dd>
         </div>
       {/if}
     </dl>

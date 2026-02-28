@@ -219,7 +219,7 @@
   <title>{routeInterest.originCity} &rarr; {routeInterest.destinationCity} - Humans</title>
 </svelte:head>
 
-<div class="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
+<div class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
   <RecordManagementBar
     backHref="/route-interests"
     backLabel="Route Interests"
@@ -241,7 +241,7 @@
       <p class="text-xs text-text-muted mt-1">Expressions</p>
     </div>
     <div class="glass-card p-4">
-      <p class="text-2xl font-bold text-cyan-300">{uniqueHumanCount}</p>
+      <p class="text-2xl font-bold text-accent">{uniqueHumanCount}</p>
       <p class="text-xs text-text-muted mt-1">Unique Humans</p>
     </div>
     <div class="glass-card p-4">

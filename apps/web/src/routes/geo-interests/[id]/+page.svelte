@@ -6,7 +6,7 @@
   import RelatedListTable from "$lib/components/RelatedListTable.svelte";
   import { Trash2 } from "lucide-svelte";
   import { Button } from "$lib/components/ui/button";
-  import { formatRelativeTime, summarizeChanges } from "$lib/utils/format";
+  import { formatRelativeTime, formatDate, summarizeChanges } from "$lib/utils/format";
   import { createChangeHistoryLoader } from "$lib/changeHistory.svelte";
   import { resolve } from "$app/paths";
   import { page } from "$app/stores";
@@ -122,7 +122,7 @@
   <title>{geoInterest.city}, {geoInterest.country} - Humans</title>
 </svelte:head>
 
-<div class="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
+<div class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
   <RecordManagementBar
     backHref="/geo-interests"
     backLabel="Geo-Interests"
@@ -172,7 +172,7 @@
       </td>
       <td class="text-xs text-text-muted">{expr.activitySubject ?? "—"}</td>
       <td class="text-sm text-text-secondary max-w-xs truncate">{expr.notes ?? "—"}</td>
-      <td class="text-xs text-text-muted">{new Date(expr.createdAt).toLocaleDateString()}</td>
+      <td class="text-xs text-text-muted">{formatDate(expr.createdAt)}</td>
       <td>
         <form method="POST" action="?/deleteExpression">
           <input type="hidden" name="expressionId" value={expr.id} />

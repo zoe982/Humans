@@ -65,7 +65,7 @@
 
     <!-- Types -->
     <div>
-      <label class="block text-sm font-medium text-text-secondary">Types <span class="text-red-400">*</span></label>
+      <label class="block text-sm font-medium text-text-secondary">Types <span class="text-required">*</span></label>
       <div class="mt-2">
         <TypeTogglePills />
       </div>

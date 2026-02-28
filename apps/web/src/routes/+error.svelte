@@ -13,7 +13,7 @@
 
 <div class="flex min-h-screen items-center justify-center">
   <div class="text-center">
-    <p class="text-5xl font-bold text-accent">{$page.status}</p>
+    <p class="text-3xl font-bold text-accent">{$page.status}</p>
     <h1 class="mt-4 text-2xl font-semibold text-text-primary">{$page.error?.message ?? "Something went wrong"}</h1>
     {#if $page.error?.code || truncatedRef}
       <p class="mt-2 font-mono text-xs text-text-secondary">

@@ -98,7 +98,7 @@
     <!-- Fit Card -->
     <div class="rounded-xl border-l-[3px] border-l-green-500/50 bg-[rgba(34,197,94,0.04)] p-3">
       <div class="flex items-center justify-between mb-2">
-        <span class="text-xs font-semibold uppercase text-green-400">Fit</span>
+        <span class="text-xs font-semibold uppercase text-[var(--badge-green-text)]">Fit</span>
         <span class="text-xs text-text-muted">{score.scoreFit}/35</span>
       </div>
       <div class="space-y-1">
@@ -134,7 +134,7 @@
     <!-- Engagement Card -->
     <div class="rounded-xl border-l-[3px] border-l-purple-500/50 bg-[rgba(168,85,247,0.04)] p-3">
       <div class="flex items-center justify-between mb-2">
-        <span class="text-xs font-semibold uppercase text-purple-400">Engagement</span>
+        <span class="text-xs font-semibold uppercase text-[var(--badge-purple-text)]">Engagement</span>
         <span class="text-xs text-text-muted">{score.scoreEngagement}/15</span>
       </div>
       <div class="space-y-1">
@@ -172,7 +172,7 @@
   <!-- Column 2: Intent (tallest — anchors grid height) -->
   <div class="rounded-xl border-l-[3px] border-l-blue-500/50 bg-[rgba(59,130,246,0.04)] p-3">
     <div class="flex items-center justify-between mb-2">
-      <span class="text-xs font-semibold uppercase text-blue-400">Intent</span>
+      <span class="text-xs font-semibold uppercase text-[var(--badge-blue-text)]">Intent</span>
       <span class="text-xs text-text-muted">{score.scoreIntent}/50</span>
     </div>
     <div class="space-y-1">
@@ -263,7 +263,7 @@
     <!-- Negative Card -->
     <div class="rounded-xl border-l-[3px] border-l-red-500/50 bg-[rgba(239,68,68,0.04)] p-3">
       <div class="flex items-center justify-between mb-2">
-        <span class="text-xs font-semibold uppercase text-red-400">Negative</span>
+        <span class="text-xs font-semibold uppercase text-[var(--badge-red-text)]">Negative</span>
         <span class="text-xs text-text-muted">-{score.scoreNegative}/60</span>
       </div>
       <div class="space-y-1">

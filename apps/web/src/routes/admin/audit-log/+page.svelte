@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { PageData } from "./$types";
   import PageHeader from "$lib/components/PageHeader.svelte";
+  import { formatDateTime } from "$lib/utils/format";
 
   let { data }: { data: PageData } = $props();
 
@@ -43,7 +44,7 @@
         {#each logs as log, i (i)}
           <tr class="glass-row-hover">
             <td class="text-text-muted font-mono text-xs whitespace-nowrap">
-              {new Date(log.createdAt).toLocaleString()}
+              {formatDateTime(log.createdAt)}
             </td>
             <td>
               {#if log.colleagueName}

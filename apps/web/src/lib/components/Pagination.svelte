@@ -44,7 +44,7 @@
           </a>
         {/if}
       {:else}
-        <span class="{buttonVariants({ variant: 'ghost', size: 'sm' })} inline-flex items-center gap-1 opacity-40 cursor-not-allowed">
+        <span class="{buttonVariants({ variant: 'ghost', size: 'sm' })} inline-flex items-center gap-1 opacity-50 cursor-not-allowed">
           <ChevronLeft size={14} /> Prev
         </span>
       {/if}
@@ -60,7 +60,7 @@
           </a>
         {/if}
       {:else}
-        <span class="{buttonVariants({ variant: 'ghost', size: 'sm' })} inline-flex items-center gap-1 opacity-40 cursor-not-allowed">
+        <span class="{buttonVariants({ variant: 'ghost', size: 'sm' })} inline-flex items-center gap-1 opacity-50 cursor-not-allowed">
           Next <ChevronRight size={14} />
         </span>
       {/if}

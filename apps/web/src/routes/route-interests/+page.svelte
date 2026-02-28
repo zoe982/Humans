@@ -6,6 +6,7 @@
   import { Search } from "lucide-svelte";
   import { COUNTRIES } from "@humans/shared";
   import { Button } from "$lib/components/ui/button";
+  import { formatDate } from "$lib/utils/format";
   import { resolve } from "$app/paths";
 
   let { data, form }: { data: PageData; form: ActionData } = $props();
@@ -180,7 +181,7 @@
       </td>
       <td>{ri.humanCount}</td>
       <td>{ri.expressionCount}</td>
-      <td class="text-text-muted text-sm">{new Date(ri.createdAt).toLocaleDateString()}</td>
+      <td class="text-text-muted text-sm">{formatDate(ri.createdAt)}</td>
     {/snippet}
     {#snippet mobileCard(ri)}
       <a href={resolve(`/route-interests/${ri.id}`)} class="glass-card p-4 block hover:ring-1 hover:ring-accent/40 transition">
@@ -298,7 +299,7 @@
               <td class="text-text-muted text-sm">{formatTravelDate(expr) || "\u2014"}</td>
               <td class="text-sm text-text-secondary">{expr.activitySubject ?? "\u2014"}</td>
               <td class="text-sm text-text-secondary max-w-xs truncate">{expr.notes ?? "\u2014"}</td>
-              <td class="text-text-muted text-sm">{new Date(expr.createdAt).toLocaleDateString()}</td>
+              <td class="text-text-muted text-sm">{formatDate(expr.createdAt)}</td>
             </tr>
           {:else}
             <tr>

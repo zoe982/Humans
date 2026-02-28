@@ -1,5 +1,6 @@
 <script lang="ts">
   import EntityListPage from "$lib/components/EntityListPage.svelte";
+  import { formatDate } from "$lib/utils/format";
   import { resolve } from "$app/paths";
 
   type Flight = {
@@ -56,7 +57,7 @@
       {flight.origin_city ?? "?"} &rarr; {flight.destination_city ?? "?"}
     </td>
     <td class="text-sm text-text-muted whitespace-nowrap">
-      {flight.flight_date ? new Date(flight.flight_date + "T00:00:00").toLocaleDateString() : "\u2014"}
+      {flight.flight_date ? formatDate(flight.flight_date + "T00:00:00") : "\u2014"}
     </td>
     <td class="text-sm text-text-secondary">
       {flight.available_seats ?? "\u2014"} / {flight.capacity_human_seats + flight.capacity_pet_seats}
@@ -79,7 +80,7 @@
         {flight.origin_city ?? "?"} &rarr; {flight.destination_city ?? "?"}
       </div>
       <div class="flex items-center gap-3 text-sm text-text-secondary mt-1">
-        <span>{flight.flight_date ? new Date(flight.flight_date + "T00:00:00").toLocaleDateString() : "\u2014"}</span>
+        <span>{flight.flight_date ? formatDate(flight.flight_date + "T00:00:00") : "\u2014"}</span>
         <span>{flight.available_seats ?? 0} seats avail.</span>
         {#if flight.visible}
           <span class="glass-badge badge-green text-xs">Visible</span>

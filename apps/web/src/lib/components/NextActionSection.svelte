@@ -126,10 +126,10 @@
 
 <ConfettiOverlay trigger={showConfetti} />
 
-<div class="mt-6 {naLocked ? 'glass-card-locked' : 'glass-card-hero'} p-8 space-y-4 transition-all duration-300">
+<div class="mt-6 {naLocked ? 'glass-card-locked' : 'glass-card-hero'} p-8 space-y-4 transition-colors duration-300">
   <div class="flex items-center justify-between">
     <div class="flex items-center gap-3">
-      <h2 class="text-lg font-bold text-text-primary">Next Action</h2>
+      <h2 class="text-lg font-semibold text-text-primary">Next Action</h2>
       {#if !naLocked}
         <SaveIndicator status={naSaveStatus} />
       {/if}
@@ -140,12 +140,12 @@
           <Pencil size={14} class="mr-1.5" />
           Edit
         </Button>
-        <Button onclick={handleComplete} class="bg-emerald-600 hover:bg-emerald-500 text-white">
+        <Button onclick={handleComplete} class="btn-primary">
           <CheckCircle size={18} class="mr-1.5" />
           Done
         </Button>
       {:else if naDescription}
-        <Button onclick={handleComplete} class="bg-emerald-600 hover:bg-emerald-500 text-white" size="sm">
+        <Button onclick={handleComplete} class="btn-primary" size="sm">
           <CheckCircle size={18} class="mr-1.5" />
           Done
         </Button>
@@ -207,7 +207,7 @@
         <label for="naOwner" class="flex items-center gap-1.5 text-sm font-medium text-text-secondary">
           Owner
           {#if naOwnerId}
-            <Check size={14} class="text-emerald-500" />
+            <Check size={14} class="text-success" />
           {/if}
         </label>
         <SearchableSelect
@@ -224,7 +224,7 @@
         <label for="naType" class="flex items-center gap-1.5 text-sm font-medium text-text-secondary">
           Type
           {#if naType}
-            <Check size={14} class="text-emerald-500" />
+            <Check size={14} class="text-success" />
           {/if}
         </label>
         <input type="hidden" name="naType" value={naType} />
@@ -242,9 +242,9 @@
       </div>
       <div>
         <label for="naDueDate" class="flex items-center gap-1.5 text-sm font-medium text-text-secondary">
-          Due Date <span class="text-red-400">*</span>
+          Due Date <span class="text-required">*</span>
           {#if naDueDate}
-            <Check size={14} class="text-emerald-500" />
+            <Check size={14} class="text-success" />
           {/if}
         </label>
         <GlassDatePicker
@@ -254,16 +254,16 @@
           onchange={(v) => { naDueDate = v; triggerNaSave(); }}
         />
         {#if cadenceWarning()}
-          <p class="mt-1 text-xs text-amber-500">Due date exceeds the recommended cadence for this stage.</p>
+          <p class="mt-1 text-xs text-warning">Due date exceeds the recommended cadence for this stage.</p>
         {/if}
       </div>
     </div>
     {#if cadenceWarning()}
       <div class="cadence-deviation-field" role="region" aria-label="Cadence deviation explanation required">
-        <label for="naCadenceNote" class="flex items-center gap-1.5 text-sm font-medium text-amber-400">
-          Reason for extended cadence <span class="text-red-400">*</span>
+        <label for="naCadenceNote" class="flex items-center gap-1.5 text-sm font-medium text-warning">
+          Reason for extended cadence <span class="text-required">*</span>
           {#if naCadenceNote.trim()}
-            <Check size={14} class="text-emerald-500" />
+            <Check size={14} class="text-success" />
           {/if}
         </label>
         {#if cadenceHint && stageLabel}
@@ -274,7 +274,7 @@
         {/if}
         <textarea id="naCadenceNote" rows="2" bind:value={naCadenceNote}
           oninput={(e) => { e.currentTarget.style.height = "auto"; e.currentTarget.style.height = e.currentTarget.scrollHeight + "px"; triggerNaSave(); }}
-          class="glass-input block w-full resize-none {naCadenceNote.trim() ? 'ring-1 ring-emerald-500/30 border-emerald-500/30' : ''}"
+          class="glass-input block w-full resize-none {naCadenceNote.trim() ? 'ring-1 ring-success-border border-success-border' : ''}"
           placeholder="e.g. Client requested more time to review the proposal, follow-up scheduled for their return from travel"
           aria-required="true"
         ></textarea>
@@ -282,16 +282,16 @@
     {/if}
     <div>
       <label for="naDescription" class="flex items-center gap-1.5 text-sm font-medium text-text-secondary">
-        Description <span class="text-red-400">*</span>
+        Description <span class="text-required">*</span>
         {#if naDescription}
-          <Check size={14} class="text-emerald-500" />
+          <Check size={14} class="text-success" />
         {/if}
       </label>
       <textarea
         id="naDescription" rows="3"
         bind:value={naDescription}
         oninput={(e) => { const target = e.currentTarget; target.style.height = "auto"; target.style.height = target.scrollHeight + "px"; triggerNaSave(); }}
-        class="glass-input mt-1 block w-full resize-none {naDescription ? 'ring-1 ring-emerald-500/30 border-emerald-500/30' : ''}"
+        class="glass-input mt-1 block w-full resize-none {naDescription ? 'ring-1 ring-success-border border-success-border' : ''}"
         placeholder="What needs to happen next?"
       ></textarea>
     </div>

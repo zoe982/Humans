@@ -9,10 +9,10 @@
 
   const colorClasses = $derived(
     band === "hot"
-      ? "bg-red-500/20 text-red-400 border-red-500/30"
+      ? "badge-red border-[var(--badge-red-text)]/30"
       : band === "warm"
-        ? "bg-yellow-500/20 text-yellow-400 border-yellow-500/30"
-        : "bg-blue-500/20 text-blue-400 border-blue-500/30",
+        ? "badge-yellow border-[var(--badge-yellow-text)]/30"
+        : "badge-blue border-[var(--badge-blue-text)]/30",
   );
 
   const sizeClasses = $derived(

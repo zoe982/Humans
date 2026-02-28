@@ -22,7 +22,7 @@
   import { api } from "$lib/api";
   import { statusColors as statusColorMap, humanTypeColors as typeColors, opportunityStageColors, agreementStatusColors } from "$lib/constants/colors";
   import { humanTypeLabels as typeLabels, activityTypeLabels, ACTIVITY_TYPE_OPTIONS, opportunityStageLabels, agreementStatusLabels } from "$lib/constants/labels";
-  import { formatRelativeTime, summarizeChanges } from "$lib/utils/format";
+  import { formatRelativeTime, formatDate, summarizeChanges } from "$lib/utils/format";
   import { PET_BREEDS } from "@humans/shared/constants";
   import { onDestroy } from "svelte";
   import { Button } from "$lib/components/ui/button";
@@ -1650,7 +1650,7 @@
           </span>
         </td>
         <td class="text-sm text-text-secondary">{opp.passengerSeats + opp.petSeats}</td>
-        <td class="text-sm text-text-muted whitespace-nowrap">{new Date(opp.createdAt).toLocaleDateString()}</td>
+        <td class="text-sm text-text-muted whitespace-nowrap">{formatDate(opp.createdAt)}</td>
       {/snippet}
       {#snippet addForm()}
         <form method="POST" action="?/addOpportunity" class="space-y-3">
@@ -1744,7 +1744,7 @@
         <form method="POST" action="?/addAgreement" enctype="multipart/form-data" class="space-y-3">
           <div class="grid gap-3 sm:grid-cols-2">
             <div>
-              <label for="agrTitle" class="block text-sm font-medium text-text-secondary">Title <span class="text-red-400">*</span></label>
+              <label for="agrTitle" class="block text-sm font-medium text-text-secondary">Title <span class="text-required">*</span></label>
               <input id="agrTitle" name="title" type="text" required class="glass-input mt-1 block w-full" placeholder="Agreement title" />
             </div>
             <div>
@@ -1910,7 +1910,7 @@
             &mdash;
           {/if}
         </td>
-        <td class="text-sm text-text-muted">{new Date(link.linkedAt).toLocaleDateString()}</td>
+        <td class="text-sm text-text-muted">{formatDate(link.linkedAt)}</td>
         <td>
           <form method="POST" action="?/unlinkSignup">
             <input type="hidden" name="linkId" value={link.id} />
@@ -1969,7 +1969,7 @@
             &mdash;
           {/if}
         </td>
-        <td class="text-sm text-text-muted">{new Date(link.linkedAt).toLocaleDateString()}</td>
+        <td class="text-sm text-text-muted">{formatDate(link.linkedAt)}</td>
         <td>
           <form method="POST" action="?/unlinkBookingRequest">
             <input type="hidden" name="linkId" value={link.id} />
@@ -2024,7 +2024,7 @@
             {lead.status}
           </span>
         </td>
-        <td class="text-sm text-text-muted whitespace-nowrap">{new Date(lead.createdAt).toLocaleDateString()}</td>
+        <td class="text-sm text-text-muted whitespace-nowrap">{formatDate(lead.createdAt)}</td>
       {/snippet}
     </RelatedListTable>
   </div>

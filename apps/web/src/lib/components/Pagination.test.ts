@@ -59,7 +59,7 @@ describe("Pagination", () => {
     const spans = container.querySelectorAll("span");
     const prevSpan = Array.from(spans).find((s) => s.textContent.includes("Prev"));
     expect(prevSpan).toBeDefined();
-    expect(prevSpan?.className).toContain("opacity-40");
+    expect(prevSpan?.className).toContain("opacity-50");
   });
 
   it("renders Next as a disabled span on the last page", () => {
@@ -73,7 +73,7 @@ describe("Pagination", () => {
     const spans = container.querySelectorAll("span");
     const nextSpan = Array.from(spans).find((s) => s.textContent.includes("Next"));
     expect(nextSpan).toBeDefined();
-    expect(nextSpan?.className).toContain("opacity-40");
+    expect(nextSpan?.className).toContain("opacity-50");
   });
 
   it("renders Prev as an anchor link on pages after the first", () => {

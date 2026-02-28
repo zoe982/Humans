@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { PageData } from "./$types";
   import RecordManagementBar from "$lib/components/RecordManagementBar.svelte";
+  import { formatDate } from "$lib/utils/format";
   import SearchableSelect from "$lib/components/SearchableSelect.svelte";
   import SaveIndicator from "$lib/components/SaveIndicator.svelte";
   import RelatedListTable from "$lib/components/RelatedListTable.svelte";
@@ -105,7 +106,7 @@
   <title>{discountCode.crmDisplayId ?? "Discount Code"} — {discountCode.code} - Humans</title>
 </svelte:head>
 
-<div class="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
+<div class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
   <RecordManagementBar
     backHref="/discount-codes"
     backLabel="Discount Codes"
@@ -146,7 +147,7 @@
       <div>
         <span class="block text-sm font-medium text-text-secondary">Expires At</span>
         <div class="mt-1 px-3 py-2 text-sm text-text-primary bg-glass/50 rounded-lg">
-          {discountCode.expiresAt ? new Date(discountCode.expiresAt).toLocaleDateString() : "\u2014"}
+          {discountCode.expiresAt ? formatDate(discountCode.expiresAt) : "\u2014"}
         </div>
       </div>
     </div>

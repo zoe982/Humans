@@ -6,6 +6,7 @@
   import { generalLeadStatusLabels } from "$lib/constants/labels";
   import { generalLeadStatusColors } from "$lib/constants/colors";
   import { resolve } from "$app/paths";
+  import { formatDate } from "$lib/utils/format";
   import { enhance } from "$app/forms";
   import InlineNoteEditor from "$lib/components/InlineNoteEditor.svelte";
   import { api } from "$lib/api";
@@ -219,7 +220,7 @@
         }}
       />
     </td>
-    <td class="text-text-muted whitespace-nowrap">{new Date(lead.createdAt).toLocaleDateString()}</td>
+    <td class="text-text-muted whitespace-nowrap">{formatDate(lead.createdAt)}</td>
     <td>
       {#if lead.convertedHumanId}
         <a href={resolve(`/humans/${lead.convertedHumanId}`)} class="text-accent hover:text-[var(--link-hover)] font-mono text-sm">
@@ -252,7 +253,7 @@
       {#if lead.notes}
         <p class="text-sm text-text-muted truncate mt-1">{lead.notes}</p>
       {/if}
-      <div class="mt-2 text-xs text-text-muted">{new Date(lead.createdAt).toLocaleDateString()}</div>
+      <div class="mt-2 text-xs text-text-muted">{formatDate(lead.createdAt)}</div>
     </a>
   {/snippet}
 </EntityListPage>

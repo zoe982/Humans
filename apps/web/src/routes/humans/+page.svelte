@@ -4,7 +4,7 @@
   import StatusBadge from "$lib/components/StatusBadge.svelte";
   import { statusColors, humanTypeColors } from "$lib/constants/colors";
   import { humanTypeLabels } from "$lib/constants/labels";
-  import { displayName as formatDisplayName } from "$lib/utils/format";
+  import { displayName as formatDisplayName, formatDate } from "$lib/utils/format";
   import { resolve } from "$app/paths";
 
   let { data, form }: { data: PageData; form: ActionData } = $props();
@@ -86,7 +86,7 @@
         {/each}
       </div>
     </td>
-    <td class="text-text-muted">{new Date(human.createdAt).toLocaleDateString()}</td>
+    <td class="text-text-muted">{formatDate(human.createdAt)}</td>
   {/snippet}
   {#snippet mobileCard(human)}
     <a href={resolve(`/humans/${human.id}`)} class="glass-card p-4 block hover:ring-1 hover:ring-accent/40 transition">

@@ -21,7 +21,7 @@
 </script>
 
 {#if !online}
-  <div role="status" class="bg-amber-600/90 text-white text-center text-sm py-2 px-4">
+  <div role="status" class="bg-[var(--warning-text)]/90 text-white text-center text-sm py-2 px-4">
     You're offline. Showing cached data.
   </div>
 {/if}

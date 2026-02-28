@@ -3,6 +3,7 @@
   import EntityListPage from "$lib/components/EntityListPage.svelte";
   import StatusBadge from "$lib/components/StatusBadge.svelte";
   import { statusColors } from "$lib/constants/colors";
+  import { formatDate } from "$lib/utils/format";
   import { resolve } from "$app/paths";
 
   let { data, form }: { data: PageData; form: ActionData } = $props();
@@ -64,7 +65,7 @@
         {/each}
       </div>
     </td>
-    <td class="text-text-muted">{new Date(account.createdAt).toLocaleDateString()}</td>
+    <td class="text-text-muted">{formatDate(account.createdAt)}</td>
   {/snippet}
   {#snippet mobileCard(account)}
     <a href={resolve(`/accounts/${account.id}`)} class="glass-card p-4 block hover:ring-1 hover:ring-accent/40 transition">

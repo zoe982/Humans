@@ -62,7 +62,7 @@
   }
 </script>
 
-<Alert variant="default" class="mb-4 border-amber-500/30 bg-amber-500/10 text-amber-200">
+<Alert variant="default" class="mb-4 border-warning-border bg-warning-bg text-warning">
   <p>
     This {entityLabel} already exists as
     <span class="font-mono font-semibold">{details.existingDisplayId}</span>

@@ -298,11 +298,6 @@
     return parts.length > 0 ? parts.join(" ") : "—";
   }
 
-  function formatDatetime(iso: string): string {
-    const d = new Date(iso);
-    return d.toLocaleDateString() + " " + d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-  }
-
   function formatEur(value: number | null): string {
     if (value == null) return "—";
     return `€${Number(value).toFixed(2)}`;
@@ -375,7 +370,7 @@
   <title>{booking.crm_display_id ? booking.crm_display_id + ' — ' : ''}{displayName(booking)} - Booking Request - Humans</title>
 </svelte:head>
 
-<div class="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
+<div class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
   <RecordManagementBar
     backHref="/leads/website-booking-requests"
     backLabel="Booking Requests"
@@ -499,7 +494,7 @@
       </div>
       <div>
         <dt class="text-sm font-medium text-text-muted">Created</dt>
-        <dd class="mt-1 text-sm text-text-primary">{formatDatetime(booking.inserted_at)}</dd>
+        <dd class="mt-1 text-sm text-text-primary">{formatDateTime(booking.inserted_at)}</dd>
       </div>
       <div>
         <dt class="text-sm font-medium text-text-muted">Last Activity</dt>
@@ -977,7 +972,7 @@
 
   <!-- Danger Zone (Admin only) -->
   {#if isAdmin}
-    <div class="glass-card p-6 border-red-500/20 bg-red-500/5">
+    <div class="glass-card p-6 border-[var(--btn-danger-border)] bg-destructive">
       <h2 class="text-lg font-semibold text-destructive-foreground">Danger Zone</h2>
       {#if showDeleteConfirm}
         <p class="mt-2 text-sm text-destructive-foreground/80">Are you sure you want to delete this booking request? This cannot be undone.</p>
