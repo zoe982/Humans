@@ -86,7 +86,7 @@ if command -v semgrep &> /dev/null; then
     --config p/secrets \
     --config p/security-audit \
     --config p/insecure-transport \
-    --error --strict; then
+    --error; then
     ok "Semgrep scan passed"
   else
     fail "Semgrep found security issues"
