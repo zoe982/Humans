@@ -1,9 +1,9 @@
-import { sqliteTable, text, index } from "drizzle-orm/sqlite-core";
+import { pgTable, text, index } from "drizzle-orm/pg-core";
 import { opportunities } from "./opportunities";
 import { humans } from "./humans";
 import { opportunityHumanRolesConfig } from "./opportunity-human-roles-config";
 
-export const opportunityHumans = sqliteTable(
+export const opportunityHumans = pgTable(
   "opportunity_humans",
   {
     id: text("id").primaryKey(),

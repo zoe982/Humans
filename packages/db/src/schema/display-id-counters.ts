@@ -1,6 +1,6 @@
-import { sqliteTable, text, integer } from "drizzle-orm/sqlite-core";
+import { pgTable, text, integer } from "drizzle-orm/pg-core";
 
-export const displayIdCounters = sqliteTable("display_id_counters", {
+export const displayIdCounters = pgTable("display_id_counters", {
   prefix: text("prefix").primaryKey(),
   counter: integer("counter").notNull().default(0),
 });

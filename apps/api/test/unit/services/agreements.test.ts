@@ -37,7 +37,7 @@ async function seedColleague(
     lastName: "User",
     name: "Test User",
     role: "admin",
-    isActive: 1,
+    isActive: true,
     createdAt: ts,
     updatedAt: ts,
   });

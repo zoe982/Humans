@@ -1,9 +1,9 @@
-import { sqliteTable, text, integer } from "drizzle-orm/sqlite-core";
+import { pgTable, text, boolean } from "drizzle-orm/pg-core";
 
 export const roles = ["admin", "manager", "agent", "viewer"] as const;
 export type Role = (typeof roles)[number];
 
-export const colleagues = sqliteTable("colleagues", {
+export const colleagues = pgTable("colleagues", {
   id: text("id").primaryKey(),
   displayId: text("display_id").notNull().unique(),
   email: text("email").notNull().unique(),
@@ -14,7 +14,7 @@ export const colleagues = sqliteTable("colleagues", {
   avatarUrl: text("avatar_url"),
   googleId: text("google_id").unique(),
   role: text("role", { enum: roles }).notNull().default("viewer"),
-  isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),
+  isActive: boolean("is_active").notNull().default(true),
   createdAt: text("created_at").notNull(),
   updatedAt: text("updated_at").notNull(),
 });

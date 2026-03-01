@@ -1,4 +1,4 @@
-import { sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
+import { pgTable, text, uniqueIndex } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import { humans } from "./humans";
 import { accounts } from "./accounts";
@@ -16,7 +16,7 @@ export const activityTypeValues = [
 ] as const;
 export type ActivityType = (typeof activityTypeValues)[number];
 
-export const activities = sqliteTable(
+export const activities = pgTable(
   "activities",
   {
     id: text("id").primaryKey(),

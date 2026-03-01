@@ -13,6 +13,11 @@ binding = "DB"
 database_name = "humans-db"
 database_id = "40da29b5-1629-4478-b754-03350baac348"
 
+[[hyperdrive]]
+binding = "HYPERDRIVE"
+id = "b15c1db564454340a957bf4c7bf07c13"
+localConnectionString = "postgresql://humans_app:4zogcPQ2BoS5Plia%2B9OXvyJNdfYt%2Fyv5MKAmWuKttnE%3D@34.65.161.108:5432/humans?sslmode=require"
+
 [[kv_namespaces]]
 binding = "SESSIONS"
 id = "ae9494345f004cb6a6e52e34692f55be"

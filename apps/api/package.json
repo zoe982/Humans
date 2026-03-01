@@ -19,15 +19,15 @@
     "@supabase/supabase-js": "^2.97.0",
     "drizzle-orm": "^0.38.3",
     "hono": "^4.7.0",
+    "postgres": "^3.4.8",
     "zod": "^3.24.1"
   },
   "devDependencies": {
     "@cloudflare/vitest-pool-workers": "^0.5.30",
     "@cloudflare/workers-types": "^4.20260227.0",
+    "@electric-sql/pglite": "^0.3.15",
     "@humans/test-utils": "workspace:*",
-    "@types/better-sqlite3": "^7.6.13",
     "@vitest/coverage-istanbul": "~2.1.8",
-    "better-sqlite3": "^12.6.2",
     "typescript": "^5.7.3",
     "vitest": "~2.1.8",
     "wrangler": "^4.67.0"

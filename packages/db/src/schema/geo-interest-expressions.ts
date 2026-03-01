@@ -1,9 +1,9 @@
-import { sqliteTable, text, index } from "drizzle-orm/sqlite-core";
+import { pgTable, text, index } from "drizzle-orm/pg-core";
 import { humans } from "./humans";
 import { geoInterests } from "./geo-interests";
 import { activities } from "./activities";
 
-export const geoInterestExpressions = sqliteTable(
+export const geoInterestExpressions = pgTable(
   "geo_interest_expressions",
   {
     id: text("id").primaryKey(),

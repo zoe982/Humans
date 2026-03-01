@@ -1,13 +1,19 @@
 /// <reference types="@cloudflare/vitest-pool-workers" />
 import { env } from "cloudflare:test";
-import { drizzle } from "drizzle-orm/d1";
+import { drizzle } from "drizzle-orm/postgres-js";
+import postgres from "postgres";
 import * as schema from "@humans/db/schema";
 import { buildColleague } from "@humans/test-utils";
 import { SESSION_TTL_SECONDS } from "@humans/shared";
 import type { Role } from "@humans/shared";
 
 export function getDb() {
-  return drizzle(env.DB, { schema });
+  const sql = postgres(env.HYPERDRIVE.connectionString, {
+    max: 1,
+    fetch_types: false,
+    prepare: false,
+  });
+  return drizzle(sql, { schema });
 }
 
 export async function createUserAndSession(role: Role = "agent") {

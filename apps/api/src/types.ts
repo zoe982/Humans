@@ -1,4 +1,4 @@
-import type { DrizzleD1Database } from "drizzle-orm/d1";
+import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type * as schema from "@humans/db/schema";
 
@@ -7,7 +7,7 @@ export interface RateLimiter {
 }
 
 export interface Env {
-  DB: D1Database;
+  HYPERDRIVE: Hyperdrive;
   SESSIONS: KVNamespace;
   DOCUMENTS: R2Bucket;
   GOOGLE_CLIENT_ID: string;
@@ -36,7 +36,7 @@ export interface SessionData {
 export interface AppContext {
   Bindings: Env;
   Variables: {
-    db: DrizzleD1Database<typeof schema>;
+    db: PostgresJsDatabase<typeof schema>;
     session: SessionData | null;
     requestId: string;
     supabase: SupabaseClient;

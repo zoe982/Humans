@@ -1,9 +1,9 @@
 import { auditLog } from "@humans/db/schema";
 import { createId } from "@humans/db";
-import type { DrizzleD1Database } from "drizzle-orm/d1";
+import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 import type * as schema from "@humans/db/schema";
 
-type DB = DrizzleD1Database<typeof schema>;
+type DB = PostgresJsDatabase<typeof schema>;
 
 export interface FieldDiff {
   old: unknown;

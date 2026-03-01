@@ -1,4 +1,4 @@
-import { sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
+import { pgTable, text, uniqueIndex } from "drizzle-orm/pg-core";
 import { colleagues } from "./colleagues";
 
 export const entityNextActionTypes = [
@@ -8,7 +8,7 @@ export const entityNextActionTypes = [
 ] as const;
 export type EntityNextActionType = (typeof entityNextActionTypes)[number];
 
-export const entityNextActions = sqliteTable(
+export const entityNextActions = pgTable(
   "entity_next_actions",
   {
     id: text("id").primaryKey(),

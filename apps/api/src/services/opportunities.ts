@@ -1,4 +1,4 @@
-import { eq, sql, like, or, and, desc, asc, inArray, isNull } from "drizzle-orm";
+import { eq, sql, ilike, or, and, desc, asc, inArray, isNull } from "drizzle-orm";
 import {
   opportunities,
   opportunityHumans,
@@ -42,8 +42,8 @@ export async function listOpportunities(
   }
   if (filters.q != null) {
     const orCondition = or(
-      like(opportunities.displayId, `%${filters.q}%`),
-      like(opportunities.nextActionDescription, `%${filters.q}%`),
+      ilike(opportunities.displayId, `%${filters.q}%`),
+      ilike(opportunities.nextActionDescription, `%${filters.q}%`),
     );
     if (orCondition != null) conditions.push(orCondition);
   }

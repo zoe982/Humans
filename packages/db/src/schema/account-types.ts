@@ -1,8 +1,8 @@
-import { sqliteTable, text } from "drizzle-orm/sqlite-core";
+import { pgTable, text } from "drizzle-orm/pg-core";
 import { accounts } from "./accounts";
 import { accountTypesConfig } from "./account-types-config";
 
-export const accountTypes = sqliteTable("account_types", {
+export const accountTypes = pgTable("account_types", {
   id: text("id").primaryKey(),
   accountId: text("account_id")
     .notNull()

@@ -1,4 +1,4 @@
-import { eq, like, or, and, inArray } from "drizzle-orm";
+import { eq, ilike, or, and, inArray } from "drizzle-orm";
 import {
   geoInterests,
   geoInterestExpressions,
@@ -39,7 +39,7 @@ export async function searchGeoInterests(db: DB, query: string): Promise<(typeof
   return db
     .select()
     .from(geoInterests)
-    .where(or(like(geoInterests.city, pattern), like(geoInterests.country, pattern)));
+    .where(or(ilike(geoInterests.city, pattern), ilike(geoInterests.country, pattern)));
 }
 
 export async function getGeoInterestDetail(db: DB, id: string): Promise<{ expressions: { humanName: string | null; activitySubject: string | null; id: string; displayId: string; humanId: string; geoInterestId: string; activityId: string | null; notes: string | null; createdAt: string }[]; id: string; displayId: string; city: string; country: string; createdAt: string }> {

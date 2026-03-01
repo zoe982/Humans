@@ -1,10 +1,10 @@
-import { sqliteTable, text } from "drizzle-orm/sqlite-core";
+import { pgTable, text } from "drizzle-orm/pg-core";
 import { humans } from "./humans";
 
 export const humanTypeValues = ["client", "trainer", "travel_agent", "flight_broker"] as const;
 export type HumanType = (typeof humanTypeValues)[number];
 
-export const humanTypes = sqliteTable("human_types", {
+export const humanTypes = pgTable("human_types", {
   id: text("id").primaryKey(),
   humanId: text("human_id")
     .notNull()

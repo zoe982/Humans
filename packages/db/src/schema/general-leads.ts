@@ -1,4 +1,4 @@
-import { sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
+import { pgTable, text, uniqueIndex } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import { colleagues } from "./colleagues";
 import { humans } from "./humans";
@@ -12,7 +12,7 @@ export const generalLeadStatuses = [
 ] as const;
 export type GeneralLeadStatus = (typeof generalLeadStatuses)[number];
 
-export const generalLeads = sqliteTable("general_leads", {
+export const generalLeads = pgTable("general_leads", {
   id: text("id").primaryKey(),
   displayId: text("display_id").notNull().unique(),
   status: text("status", { enum: generalLeadStatuses }).notNull().default("open"),

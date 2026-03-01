@@ -74,10 +74,10 @@ async function seedPhone(
 
 /** Drop unique indexes so we can seed duplicate data (dedup runs BEFORE constraints are applied). */
 async function dropUniqueConstraints(db: ReturnType<typeof getTestDb>) {
-  await db.run(sql`DROP INDEX IF EXISTS emails_email_unique`);
-  await db.run(sql`DROP INDEX IF EXISTS phones_phone_number_unique`);
-  await db.run(sql`DROP INDEX IF EXISTS social_ids_platform_handle_unique`);
-  await db.run(sql`DROP INDEX IF EXISTS websites_url_unique`);
+  await db.execute(sql`DROP INDEX IF EXISTS emails_email_unique`);
+  await db.execute(sql`DROP INDEX IF EXISTS phones_phone_number_unique`);
+  await db.execute(sql`DROP INDEX IF EXISTS social_ids_platform_handle_unique`);
+  await db.execute(sql`DROP INDEX IF EXISTS websites_url_unique`);
 }
 
 describe("deduplicateContacts", () => {

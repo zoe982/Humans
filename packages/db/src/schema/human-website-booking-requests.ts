@@ -1,8 +1,8 @@
-import { sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
+import { pgTable, text, uniqueIndex } from "drizzle-orm/pg-core";
 import { humans } from "./humans";
 import { opportunities } from "./opportunities";
 
-export const humanWebsiteBookingRequests = sqliteTable("human_website_booking_requests", {
+export const humanWebsiteBookingRequests = pgTable("human_website_booking_requests", {
   id: text("id").primaryKey(),
   humanId: text("human_id")
     .notNull()

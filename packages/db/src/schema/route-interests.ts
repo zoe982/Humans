@@ -1,6 +1,6 @@
-import { sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
+import { pgTable, text, uniqueIndex } from "drizzle-orm/pg-core";
 
-export const routeInterests = sqliteTable(
+export const routeInterests = pgTable(
   "route_interests",
   {
     id: text("id").primaryKey(),

@@ -1,8 +1,8 @@
-import { sqliteTable, text } from "drizzle-orm/sqlite-core";
+import { pgTable, text } from "drizzle-orm/pg-core";
 import { humans } from "./humans";
 import { humanRelationshipLabelsConfig } from "./human-relationship-labels-config";
 
-export const humanRelationships = sqliteTable("human_relationships", {
+export const humanRelationships = pgTable("human_relationships", {
   id: text("id").primaryKey(),
   displayId: text("display_id").notNull().unique(),
   humanId1: text("human_id_1")

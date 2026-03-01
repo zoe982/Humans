@@ -1,4 +1,4 @@
-import { sqliteTable, text, integer } from "drizzle-orm/sqlite-core";
+import { pgTable, text, integer } from "drizzle-orm/pg-core";
 import { colleagues } from "./colleagues";
 
 export const frontSyncRunStatuses = [
@@ -9,7 +9,7 @@ export const frontSyncRunStatuses = [
 ] as const;
 export type FrontSyncRunStatus = (typeof frontSyncRunStatuses)[number];
 
-export const frontSyncRuns = sqliteTable("front_sync_runs", {
+export const frontSyncRuns = pgTable("front_sync_runs", {
   id: text("id").primaryKey(),
   displayId: text("display_id").notNull().unique(),
   status: text("status", { enum: frontSyncRunStatuses })

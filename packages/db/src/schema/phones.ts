@@ -1,6 +1,6 @@
-import { sqliteTable, text, integer, index, uniqueIndex } from "drizzle-orm/sqlite-core";
+import { pgTable, text, boolean, index, uniqueIndex } from "drizzle-orm/pg-core";
 
-export const phones = sqliteTable(
+export const phones = pgTable(
   "phones",
   {
     id: text("id").primaryKey(),
@@ -12,8 +12,8 @@ export const phones = sqliteTable(
     routeSignupId: text("route_signup_id"),
     phoneNumber: text("phone_number").notNull(),
     labelId: text("label_id"),
-    hasWhatsapp: integer("has_whatsapp", { mode: "boolean" }).notNull().default(false),
-    isPrimary: integer("is_primary", { mode: "boolean" }).notNull().default(false),
+    hasWhatsapp: boolean("has_whatsapp").notNull().default(false),
+    isPrimary: boolean("is_primary").notNull().default(false),
     createdAt: text("created_at").notNull(),
   },
   (table) => [

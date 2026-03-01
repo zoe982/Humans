@@ -1,9 +1,9 @@
-import { sqliteTable, text, index } from "drizzle-orm/sqlite-core";
+import { pgTable, text, index } from "drizzle-orm/pg-core";
 
 export const agreementStatuses = ["open", "active", "closed_inactive"] as const;
 export type AgreementStatus = (typeof agreementStatuses)[number];
 
-export const agreements = sqliteTable(
+export const agreements = pgTable(
   "agreements",
   {
     id: text("id").primaryKey(),

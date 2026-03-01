@@ -1,4 +1,4 @@
-import { and, eq, ne, sql, inArray, desc, like, or } from "drizzle-orm";
+import { and, eq, ne, sql, inArray, desc, ilike, or } from "drizzle-orm";
 import {
   humans,
   humanStatuses,
@@ -64,9 +64,9 @@ export async function listHumans(db: DB, page: number, limit: number, search?: s
 
   const searchFilter = search != null
     ? or(
-        like(humans.firstName, `%${search}%`),
-        like(humans.lastName, `%${search}%`),
-        like(humans.displayId, `%${search}%`),
+        ilike(humans.firstName, `%${search}%`),
+        ilike(humans.lastName, `%${search}%`),
+        ilike(humans.displayId, `%${search}%`),
       )
     : undefined;
 

@@ -1,4 +1,4 @@
-import { sqliteTable, text, integer, index } from "drizzle-orm/sqlite-core";
+import { pgTable, text, integer, index } from "drizzle-orm/pg-core";
 import { humans } from "./humans";
 import { routeInterests } from "./route-interests";
 import { activities } from "./activities";
@@ -6,7 +6,7 @@ import { activities } from "./activities";
 export const routeInterestFrequencyValues = ["one_time", "repeat"] as const;
 export type RouteInterestFrequency = (typeof routeInterestFrequencyValues)[number];
 
-export const routeInterestExpressions = sqliteTable(
+export const routeInterestExpressions = pgTable(
   "route_interest_expressions",
   {
     id: text("id").primaryKey(),

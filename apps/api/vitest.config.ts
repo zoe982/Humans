@@ -40,7 +40,9 @@ export default defineWorkersConfig({
         miniflare: {
           compatibilityDate: "2024-12-18",
           compatibilityFlags: ["nodejs_compat"],
-          d1Databases: ["DB"],
+          hyperdrives: {
+            HYPERDRIVE: "postgresql://humans_app:test@localhost:5432/humans_test",
+          },
           kvNamespaces: ["SESSIONS"],
           r2Buckets: ["DOCUMENTS"],
           bindings: {

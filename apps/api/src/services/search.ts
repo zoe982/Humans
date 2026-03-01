@@ -1,4 +1,4 @@
-import { like, or, inArray } from "drizzle-orm";
+import { ilike, or, inArray } from "drizzle-orm";
 import {
   humans,
   emails,
@@ -22,23 +22,23 @@ export async function searchD1(db: DB, query: string): Promise<{ matchedHumans: 
       db
         .select()
         .from(humans)
-        .where(or(like(humans.firstName, pattern), like(humans.lastName, pattern))),
-      db.select().from(emails).where(like(emails.email, pattern)),
+        .where(or(ilike(humans.firstName, pattern), ilike(humans.lastName, pattern))),
+      db.select().from(emails).where(ilike(emails.email, pattern)),
       db
         .select()
         .from(phones)
-        .where(like(phones.phoneNumber, pattern)),
+        .where(ilike(phones.phoneNumber, pattern)),
       db
         .select()
         .from(activities)
-        .where(or(like(activities.subject, pattern), like(activities.notes, pattern))),
+        .where(or(ilike(activities.subject, pattern), ilike(activities.notes, pattern))),
       db
         .select()
         .from(geoInterests)
-        .where(or(like(geoInterests.city, pattern), like(geoInterests.country, pattern))),
-      db.select().from(accounts).where(like(accounts.name, pattern)),
-      db.select().from(emails).where(like(emails.email, pattern)),
-      db.select().from(phones).where(like(phones.phoneNumber, pattern)),
+        .where(or(ilike(geoInterests.city, pattern), ilike(geoInterests.country, pattern))),
+      db.select().from(accounts).where(ilike(accounts.name, pattern)),
+      db.select().from(emails).where(ilike(emails.email, pattern)),
+      db.select().from(phones).where(ilike(phones.phoneNumber, pattern)),
     ]);
 
   // Fetch expressions for matched geo-interests to find linked humans

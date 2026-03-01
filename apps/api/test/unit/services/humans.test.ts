@@ -417,12 +417,12 @@ describe("updateHuman", () => {
     });
 
     await updateHuman(db, "h-1", {
-      types: ["pet_shipper"],
+      types: ["trainer"],
     }, "col-1");
 
     const types = await db.select().from(schema.humanTypes);
     expect(types).toHaveLength(1);
-    expect(types[0]!.type).toBe("pet_shipper");
+    expect(types[0]!.type).toBe("trainer");
   });
 
   it("updates middleName and lastName", async () => {

@@ -146,8 +146,10 @@ describe("importLeadFromFront", () => {
     const conversation = buildConversation();
     const messages = [buildMessage()];
 
-    // Mock: GET message → returns conversation_id
-    mockFrontFetch.mockResolvedValueOnce({ conversation_id: "cnv_test1" });
+    // Mock: GET message → returns _links.related.conversation URL
+    mockFrontFetch.mockResolvedValueOnce({
+      _links: { related: { conversation: "https://api2.frontapp.com/conversations/cnv_test1" } },
+    });
     // Mock: GET conversation
     mockFrontFetch.mockResolvedValueOnce(conversation);
     // Mock: GET messages

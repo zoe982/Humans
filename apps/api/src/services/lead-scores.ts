@@ -1,4 +1,4 @@
-import { eq, sql, and, like, or, desc, inArray } from "drizzle-orm";
+import { eq, sql, and, ilike, or, desc, inArray } from "drizzle-orm";
 import { leadScores, generalLeads } from "@humans/db/schema";
 import { createId } from "@humans/db";
 import { ERROR_CODES, type LeadScoreParentType, getLeadScoreBand } from "@humans/shared";
@@ -298,7 +298,7 @@ export async function listLeadScores(
   // Search filter
   if (filters.q != null) {
     const searchCondition = or(
-      like(leadScores.displayId, `%${filters.q}%`),
+      ilike(leadScores.displayId, `%${filters.q}%`),
     );
     if (searchCondition != null) conditions.push(searchCondition);
   }

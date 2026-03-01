@@ -1,4 +1,4 @@
-import { eq, and, ne, inArray, like } from "drizzle-orm";
+import { eq, and, ne, inArray, ilike } from "drizzle-orm";
 import { emails, humans, accounts, generalLeads, humanEmailLabelsConfig, accountEmailLabelsConfig } from "@humans/db/schema";
 import { createId } from "@humans/db";
 import { ERROR_CODES, normalizeEmail } from "@humans/shared";
@@ -31,7 +31,7 @@ function resolveOwner(
 
 export async function listEmails(db: DB, query?: string): Promise<{ ownerName: string | null; ownerDisplayId: string | null; labelName: string | null; id: string; displayId: string; humanId: string | null; accountId: string | null; generalLeadId: string | null; websiteBookingRequestId: string | null; routeSignupId: string | null; email: string; labelId: string | null; isPrimary: boolean; createdAt: string }[]> {
   const allEmails = query != null && query !== ""
-    ? await db.select().from(emails).where(like(emails.email, `%${query}%`))
+    ? await db.select().from(emails).where(ilike(emails.email, `%${query}%`))
     : await db.select().from(emails);
   const humanIds = allEmails.flatMap((e) => e.humanId != null ? [e.humanId] : []);
   const accountIds = allEmails.flatMap((e) => e.accountId != null ? [e.accountId] : []);

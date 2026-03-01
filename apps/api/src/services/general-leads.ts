@@ -1,4 +1,4 @@
-import { eq, sql, like, or, and, desc, asc } from "drizzle-orm";
+import { eq, sql, ilike, or, and, desc, asc } from "drizzle-orm";
 import { generalLeads, generalLeadStatuses, activities, colleagues, humans, emails, phones, socialIds, socialIdPlatformsConfig, leadScores } from "@humans/db/schema";
 import type { GeneralLeadStatus } from "@humans/db/schema";
 import { createId } from "@humans/db";
@@ -57,10 +57,10 @@ export async function listGeneralLeads(
   if (filters.convertedHumanId != null) conditions.push(eq(generalLeads.convertedHumanId, filters.convertedHumanId));
   if (filters.q != null) {
     const orCondition = or(
-      like(generalLeads.displayId, `%${filters.q}%`),
-      like(generalLeads.notes, `%${filters.q}%`),
-      like(generalLeads.firstName, `%${filters.q}%`),
-      like(generalLeads.lastName, `%${filters.q}%`),
+      ilike(generalLeads.displayId, `%${filters.q}%`),
+      ilike(generalLeads.notes, `%${filters.q}%`),
+      ilike(generalLeads.firstName, `%${filters.q}%`),
+      ilike(generalLeads.lastName, `%${filters.q}%`),
     );
     if (orCondition != null) conditions.push(orCondition);
   }

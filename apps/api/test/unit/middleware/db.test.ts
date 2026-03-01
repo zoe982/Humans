@@ -2,13 +2,17 @@ import { describe, it, expect, vi } from "vitest";
 import { Hono } from "hono";
 import { dbMiddleware } from "../../../src/middleware/db";
 
-// Mock drizzle to avoid needing a real D1 binding
-vi.mock("drizzle-orm/d1", () => ({
-  drizzle: vi.fn((_binding: unknown, _opts: unknown) => ({ mockDb: true })),
+// Mock postgres and drizzle to avoid needing a real Hyperdrive binding
+vi.mock("postgres", () => ({
+  default: vi.fn((_connStr: unknown, _opts: unknown) => ({ mockSql: true })),
+}));
+
+vi.mock("drizzle-orm/postgres-js", () => ({
+  drizzle: vi.fn((_sql: unknown, _opts: unknown) => ({ mockDb: true })),
 }));
 
 type TestContext = {
-  Bindings: { DB: unknown };
+  Bindings: { HYPERDRIVE: { connectionString: string } };
   Variables: { db: unknown };
 };
 
@@ -16,7 +20,7 @@ function createTestApp() {
   const app = new Hono<TestContext>();
 
   app.use("/*", async (c, next) => {
-    c.env = { DB: { mockD1: true } } as unknown as typeof c.env;
+    c.env = { HYPERDRIVE: { connectionString: "postgresql://test:test@localhost:5432/test" } } as unknown as typeof c.env;
     await next();
   });
 
@@ -38,13 +42,13 @@ describe("db middleware", () => {
     expect(body.hasDb).toBe(true);
   });
 
-  it("calls drizzle with the D1 binding", async () => {
-    const { drizzle } = await import("drizzle-orm/d1");
+  it("calls postgres with the Hyperdrive connection string", async () => {
+    const postgres = (await import("postgres")).default;
     const app = createTestApp();
     await app.request("/test");
-    expect(drizzle).toHaveBeenCalledWith(
-      { mockD1: true },
-      expect.objectContaining({ schema: expect.any(Object) }),
+    expect(postgres).toHaveBeenCalledWith(
+      "postgresql://test:test@localhost:5432/test",
+      expect.objectContaining({ max: 5 }),
     );
   });
 });

@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { getTableName } from "drizzle-orm";
-import { getTableConfig } from "drizzle-orm/sqlite-core";
+import { getTableConfig } from "drizzle-orm/pg-core";
 import { colleagues, roles } from "./colleagues";
 import { pets } from "./pets";
 import { leadSources, leadSourceCategories } from "./lead-sources";

@@ -1,4 +1,4 @@
-import { eq, and, gte, lte, sql, desc, like, or, inArray } from "drizzle-orm";
+import { eq, and, gte, lte, sql, desc, ilike, or, inArray } from "drizzle-orm";
 import { activities, activityTypeValues, humans, accounts, colleagues, geoInterestExpressions, geoInterests, routeInterestExpressions, routeInterests, activityOpportunities, opportunities } from "@humans/db/schema";
 import type { ActivityType } from "@humans/db/schema";
 import { createId } from "@humans/db";
@@ -56,7 +56,7 @@ export async function listActivities(db: DB, filters: ActivityFilters): Promise<
   if (filters.dateTo != null) conditions.push(lte(activities.activityDate, filters.dateTo));
   if (filters.q != null) {
     const pattern = `%${filters.q}%`;
-    const orCondition = or(like(activities.subject, pattern), like(activities.notes, pattern));
+    const orCondition = or(ilike(activities.subject, pattern), ilike(activities.notes, pattern));
     if (orCondition != null) conditions.push(orCondition);
   }
 

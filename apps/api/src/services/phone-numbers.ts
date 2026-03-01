@@ -1,4 +1,4 @@
-import { eq, and, ne, inArray, like } from "drizzle-orm";
+import { eq, and, ne, inArray, ilike } from "drizzle-orm";
 import { phones, humans, accounts, generalLeads, humanPhoneLabelsConfig, accountPhoneLabelsConfig } from "@humans/db/schema";
 import { createId } from "@humans/db";
 import { ERROR_CODES, normalizePhone } from "@humans/shared";
@@ -31,7 +31,7 @@ function resolveOwner(
 
 export async function listPhoneNumbers(db: DB, query?: string): Promise<{ ownerName: string | null; ownerDisplayId: string | null; labelName: string | null; id: string; displayId: string; humanId: string | null; accountId: string | null; generalLeadId: string | null; websiteBookingRequestId: string | null; routeSignupId: string | null; phoneNumber: string; labelId: string | null; hasWhatsapp: boolean; isPrimary: boolean; createdAt: string }[]> {
   const allPhones = query != null && query !== ""
-    ? await db.select().from(phones).where(like(phones.phoneNumber, `%${query}%`))
+    ? await db.select().from(phones).where(ilike(phones.phoneNumber, `%${query}%`))
     : await db.select().from(phones);
   const humanIds = allPhones.flatMap((p) => p.humanId != null ? [p.humanId] : []);
   const accountIds = allPhones.flatMap((p) => p.accountId != null ? [p.accountId] : []);

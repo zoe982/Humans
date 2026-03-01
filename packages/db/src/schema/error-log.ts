@@ -1,9 +1,9 @@
-import { sqliteTable, text, integer, index, uniqueIndex } from "drizzle-orm/sqlite-core";
+import { pgTable, text, integer, jsonb, index, uniqueIndex } from "drizzle-orm/pg-core";
 
 export const errorLogResolutionStatuses = ["open", "resolved"] as const;
 export type ErrorLogResolutionStatus = (typeof errorLogResolutionStatuses)[number];
 
-export const errorLog = sqliteTable(
+export const errorLog = pgTable(
   "error_log",
   {
     id: text("id").primaryKey(),
@@ -16,7 +16,7 @@ export const errorLog = sqliteTable(
     method: text("method"),
     path: text("path"),
     userId: text("user_id"),
-    details: text("details", { mode: "json" }).$type<unknown>(),
+    details: jsonb("details").$type<unknown>(),
     stack: text("stack"),
     createdAt: text("created_at").notNull(),
   },

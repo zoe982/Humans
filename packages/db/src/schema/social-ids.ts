@@ -1,7 +1,7 @@
-import { sqliteTable, text, index } from "drizzle-orm/sqlite-core";
+import { pgTable, text, index } from "drizzle-orm/pg-core";
 import { socialIdPlatformsConfig } from "./social-id-platforms-config";
 
-export const socialIds = sqliteTable(
+export const socialIds = pgTable(
   "social_ids",
   {
     id: text("id").primaryKey(),

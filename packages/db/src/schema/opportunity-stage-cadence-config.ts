@@ -1,6 +1,6 @@
-import { sqliteTable, text, integer } from "drizzle-orm/sqlite-core";
+import { pgTable, text, integer } from "drizzle-orm/pg-core";
 
-export const opportunityStageCadenceConfig = sqliteTable("opportunity_stage_cadence_config", {
+export const opportunityStageCadenceConfig = pgTable("opportunity_stage_cadence_config", {
   id: text("id").primaryKey(),
   stage: text("stage").notNull().unique(),
   cadenceHours: integer("cadence_hours").notNull(),

@@ -1,1 +1,0 @@
-ALTER TABLE pets ADD COLUMN notes TEXT;

@@ -1,4 +1,4 @@
-import { eq, like, or, and, inArray } from "drizzle-orm";
+import { eq, ilike, or, and, inArray } from "drizzle-orm";
 import {
   routeInterests,
   routeInterestExpressions,
@@ -358,8 +358,8 @@ export async function listCities(db: DB, query: string): Promise<{ city: string;
     .from(routeInterests)
     .where(
       or(
-        like(routeInterests.originCity, pattern),
-        like(routeInterests.destinationCity, pattern),
+        ilike(routeInterests.originCity, pattern),
+        ilike(routeInterests.destinationCity, pattern),
       ),
     );
 
@@ -367,7 +367,7 @@ export async function listCities(db: DB, query: string): Promise<{ city: string;
   const geoRows = await db
     .select({ city: geoInterests.city, country: geoInterests.country })
     .from(geoInterests)
-    .where(like(geoInterests.city, pattern));
+    .where(ilike(geoInterests.city, pattern));
 
   // Deduplicate by city+country
   const cityMap = new Map<string, { city: string; country: string }>();

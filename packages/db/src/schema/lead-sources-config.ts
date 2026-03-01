@@ -1,6 +1,6 @@
-import { sqliteTable, text } from "drizzle-orm/sqlite-core";
+import { pgTable, text } from "drizzle-orm/pg-core";
 
-export const leadSourcesConfig = sqliteTable("lead_sources_config", {
+export const leadSourcesConfig = pgTable("lead_sources_config", {
   id: text("id").primaryKey(),
   name: text("name").notNull().unique(),
   createdAt: text("created_at").notNull(),

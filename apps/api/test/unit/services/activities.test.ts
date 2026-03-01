@@ -319,7 +319,7 @@ describe("createActivity", () => {
     const result = await createActivity(
       db,
       {
-        type: "call",
+        type: "phone_call",
         subject: "Follow-up call",
         notes: "Discussed pricing",
         activityDate: ts,
@@ -332,7 +332,7 @@ describe("createActivity", () => {
       "col-1",
     );
 
-    expect(result.type).toBe("call");
+    expect(result.type).toBe("phone_call");
     expect(result.subject).toBe("Follow-up call");
     expect(result.notes).toBe("Discussed pricing");
     expect(result.body).toBe("Discussed pricing");

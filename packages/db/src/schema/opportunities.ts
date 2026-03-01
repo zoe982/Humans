@@ -1,4 +1,4 @@
-import { sqliteTable, text, integer } from "drizzle-orm/sqlite-core";
+import { pgTable, text, integer } from "drizzle-orm/pg-core";
 import { colleagues } from "./colleagues";
 
 export const opportunityStages = [
@@ -16,7 +16,7 @@ export const opportunityStages = [
 ] as const;
 export type OpportunityStage = (typeof opportunityStages)[number];
 
-export const opportunities = sqliteTable("opportunities", {
+export const opportunities = pgTable("opportunities", {
   id: text("id").primaryKey(),
   displayId: text("display_id").notNull().unique(),
   stage: text("stage", { enum: opportunityStages }).notNull().default("open"),

@@ -183,7 +183,7 @@ describe("createDocument", () => {
       lastName: "User",
       name: "Upload User",
       role: "agent",
-      isActive: 1,
+      isActive: true,
       createdAt: ts,
       updatedAt: ts,
     });

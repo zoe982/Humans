@@ -1,9 +1,9 @@
-import { sqliteTable, text } from "drizzle-orm/sqlite-core";
+import { pgTable, text } from "drizzle-orm/pg-core";
 import { accounts } from "./accounts";
 import { humans } from "./humans";
 import { accountHumanLabelsConfig } from "./account-human-labels-config";
 
-export const accountHumans = sqliteTable("account_humans", {
+export const accountHumans = pgTable("account_humans", {
   id: text("id").primaryKey(),
   accountId: text("account_id")
     .notNull()

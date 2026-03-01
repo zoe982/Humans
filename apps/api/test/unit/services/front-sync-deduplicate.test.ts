@@ -24,12 +24,12 @@ describe("deduplicateActivities", () => {
   // (simulates pre-migration state when duplicates were created)
   beforeEach(async () => {
     const db = getTestDb();
-    await db.run(sql`DROP INDEX IF EXISTS "activities_front_id_unique"`);
+    await db.execute(sql`DROP INDEX IF EXISTS "activities_front_id_unique"`);
   });
 
   afterEach(async () => {
     const db = getTestDb();
-    await db.run(
+    await db.execute(
       sql`CREATE UNIQUE INDEX IF NOT EXISTS "activities_front_id_unique" ON "activities" ("front_id") WHERE "front_id" IS NOT NULL`,
     );
   });

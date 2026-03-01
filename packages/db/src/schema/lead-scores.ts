@@ -1,7 +1,7 @@
-import { integer, sqliteTable, text, uniqueIndex, index } from "drizzle-orm/sqlite-core";
+import { integer, pgTable, text, boolean, uniqueIndex, index } from "drizzle-orm/pg-core";
 import { generalLeads } from "./general-leads";
 
-export const leadScores = sqliteTable(
+export const leadScores = pgTable(
   "lead_scores",
   {
     id: text("id").primaryKey(),
@@ -13,29 +13,29 @@ export const leadScores = sqliteTable(
     routeSignupId: text("route_signup_id"), // Supabase — no FK
 
     // Fit flags
-    fitMatchesCurrentWebsiteFlight: integer("fit_matches_current_website_flight", { mode: "boolean" }).notNull().default(false),
-    fitPriceAcknowledgedOk: integer("fit_price_acknowledged_ok", { mode: "boolean" }).notNull().default(false),
+    fitMatchesCurrentWebsiteFlight: boolean("fit_matches_current_website_flight").notNull().default(false),
+    fitPriceAcknowledgedOk: boolean("fit_price_acknowledged_ok").notNull().default(false),
 
     // Intent flags
-    intentDepositPaid: integer("intent_deposit_paid", { mode: "boolean" }).notNull().default(false),
-    intentPaymentDetailsSent: integer("intent_payment_details_sent", { mode: "boolean" }).notNull().default(false),
-    intentRequestedPaymentDetails: integer("intent_requested_payment_details", { mode: "boolean" }).notNull().default(false),
-    intentBookingSubmitted: integer("intent_booking_submitted", { mode: "boolean" }).notNull().default(false),
-    intentBookingStarted: integer("intent_booking_started", { mode: "boolean" }).notNull().default(false),
-    intentRouteSignupSubmitted: integer("intent_route_signup_submitted", { mode: "boolean" }).notNull().default(false),
+    intentDepositPaid: boolean("intent_deposit_paid").notNull().default(false),
+    intentPaymentDetailsSent: boolean("intent_payment_details_sent").notNull().default(false),
+    intentRequestedPaymentDetails: boolean("intent_requested_payment_details").notNull().default(false),
+    intentBookingSubmitted: boolean("intent_booking_submitted").notNull().default(false),
+    intentBookingStarted: boolean("intent_booking_started").notNull().default(false),
+    intentRouteSignupSubmitted: boolean("intent_route_signup_submitted").notNull().default(false),
 
     // Engagement flags
-    engagementRespondedFast: integer("engagement_responded_fast", { mode: "boolean" }).notNull().default(false),
-    engagementRespondedSlow: integer("engagement_responded_slow", { mode: "boolean" }).notNull().default(false),
+    engagementRespondedFast: boolean("engagement_responded_fast").notNull().default(false),
+    engagementRespondedSlow: boolean("engagement_responded_slow").notNull().default(false),
 
     // Negative flags
-    negativeNoContactMethod: integer("negative_no_contact_method", { mode: "boolean" }).notNull().default(false),
-    negativeOffNetworkRequest: integer("negative_off_network_request", { mode: "boolean" }).notNull().default(false),
-    negativePriceObjection: integer("negative_price_objection", { mode: "boolean" }).notNull().default(false),
-    negativeGhostedAfterPaymentSent: integer("negative_ghosted_after_payment_sent", { mode: "boolean" }).notNull().default(false),
+    negativeNoContactMethod: boolean("negative_no_contact_method").notNull().default(false),
+    negativeOffNetworkRequest: boolean("negative_off_network_request").notNull().default(false),
+    negativePriceObjection: boolean("negative_price_objection").notNull().default(false),
+    negativeGhostedAfterPaymentSent: boolean("negative_ghosted_after_payment_sent").notNull().default(false),
 
     // Lifecycle
-    customerHasFlown: integer("customer_has_flown", { mode: "boolean" }).notNull().default(false),
+    customerHasFlown: boolean("customer_has_flown").notNull().default(false),
 
     // Computed scores
     scoreFit: integer("score_fit").notNull().default(0),

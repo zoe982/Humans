@@ -236,9 +236,9 @@ describe("searchD1", () => {
     await db.insert(schema.accountTypes).values({
       id: "at-1", accountId: "acc-1", typeId: "orphan-type-id", createdAt: ts,
     });
-    await db.run(sql`PRAGMA foreign_keys = OFF`);
+    await db.execute(sql`SET session_replication_role = 'replica'`);
     await db.delete(schema.accountTypesConfig).where(eq(schema.accountTypesConfig.id, "orphan-type-id"));
-    await db.run(sql`PRAGMA foreign_keys = ON`);
+    await db.execute(sql`SET session_replication_role = 'origin'`);
 
     const result = await searchD1(db, "Mystery");
     expect(result.matchedAccounts).toHaveLength(1);

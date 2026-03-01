@@ -23,7 +23,7 @@ opportunityCadenceRoutes.patch("/api/admin/opportunity-cadence/:id", requirePerm
   const db = c.get("db");
   const id = c.req.param("id");
 
-  const existing = await db.select().from(opportunityStageCadenceConfig).where(eq(opportunityStageCadenceConfig.id, id)).get();
+  const [existing] = await db.select().from(opportunityStageCadenceConfig).where(eq(opportunityStageCadenceConfig.id, id));
   if (existing == null) {
     throw notFound(ERROR_CODES.CADENCE_CONFIG_NOT_FOUND, "Cadence config not found");
   }
@@ -38,7 +38,7 @@ opportunityCadenceRoutes.patch("/api/admin/opportunity-cadence/:id", requirePerm
     updatedAt: now,
   }).where(eq(opportunityStageCadenceConfig.id, id));
 
-  const updated = await db.select().from(opportunityStageCadenceConfig).where(eq(opportunityStageCadenceConfig.id, id)).get();
+  const [updated] = await db.select().from(opportunityStageCadenceConfig).where(eq(opportunityStageCadenceConfig.id, id));
   return c.json({ data: updated });
 });
 

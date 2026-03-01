@@ -1,7 +1,7 @@
-import { sqliteTable, text, integer, real } from "drizzle-orm/sqlite-core";
+import { pgTable, text, boolean, real } from "drizzle-orm/pg-core";
 import { humans } from "./humans";
 
-export const pets = sqliteTable("pets", {
+export const pets = pgTable("pets", {
   id: text("id").primaryKey(),
   displayId: text("display_id").notNull().unique(),
   humanId: text("human_id")
@@ -11,7 +11,7 @@ export const pets = sqliteTable("pets", {
   breed: text("breed"),
   weight: real("weight"),
   notes: text("notes"),
-  isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),
+  isActive: boolean("is_active").notNull().default(true),
   createdAt: text("created_at").notNull(),
   updatedAt: text("updated_at").notNull(),
 });
