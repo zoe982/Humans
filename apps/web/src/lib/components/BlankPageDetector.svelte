@@ -29,6 +29,10 @@
       const text = (main.textContent ?? "").trim();
       const childCount = main.children.length;
 
+      // Skip detection if a loading skeleton is visible — the page is
+      // actively loading data client-side, not blank.
+      if (main.querySelector(".animate-pulse") != null) return;
+
       // A blank page typically has 0 children or very little text.
       // The layout always renders <main> but the page content goes inside it.
       // If the page component failed to render, main will have 0 children.

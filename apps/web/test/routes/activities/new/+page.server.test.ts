@@ -95,7 +95,7 @@ describe("activities/new create action", () => {
     const result = await actions.create(event as any);
     expect(isActionFailure(result)).toBe(true);
     if (isActionFailure(result)) {
-      expect(result.data.error).toBe("At least one linked entity is required.");
+      expect((result.data as { error: string }).error).toBe("At least one linked entity is required.");
     }
   });
 
@@ -116,7 +116,7 @@ describe("activities/new create action", () => {
     const result = await actions.create(event as any);
     expect(isActionFailure(result)).toBe(true);
     if (isActionFailure(result)) {
-      expect(result.data.error).toBe("Validation failed");
+      expect((result.data as { error: string }).error).toBe("Validation failed");
     }
   });
 

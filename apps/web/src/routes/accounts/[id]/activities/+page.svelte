@@ -20,8 +20,8 @@
   const dateRange = $derived.by(() => {
     if (activities.length === 0) return "";
     const sorted = [...activities].sort((a, b) => a.activityDate.localeCompare(b.activityDate));
-    const first = new Date(sorted[0].activityDate).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
-    const last = new Date(sorted[sorted.length - 1].activityDate).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+    const first = new Date(sorted[0]?.activityDate ?? "").toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+    const last = new Date(sorted[sorted.length - 1]?.activityDate ?? "").toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
     return first === last ? first : `${first} – ${last}`;
   });
 

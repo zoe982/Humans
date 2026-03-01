@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { isRedirect, Redirect } from "@sveltejs/kit";
+import { isRedirect } from "@sveltejs/kit";
+import type { Redirect } from "@sveltejs/kit";
 import { mockEvent, createMockFetch } from "../../../../helpers";
 import { load } from "../../../../../src/routes/accounts/[id]/activities/+page.server";
 

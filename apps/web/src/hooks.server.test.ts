@@ -129,7 +129,7 @@ describe("handleError", () => {
   it("returns error message from Error instance", () => {
     const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => undefined);
     // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
-    const result = handleError({ error: new Error("test error"), event: {} as never, status: 500, message: "" });
+    const result = handleError({ error: new Error("test error"), event: {} as never, status: 500, message: "" }) as { message: string } | undefined;
     expect(result?.message).toBe("test error");
     consoleSpy.mockRestore();
   });
@@ -137,7 +137,7 @@ describe("handleError", () => {
   it("returns default message for non-Error", () => {
     const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => undefined);
     // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
-    const result = handleError({ error: "string error", event: {} as never, status: 500, message: "" });
+    const result = handleError({ error: "string error", event: {} as never, status: 500, message: "" }) as { message: string } | undefined;
     expect(result?.message).toBe("string error");
     consoleSpy.mockRestore();
   });
@@ -145,7 +145,7 @@ describe("handleError", () => {
   it("returns fallback message when error has no message", () => {
     const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => undefined);
     // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
-    const result = handleError({ error: new Error(""), event: {} as never, status: 500, message: "" });
+    const result = handleError({ error: new Error(""), event: {} as never, status: 500, message: "" }) as { message: string } | undefined;
     expect(result?.message).toBe("An unexpected error occurred");
     consoleSpy.mockRestore();
   });

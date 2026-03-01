@@ -198,7 +198,12 @@
         return;
       }
 
-      const raw = accountResult.data as Account;
+      const raw = accountResult.data as Account | null | undefined;
+      if (raw == null || typeof raw !== "object") {
+        loadError = "Account data is missing from the API response";
+        loading = false;
+        return;
+      }
       raw.types = raw.types ?? [];
       raw.emails = raw.emails ?? [];
       raw.phoneNumbers = raw.phoneNumbers ?? [];
@@ -1338,5 +1343,14 @@
 
 </div>
 
+{:else}
+  <div class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+    <div class="glass-card p-6 space-y-4 border border-[var(--btn-danger-border)]">
+      <h2 class="text-lg font-semibold text-destructive-foreground">Unable to display account</h2>
+      <p class="text-sm text-text-primary">The page loaded but no data was rendered. This may be a temporary issue.</p>
+      <p class="text-xs text-text-muted">Account ID: {accountId}</p>
+      <Button size="sm" onclick={() => { loading = true; void loadData(); }}>Retry</Button>
+    </div>
+  </div>
 {/if}
 

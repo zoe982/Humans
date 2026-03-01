@@ -355,7 +355,7 @@ describe("accounts/[id] createAndLinkHuman missing ID path", () => {
     const result = await actions.createAndLinkHuman(event as any);
     expect(isActionFailure(result)).toBe(true);
     if (isActionFailure(result)) {
-      expect(result.data.error).toContain("Failed to get created human ID");
+      expect((result.data as { error: string }).error).toContain("Failed to get created human ID");
     }
   });
 });
