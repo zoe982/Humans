@@ -7,7 +7,7 @@ interface FetchOptions extends RequestInit {
   params?: Record<string, string>;
 }
 
-function isErrorBody(value: unknown): value is { error?: string; code?: string; requestId?: string; details?: Record<string, string[]> } {
+function isErrorBody(value: unknown): value is { error?: string; code?: string; requestId?: string; details?: Record<string, unknown> } {
   return typeof value === "object" && value !== null;
 }
 
@@ -17,7 +17,7 @@ export class ApiRequestError extends Error {
     message: string,
     public readonly code: string | undefined,
     public readonly requestId: string | undefined,
-    public readonly details: Record<string, string[]> | undefined,
+    public readonly details: Record<string, unknown> | undefined,
     public readonly status: number,
   ) {
     super(message);
@@ -31,7 +31,10 @@ export function extractApiError(resBody: unknown, fallback: string): string {
   const msg = body.error ?? fallback;
   if (body.details != null) {
     const fieldErrors = Object.entries(body.details)
-      .map(([field, msgs]) => `${field}: ${msgs.join(", ")}`)
+      .map(([field, msgs]) => {
+        const formatted = Array.isArray(msgs) ? msgs.join(", ") : String(msgs);
+        return `${field}: ${formatted}`;
+      })
       .join("; ");
     if (fieldErrors.length > 0) return `${msg} — ${fieldErrors}`;
   }
@@ -39,7 +42,7 @@ export function extractApiError(resBody: unknown, fallback: string): string {
 }
 
 /** Extract structured error info from an API error response body. */
-export function extractApiErrorInfo(resBody: unknown, fallback: string): { message: string; code?: string; requestId?: string; details?: Record<string, string[]> } {
+export function extractApiErrorInfo(resBody: unknown, fallback: string): { message: string; code?: string; requestId?: string; details?: Record<string, unknown> } {
   const body = isErrorBody(resBody) ? resBody : {};
   const message = extractApiError(resBody, fallback);
   return {

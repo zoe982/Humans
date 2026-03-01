@@ -55,6 +55,27 @@ describe("extractApiError", () => {
     const body = { error: "Error", details: {} };
     expect(extractApiError(body, "fallback")).toBe("Error");
   });
+
+  it("handles non-array detail values (conflict-style)", () => {
+    const body = {
+      error: "Phone number already exists",
+      details: { existingId: "abc", existingDisplayId: "FON-AAA-001" },
+    };
+    const result = extractApiError(body, "fallback");
+    expect(result).toContain("Phone number already exists");
+    expect(result).toContain("existingId: abc");
+    expect(result).toContain("existingDisplayId: FON-AAA-001");
+  });
+
+  it("handles mixed array and non-array detail values", () => {
+    const body = {
+      error: "Validation failed",
+      details: { name: ["required"], existingId: "xyz" },
+    };
+    const result = extractApiError(body, "fallback");
+    expect(result).toContain("name: required");
+    expect(result).toContain("existingId: xyz");
+  });
 });
 
 describe("extractApiErrorInfo", () => {
@@ -204,6 +225,30 @@ describe("api", () => {
         headers: expect.objectContaining({ "X-Arr": "val" }),
       }),
     );
+  });
+
+  it("throws ApiRequestError on 409 conflict with non-array details", async () => {
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 409,
+      json: vi.fn().mockResolvedValue({
+        error: "Phone number already exists",
+        code: "DUPLICATE_CONTACT",
+        details: { existingId: "abc", existingDisplayId: "FON-AAA-001", existingOwners: "John Doe" },
+      }),
+    });
+
+    let caughtErr: unknown;
+    try {
+      await api("/api/phones", { method: "POST", body: "{}" }, mockFetch);
+    } catch (e) {
+      caughtErr = e;
+    }
+    expect(caughtErr).toBeInstanceOf(ApiRequestError);
+    const apiErr = caughtErr instanceof ApiRequestError ? caughtErr : null;
+    expect(apiErr?.status).toBe(409);
+    expect(apiErr?.code).toBe("DUPLICATE_CONTACT");
+    expect(apiErr?.message).toContain("Phone number already exists");
   });
 
   describe("401 browser redirect", () => {
