@@ -4,6 +4,7 @@ import { createId } from "@humans/db";
 import { ERROR_CODES } from "@humans/shared";
 import { notFound } from "../lib/errors";
 import { nextDisplayId } from "../lib/display-id";
+import { getCachedConfig } from "../lib/config-cache";
 import type { DB } from "./types";
 
 export async function getPetCount(db: DB): Promise<{ total: number }> {
@@ -195,7 +196,7 @@ export async function getOpportunitiesForPet(db: DB, petId: string): Promise<{ l
     .from(opportunities)
     .where(inArray(opportunities.id, oppIds));
 
-  const roleConfigs = await db.select().from(opportunityHumanRolesConfig);
+  const roleConfigs = await getCachedConfig(db, opportunityHumanRolesConfig, "opportunityHumanRolesConfig");
   const primaryRoleId = roleConfigs.find((r) => r.name === "primary")?.id ?? null;
 
   const primaryHumans = primaryRoleId != null

@@ -31,7 +31,8 @@ import { ERROR_CODES } from "@humans/shared";
 import { computeDiff, logAuditEntry } from "../lib/audit";
 import { notFound, conflict } from "../lib/errors";
 import { assertUniqueIds } from "../lib/assert-unique-ids";
-import { nextDisplayId } from "../lib/display-id";
+import { nextDisplayId, nextDisplayIdBatch } from "../lib/display-id";
+import { getCachedConfig } from "../lib/config-cache";
 import { rematchActivitiesByEmail } from "./activity-rematch";
 import { listActivities } from "./activities";
 import { listOpportunities } from "./opportunities";
@@ -70,16 +71,27 @@ export async function listHumans(db: DB, page: number, limit: number, search?: s
       )
     : undefined;
 
-  const countResult = await db.select({ total: sql<number>`count(*)::int` }).from(humans).where(searchFilter);
-  const total = countResult[0]?.total ?? 0;
-
-  const pagedHumans = await db
-    .select()
+  const pagedRows = await db
+    .select({
+      id: humans.id,
+      displayId: humans.displayId,
+      firstName: humans.firstName,
+      middleName: humans.middleName,
+      lastName: humans.lastName,
+      status: humans.status,
+      createdAt: humans.createdAt,
+      updatedAt: humans.updatedAt,
+      _totalCount: sql<number>`count(*) OVER()`.mapWith(Number),
+    })
     .from(humans)
     .where(searchFilter)
     .orderBy(desc(humans.createdAt))
     .limit(limit)
     .offset(offset);
+
+  const total = pagedRows[0]?._totalCount ?? 0;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- stripping window function column from results
+  const pagedHumans = pagedRows.map(({ _totalCount, ...rest }) => rest);
 
   const humanIds = pagedHumans.map((h) => h.id);
 
@@ -117,10 +129,10 @@ export async function getHumanDetail(supabase: SupabaseClient, db: DB, humanId: 
     db.select().from(geoInterestExpressions).where(eq(geoInterestExpressions.humanId, human.id)),
     db.select().from(routeInterestExpressions).where(eq(routeInterestExpressions.humanId, human.id)),
     db.select().from(accountHumans).where(eq(accountHumans.humanId, human.id)),
-    db.select().from(humanEmailLabelsConfig),
-    db.select().from(humanPhoneLabelsConfig),
+    getCachedConfig(db, humanEmailLabelsConfig, "humanEmailLabelsConfig"),
+    getCachedConfig(db, humanPhoneLabelsConfig, "humanPhoneLabelsConfig"),
     db.select().from(socialIds).where(eq(socialIds.humanId, human.id)),
-    db.select().from(socialIdPlatformsConfig),
+    getCachedConfig(db, socialIdPlatformsConfig, "socialIdPlatformsConfig"),
     db.select().from(websites).where(eq(websites.humanId, human.id)),
   ]);
 
@@ -186,7 +198,7 @@ export async function getHumanDetail(supabase: SupabaseClient, db: DB, humanId: 
     const linkedAccountIds = linkedAccountRows.map((r) => r.accountId);
     const [allAccounts, allLabels] = await Promise.all([
       db.select().from(accounts).where(inArray(accounts.id, linkedAccountIds)),
-      db.select().from(accountHumanLabelsConfig),
+      getCachedConfig(db, accountHumanLabelsConfig, "accountHumanLabelsConfig"),
     ]);
     linkedAccounts = linkedAccountRows.map((row) => {
       const account = allAccounts.find((a) => a.id === row.accountId);
@@ -313,11 +325,15 @@ export async function createHuman(
     updatedAt: now,
   });
 
-  for (const email of data.emails) {
-    const emailDisplayId = await nextDisplayId(db, "EML");
+  const emailDisplayIds = await nextDisplayIdBatch(db, "EML", data.emails.length);
+  for (let i = 0; i < data.emails.length; i++) {
+    const email = data.emails.at(i);
+    if (email == null) continue;
+    const displayId = emailDisplayIds.at(i);
+    if (displayId == null) continue;
     await db.insert(emails).values({
       id: createId(),
-      displayId: emailDisplayId,
+      displayId,
       humanId,
       accountId: null,
       generalLeadId: null,
@@ -388,11 +404,15 @@ export async function updateHuman(
 
   if (data.emails != null) {
     await db.delete(emails).where(eq(emails.humanId, id));
-    for (const email of data.emails) {
-      const emailDisplayId = await nextDisplayId(db, "EML");
+    const emailDisplayIds = await nextDisplayIdBatch(db, "EML", data.emails.length);
+    for (let i = 0; i < data.emails.length; i++) {
+      const email = data.emails.at(i);
+      if (email == null) continue;
+      const displayId = emailDisplayIds.at(i);
+      if (displayId == null) continue;
       await db.insert(emails).values({
         id: createId(),
-        displayId: emailDisplayId,
+        displayId,
         humanId: id,
         accountId: null,
         generalLeadId: null,
@@ -672,7 +692,7 @@ export async function getHumanRelationships(db: DB, humanId: string): Promise<{ 
     otherHumanIds.length > 0
       ? db.select().from(humans).where(inArray(humans.id, otherHumanIds))
       : Promise.resolve([]),
-    db.select().from(humanRelationshipLabelsConfig),
+    getCachedConfig(db, humanRelationshipLabelsConfig, "humanRelationshipLabelsConfig"),
   ]);
 
   return rows.map((row) => {

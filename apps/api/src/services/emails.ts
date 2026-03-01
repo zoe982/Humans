@@ -5,6 +5,7 @@ import { ERROR_CODES, normalizeEmail } from "@humans/shared";
 import { notFound, conflict } from "../lib/errors";
 import { nextDisplayId } from "../lib/display-id";
 import { resolveOwnerSummary } from "../lib/owner-summary";
+import { getCachedConfig } from "../lib/config-cache";
 import { rematchActivitiesByEmail } from "./activity-rematch";
 import type { DB } from "./types";
 
@@ -45,8 +46,8 @@ export async function listEmails(db: DB, query?: string): Promise<{ ownerName: s
   const allGeneralLeads = generalLeadIds.length > 0
     ? await db.select({ id: generalLeads.id, displayId: generalLeads.displayId, firstName: generalLeads.firstName, lastName: generalLeads.lastName }).from(generalLeads).where(inArray(generalLeads.id, generalLeadIds))
     : [];
-  const humanLabels = await db.select().from(humanEmailLabelsConfig);
-  const accountLabels = await db.select().from(accountEmailLabelsConfig);
+  const humanLabels = await getCachedConfig(db, humanEmailLabelsConfig, "humanEmailLabelsConfig");
+  const accountLabels = await getCachedConfig(db, accountEmailLabelsConfig, "accountEmailLabelsConfig");
 
   const data = allEmails.map((e) => {
     const { ownerName, ownerDisplayId } = resolveOwner(e, allHumans, allAccounts, allGeneralLeads);
@@ -79,8 +80,8 @@ export async function getEmail(db: DB, id: string): Promise<{ ownerName: string 
   const allGeneralLeads = email.generalLeadId != null
     ? await db.select({ id: generalLeads.id, displayId: generalLeads.displayId, firstName: generalLeads.firstName, lastName: generalLeads.lastName }).from(generalLeads).where(eq(generalLeads.id, email.generalLeadId))
     : [];
-  const humanLabels = await db.select().from(humanEmailLabelsConfig);
-  const accountLabels = await db.select().from(accountEmailLabelsConfig);
+  const humanLabels = await getCachedConfig(db, humanEmailLabelsConfig, "humanEmailLabelsConfig");
+  const accountLabels = await getCachedConfig(db, accountEmailLabelsConfig, "accountEmailLabelsConfig");
 
   const { ownerName, ownerDisplayId } = resolveOwner(email, allHumans, allAccounts, allGeneralLeads);
   const labels = email.humanId != null ? humanLabels : accountLabels;

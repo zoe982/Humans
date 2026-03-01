@@ -305,16 +305,47 @@ export async function listLeadScores(
 
   const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
-  const countResult = await db.select({ total: sql<number>`count(*)::int` }).from(leadScores).where(whereClause);
-  const total = countResult[0]?.total ?? 0;
-
-  const rows = await db
-    .select()
+  const pagedRows = await db
+    .select({
+      id: leadScores.id,
+      displayId: leadScores.displayId,
+      generalLeadId: leadScores.generalLeadId,
+      websiteBookingRequestId: leadScores.websiteBookingRequestId,
+      routeSignupId: leadScores.routeSignupId,
+      fitMatchesCurrentWebsiteFlight: leadScores.fitMatchesCurrentWebsiteFlight,
+      fitPriceAcknowledgedOk: leadScores.fitPriceAcknowledgedOk,
+      intentDepositPaid: leadScores.intentDepositPaid,
+      intentPaymentDetailsSent: leadScores.intentPaymentDetailsSent,
+      intentRequestedPaymentDetails: leadScores.intentRequestedPaymentDetails,
+      intentBookingSubmitted: leadScores.intentBookingSubmitted,
+      intentBookingStarted: leadScores.intentBookingStarted,
+      intentRouteSignupSubmitted: leadScores.intentRouteSignupSubmitted,
+      engagementRespondedFast: leadScores.engagementRespondedFast,
+      engagementRespondedSlow: leadScores.engagementRespondedSlow,
+      negativeNoContactMethod: leadScores.negativeNoContactMethod,
+      negativeOffNetworkRequest: leadScores.negativeOffNetworkRequest,
+      negativePriceObjection: leadScores.negativePriceObjection,
+      negativeGhostedAfterPaymentSent: leadScores.negativeGhostedAfterPaymentSent,
+      customerHasFlown: leadScores.customerHasFlown,
+      scoreFit: leadScores.scoreFit,
+      scoreIntent: leadScores.scoreIntent,
+      scoreEngagement: leadScores.scoreEngagement,
+      scoreNegative: leadScores.scoreNegative,
+      scoreTotal: leadScores.scoreTotal,
+      scoreUpdatedAt: leadScores.scoreUpdatedAt,
+      createdAt: leadScores.createdAt,
+      updatedAt: leadScores.updatedAt,
+      _totalCount: sql<number>`count(*) OVER()`.mapWith(Number),
+    })
     .from(leadScores)
     .where(whereClause)
     .orderBy(desc(leadScores.scoreTotal))
     .limit(limit)
     .offset(offset);
+
+  const total = pagedRows[0]?._totalCount ?? 0;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- stripping window function column from results
+  const rows = pagedRows.map(({ _totalCount, ...rest }) => rest);
 
   // Resolve general lead display IDs from D1
   const glIds = rows.flatMap((r) => r.generalLeadId != null ? [r.generalLeadId] : []);

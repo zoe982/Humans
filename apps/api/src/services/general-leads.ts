@@ -6,6 +6,7 @@ import { ERROR_CODES } from "@humans/shared";
 import { computeDiff, logAuditEntry } from "../lib/audit";
 import { AppError, notFound, badRequest, conflict } from "../lib/errors";
 import { nextDisplayId } from "../lib/display-id";
+import { getCachedConfig } from "../lib/config-cache";
 import { completeNextAction } from "./entity-next-actions";
 import { createEmail, updateEmail } from "./emails";
 import { createPhoneNumber, updatePhoneNumber } from "./phone-numbers";
@@ -67,10 +68,7 @@ export async function listGeneralLeads(
 
   const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
-  const countResult = await db.select({ total: sql<number>`count(*)::int` }).from(generalLeads).where(whereClause);
-  const total = countResult[0]?.total ?? 0;
-
-  const rows = await db
+  const pagedRows = await db
     .select({
       id: generalLeads.id,
       displayId: generalLeads.displayId,
@@ -87,6 +85,7 @@ export async function listGeneralLeads(
       updatedAt: generalLeads.updatedAt,
       ownerName: colleagues.name,
       scoreTotal: leadScores.scoreTotal,
+      _totalCount: sql<number>`count(*) OVER()`.mapWith(Number),
     })
     .from(generalLeads)
     .leftJoin(colleagues, eq(generalLeads.ownerId, colleagues.id))
@@ -98,6 +97,10 @@ export async function listGeneralLeads(
     )
     .limit(limit)
     .offset(offset);
+
+  const total = pagedRows[0]?._totalCount ?? 0;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- stripping window function column from results
+  const rows = pagedRows.map(({ _totalCount, ...rest }) => rest);
 
   // Fetch converted human display IDs
   const convertedIds = rows.map((r) => r.convertedHumanId).filter((id): id is string => id != null);
@@ -173,7 +176,7 @@ export async function getGeneralLead(db: DB, id: string): Promise<{ convertedHum
 
   // Enrich social IDs with platform names
   const allPlatforms = leadSocialIds.length > 0
-    ? await db.select().from(socialIdPlatformsConfig)
+    ? await getCachedConfig(db, socialIdPlatformsConfig, "socialIdPlatformsConfig")
     : [];
   const enrichedSocialIds = leadSocialIds.map((s) => {
     const platform = s.platformId != null ? allPlatforms.find((p) => p.id === s.platformId) : null;

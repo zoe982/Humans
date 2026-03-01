@@ -31,6 +31,7 @@ import {
   routeInterestFrequencyValues,
 } from "./route-interest-expressions";
 import { socialIds } from "./social-ids";
+import { opportunities } from "./opportunities";
 import { opportunityHumans } from "./opportunity-humans";
 import { opportunityPets } from "./opportunity-pets";
 import { websites } from "./websites";
@@ -239,6 +240,16 @@ describe("table indexes", () => {
     const config = getTableConfig(websites);
     expect(config.indexes.length).toBe(3);
   });
+
+  it("humans table has 1 index", () => {
+    const config = getTableConfig(humans);
+    expect(config.indexes.length).toBe(1);
+  });
+
+  it("opportunities table has 3 indexes", () => {
+    const config = getTableConfig(opportunities);
+    expect(config.indexes.length).toBe(3);
+  });
 });
 
 describe("additional table names", () => {
@@ -326,7 +337,7 @@ describe("humanWebsiteBookingRequests schema", () => {
 describe("activities schema", () => {
   it("activities table has a conditional unique index on front_id", () => {
     const config = getTableConfig(activities);
-    expect(config.indexes.length).toBeGreaterThanOrEqual(1);
+    expect(config.indexes.length).toBe(6);
     const frontIdIndex = config.indexes.find((idx) =>
       idx.config.name === "activities_front_id_unique",
     );

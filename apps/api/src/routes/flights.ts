@@ -9,6 +9,7 @@ import { requirePermission } from "../middleware/rbac";
 import { supabaseMiddleware } from "../middleware/supabase";
 import { internal, notFound } from "../lib/errors";
 import { nextDisplayIdBatch } from "../lib/display-id";
+import { getCachedConfig } from "../lib/config-cache";
 import type { AppContext } from "../types";
 import type { DB } from "../services/types";
 
@@ -150,7 +151,7 @@ flightRoutes.get(
     const primaryHumans = new Map<string, { firstName: string; lastName: string; displayId: string }>();
 
     if (oppIds.length > 0) {
-      const roleConfigs = await db.select().from(opportunityHumanRolesConfig);
+      const roleConfigs = await getCachedConfig(db, opportunityHumanRolesConfig, "opportunityHumanRolesConfig");
       const primaryRoleId = roleConfigs.find((r) => r.name === "primary")?.id;
 
       if (primaryRoleId !== undefined && primaryRoleId !== "") {

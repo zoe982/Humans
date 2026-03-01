@@ -5,6 +5,7 @@ import { ERROR_CODES, normalizePhone } from "@humans/shared";
 import { notFound, conflict } from "../lib/errors";
 import { nextDisplayId } from "../lib/display-id";
 import { resolveOwnerSummary } from "../lib/owner-summary";
+import { getCachedConfig } from "../lib/config-cache";
 import { rematchActivitiesByPhone } from "./activity-rematch";
 import type { DB } from "./types";
 
@@ -45,8 +46,8 @@ export async function listPhoneNumbers(db: DB, query?: string): Promise<{ ownerN
   const allGeneralLeads = generalLeadIds.length > 0
     ? await db.select({ id: generalLeads.id, displayId: generalLeads.displayId, firstName: generalLeads.firstName, lastName: generalLeads.lastName }).from(generalLeads).where(inArray(generalLeads.id, generalLeadIds))
     : [];
-  const humanLabels = await db.select().from(humanPhoneLabelsConfig);
-  const accountLabels = await db.select().from(accountPhoneLabelsConfig);
+  const humanLabels = await getCachedConfig(db, humanPhoneLabelsConfig, "humanPhoneLabelsConfig");
+  const accountLabels = await getCachedConfig(db, accountPhoneLabelsConfig, "accountPhoneLabelsConfig");
 
   const data = allPhones.map((p) => {
     const { ownerName, ownerDisplayId } = resolveOwner(p, allHumans, allAccounts, allGeneralLeads);
@@ -87,8 +88,8 @@ export async function getPhoneNumber(db: DB, id: string): Promise<{ ownerName: s
   const allGeneralLeads = phone.generalLeadId != null
     ? await db.select({ id: generalLeads.id, displayId: generalLeads.displayId, firstName: generalLeads.firstName, lastName: generalLeads.lastName }).from(generalLeads).where(eq(generalLeads.id, phone.generalLeadId))
     : [];
-  const humanLabels = await db.select().from(humanPhoneLabelsConfig);
-  const accountLabels = await db.select().from(accountPhoneLabelsConfig);
+  const humanLabels = await getCachedConfig(db, humanPhoneLabelsConfig, "humanPhoneLabelsConfig");
+  const accountLabels = await getCachedConfig(db, accountPhoneLabelsConfig, "accountPhoneLabelsConfig");
 
   const { ownerName, ownerDisplayId } = resolveOwner(phone, allHumans, allAccounts, allGeneralLeads);
   const labels = phone.humanId != null ? humanLabels : accountLabels;

@@ -1,4 +1,4 @@
-import { pgTable, text, uniqueIndex } from "drizzle-orm/pg-core";
+import { pgTable, text, uniqueIndex, index } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import { humans } from "./humans";
 import { accounts } from "./accounts";
@@ -47,5 +47,10 @@ export const activities = pgTable(
     uniqueIndex("activities_front_id_unique")
       .on(table.frontId)
       .where(sql`${table.frontId} IS NOT NULL`),
+    index("activities_human_id_idx").on(table.humanId),
+    index("activities_account_id_idx").on(table.accountId),
+    index("activities_activity_date_idx").on(table.activityDate),
+    index("activities_general_lead_id_idx").on(table.generalLeadId),
+    index("activities_opportunity_id_idx").on(table.opportunityId),
   ],
 );

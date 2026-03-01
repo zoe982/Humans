@@ -17,6 +17,7 @@ import { computeDiff, logAuditEntry } from "../lib/audit";
 import { notFound, badRequest } from "../lib/errors";
 import { assertUniqueIds } from "../lib/assert-unique-ids";
 import { nextDisplayId } from "../lib/display-id";
+import { getCachedConfig } from "../lib/config-cache";
 import type { DB } from "./types";
 
 const TERMINAL_STAGES = ["closed_flown", "closed_lost"];
@@ -55,16 +56,38 @@ export async function listOpportunities(
 
   const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
-  const countResult = await db.select({ total: sql<number>`count(*)::int` }).from(opportunities).where(whereClause);
-  const total = countResult[0]?.total ?? 0;
-
-  const rows = await db
-    .select()
+  const pagedRows = await db
+    .select({
+      id: opportunities.id,
+      displayId: opportunities.displayId,
+      stage: opportunities.stage,
+      seatsRequested: opportunities.seatsRequested,
+      passengerSeats: opportunities.passengerSeats,
+      petSeats: opportunities.petSeats,
+      notes: opportunities.notes,
+      lossReason: opportunities.lossReason,
+      ownerId: opportunities.ownerId,
+      nextActionOwnerId: opportunities.nextActionOwnerId,
+      nextActionDescription: opportunities.nextActionDescription,
+      nextActionType: opportunities.nextActionType,
+      nextActionStartDate: opportunities.nextActionStartDate,
+      nextActionDueDate: opportunities.nextActionDueDate,
+      nextActionCompletedAt: opportunities.nextActionCompletedAt,
+      nextActionCadenceNote: opportunities.nextActionCadenceNote,
+      flightId: opportunities.flightId,
+      createdAt: opportunities.createdAt,
+      updatedAt: opportunities.updatedAt,
+      _totalCount: sql<number>`count(*) OVER()`.mapWith(Number),
+    })
     .from(opportunities)
     .where(whereClause)
     .orderBy(asc(sql`CASE WHEN ${opportunities.nextActionDueDate} IS NULL THEN 1 ELSE 0 END`), asc(opportunities.nextActionDueDate), desc(opportunities.createdAt))
     .limit(limit)
     .offset(offset);
+
+  const total = pagedRows[0]?._totalCount ?? 0;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- stripping window function column from results
+  const rows = pagedRows.map(({ _totalCount, ...rest }) => rest);
 
   const oppIds = rows.map((r) => r.id);
 
@@ -85,7 +108,7 @@ export async function listOpportunities(
     : [];
 
   // Fetch role configs to identify primary
-  const roleConfigs = await db.select().from(opportunityHumanRolesConfig);
+  const roleConfigs = await getCachedConfig(db, opportunityHumanRolesConfig, "opportunityHumanRolesConfig");
   const primaryRoleId = roleConfigs.find((r) => r.name === "primary")?.id;
 
   // Fetch NA owner names
@@ -133,7 +156,7 @@ export async function getOpportunityDetail(db: DB, id: string): Promise<{ linked
     throw notFound(ERROR_CODES.OPPORTUNITY_NOT_FOUND, "Opportunity not found");
   }
 
-  const roleConfigs = await db.select().from(opportunityHumanRolesConfig);
+  const roleConfigs = await getCachedConfig(db, opportunityHumanRolesConfig, "opportunityHumanRolesConfig");
 
   const [linkedHumanRows, linkedPetRows, oppActivities] = await Promise.all([
     db
@@ -466,7 +489,7 @@ export async function linkOpportunityHuman(
   const existingLinks = await db.select().from(opportunityHumans).where(eq(opportunityHumans.opportunityId, oppId));
 
   // Get role configs
-  const roleConfigs = await db.select().from(opportunityHumanRolesConfig);
+  const roleConfigs = await getCachedConfig(db, opportunityHumanRolesConfig, "opportunityHumanRolesConfig");
   const primaryRoleId = roleConfigs.find((r) => r.name === "primary")?.id ?? null;
   const passengerRoleId = roleConfigs.find((r) => r.name === "passenger")?.id ?? null;
 
@@ -509,7 +532,7 @@ export async function updateOpportunityHumanRole(
     throw notFound(ERROR_CODES.OPPORTUNITY_LINK_NOT_FOUND, "Link not found");
   }
 
-  const roleConfigs = await db.select().from(opportunityHumanRolesConfig);
+  const roleConfigs = await getCachedConfig(db, opportunityHumanRolesConfig, "opportunityHumanRolesConfig");
   const primaryRoleId = roleConfigs.find((r) => r.name === "primary")?.id ?? null;
   const passengerRoleId = roleConfigs.find((r) => r.name === "passenger")?.id ?? null;
 
@@ -535,7 +558,7 @@ export async function unlinkOpportunityHuman(db: DB, linkId: string): Promise<vo
   }
 
   // Check if this is the primary on a non-terminal opportunity
-  const roleConfigs = await db.select().from(opportunityHumanRolesConfig);
+  const roleConfigs = await getCachedConfig(db, opportunityHumanRolesConfig, "opportunityHumanRolesConfig");
   const primaryRoleId = roleConfigs.find((r) => r.name === "primary")?.id ?? null;
 
   if (link.roleId === primaryRoleId) {

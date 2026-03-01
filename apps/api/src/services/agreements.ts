@@ -98,14 +98,39 @@ export async function listAgreements(
 
   const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
-  const countResult = await db.select({ total: sql<number>`count(*)::int` }).from(agreements).where(whereClause);
-  const total = countResult[0]?.total ?? 0;
-
-  const rows = await agreementSelectWithJoins(db)
+  const pagedRows = await db
+    .select({
+      id: agreements.id,
+      displayId: agreements.displayId,
+      title: agreements.title,
+      typeId: agreements.typeId,
+      status: agreements.status,
+      activationDate: agreements.activationDate,
+      notes: agreements.notes,
+      humanId: agreements.humanId,
+      accountId: agreements.accountId,
+      createdAt: agreements.createdAt,
+      updatedAt: agreements.updatedAt,
+      typeName: agreementTypesConfig.name,
+      humanFirstName: humans.firstName,
+      humanLastName: humans.lastName,
+      humanDisplayId: humans.displayId,
+      accountName: accounts.name,
+      accountDisplayId: accounts.displayId,
+      _totalCount: sql<number>`count(*) OVER()`.mapWith(Number),
+    })
+    .from(agreements)
+    .leftJoin(agreementTypesConfig, eq(agreements.typeId, agreementTypesConfig.id))
+    .leftJoin(humans, eq(agreements.humanId, humans.id))
+    .leftJoin(accounts, eq(agreements.accountId, accounts.id))
     .where(whereClause)
     .orderBy(sql`${agreements.createdAt} DESC`)
     .limit(limit)
     .offset(offset);
+
+  const total = pagedRows[0]?._totalCount ?? 0;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- stripping window function column from results
+  const rows = pagedRows.map(({ _totalCount, ...rest }) => rest);
 
   return { data: rows.map(toAgreementRow), meta: { page, limit, total } };
 }

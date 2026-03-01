@@ -1,4 +1,4 @@
-import { pgTable, text, integer } from "drizzle-orm/pg-core";
+import { pgTable, text, integer, index } from "drizzle-orm/pg-core";
 import { colleagues } from "./colleagues";
 
 export const opportunityStages = [
@@ -36,4 +36,8 @@ export const opportunities = pgTable("opportunities", {
   flightId: text("flight_id"),
   createdAt: text("created_at").notNull(),
   updatedAt: text("updated_at").notNull(),
-});
+}, (table) => [
+  index("opportunities_stage_idx").on(table.stage),
+  index("opportunities_owner_id_idx").on(table.ownerId),
+  index("opportunities_next_action_due_date_idx").on(table.nextActionDueDate),
+]);

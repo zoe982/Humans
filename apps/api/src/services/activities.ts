@@ -62,19 +62,42 @@ export async function listActivities(db: DB, filters: ActivityFilters): Promise<
 
   const where = conditions.length > 0 ? and(...conditions) : undefined;
 
-  const countResult = await db
-    .select({ total: sql<number>`count(*)::int` })
-    .from(activities)
-    .where(where);
-  const total = countResult[0]?.total ?? 0;
-
-  const results = await db
-    .select()
+  const pagedRows = await db
+    .select({
+      id: activities.id,
+      displayId: activities.displayId,
+      type: activities.type,
+      subject: activities.subject,
+      body: activities.body,
+      notes: activities.notes,
+      activityDate: activities.activityDate,
+      humanId: activities.humanId,
+      accountId: activities.accountId,
+      routeSignupId: activities.routeSignupId,
+      websiteBookingRequestId: activities.websiteBookingRequestId,
+      opportunityId: activities.opportunityId,
+      generalLeadId: activities.generalLeadId,
+      gmailId: activities.gmailId,
+      frontId: activities.frontId,
+      frontConversationId: activities.frontConversationId,
+      frontContactHandle: activities.frontContactHandle,
+      direction: activities.direction,
+      syncRunId: activities.syncRunId,
+      senderName: activities.senderName,
+      colleagueId: activities.colleagueId,
+      createdAt: activities.createdAt,
+      updatedAt: activities.updatedAt,
+      _totalCount: sql<number>`count(*) OVER()`.mapWith(Number),
+    })
     .from(activities)
     .where(where)
     .orderBy(desc(activities.activityDate))
     .limit(limit)
     .offset(offset);
+
+  const total = pagedRows[0]?._totalCount ?? 0;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- stripping window function column from results
+  const results = pagedRows.map(({ _totalCount, ...rest }) => rest);
 
   // Collect unique IDs for batch lookups instead of full-table scans
   const humanIds = [...new Set(results.map((a) => a.humanId).filter((id): id is string => id != null))];

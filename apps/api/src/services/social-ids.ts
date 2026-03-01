@@ -5,6 +5,7 @@ import { ERROR_CODES, normalizeSocialHandle } from "@humans/shared";
 import { notFound, conflict } from "../lib/errors";
 import { nextDisplayId } from "../lib/display-id";
 import { resolveOwnerSummary } from "../lib/owner-summary";
+import { getCachedConfig } from "../lib/config-cache";
 import { rematchActivitiesBySocialId } from "./activity-rematch";
 import type { DB } from "./types";
 
@@ -54,7 +55,7 @@ export async function listSocialIds(db: DB, query?: string): Promise<{ humanName
   const allLeads = leadIds.length > 0
     ? await db.select({ id: generalLeads.id, displayId: generalLeads.displayId, firstName: generalLeads.firstName, lastName: generalLeads.lastName }).from(generalLeads).where(inArray(generalLeads.id, leadIds))
     : [];
-  const allPlatforms = await db.select().from(socialIdPlatformsConfig);
+  const allPlatforms = await getCachedConfig(db, socialIdPlatformsConfig, "socialIdPlatformsConfig");
 
   const data = allSocialIds.map((s) => {
     const human = s.humanId != null ? allHumans.find((h) => h.id === s.humanId) : null;
@@ -91,7 +92,7 @@ export async function getSocialId(db: DB, id: string): Promise<{ humanName: stri
   const allAccounts = accountIds.length > 0
     ? await db.select().from(accounts).where(inArray(accounts.id, accountIds))
     : [];
-  const allPlatforms = await db.select().from(socialIdPlatformsConfig);
+  const allPlatforms = await getCachedConfig(db, socialIdPlatformsConfig, "socialIdPlatformsConfig");
 
   // General lead enrichment (D1)
   let generalLeadName: string | null = null;
@@ -227,7 +228,7 @@ export async function listSocialIdsForEntity(
 ): Promise<{ id: string; displayId: string; handle: string; platformId: string | null; platformName: string | null; createdAt: string }[]> {
   // eslint-disable-next-line security/detect-object-injection -- column is a typed union, not user input
   const rows = await db.select().from(socialIds).where(eq(socialIds[column], entityId));
-  const allPlatforms = await db.select().from(socialIdPlatformsConfig);
+  const allPlatforms = await getCachedConfig(db, socialIdPlatformsConfig, "socialIdPlatformsConfig");
 
   return rows.map((s) => {
     const platform = s.platformId != null ? allPlatforms.find((p) => p.id === s.platformId) : null;

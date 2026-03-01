@@ -11,6 +11,7 @@ import {
   accountTypesConfig,
 } from "@humans/db/schema";
 import { assertUniqueIds } from "../lib/assert-unique-ids";
+import { getCachedConfig } from "../lib/config-cache";
 import type { DB } from "./types";
 
 export async function searchD1(db: DB, query: string): Promise<{ matchedHumans: { emails: (typeof emails.$inferSelect)[]; id: string; displayId: string; firstName: string; lastName: string; status: string | null; createdAt: string; updatedAt: string }[]; activityResults: (typeof activities.$inferSelect)[]; geoInterestsWithCounts: { expressionCount: number; humanCount: number; id: string; displayId: string; city: string; country: string; createdAt: string }[]; matchedAccounts: { types: { id: string; name: string }[]; id: string; displayId: string; name: string; status: string; createdAt: string; updatedAt: string }[] }> {
@@ -93,7 +94,7 @@ export async function searchD1(db: DB, query: string): Promise<{ matchedHumans: 
   const allAccountTypes = accountIds.size > 0
     ? await db.select().from(accountTypes).where(inArray(accountTypes.accountId, [...accountIds]))
     : [];
-  const allTypeConfigs = accountIds.size > 0 ? await db.select().from(accountTypesConfig) : [];
+  const allTypeConfigs = accountIds.size > 0 ? await getCachedConfig(db, accountTypesConfig, "accountTypesConfig") : [];
 
   const matchedAccounts = allAccounts
     .filter((a) => accountIds.has(a.id))

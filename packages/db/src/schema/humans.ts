@@ -1,4 +1,4 @@
-import { pgTable, text } from "drizzle-orm/pg-core";
+import { pgTable, text, index } from "drizzle-orm/pg-core";
 
 export const humanStatuses = ["open", "active", "closed"] as const;
 export type HumanStatus = (typeof humanStatuses)[number];
@@ -12,4 +12,6 @@ export const humans = pgTable("humans", {
   status: text("status", { enum: humanStatuses }).notNull().default("open"),
   createdAt: text("created_at").notNull(),
   updatedAt: text("updated_at").notNull(),
-});
+}, (table) => [
+  index("humans_created_at_idx").on(table.createdAt),
+]);

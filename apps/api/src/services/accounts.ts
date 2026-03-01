@@ -23,6 +23,7 @@ import { computeDiff, logAuditEntry } from "../lib/audit";
 import { notFound } from "../lib/errors";
 import { assertUniqueIds } from "../lib/assert-unique-ids";
 import { nextDisplayId } from "../lib/display-id";
+import { getCachedConfig } from "../lib/config-cache";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { DB } from "./types";
 
@@ -39,7 +40,7 @@ function toAccountStatus(value: string): AccountStatus {
 export async function listAccounts(db: DB): Promise<{ data: { id: string; displayId: string; name: string; status: string; createdAt: string; updatedAt: string; types: { id: string; name: string }[] }[] }> {
   const allAccounts = await db.select().from(accounts);
   const allTypes = await db.select().from(accountTypes);
-  const allTypeConfigs = await db.select().from(accountTypesConfig);
+  const allTypeConfigs = await getCachedConfig(db, accountTypesConfig, "accountTypesConfig");
 
   const data = allAccounts.map((a) => ({
     ...a,
@@ -88,16 +89,16 @@ export async function getAccountDetail(supabase: SupabaseClient, db: DB, id: str
     accountWebsites,
   ] = await Promise.all([
     db.select().from(accountTypes).where(eq(accountTypes.accountId, id)),
-    db.select().from(accountTypesConfig),
+    getCachedConfig(db, accountTypesConfig, "accountTypesConfig"),
     db.select().from(accountHumans).where(eq(accountHumans.accountId, id)),
-    db.select().from(accountHumanLabelsConfig),
+    getCachedConfig(db, accountHumanLabelsConfig, "accountHumanLabelsConfig"),
     db.select().from(emails).where(eq(emails.accountId, id)),
-    db.select().from(accountEmailLabelsConfig),
+    getCachedConfig(db, accountEmailLabelsConfig, "accountEmailLabelsConfig"),
     db.select().from(phones).where(eq(phones.accountId, id)),
-    db.select().from(accountPhoneLabelsConfig),
+    getCachedConfig(db, accountPhoneLabelsConfig, "accountPhoneLabelsConfig"),
     db.select().from(activities).where(eq(activities.accountId, id)),
     db.select().from(socialIds).where(eq(socialIds.accountId, id)),
-    db.select().from(socialIdPlatformsConfig),
+    getCachedConfig(db, socialIdPlatformsConfig, "socialIdPlatformsConfig"),
     db.select().from(websites).where(eq(websites.accountId, id)),
   ]);
 

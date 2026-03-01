@@ -31,11 +31,11 @@ const EXCLUDED_FILES = new Set(["front-sync.ts", "dedup-contacts.ts"]);
  */
 const KNOWN_LIST_ALL = new Set([
   // listAccounts — lists all accounts (< 200 in this CRM)
-  "accounts.ts:40:accounts",
+  "accounts.ts:41:accounts",
   // listEmails — lists all emails to show admin view
-  "emails.ts:35:emails",
+  "emails.ts:36:emails",
   // listPhoneNumbers — lists all phones to show admin view
-  "phone-numbers.ts:35:phones",
+  "phone-numbers.ts:36:phones",
 ]);
 
 /**

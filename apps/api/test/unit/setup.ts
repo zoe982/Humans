@@ -3,6 +3,7 @@ import { drizzle } from "drizzle-orm/pglite";
 import * as schema from "@humans/db/schema";
 import { beforeAll, afterEach } from "vitest";
 import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
+import { invalidateAllConfig } from "../../src/lib/config-cache";
 
 // Complete schema matching current migrations (PostgreSQL syntax).
 // Tables ordered so parents are created before children (FK-safe).
@@ -672,5 +673,6 @@ beforeAll(async () => {
 });
 
 afterEach(async () => {
+  invalidateAllConfig();
   await pglite.exec(`TRUNCATE ${ALL_TABLES.map((t) => `"${t}"`).join(", ")} CASCADE`);
 });
