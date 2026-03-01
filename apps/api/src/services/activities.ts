@@ -63,7 +63,7 @@ export async function listActivities(db: DB, filters: ActivityFilters): Promise<
   const where = conditions.length > 0 ? and(...conditions) : undefined;
 
   const countResult = await db
-    .select({ total: sql<number>`count(*)` })
+    .select({ total: sql<number>`count(*)::int` })
     .from(activities)
     .where(where);
   const total = countResult[0]?.total ?? 0;
@@ -157,6 +157,7 @@ export async function listActivities(db: DB, filters: ActivityFilters): Promise<
     const human = a.humanId != null ? humanMap.get(a.humanId) : null;
     const account = a.accountId != null ? accountMap.get(a.accountId) : null;
     const owner = a.colleagueId != null ? colleagueMap.get(a.colleagueId) : null;
+    const ownerName = owner?.name ?? (a.syncRunId != null ? "Front Sync" : null);
     const base = {
       ...a,
       humanName: human != null ? `${human.firstName} ${human.lastName}` : null,
@@ -164,7 +165,7 @@ export async function listActivities(db: DB, filters: ActivityFilters): Promise<
       accountId: a.accountId,
       accountName: account?.name ?? null,
       ownerId: a.colleagueId,
-      ownerName: owner?.name ?? null,
+      ownerName,
       ownerDisplayId: owner?.displayId ?? null,
     };
     if (filters.includeLinkedEntities === true) {
@@ -251,13 +252,14 @@ export async function getActivityDetail(db: DB, id: string): Promise<typeof acti
     .innerJoin(opportunities, eq(activityOpportunities.opportunityId, opportunities.id))
     .where(eq(activityOpportunities.activityId, id));
 
+  const ownerNameDetail = owner?.name ?? (activity.syncRunId != null ? "Front Sync" : null);
   return {
     ...activity,
     humanName: human != null ? `${human.firstName} ${human.lastName}` : null,
     humanDisplayId: human?.displayId ?? null,
     accountName: account?.name ?? null,
     ownerId: activity.colleagueId,
-    ownerName: owner?.name ?? null,
+    ownerName: ownerNameDetail,
     ownerDisplayId: owner?.displayId ?? null,
     geoInterestExpressions: geoExpressions,
     routeInterestExpressions: routeExprData,

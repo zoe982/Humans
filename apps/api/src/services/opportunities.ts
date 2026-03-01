@@ -55,7 +55,7 @@ export async function listOpportunities(
 
   const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
-  const countResult = await db.select({ total: sql<number>`count(*)` }).from(opportunities).where(whereClause);
+  const countResult = await db.select({ total: sql<number>`count(*)::int` }).from(opportunities).where(whereClause);
   const total = countResult[0]?.total ?? 0;
 
   const rows = await db

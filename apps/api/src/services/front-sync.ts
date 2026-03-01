@@ -1609,7 +1609,7 @@ export async function deduplicateActivities(db: DB): Promise<DeduplicateResult> 
   const dupes = await db
     .select({
       frontId: activities.frontId,
-      count: sql<number>`count(*)`.as("cnt"),
+      count: sql<number>`count(*)::int`.as("cnt"),
     })
     .from(activities)
     .where(isNotNull(activities.frontId))

@@ -7,7 +7,7 @@ import { nextDisplayId } from "../lib/display-id";
 import type { DB } from "./types";
 
 export async function getPetCount(db: DB): Promise<{ total: number }> {
-  const countResult = await db.select({ total: sql<number>`count(*)` }).from(pets);
+  const countResult = await db.select({ total: sql<number>`count(*)::int` }).from(pets);
   const total = countResult[0]?.total ?? 0;
   return { total };
 }

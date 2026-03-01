@@ -60,13 +60,13 @@ activityRoutes.get("/api/activities/daily-counts", requirePermission("viewRecord
   // Query counts grouped by date for the window
   const rows = await db
     .select({
-      date: sql<string>`DATE(${activities.activityDate})`,
-      count: sql<number>`COUNT(*)`,
+      date: sql<string>`DATE(${activities.activityDate})::text`,
+      count: sql<number>`COUNT(*)::int`,
     })
     .from(activities)
     .where(gte(activities.activityDate, sinceDate))
-    .groupBy(sql`DATE(${activities.activityDate})`)
-    .orderBy(sql`DATE(${activities.activityDate})`);
+    .groupBy(sql`DATE(${activities.activityDate})::text`)
+    .orderBy(sql`DATE(${activities.activityDate})::text`);
 
   // Build a lookup from the query results
   const countByDate = new Map<string, number>(

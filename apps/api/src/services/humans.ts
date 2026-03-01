@@ -70,7 +70,7 @@ export async function listHumans(db: DB, page: number, limit: number, search?: s
       )
     : undefined;
 
-  const countResult = await db.select({ total: sql<number>`count(*)` }).from(humans).where(searchFilter);
+  const countResult = await db.select({ total: sql<number>`count(*)::int` }).from(humans).where(searchFilter);
   const total = countResult[0]?.total ?? 0;
 
   const pagedHumans = await db

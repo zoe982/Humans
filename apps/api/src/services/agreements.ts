@@ -98,7 +98,7 @@ export async function listAgreements(
 
   const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
-  const countResult = await db.select({ total: sql<number>`count(*)` }).from(agreements).where(whereClause);
+  const countResult = await db.select({ total: sql<number>`count(*)::int` }).from(agreements).where(whereClause);
   const total = countResult[0]?.total ?? 0;
 
   const rows = await agreementSelectWithJoins(db)

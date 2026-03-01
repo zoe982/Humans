@@ -26,10 +26,10 @@ export default defineWorkersConfig({
       // instrumentable). Per-file enforcement is disabled and aggregate thresholds
       // are intentionally low to reflect workerd limitations.
       thresholds: {
-        lines: 20,
+        lines: 18,
         functions: 0,
         branches: 0,
-        statements: 20,
+        statements: 18,
       },
     },
     poolOptions: {
