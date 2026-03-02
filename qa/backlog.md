@@ -239,12 +239,13 @@
 
 | Field | Value |
 |-------|-------|
-| Status | `open` |
+| Status | `fixed` |
 | Priority | `P2` |
 | Type | `functional` |
 | Page | `/leads/general-leads` |
 | Discovered | 2026-03-02 |
+| Fixed | 2026-03-02 |
 | Screenshot | `qa/screenshots/audit-general-leads-2026-03-02.png` |
 
-**Expected**: Status filter dropdown includes all possible statuses: All, Open, Pending Response, Qualified, Converted, Rejected.
-**Actual**: Status filter only has: All, Open, Qualified, Converted, Rejected. "Pending Response" is missing despite 4 of 7 visible leads having that status. Users cannot filter to see only pending-response leads. The Route Signups page correctly includes "Pending Response" in its filter.
+**Expected**: Status filter dropdown includes all possible statuses: All, Open, Pending Response, Qualified, Closed - Lost, Closed - Converted.
+**Actual**: ~~Status filter only had: All, Open, Qualified, Converted, Rejected. "Pending Response" was missing and "closed_rejected"/"Rejected" was used instead of "closed_lost"/"Closed - Lost".~~ **Fixed**: Updated filter options in `+page.svelte` to include all 5 valid statuses from the schema (`open`, `pending_response`, `qualified`, `closed_lost`, `closed_converted`) with correct labels matching `generalLeadStatusLabels`. Audit test added in `test/routes/leads/general-leads/+page.svelte.test.ts`.
