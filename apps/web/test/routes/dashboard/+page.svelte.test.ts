@@ -105,4 +105,18 @@ describe("Dashboard +page.svelte — stat card links", () => {
       expect(match[0]).not.toMatch(/\btransition\b(?!-)/);
     }
   });
+  it("search input uses standard glass-input sizing (py-2 text-sm, not py-3 text-base) — source audit", () => {
+    const src = readFileSync(
+      resolve(__dirname, "../../../src/routes/dashboard/+page.svelte"),
+      "utf-8",
+    );
+    // Find the search input class attribute (glass-input on the search bar)
+    const inputClassMatch = src.match(/class="(glass-input[^"]*)"/);
+    expect(inputClassMatch).not.toBeNull();
+    const inputClass = inputClassMatch![1];
+    expect(inputClass).not.toContain("py-3");
+    expect(inputClass).not.toContain("text-base");
+    expect(inputClass).toContain("py-2");
+    expect(inputClass).toContain("text-sm");
+  });
 });

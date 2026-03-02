@@ -45,7 +45,7 @@
         type="text"
         name="q"
         placeholder="Search humans, accounts, activities..."
-        class="glass-input w-full pl-12 pr-4 py-3 text-base"
+        class="glass-input w-full pl-12 pr-4 py-2 text-sm"
       />
     </div>
   </form>

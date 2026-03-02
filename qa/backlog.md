@@ -128,15 +128,16 @@
 
 | Field | Value |
 |-------|-------|
-| Status | `open` |
+| Status | `fixed` |
 | Priority | `P3` |
 | Type | `visual` |
 | Page | `/dashboard` |
 | Discovered | 2026-03-02 |
+| Fixed | 2026-03-02 |
 | Screenshot | `qa/screenshots/audit-dashboard-2026-03-02.png` |
 
 **Expected**: Search input uses standard `glass-input` sizing (text-sm, ~36px height).
-**Actual**: `py-3` and `text-base` overrides make it ~48px tall with 1rem font — larger and heavier than every other input in the system. File: `apps/web/src/routes/dashboard/+page.svelte` line 48.
+**Actual**: ~~`py-3` and `text-base` overrides make it ~48px tall with 1rem font — larger and heavier than every other input in the system.~~ **Fixed**: Changed `py-3 text-base` to `py-2 text-sm` on the dashboard search input, bringing it in line with standard `glass-input` sizing (~36px height). Source audit test added in `test/routes/dashboard/+page.svelte.test.ts`.
 
 ---
 
