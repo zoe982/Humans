@@ -94,15 +94,16 @@
 
 | Field | Value |
 |-------|-------|
-| Status | `open` |
+| Status | `fixed` |
 | Priority | `P3` |
 | Type | `visual` |
 | Page | `/dashboard` |
 | Discovered | 2026-03-02 |
+| Fixed | 2026-03-02 |
 | Screenshot | `qa/screenshots/audit-dashboard-2026-03-02.png` |
 
 **Expected**: Stat card icons at `text-text-secondary` (one tier above the label text).
-**Actual**: Both icon and label are `text-text-muted`, collapsing the visual hierarchy. File: `apps/web/src/routes/dashboard/+page.svelte` lines 58/65/72/79.
+**Actual**: ~~Both icon and label are `text-text-muted`, collapsing the visual hierarchy.~~ **Fixed**: Changed icon class from `text-text-muted` to `text-text-secondary` on all 4 stat card icons (Users, PawPrint, Activity, Globe2). Source audit test added in `test/routes/dashboard/+page.svelte.test.ts`.
 
 ---
 

@@ -1,5 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { render } from "@testing-library/svelte";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import DashboardPage from "../../../src/routes/dashboard/+page.svelte";
 
 /**
@@ -70,5 +72,20 @@ describe("Dashboard +page.svelte — stat card links", () => {
   it("renders the user name in the welcome message", () => {
     const { container } = render(DashboardPage, { props: { data: makeMockData() } });
     expect(container.textContent).toContain("Test User");
+  });
+
+  it("stat card icons use text-text-secondary (not text-text-muted) — source audit", () => {
+    const src = readFileSync(
+      resolve(__dirname, "../../../src/routes/dashboard/+page.svelte"),
+      "utf-8",
+    );
+    // Match icon components (Users, PawPrint, Activity, Globe2) with class prop
+    const iconClassPattern = /<(?:Users|PawPrint|Activity|Globe2)\b[^>]*class="([^"]*)"/g;
+    const matches = [...src.matchAll(iconClassPattern)];
+    expect(matches.length).toBe(4);
+    for (const match of matches) {
+      expect(match[1]).toContain("text-text-secondary");
+      expect(match[1]).not.toContain("text-text-muted");
+    }
   });
 });

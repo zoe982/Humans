@@ -55,28 +55,28 @@
     <a href={resolve('/humans')} class="glass-card p-6 transition hover:ring-1 hover:ring-accent/40">
       <div class="flex items-center justify-between">
         <h3 class="text-sm font-medium text-text-muted">Humans</h3>
-        <Users size={20} class="text-text-muted" />
+        <Users size={20} class="text-text-secondary" />
       </div>
       <p class="mt-2 text-3xl font-bold text-text-primary">{data.counts.humans}</p>
     </a>
     <a href={resolve('/pets')} class="glass-card p-6 transition hover:ring-1 hover:ring-accent/40">
       <div class="flex items-center justify-between">
         <h3 class="text-sm font-medium text-text-muted">Pets</h3>
-        <PawPrint size={20} class="text-text-muted" />
+        <PawPrint size={20} class="text-text-secondary" />
       </div>
       <p class="mt-2 text-3xl font-bold text-text-primary">{data.counts.pets}</p>
     </a>
     <a href={resolve('/activities')} class="glass-card p-6 transition hover:ring-1 hover:ring-accent/40">
       <div class="flex items-center justify-between">
         <h3 class="text-sm font-medium text-text-muted">Total Activities</h3>
-        <Activity size={20} class="text-text-muted" />
+        <Activity size={20} class="text-text-secondary" />
       </div>
       <p class="mt-2 text-3xl font-bold text-text-primary">{data.counts.activities}</p>
     </a>
     <a href={resolve('/geo-interests')} class="glass-card p-6 transition hover:ring-1 hover:ring-accent/40">
       <div class="flex items-center justify-between">
         <h3 class="text-sm font-medium text-text-muted">Geo-Interests</h3>
-        <Globe2 size={20} class="text-text-muted" />
+        <Globe2 size={20} class="text-text-secondary" />
       </div>
       <p class="mt-2 text-3xl font-bold text-text-primary">{data.counts.geoInterests}</p>
     </a>
