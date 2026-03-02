@@ -2,7 +2,7 @@ import { createMiddleware } from "hono/factory";
 import type { AppContext, RateLimiter } from "../types";
 
 function getRateLimiter(env: AppContext["Bindings"], path: string): RateLimiter | null {
-  if (path === "/auth/me") return null;
+  if (path === "/auth/me") return env.RL_AUTH_ME;
   if (path.startsWith("/auth/")) return env.RL_AUTH;
   if (path === "/api/client-errors") return env.RL_CLIENT_ERRORS;
   if (path === "/api/search") return env.RL_SEARCH;

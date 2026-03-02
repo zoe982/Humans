@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+import { sql } from "drizzle-orm";
 import { getTestDb } from "../setup";
 import {
   listAccounts,
@@ -308,6 +309,47 @@ describe("getAccountDetail", () => {
       const uniqueIds = new Set(ids);
       expect(uniqueIds.size, `Duplicate IDs found in ${name}: ${JSON.stringify(ids)}`).toBe(ids.length);
     }
+  });
+
+  it("returns account with no linked humans — skips humanIds enrichment entirely", async () => {
+    const db = getTestDb();
+    const ts = now();
+
+    await seedColleague(db, "col-3");
+    await seedAccount(db, "acc-3", "Empty Corp");
+
+    // No accountHumans rows — humanIds will be empty, so the if-branch is skipped
+    await db.insert(schema.activities).values({
+      id: "act-e1", displayId: nextDisplayId("ACT"), type: "email", subject: "Direct Activity", activityDate: ts,
+      accountId: "acc-3", colleagueId: "col-3", createdAt: ts, updatedAt: ts,
+    });
+
+    const result = await getAccountDetail(mockSupabase(), db, "acc-3");
+
+    expect(result.linkedHumans).toHaveLength(0);
+    expect(result.name).toBe("Empty Corp");
+    expect(result.activities).toHaveLength(1);
+  });
+
+  it("returns account with types that resolve to config name", async () => {
+    const db = getTestDb();
+    const ts = now();
+
+    await seedColleague(db, "col-4");
+    await seedAccount(db, "acc-4", "Typed Corp");
+
+    // Seed a config entry and link an account type to it
+    await db.insert(schema.accountTypesConfig).values({
+      id: "atc-1", name: "Partner", createdAt: ts,
+    });
+    await db.insert(schema.accountTypes).values({
+      id: "at-1", accountId: "acc-4", typeId: "atc-1", createdAt: ts,
+    });
+
+    const result = await getAccountDetail(mockSupabase(), db, "acc-4");
+
+    expect(result.types).toHaveLength(1);
+    expect(result.types[0]!.name).toBe("Partner");
   });
 
   it("returns account with social IDs enriched with platform names", async () => {
@@ -696,5 +738,270 @@ describe("unlinkAccountHuman", () => {
 
     await unlinkAccountHuman(db, "ah-1");
     expect(await db.select().from(schema.accountHumans)).toHaveLength(0);
+  });
+});
+
+describe("getAccountDetail — email and phone label resolution", () => {
+  it("returns null labelName for account email with no labelId", async () => {
+    const db = getTestDb();
+    const ts = now();
+    await seedColleague(db, "col-x1");
+    await seedAccount(db, "acc-x1", "NoLabel Corp");
+
+    // Email with no labelId (null path of the e.labelId != null branch)
+    await db.insert(schema.emails).values({
+      id: "ae-x1", displayId: nextDisplayId("EML"), accountId: "acc-x1", email: "nolabel@corp.com",
+      labelId: null, isPrimary: true, createdAt: ts,
+    });
+
+    const result = await getAccountDetail(mockSupabase(), db, "acc-x1");
+    expect(result.emails).toHaveLength(1);
+    expect(result.emails[0]!.labelName).toBeNull();
+  });
+
+  it("returns null labelName for account phone with no labelId", async () => {
+    const db = getTestDb();
+    const ts = now();
+    await seedColleague(db, "col-x2");
+    await seedAccount(db, "acc-x2", "NoLabelPhone Corp");
+
+    // Phone with no labelId (null path of the p.labelId != null branch)
+    await db.insert(schema.phones).values({
+      id: "ap-x1", displayId: nextDisplayId("FON"), accountId: "acc-x2",
+      phoneNumber: "+1000000000", labelId: null, hasWhatsapp: false, isPrimary: true, createdAt: ts,
+    });
+
+    const result = await getAccountDetail(mockSupabase(), db, "acc-x2");
+    expect(result.phoneNumbers).toHaveLength(1);
+    expect(result.phoneNumbers[0]!.labelName).toBeNull();
+  });
+});
+
+describe("updateAccountStatus — diff branch coverage", () => {
+  it("does not write audit entry when status is same (diff is null)", async () => {
+    const db = getTestDb();
+    await seedColleague(db, "col-status-1");
+    await seedAccount(db, "acc-status-1", "Status Corp");
+
+    // Same status → oldStatus === status so the diff block is skipped entirely
+    const result = await updateAccountStatus(db, "acc-status-1", "open", "col-status-1");
+    expect(result.auditEntryId).toBeUndefined();
+
+    const auditEntries = await db.select().from(schema.auditLog);
+    expect(auditEntries).toHaveLength(0);
+  });
+
+  it("writes audit entry when status changes and diff is non-null", async () => {
+    const db = getTestDb();
+    await seedColleague(db, "col-status-2");
+    await seedAccount(db, "acc-status-2", "Status Corp 2");
+
+    // Different status → diff != null branch at line 336 is taken
+    const result = await updateAccountStatus(db, "acc-status-2", "closed", "col-status-2");
+    expect(result.auditEntryId).toBeDefined();
+    expect(result.status).toBe("closed");
+
+    const auditEntries = await db.select().from(schema.auditLog);
+    expect(auditEntries).toHaveLength(1);
+    expect(auditEntries[0]!.action).toBe("UPDATE");
+  });
+});
+
+// ─── toAccountStatus invalid → "open" fallback ───────────────────────────────
+
+describe("createAccount — toAccountStatus invalid input falls back to 'open'", () => {
+  it("stores 'open' when an invalid status string is passed", async () => {
+    const db = getTestDb();
+
+    // Pass an unrecognised status — toAccountStatus must map it to "open"
+    await createAccount(db, { name: "InvalidStatus Corp", status: "definitely_not_a_real_status" });
+
+    const rows = await db.select().from(schema.accounts);
+    expect(rows).toHaveLength(1);
+    expect(rows[0]!.status).toBe("open");
+  });
+});
+
+// ─── listAccounts — type config not found → falls back to typeId ──────────────
+
+describe("listAccounts — type config not found fallback", () => {
+  it("falls back to raw typeId when config entry is missing (orphaned account_types row)", async () => {
+    const db = getTestDb();
+    const ts = now();
+
+    await seedAccount(db, "acc-fb-1", "Fallback Corp");
+
+    // Insert an account_types row whose typeId has no matching accountTypesConfig entry.
+    // Use session_replication_role to bypass the FK constraint.
+    await db.execute(sql`SET session_replication_role = 'replica'`);
+    await db.insert(schema.accountTypes).values({
+      id: "at-orphan", accountId: "acc-fb-1", typeId: "orphan-type-id", createdAt: ts,
+    });
+    await db.execute(sql`SET session_replication_role = 'origin'`);
+
+    const result = await listAccounts(db);
+    expect(result.data).toHaveLength(1);
+
+    const acct = result.data.find((a) => a.id === "acc-fb-1");
+    expect(acct?.types).toHaveLength(1);
+    // config not found → name falls back to the raw typeId string
+    expect(acct?.types[0]!.name).toBe("orphan-type-id");
+    expect(acct?.types[0]!.id).toBe("orphan-type-id");
+  });
+});
+
+// ─── getAccountDetail — supabase null data (L111 / L125 ?? [] branches) ──────
+
+describe("getAccountDetail — supabase returns null data (referral and discount code branches)", () => {
+  it("handles null supabase referral code response without throwing", async () => {
+    const db = getTestDb();
+
+    await seedColleague(db, "col-null-1");
+    await seedAccount(db, "acc-null-1", "Null Supabase Corp");
+
+    // Return null data for both referral and discount code calls
+    const nullSupabase = (() => {
+      const chain: Record<string, unknown> = {};
+      chain["from"] = () => chain;
+      chain["select"] = () => chain;
+      chain["eq"] = () => Promise.resolve({ data: null, error: null });
+      chain["update"] = () => chain;
+      chain["delete"] = () => chain;
+      chain["single"] = () => Promise.resolve({ data: null, error: null });
+      return chain;
+    })() as Parameters<typeof getAccountDetail>[0];
+
+    const result = await getAccountDetail(nullSupabase, db, "acc-null-1");
+
+    // ?? [] branch is taken: should return empty arrays rather than throwing
+    expect(result.referralCodes).toHaveLength(0);
+    expect(result.discountCodes).toHaveLength(0);
+  });
+});
+
+// ─── getAccountDetail — type config not found → falls back to typeId ─────────
+
+describe("getAccountDetail — type config orphaned → falls back to typeId (L152)", () => {
+  it("falls back to raw typeId when accountTypesConfig entry is missing in getAccountDetail", async () => {
+    const db = getTestDb();
+    const ts = now();
+
+    await seedColleague(db, "col-tc-1");
+    await seedAccount(db, "acc-tc-1", "TypeFallback Corp");
+
+    // Orphaned type — no matching config entry
+    await db.execute(sql`SET session_replication_role = 'replica'`);
+    await db.insert(schema.accountTypes).values({
+      id: "at-tc-orphan", accountId: "acc-tc-1", typeId: "ghost-type-config-id", createdAt: ts,
+    });
+    await db.execute(sql`SET session_replication_role = 'origin'`);
+
+    function mockSupabaseEmpty() {
+      const chain: Record<string, unknown> = {};
+      chain["from"] = () => chain;
+      chain["select"] = () => chain;
+      chain["eq"] = () => Promise.resolve({ data: [], error: null });
+      chain["update"] = () => chain;
+      chain["delete"] = () => chain;
+      chain["single"] = () => Promise.resolve({ data: null, error: null });
+      return chain as Parameters<typeof getAccountDetail>[0];
+    }
+
+    const result = await getAccountDetail(mockSupabaseEmpty(), db, "acc-tc-1");
+
+    expect(result.types).toHaveLength(1);
+    // config?.name is undefined → falls back to t.typeId
+    expect(result.types[0]!.name).toBe("ghost-type-config-id");
+    expect(result.types[0]!.id).toBe("ghost-type-config-id");
+  });
+});
+
+// ─── getAccountDetail — linked human orphaned (L160-162) ─────────────────────
+
+describe("getAccountDetail — orphaned linked human (humanId has no matching humans row)", () => {
+  it("returns humanDisplayId=null, humanName='Unknown', humanStatus=null for orphaned link", async () => {
+    const db = getTestDb();
+    const ts = now();
+
+    await seedColleague(db, "col-orph-1");
+    await seedAccount(db, "acc-orph-1", "Orphan Human Corp");
+    // Seed the human so the FK is satisfied during insert
+    await seedHuman(db, "h-orph-1", "Ghost", "Person");
+
+    await db.insert(schema.accountHumans).values({
+      id: "ah-orph-1", accountId: "acc-orph-1", humanId: "h-orph-1", createdAt: ts,
+    });
+
+    // Remove the human row to orphan the link, bypassing FK
+    await db.execute(sql`SET session_replication_role = 'replica'`);
+    await db.execute(sql`DELETE FROM humans WHERE id = 'h-orph-1'`);
+    await db.execute(sql`SET session_replication_role = 'origin'`);
+
+    function mockSupabaseEmpty() {
+      const chain: Record<string, unknown> = {};
+      chain["from"] = () => chain;
+      chain["select"] = () => chain;
+      chain["eq"] = () => Promise.resolve({ data: [], error: null });
+      chain["update"] = () => chain;
+      chain["delete"] = () => chain;
+      chain["single"] = () => Promise.resolve({ data: null, error: null });
+      return chain as Parameters<typeof getAccountDetail>[0];
+    }
+
+    const result = await getAccountDetail(mockSupabaseEmpty(), db, "acc-orph-1");
+
+    expect(result.linkedHumans).toHaveLength(1);
+    // human is undefined in allHumans → fallback values
+    expect(result.linkedHumans[0]!.humanDisplayId).toBeNull();
+    expect(result.linkedHumans[0]!.humanName).toBe("Unknown");
+    expect(result.linkedHumans[0]!.humanStatus).toBeNull();
+  });
+});
+
+// ─── getAccountDetail — human activity with orphaned humanId (L186) ──────────
+
+describe("getAccountDetail — human activity with orphaned humanId falls back to 'Unknown'", () => {
+  it("returns viaHumanName='Unknown' for human activity whose humanId is not in allHumans", async () => {
+    const db = getTestDb();
+    const ts = now();
+
+    await seedColleague(db, "col-hvn-1");
+    await seedAccount(db, "acc-hvn-1", "ViaHuman Corp");
+    await seedHuman(db, "h-hvn-1", "Real", "Person");
+
+    // Link human to account
+    await db.insert(schema.accountHumans).values({
+      id: "ah-hvn-1", accountId: "acc-hvn-1", humanId: "h-hvn-1", createdAt: ts,
+    });
+
+    // Activity linked to humanId but we'll orphan the human
+    await db.insert(schema.activities).values({
+      id: "act-hvn-1", displayId: nextDisplayId("ACT"), type: "call",
+      subject: "Orphan call", activityDate: ts,
+      humanId: "h-hvn-1", colleagueId: "col-hvn-1", createdAt: ts, updatedAt: ts,
+    });
+
+    // Remove the human row via FK bypass so allHumans is empty
+    await db.execute(sql`SET session_replication_role = 'replica'`);
+    await db.execute(sql`DELETE FROM humans WHERE id = 'h-hvn-1'`);
+    await db.execute(sql`SET session_replication_role = 'origin'`);
+
+    function mockSupabaseEmpty() {
+      const chain: Record<string, unknown> = {};
+      chain["from"] = () => chain;
+      chain["select"] = () => chain;
+      chain["eq"] = () => Promise.resolve({ data: [], error: null });
+      chain["update"] = () => chain;
+      chain["delete"] = () => chain;
+      chain["single"] = () => Promise.resolve({ data: null, error: null });
+      return chain as Parameters<typeof getAccountDetail>[0];
+    }
+
+    const result = await getAccountDetail(mockSupabaseEmpty(), db, "acc-hvn-1");
+
+    // humanActivitiesWithNames: human not found → viaHumanName = "Unknown"
+    const humanAct = result.activities.find((a) => a.id === "act-hvn-1");
+    expect(humanAct).toBeDefined();
+    expect(humanAct!.viaHumanName).toBe("Unknown");
   });
 });

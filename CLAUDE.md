@@ -269,3 +269,49 @@ This is enforced by `apps/api/test/unit/audit/unbounded-selects.test.ts` which s
 Exceptions are allowlisted in the test:
 - `EXCLUDED_FILES`: batch jobs like `front-sync.ts` that intentionally load all data
 - `KNOWN_LIST_ALL`: primary list endpoints that load their own table (e.g., `listAccounts`)
+
+## QA System
+
+Automated QA uses Playwright MCP to browse production and discover visual/functional bugs.
+
+### Auth setup (one-time, repeat when cookies expire)
+```bash
+mkdir -p qa/screenshots
+npx playwright codegen --save-storage=qa/auth-state.json https://humans.pavinfo.app
+```
+Log in via Google in the browser window. Cookies are saved to `qa/auth-state.json` (gitignored).
+
+### Workflow phases
+
+| Trigger phrase | Phase | What happens |
+|---------------|-------|-------------|
+| "audit pages" / "QA audit" | DISCOVER | Browse production pages, screenshot, dispatch Ive for visual analysis, append bugs to backlog |
+| "fix next bug" | FIX | Pick highest-priority `open` bug, dispatch Cook, run tests, deploy |
+| "verify fix" / "verify BUG-NNN" | VERIFY | Re-browse affected page, screenshot, dispatch Ive if visual, update backlog |
+
+### One-at-a-time enforcement
+Only ONE bug may have `fixing` status at any time. Before starting any fix:
+1. Scan `qa/backlog.md` for `| Status | \`fixing\` |`
+2. If found, that bug must be completed or reverted to `open` first
+3. Only then pick the next bug
+
+### Bug backlog
+- Location: `qa/backlog.md`
+- Screenshots: `qa/screenshots/`
+- Format: structured markdown with ID, status, priority, type, page, screenshot path, expected/actual
+
+### Page crawl order (batches of 5-10 per session)
+1. Dashboard, Humans list, Human detail, Accounts list, Account detail
+2. Activities, Opportunities, Leads (general, route signups, booking requests)
+3. Settings/config pages, Admin, Referral codes
+4. Remaining pages discovered via navigation
+
+### Model assignment
+| Task | Model | Context |
+|------|-------|---------|
+| Discovery + verification (browsing) | opus | Main context (needs Playwright MCP + Bash) |
+| Visual analysis | sonnet | Ive subagent |
+| Code fixes | sonnet | Cook → engineer subagents |
+
+### QA routing exception
+QA runs in the **main context** (not Cook). This is the one exception to the Cook-first routing rule because QA needs: (1) Playwright MCP browser state continuity, (2) Bash for running tests, (3) ability to dispatch both Ive and Cook.

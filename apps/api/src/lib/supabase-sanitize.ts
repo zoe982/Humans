@@ -1,4 +1,4 @@
-/** Escape characters that have special meaning in PostgREST filter syntax */
+/** Strip characters that have special meaning in PostgREST filter syntax */
 export function sanitizePostgrestValue(value: string): string {
-  return value.replace(/[,.()"\\]/g, "");
+  return value.replace(/[,.()"\\%*:;{}[\]]/g, "");
 }

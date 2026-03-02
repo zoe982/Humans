@@ -236,6 +236,24 @@ describe("rematchActivitiesByPhone", () => {
     expect(count).toBe(1);
   });
 
+  it("skips activities with null frontContactHandle when phone-matching", async () => {
+    const db = getTestDb();
+    await seedHuman(db, "h-1");
+    // Activity with null handle — should be skipped silently (returns false in filter)
+    await seedActivity(db, {
+      id: "act-null",
+      frontContactHandle: null,
+      humanId: null,
+    });
+
+    const count = await rematchActivitiesByPhone(db, "h-1", "+1 555 123 4567");
+    expect(count).toBe(0);
+
+    // Activity should remain unmatched
+    const rows = await db.select().from(schema.activities);
+    expect(rows[0]!.humanId).toBeNull();
+  });
+
   it("does not match activities whose frontContactHandle is not a phone", async () => {
     const db = getTestDb();
     await seedHuman(db, "h-1");
@@ -368,6 +386,23 @@ describe("rematchActivitiesBySocialId", () => {
 
     const count = await rematchActivitiesBySocialId(db, "h-1", "myhandle");
     expect(count).toBe(1);
+  });
+
+  it("skips activities with null frontContactHandle when social-matching", async () => {
+    const db = getTestDb();
+    await seedHuman(db, "h-1");
+    // Activity with null handle — should be silently skipped (returns false in filter at line 110)
+    await seedActivity(db, {
+      id: "act-null",
+      frontContactHandle: null,
+      humanId: null,
+    });
+
+    const count = await rematchActivitiesBySocialId(db, "h-1", "@myhandle");
+    expect(count).toBe(0);
+
+    const rows = await db.select().from(schema.activities);
+    expect(rows[0]!.humanId).toBeNull();
   });
 
   it("does not match activities with a different handle", async () => {

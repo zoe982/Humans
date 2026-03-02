@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+import { sql } from "drizzle-orm";
 import { getTestDb } from "../setup";
 import {
   listRouteInterests,
@@ -242,6 +243,38 @@ describe("getRouteInterestDetail", () => {
 
     const result = await getRouteInterestDetail(db, "ri-1");
     expect(result.expressions[0]!.activitySubject).toBeNull();
+  });
+
+  it("returns null humanName for expression with orphaned humanId", async () => {
+    const db = getTestDb();
+    const ts = new Date().toISOString();
+
+    // Create human and route interest
+    await db.insert(schema.humans).values({
+      id: "h-orphan", displayId: "HUM-ORPHAN-001",
+      firstName: "Ghost", lastName: "Human",
+      status: "open", createdAt: ts, updatedAt: ts,
+    });
+    await db.insert(schema.routeInterests).values({
+      id: "ri-orph", displayId: "ROI-ORPH-001",
+      originCity: "NYC", originCountry: "US",
+      destinationCity: "LON", destinationCountry: "GB",
+      createdAt: ts, updatedAt: ts,
+    });
+    await db.insert(schema.routeInterestExpressions).values({
+      id: "rex-orph", displayId: "REX-ORPH-001",
+      humanId: "h-orphan", routeInterestId: "ri-orph",
+      frequency: "once", createdAt: ts,
+    });
+
+    // Orphan the humanId
+    await db.execute(sql`SET session_replication_role = 'replica'`);
+    await db.delete(schema.humans).where(sql`id = 'h-orphan'`);
+    await db.execute(sql`SET session_replication_role = 'origin'`);
+
+    const result = await getRouteInterestDetail(db, "ri-orph");
+    expect(result.expressions).toHaveLength(1);
+    expect(result.expressions[0]!.humanName).toBeNull();
   });
 });
 
@@ -540,6 +573,16 @@ describe("createRouteInterestExpression", () => {
     await expect(
       createRouteInterestExpression(db, { humanId: "nonexistent", routeInterestId: "ri-1" }),
     ).rejects.toThrowError("Human not found");
+  });
+
+  it("throws notFound when no routeInterestId and no city/country provided", async () => {
+    const db = getTestDb();
+    await seedHuman(db, "h-1");
+
+    // Pass neither routeInterestId nor origin/destination city+country — routeInterestId remains null
+    await expect(
+      createRouteInterestExpression(db, { humanId: "h-1" }),
+    ).rejects.toThrowError("Route interest could not be resolved");
   });
 
   it("creates expression with existing routeInterestId", async () => {
@@ -943,6 +986,65 @@ describe("deleteRouteInterestExpression", () => {
 });
 
 // ---------------------------------------------------------------------------
+// listRouteInterestExpressions — null activityId branch
+// ---------------------------------------------------------------------------
+
+describe("listRouteInterestExpressions — null activityId on expression", () => {
+  it("returns null activitySubject and correctly resolves when activityId is null", async () => {
+    const db = getTestDb();
+    await seedRouteInterest(db, "ri-null-act", "Rome", "Italy", "Venice", "Italy");
+    await seedHuman(db, "h-null-act", "Marco", "Polo");
+    const ts = now();
+
+    // Expression with null activityId — exercises the `expr.activityId != null` false branch in listRouteInterestExpressions
+    await db.insert(schema.routeInterestExpressions).values({
+      id: "rex-null-act",
+      displayId: nextDisplayId("REX"),
+      humanId: "h-null-act",
+      routeInterestId: "ri-null-act",
+      activityId: null,
+      frequency: "one_time",
+      createdAt: ts,
+    });
+
+    const result = await listRouteInterestExpressions(db, {});
+    expect(result).toHaveLength(1);
+    expect(result[0]!.activitySubject).toBeNull();
+    expect(result[0]!.humanName).toBe("Marco Polo");
+    expect(result[0]!.originCity).toBe("Rome");
+    expect(result[0]!.destinationCity).toBe("Venice");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// getRouteInterestDetail — null activityId branch
+// ---------------------------------------------------------------------------
+
+describe("getRouteInterestDetail — null activityId on expression", () => {
+  it("sets activitySubject to null when expression has null activityId", async () => {
+    const db = getTestDb();
+    await seedRouteInterest(db, "ri-det-null", "Tokyo", "Japan", "Kyoto", "Japan");
+    await seedHuman(db, "h-det-null", "Kenji", "Tanaka");
+    const ts = now();
+
+    await db.insert(schema.routeInterestExpressions).values({
+      id: "rex-det-null",
+      displayId: nextDisplayId("REX"),
+      humanId: "h-det-null",
+      routeInterestId: "ri-det-null",
+      activityId: null, // exercises the expr.activityId != null false branch
+      frequency: "one_time",
+      createdAt: ts,
+    });
+
+    const result = await getRouteInterestDetail(db, "ri-det-null");
+    expect(result.expressions).toHaveLength(1);
+    expect(result.expressions[0]!.activitySubject).toBeNull();
+    expect(result.expressions[0]!.humanName).toBe("Kenji Tanaka");
+  });
+});
+
+// ---------------------------------------------------------------------------
 // listCities
 // ---------------------------------------------------------------------------
 
@@ -1054,5 +1156,196 @@ describe("listCities", () => {
     const result = await listCities(db, "cope");
     expect(result).toHaveLength(1);
     expect(result[0]!.city).toBe("Copenhagen");
+  });
+
+  it("deduplicates the same origin city appearing in multiple route interest rows", async () => {
+    const db = getTestDb();
+    // "Vienna" appears as origin in both ri-1 and ri-2 — when processing ri-2,
+    // cityMap already has "Vienna|Austria", so the L378 if(!cityMap.has(key)) false
+    // branch is exercised and the duplicate is skipped.
+    await seedRouteInterest(db, "ri-dup-1", "Vienna", "Austria", "Berlin", "Germany");
+    await seedRouteInterest(db, "ri-dup-2", "Vienna", "Austria", "Prague", "Czech Republic");
+
+    const result = await listCities(db, "Vienna");
+    expect(result).toHaveLength(1);
+    expect(result[0]!.city).toBe("Vienna");
+    expect(result[0]!.country).toBe("Austria");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// createRouteInterest — all required fields (no optional null fallbacks exist)
+// ---------------------------------------------------------------------------
+
+describe("createRouteInterest — required-field defaults", () => {
+  it("stores all provided fields without alteration", async () => {
+    const db = getTestDb();
+    const result = await createRouteInterest(db, {
+      originCity: "Tallinn",
+      originCountry: "Estonia",
+      destinationCity: "Riga",
+      destinationCountry: "Latvia",
+    });
+
+    expect(result.created).toBe(true);
+    expect(result.data.originCity).toBe("Tallinn");
+    expect(result.data.originCountry).toBe("Estonia");
+    expect(result.data.destinationCity).toBe("Riga");
+    expect(result.data.destinationCountry).toBe("Latvia");
+    // updatedAt is set to now() — exercises L62 branch where updatedAt is always set
+    expect(result.data.updatedAt).toBeDefined();
+    expect(result.data.createdAt).toBeDefined();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// listRouteInterestExpressions — orphaned human (L163 humanName null branch)
+// ---------------------------------------------------------------------------
+
+describe("listRouteInterestExpressions — orphaned human FK", () => {
+  it("sets humanName to null when the referenced human no longer exists", async () => {
+    const db = getTestDb();
+    await seedRouteInterest(db, "ri-list-orphan-h", "Sofia", "Bulgaria", "Bucharest", "Romania");
+    await seedHuman(db, "h-list-ri-orphan");
+    const ts = now();
+
+    await db.insert(schema.routeInterestExpressions).values({
+      id: "rex-list-orphan-h",
+      displayId: nextDisplayId("REX"),
+      humanId: "h-list-ri-orphan",
+      routeInterestId: "ri-list-orphan-h",
+      frequency: "one_time",
+      createdAt: ts,
+    });
+
+    // Orphan the human reference
+    await db.execute(sql`SET session_replication_role = 'replica'`);
+    await db.execute(sql`UPDATE route_interest_expressions SET human_id = 'ghost-human-ri' WHERE id = 'rex-list-orphan-h'`);
+    await db.execute(sql`SET session_replication_role = 'origin'`);
+
+    await db.delete(schema.humans).where(sql`id = 'h-list-ri-orphan'`);
+
+    // L163: human not found → humanName: null
+    const result = await listRouteInterestExpressions(db, {});
+    expect(result).toHaveLength(1);
+    expect(result[0]!.humanName).toBeNull();
+    // route data still resolves
+    expect(result[0]!.originCity).toBe("Sofia");
+    expect(result[0]!.destinationCity).toBe("Bucharest");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// listRouteInterestExpressions — orphaned routeInterest (L164-167 null branches)
+// ---------------------------------------------------------------------------
+
+describe("listRouteInterestExpressions — orphaned routeInterest FK", () => {
+  it("sets origin/destination city and country to null when route interest no longer exists", async () => {
+    const db = getTestDb();
+    await seedRouteInterest(db, "ri-list-orphan-ri", "Vilnius", "Lithuania", "Minsk", "Belarus");
+    await seedHuman(db, "h-list-ri-orphan-ri", "Lukas", "Jonaitis");
+    const ts = now();
+
+    await db.insert(schema.routeInterestExpressions).values({
+      id: "rex-list-orphan-ri",
+      displayId: nextDisplayId("REX"),
+      humanId: "h-list-ri-orphan-ri",
+      routeInterestId: "ri-list-orphan-ri",
+      frequency: "one_time",
+      createdAt: ts,
+    });
+
+    // Orphan the routeInterest reference
+    await db.execute(sql`SET session_replication_role = 'replica'`);
+    await db.execute(sql`UPDATE route_interest_expressions SET route_interest_id = 'ghost-ri' WHERE id = 'rex-list-orphan-ri'`);
+    await db.execute(sql`SET session_replication_role = 'origin'`);
+
+    await db.delete(schema.routeInterests).where(sql`id = 'ri-list-orphan-ri'`);
+
+    // L164-167: ri not found → originCity/originCountry/destinationCity/destinationCountry: null
+    const result = await listRouteInterestExpressions(db, {});
+    expect(result).toHaveLength(1);
+    expect(result[0]!.humanName).toBe("Lukas Jonaitis");
+    expect(result[0]!.originCity).toBeNull();
+    expect(result[0]!.originCountry).toBeNull();
+    expect(result[0]!.destinationCity).toBeNull();
+    expect(result[0]!.destinationCountry).toBeNull();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// getRouteInterestExpressionDetail — orphaned human (L279-280 null branches)
+// ---------------------------------------------------------------------------
+
+describe("getRouteInterestExpressionDetail — orphaned human FK", () => {
+  it("sets humanName and humanDisplayId to null when human no longer exists", async () => {
+    const db = getTestDb();
+    await seedRouteInterest(db, "ri-det-orphan-h", "Bratislava", "Slovakia", "Vienna", "Austria");
+    await seedHuman(db, "h-det-ri-orphan");
+    const ts = now();
+
+    await db.insert(schema.routeInterestExpressions).values({
+      id: "rex-det-orphan-h",
+      displayId: nextDisplayId("REX"),
+      humanId: "h-det-ri-orphan",
+      routeInterestId: "ri-det-orphan-h",
+      frequency: "one_time",
+      createdAt: ts,
+    });
+
+    // Orphan the human reference
+    await db.execute(sql`SET session_replication_role = 'replica'`);
+    await db.execute(sql`UPDATE route_interest_expressions SET human_id = 'ghost-human-ri-det' WHERE id = 'rex-det-orphan-h'`);
+    await db.execute(sql`SET session_replication_role = 'origin'`);
+
+    await db.delete(schema.humans).where(sql`id = 'h-det-ri-orphan'`);
+
+    // L279: humanName: null  L280: humanDisplayId: null
+    const result = await getRouteInterestExpressionDetail(db, "rex-det-orphan-h");
+    expect(result.humanName).toBeNull();
+    expect(result.humanDisplayId).toBeNull();
+    // route data still resolves
+    expect(result.originCity).toBe("Bratislava");
+    expect(result.destinationCity).toBe("Vienna");
+    expect(result.routeDisplayId).toMatch(/^ROI-/);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// getRouteInterestExpressionDetail — orphaned routeInterest (L281-285 null branches)
+// ---------------------------------------------------------------------------
+
+describe("getRouteInterestExpressionDetail — orphaned routeInterest FK", () => {
+  it("sets all route fields and routeDisplayId to null when route interest no longer exists", async () => {
+    const db = getTestDb();
+    await seedRouteInterest(db, "ri-det-orphan-ri", "Helsinki", "Finland", "Tallinn", "Estonia");
+    await seedHuman(db, "h-det-ri-orphan-ri", "Mikko", "Virtanen");
+    const ts = now();
+
+    await db.insert(schema.routeInterestExpressions).values({
+      id: "rex-det-orphan-ri",
+      displayId: nextDisplayId("REX"),
+      humanId: "h-det-ri-orphan-ri",
+      routeInterestId: "ri-det-orphan-ri",
+      frequency: "repeat",
+      createdAt: ts,
+    });
+
+    // Orphan the routeInterest reference
+    await db.execute(sql`SET session_replication_role = 'replica'`);
+    await db.execute(sql`UPDATE route_interest_expressions SET route_interest_id = 'ghost-ri-det' WHERE id = 'rex-det-orphan-ri'`);
+    await db.execute(sql`SET session_replication_role = 'origin'`);
+
+    await db.delete(schema.routeInterests).where(sql`id = 'ri-det-orphan-ri'`);
+
+    // L281-285: ri not found → originCity/originCountry/destinationCity/destinationCountry/routeDisplayId: null
+    const result = await getRouteInterestExpressionDetail(db, "rex-det-orphan-ri");
+    expect(result.humanName).toBe("Mikko Virtanen");
+    expect(result.humanDisplayId).toMatch(/^HUM-/);
+    expect(result.originCity).toBeNull();
+    expect(result.originCountry).toBeNull();
+    expect(result.destinationCity).toBeNull();
+    expect(result.destinationCountry).toBeNull();
+    expect(result.routeDisplayId).toBeNull();
   });
 });

@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { sql, inArray, eq } from "drizzle-orm";
-import { activities, leadScores, humanRouteSignups } from "@humans/db/schema";
+import { sql, and, inArray, eq } from "drizzle-orm";
+import { activities, leadScores, humanRouteSignups, entityNextActions } from "@humans/db/schema";
 import { updateRouteSignupSchema, updateEntityNextActionSchema, createEmailSchema, createPhoneNumberSchema, createSocialIdSchema, linkHumanSchema, ERROR_CODES } from "@humans/shared";
 import { authMiddleware } from "../middleware/auth";
 import { requirePermission } from "../middleware/rbac";
@@ -81,7 +81,7 @@ routeSignupRoutes.get("/api/route-signups", requirePermission("viewRouteSignups"
 
   let query = supabase
     .from("announcement_signups")
-    .select("id, display_id, first_name, middle_name, last_name, email, origin, destination, status, note, inserted_at, consent, newsletter_opt_in", { count: "exact" });
+    .select("id, display_id, first_name, middle_name, last_name, email, origin, destination, status, note, inserted_at, consent, newsletter_opt_in, crm_channel, crm_source", { count: "exact" });
 
   if (status !== "") query = query.eq("status", status);
   if (origin !== "") query = query.ilike("origin", `%${sanitizePostgrestValue(origin)}%`);
@@ -143,6 +143,30 @@ routeSignupRoutes.get("/api/route-signups", requirePermission("viewRouteSignups"
     enriched = enriched.map((s) => ({
       ...s,
       scoreTotal: scoreMap.get(s.id) ?? null,
+    }));
+  }
+
+  // Bulk-fetch next actions
+  if (signupIds.length > 0) {
+    const nextActions = await db
+      .select({
+        entityId: entityNextActions.entityId,
+        type: entityNextActions.type,
+        description: entityNextActions.description,
+        dueDate: entityNextActions.dueDate,
+      })
+      .from(entityNextActions)
+      .where(
+        and(
+          sql`${entityNextActions.entityType} = 'route_signup'`,
+          inArray(entityNextActions.entityId, signupIds),
+          sql`${entityNextActions.completedAt} IS NULL`,
+        ),
+      );
+    const nextActionMap = new Map(nextActions.map((na) => [na.entityId, { type: na.type, description: na.description, dueDate: na.dueDate }]));
+    enriched = enriched.map((s) => ({
+      ...s,
+      nextAction: nextActionMap.get(s.id) ?? null,
     }));
   }
 

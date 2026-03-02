@@ -78,5 +78,6 @@ export const FileText = IconStub;
 export const ArrowLeftRight = IconStub;
 export const Sun = IconStub;
 export const Moon = IconStub;
+export const PawPrint = IconStub;
 
 export default IconStub;

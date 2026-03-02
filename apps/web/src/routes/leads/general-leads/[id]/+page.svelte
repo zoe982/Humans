@@ -145,6 +145,13 @@
     }
   });
 
+  // Reset name editing mode after successful save
+  $effect(() => {
+    if (form?.success) {
+      editingName = false;
+    }
+  });
+
   let showDeleteConfirm = $state(false);
   let showRejectDialog = $state(false);
   let selectedLossReason = $state("");
@@ -342,6 +349,9 @@
   {#if form?.success}
     <AlertBanner type="success" message="Saved successfully." />
   {/if}
+  {#if lead.status === "closed_converted" && lead.convertedHumanId == null}
+    <AlertBanner type="warning" message="This lead is marked as converted but no human is linked yet. Link or create a human below to complete the conversion." />
+  {/if}
 
   <!-- Next Action -->
   {#if !isClosed}
@@ -399,7 +409,7 @@
         <dt class="text-sm font-medium text-text-muted">Name</dt>
         {#if editingName}
           <dd class="mt-1">
-            <form method="POST" action="?/updateName" onsubmit={() => { editingName = false; }}>
+            <form method="POST" action="?/updateName">
               <div class="grid grid-cols-3 gap-2">
                 <div>
                   <label for="editFirstName" class="block text-xs text-text-muted mb-1">First</label>

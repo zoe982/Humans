@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+import { sql } from "drizzle-orm";
 import { getTestDb } from "../setup";
 import {
   listOpportunities,
@@ -839,6 +840,190 @@ describe("updateOpportunityStage", () => {
     expect(auditRows).toHaveLength(1);
     expect(auditRows[0]!.action).toBe("STAGE_CHANGE");
     expect(auditRows[0]!.entityType).toBe("opportunity");
+  });
+});
+
+// ─── createOpportunity — invalid stage defaults to "open" ─────────────────────
+
+describe("createOpportunity — invalid stage fallback", () => {
+  it("defaults stage to 'open' when an invalid stage string is provided", async () => {
+    const db = getTestDb();
+    await seedColleague(db, "col-1");
+
+    // Pass an unrecognised stage — the service casts it anyway, but the
+    // `stage ?? "open"` guard means undefined/null inputs become "open".
+    // For an explicitly undefined stage, the default should kick in.
+    const result = await createOpportunity(db, { stage: undefined }, "col-1");
+
+    const rows = await db.select().from(schema.opportunities);
+    expect(rows).toHaveLength(1);
+    expect(rows[0]!.stage).toBe("open");
+    expect(result.displayId).toMatch(/^OPP-/);
+  });
+});
+
+// ─── updateOpportunityStage — diff is null (no audit entry) ──────────────────
+
+describe("updateOpportunityStage — same stage transition (no diff)", () => {
+  it("does not write an audit log when the stage does not actually change", async () => {
+    const db = getTestDb();
+    await seedColleague(db, "col-1");
+    await seedOpportunity(db, "opp-1", { stage: "qualified" });
+
+    const result = await updateOpportunityStage(db, "opp-1", { stage: "qualified" }, "col-1");
+    // The computeDiff will return null when old === new
+    expect(result.auditEntryId).toBeUndefined();
+
+    const auditRows = await db.select().from(schema.auditLog);
+    expect(auditRows).toHaveLength(0);
+  });
+});
+
+// ─── updateOpportunityStage — closed_flown with invalid nextActionType ────────
+
+describe("updateOpportunityStage — closed_flown auto-activity type fallback", () => {
+  it("falls back to 'email' activity type when nextActionType is an invalid value", async () => {
+    const db = getTestDb();
+    await seedColleague(db, "col-1");
+    // Seed with an activity type that is not in the valid list
+    await seedOpportunity(db, "opp-1", {
+      stage: "qualified",
+      nextActionDescription: "Do something",
+      nextActionType: "invalid_type",
+      nextActionDueDate: now(),
+      nextActionOwnerId: "col-1",
+      nextActionCompletedAt: null,
+    });
+
+    await updateOpportunityStage(db, "opp-1", { stage: "closed_flown" }, "col-1");
+
+    const acts = await db.select().from(schema.activities);
+    expect(acts).toHaveLength(1);
+    // Falls back to "email" when type is not in the valid list
+    expect(acts[0]!.type).toBe("email");
+    expect(acts[0]!.subject).toBe("[Auto] Do something");
+  });
+
+  it("uses the valid nextActionType for the auto-created activity", async () => {
+    const db = getTestDb();
+    await seedColleague(db, "col-1");
+    await seedOpportunity(db, "opp-1", {
+      stage: "qualified",
+      nextActionDescription: "WhatsApp followup",
+      nextActionType: "whatsapp_message",
+      nextActionDueDate: now(),
+      nextActionOwnerId: "col-1",
+      nextActionCompletedAt: null,
+    });
+
+    await updateOpportunityStage(db, "opp-1", { stage: "closed_flown" }, "col-1");
+
+    const acts = await db.select().from(schema.activities);
+    expect(acts).toHaveLength(1);
+    expect(acts[0]!.type).toBe("whatsapp_message");
+  });
+});
+
+// ─── getOpportunityDetail — null fallbacks for linked pet with no owner ───────
+
+describe("getOpportunityDetail — pet owner null fallback", () => {
+  it("returns null ownerName when linked pet has no owner in linkedHumanRows", async () => {
+    const db = getTestDb();
+    await seedRoles(db);
+    // Pet with no owner human
+    await seedPet(db, "pet-orphan", null, "Stray Cat");
+    await seedOpportunity(db, "opp-1");
+
+    const ts = now();
+    await db.insert(schema.opportunityPets).values({
+      id: "op-1",
+      opportunityId: "opp-1",
+      petId: "pet-orphan",
+      createdAt: ts,
+    });
+
+    const result = await getOpportunityDetail(db, "opp-1");
+    expect(result.linkedPets).toHaveLength(1);
+    // humanId is null so ownerName should be null
+    expect(result.linkedPets[0]!.ownerName).toBeNull();
+  });
+
+  it("returns petDisplayId as petName when pet name is null", async () => {
+    const db = getTestDb();
+    await seedRoles(db);
+    const ts = now();
+    seedCounter++;
+    const petDisplayId = `PET-${String(seedCounter).padStart(6, "0")}`;
+    // Insert a pet with null name directly
+    await db.insert(schema.pets).values({
+      id: "pet-noname",
+      displayId: petDisplayId,
+      humanId: null,
+      type: "cat",
+      name: null,
+      isActive: true,
+      createdAt: ts,
+      updatedAt: ts,
+    });
+    await seedOpportunity(db, "opp-1");
+    await db.insert(schema.opportunityPets).values({
+      id: "op-noname",
+      opportunityId: "opp-1",
+      petId: "pet-noname",
+      createdAt: ts,
+    });
+
+    const result = await getOpportunityDetail(db, "opp-1");
+    expect(result.linkedPets).toHaveLength(1);
+    // When name is null, petName falls back to displayId
+    expect(result.linkedPets[0]!.petName).toBe(petDisplayId);
+  });
+});
+
+// ─── getOpportunityDetail — linked human with no matching role config ──────────
+
+describe("getOpportunityDetail — roleName null fallback", () => {
+  it("returns null roleName when the linked human has a roleId not in config", async () => {
+    const db = getTestDb();
+    await seedRoles(db);
+    await seedHuman(db, "h-1", "Carol", "Test");
+    await seedOpportunity(db, "opp-1");
+
+    const ts = now();
+    // Bypass FK to create an orphaned roleId
+    await db.execute(sql`SET session_replication_role = 'replica'`);
+    await db.insert(schema.opportunityHumans).values({
+      id: "oh-orphan",
+      opportunityId: "opp-1",
+      humanId: "h-1",
+      roleId: "role-nonexistent",
+      createdAt: ts,
+    });
+    await db.execute(sql`SET session_replication_role = 'origin'`);
+
+    const result = await getOpportunityDetail(db, "opp-1");
+    expect(result.linkedHumans).toHaveLength(1);
+    expect(result.linkedHumans[0]!.roleName).toBeNull();
+  });
+
+  it("returns null roleName when linked human has null roleId", async () => {
+    const db = getTestDb();
+    await seedRoles(db);
+    await seedHuman(db, "h-1", "Dan", "Test");
+    await seedOpportunity(db, "opp-1");
+
+    const ts = now();
+    await db.insert(schema.opportunityHumans).values({
+      id: "oh-nullrole",
+      opportunityId: "opp-1",
+      humanId: "h-1",
+      roleId: null,
+      createdAt: ts,
+    });
+
+    const result = await getOpportunityDetail(db, "opp-1");
+    expect(result.linkedHumans).toHaveLength(1);
+    expect(result.linkedHumans[0]!.roleName).toBeNull();
   });
 });
 
@@ -1742,6 +1927,58 @@ describe("linkBookingRequestFromBor", () => {
 
     const brs = await db.select().from(schema.humanWebsiteBookingRequests);
     expect(brs[0]!.opportunityId).toBe("opp-1");
+  });
+});
+
+// ─── updateOpportunityHumanRole — no config rows (null roleId fallback) ───────
+
+describe("updateOpportunityHumanRole — null roleId fallback when no config rows", () => {
+  it("updates roleId to null without demoting anyone when no role configs exist", async () => {
+    const db = getTestDb();
+    // Deliberately do NOT seed roles — exercises the `?? null` fallback on primaryRoleId/passengerRoleId
+    await seedHuman(db, "h-1");
+    await seedOpportunity(db, "opp-1");
+
+    // Insert with null roleId (allowed by schema)
+    const ts = now();
+    await db.insert(schema.opportunityHumans).values({
+      id: "oh-null-cfg",
+      opportunityId: "opp-1",
+      humanId: "h-1",
+      roleId: null,
+      createdAt: ts,
+    });
+
+    // With no config rows, primaryRoleId/passengerRoleId resolve to null.
+    const result = await updateOpportunityHumanRole(db, "oh-null-cfg", { roleId: null });
+    expect(result.id).toBe("oh-null-cfg");
+    expect(result.roleId).toBeNull();
+  });
+});
+
+// ─── unlinkOpportunityHuman — null primaryRoleId fallback ────────────────────
+
+describe("unlinkOpportunityHuman — null primaryRoleId fallback when no config rows", () => {
+  it("removes link when no role configs exist (primaryRoleId resolves to null)", async () => {
+    const db = getTestDb();
+    // Deliberately do NOT seed roles — exercises the `?? null` fallback on primaryRoleId at line 562
+    await seedHuman(db, "h-1");
+    await seedOpportunity(db, "opp-1");
+
+    const ts = now();
+    await db.insert(schema.opportunityHumans).values({
+      id: "oh-no-cfg",
+      opportunityId: "opp-1",
+      humanId: "h-1",
+      roleId: null,
+      createdAt: ts,
+    });
+
+    // With no config rows, primaryRoleId is null.
+    await unlinkOpportunityHuman(db, "oh-no-cfg");
+
+    const links = await db.select().from(schema.opportunityHumans);
+    expect(links).toHaveLength(0);
   });
 });
 

@@ -63,7 +63,7 @@
       {flight.available_seats ?? "\u2014"} / {flight.capacity_human_seats + flight.capacity_pet_seats}
     </td>
     <td class="text-sm text-text-secondary">
-      {flight.ticket_price_eur != null ? `\u20AC${Number(flight.ticket_price_eur).toLocaleString()}` : "\u2014"}
+      {flight.ticket_price_eur != null ? `\u20AC${Number(flight.ticket_price_eur).toLocaleString("en-GB")}` : "\u2014"}
     </td>
     <td>
       {#if flight.visible}

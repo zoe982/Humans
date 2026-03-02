@@ -20,6 +20,7 @@ export interface Env {
   FRONT_API_TOKEN: string;
   RealtimeHub: DurableObjectNamespace;
   RL_AUTH: RateLimiter;
+  RL_AUTH_ME: RateLimiter;
   RL_API: RateLimiter;
   RL_SEARCH: RateLimiter;
   RL_CLIENT_ERRORS: RateLimiter;

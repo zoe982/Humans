@@ -118,6 +118,32 @@ describe("createLeadSource", () => {
     expect(rows).toHaveLength(1);
     expect(rows[0]!.name).toBe("Social Media");
   });
+
+  it("defaults category to 'direct' when an invalid category string is provided", async () => {
+    const db = getTestDb();
+
+    const result = await createLeadSource(db, {
+      name: "Unknown Source",
+      category: "totally-invalid-category",
+    });
+
+    expect(result.id).toBeDefined();
+    const rows = await db.select().from(schema.leadSources);
+    expect(rows[0]!.category).toBe("direct");
+  });
+
+  it("defaults category to 'direct' when category is not a string", async () => {
+    const db = getTestDb();
+
+    const result = await createLeadSource(db, {
+      name: "Numeric Source",
+      category: 42,
+    });
+
+    expect(result.id).toBeDefined();
+    const rows = await db.select().from(schema.leadSources);
+    expect(rows[0]!.category).toBe("direct");
+  });
 });
 
 describe("listLeadEvents", () => {
@@ -200,5 +226,79 @@ describe("createLeadEvent", () => {
 
     expect(result.notes).toBeNull();
     expect(result.metadata).toBeNull();
+  });
+
+  it("stores metadata as null when metadata is an array (non-object branch)", async () => {
+    const db = getTestDb();
+    await seedHuman(db, "h-1");
+
+    const result = await createLeadEvent(db, {
+      humanId: "h-1",
+      eventType: "inquiry",
+      metadata: ["item1", "item2"],
+    });
+
+    // The return value spreads original data over insertRecord, so check the DB row
+    const rows = await db.select().from(schema.leadEvents);
+    expect(rows[0]!.metadata).toBeNull();
+  });
+
+  it("stores metadata as null when metadata is a primitive string (typeof !== 'object' branch)", async () => {
+    const db = getTestDb();
+    await seedHuman(db, "h-1");
+
+    // A string is not typeof === "object" → metadata stored as null
+    await createLeadEvent(db, {
+      humanId: "h-1",
+      eventType: "inquiry",
+      metadata: "just a string",
+    });
+
+    const rows = await db.select().from(schema.leadEvents);
+    expect(rows[0]!.metadata).toBeNull();
+  });
+
+  it("stores metadata as null when metadata is a number (typeof !== 'object' branch)", async () => {
+    const db = getTestDb();
+    await seedHuman(db, "h-1");
+
+    // A number is not typeof === "object" → metadata stored as null
+    await createLeadEvent(db, {
+      humanId: "h-1",
+      eventType: "inquiry",
+      metadata: 42,
+    });
+
+    const rows = await db.select().from(schema.leadEvents);
+    expect(rows[0]!.metadata).toBeNull();
+  });
+
+  it("stores valid object metadata as-is", async () => {
+    const db = getTestDb();
+    await seedHuman(db, "h-1");
+
+    const result = await createLeadEvent(db, {
+      humanId: "h-1",
+      eventType: "inquiry",
+      metadata: { source: "website", campaign: "summer2026" },
+    });
+
+    const rows = await db.select().from(schema.leadEvents);
+    expect(rows[0]!.metadata).toEqual({ source: "website", campaign: "summer2026" });
+  });
+});
+
+// ─── createLeadSource — toLeadSourceCategory fallback branches ─────────────
+
+describe("createLeadSource — toLeadSourceCategory: non-string category falls back to 'direct' (L14)", () => {
+  it("stores 'direct' when category is undefined (value is not a string)", async () => {
+    const db = getTestDb();
+
+    // Passing no category key — data["category"] will be undefined, which fails typeof check
+    await createLeadSource(db, { name: "No Category Source" });
+
+    const rows = await db.select().from(schema.leadSources);
+    expect(rows).toHaveLength(1);
+    expect(rows[0]!.category).toBe("direct");
   });
 });

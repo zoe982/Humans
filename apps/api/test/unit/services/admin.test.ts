@@ -106,6 +106,34 @@ describe("createColleague", () => {
     expect(rows[0]!.name).toBe("Alice Marie Smith");
   });
 
+  it("creates colleague with null middleNames when middleNames is omitted", async () => {
+    const db = getTestDb();
+
+    const result = await createColleague(db, {
+      email: "bob@test.com",
+      firstName: "Bob",
+      lastName: "Smith",
+      role: "viewer",
+      // middleNames intentionally omitted — exercises `data.middleNames ?? null`
+    });
+
+    expect(result.middleNames).toBeNull();
+    expect(result.name).toBe("Bob Smith");
+  });
+
+  it("defaults to viewer role when an invalid role string is provided", async () => {
+    const db = getTestDb();
+
+    const result = await createColleague(db, {
+      email: "carol@test.com",
+      firstName: "Carol",
+      lastName: "Jones",
+      role: "not-a-real-role",  // triggers toRole() fallback → "viewer"
+    });
+
+    expect(result.role).toBe("viewer");
+  });
+
   it("throws conflict for duplicate email", async () => {
     const db = getTestDb();
     await seedColleague(db, "col-1", { email: "taken@test.com" });
@@ -151,6 +179,15 @@ describe("updateColleague", () => {
 
     const result = await updateColleague(db, "col-1", { middleNames: "Marie", lastName: "Jones" });
     expect(result!.name).toBe("Alice Marie Jones");
+  });
+
+  it("updates isActive flag when provided", async () => {
+    const db = getTestDb();
+    await seedColleague(db, "col-1");
+
+    // seedColleague sets isActive: true — now deactivate
+    const result = await updateColleague(db, "col-1", { isActive: false });
+    expect(result!.isActive).toBe(false);
   });
 });
 

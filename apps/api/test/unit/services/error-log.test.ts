@@ -55,6 +55,25 @@ async function seedErrorEntry(
   return id;
 }
 
+describe("listErrorLogEntries — toResolutionStatus invalid input fallback (L15/L36)", () => {
+  it("treats an invalid resolutionStatus filter as 'open' and returns matching entries", async () => {
+    const db = getTestDb();
+    await seedErrorEntry(db, "err-open-1", { resolutionStatus: "open" });
+    await seedErrorEntry(db, "err-resolved-1", { resolutionStatus: "resolved" });
+
+    // "totally_invalid" is not in errorLogResolutionStatuses — toResolutionStatus maps it to "open"
+    const result = await listErrorLogEntries(db, {
+      limit: 25,
+      offset: 0,
+      resolutionStatus: "totally_invalid_status",
+    });
+
+    expect(result).toHaveLength(1);
+    expect(result[0]!.id).toBe("err-open-1");
+    expect(result[0]!.resolutionStatus).toBe("open");
+  });
+});
+
 describe("listErrorLogEntries", () => {
   it("returns empty list when no entries", async () => {
     const db = getTestDb();
@@ -176,6 +195,16 @@ describe("updateErrorLogResolution", () => {
     const result = await updateErrorLogResolution(db, "err-1", "resolved");
     expect(result.resolutionStatus).toBe("resolved");
     expect(result.id).toBe("err-1");
+  });
+
+  it("falls back to 'open' when an invalid resolutionStatus string is passed (toResolutionStatus L15)", async () => {
+    const db = getTestDb();
+    await seedErrorEntry(db, "err-invalid-status", { resolutionStatus: "open" });
+
+    // "not_a_real_status" is not in errorLogResolutionStatuses → toResolutionStatus maps it to "open"
+    const result = await updateErrorLogResolution(db, "err-invalid-status", "not_a_real_status");
+    expect(result.resolutionStatus).toBe("open");
+    expect(result.id).toBe("err-invalid-status");
   });
 });
 

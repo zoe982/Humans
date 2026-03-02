@@ -62,7 +62,7 @@
 
   function formatPrice(val: number | null): string {
     if (val == null) return "\u2014";
-    return `\u20AC${Number(val).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
+    return `\u20AC${Number(val).toLocaleString("en-GB", { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
   }
 </script>
 
@@ -116,7 +116,7 @@
       </div>
       <div>
         <dt class="text-sm font-medium text-text-muted">Date</dt>
-        <dd class="text-text-primary">{flight.flight_date ? new Date(flight.flight_date + "T00:00:00").toLocaleDateString(undefined, { weekday: "short", year: "numeric", month: "short", day: "numeric" }) : "\u2014"}</dd>
+        <dd class="text-text-primary">{flight.flight_date ? new Date(flight.flight_date + "T00:00:00").toLocaleDateString("en-GB", { weekday: "short", year: "numeric", month: "short", day: "numeric" }) : "\u2014"}</dd>
       </div>
       <div>
         <dt class="text-sm font-medium text-text-muted">Departure Time</dt>

@@ -12,6 +12,8 @@ import {
   importFromFrontSchema,
   ERROR_CODES,
 } from "@humans/shared";
+import { sql, and, inArray } from "drizzle-orm";
+import { entityNextActions } from "@humans/db/schema";
 import { authMiddleware } from "../middleware/auth";
 import { requirePermission } from "../middleware/rbac";
 import { badRequest } from "../lib/errors";
@@ -51,7 +53,35 @@ generalLeadRoutes.get("/api/general-leads", requirePermission("viewGeneralLeads"
   const rawConvertedHumanId = c.req.query("convertedHumanId");
   const convertedHumanId = rawConvertedHumanId !== undefined && rawConvertedHumanId !== "" ? rawConvertedHumanId : undefined;
   const result = await listGeneralLeads(db, page, limit, { q, status, convertedHumanId });
-  return c.json(result);
+
+  // Bulk-fetch next actions for all leads in the page
+  const leadIds = result.data.map((l) => l.id);
+  let nextActionMap = new Map<string, { type: string | null; description: string | null; dueDate: string | null }>();
+  if (leadIds.length > 0) {
+    const nextActions = await db
+      .select({
+        entityId: entityNextActions.entityId,
+        type: entityNextActions.type,
+        description: entityNextActions.description,
+        dueDate: entityNextActions.dueDate,
+      })
+      .from(entityNextActions)
+      .where(
+        and(
+          sql`${entityNextActions.entityType} = 'general_lead'`,
+          inArray(entityNextActions.entityId, leadIds),
+          sql`${entityNextActions.completedAt} IS NULL`,
+        ),
+      );
+    nextActionMap = new Map(nextActions.map((na) => [na.entityId, { type: na.type, description: na.description, dueDate: na.dueDate }]));
+  }
+
+  const enriched = result.data.map((lead) => ({
+    ...lead,
+    nextAction: nextActionMap.get(lead.id) ?? null,
+  }));
+
+  return c.json({ data: enriched, meta: result.meta });
 });
 
 // POST /api/general-leads/import-from-front

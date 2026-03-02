@@ -3,6 +3,7 @@ import { ERROR_CODES } from "@humans/shared";
 import { authMiddleware } from "../middleware/auth";
 import { requirePermission } from "../middleware/rbac";
 import { badRequest, notFound } from "../lib/errors";
+import { sanitizeFilename, ALLOWED_UPLOAD_CONTENT_TYPES } from "../lib/sanitize-filename";
 import {
   listDocuments,
   createDocument,
@@ -28,17 +29,23 @@ documentRoutes.post("/api/documents/upload", requirePermission("createEditRecord
     throw badRequest(ERROR_CODES.FILE_TOO_LARGE, "File too large (max 10MB)");
   }
 
+  // Validate file type against allowlist (prevents stored XSS via HTML/SVG uploads)
+  if (!(ALLOWED_UPLOAD_CONTENT_TYPES as readonly string[]).includes(file.type)) {
+    throw badRequest(ERROR_CODES.DOCUMENT_INVALID_TYPE, "File type not allowed");
+  }
+
   const entityType = formData.get("entityType");
   const entityId = formData.get("entityId");
 
-  // If entity linking fields are provided, validate PDF content type
+  // Entity-linked uploads must be PDF
   if (entityType != null && entityId != null) {
     if (file.type !== "application/pdf") {
       throw badRequest(ERROR_CODES.DOCUMENT_INVALID_TYPE, "Only PDF files are allowed");
     }
   }
 
-  const key = `${crypto.randomUUID()}-${file.name}`;
+  const safeName = sanitizeFilename(file.name);
+  const key = `${crypto.randomUUID()}-${safeName}`;
   await c.env.DOCUMENTS.put(key, file.stream(), {
     httpMetadata: { contentType: file.type },
   });
@@ -83,8 +90,16 @@ documentRoutes.get("/api/documents/download/:key", requirePermission("viewRecord
     throw notFound(ERROR_CODES.DOCUMENT_NOT_FOUND, "Document not found");
   }
 
+  // Extract filename from R2 key (format: {uuid}-{filename}, UUID is 36 chars)
+  const uuidLength = 36;
+  const keyFilename = key.length > uuidLength + 1 && key.charAt(uuidLength) === "-"
+    ? key.substring(uuidLength + 1)
+    : key;
+  const safeFilename = sanitizeFilename(keyFilename);
+
   const headers = new Headers();
   headers.set("Content-Type", object.httpMetadata?.contentType ?? "application/octet-stream");
+  headers.set("Content-Disposition", `attachment; filename="${safeFilename}"`);
   headers.set("Cache-Control", "private, max-age=3600");
 
   return new Response(object.body, { headers });

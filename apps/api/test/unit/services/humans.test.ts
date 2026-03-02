@@ -15,10 +15,12 @@ import {
   getHumanRelationships,
   createHumanRelationship,
   deleteHumanRelationship,
+  getLinkedHumanForRouteSignup,
+  updateHumanRelationship,
 } from "../../../src/services/humans";
 import { AppError } from "../../../src/lib/errors";
 import * as schema from "@humans/db/schema";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 
 function mockSupabase() {
   const chain: Record<string, unknown> = {};
@@ -918,5 +920,623 @@ describe("getLinkedHumansForBookingRequest", () => {
 
     const result = await getLinkedHumansForBookingRequest(db, "wbr-1");
     expect(result[0]!.opportunityId).toBeNull();
+  });
+});
+
+describe("getLinkedHumanForRouteSignup", () => {
+  it("returns linked human when a link exists", async () => {
+    const db = getTestDb();
+    const ts = now();
+    await seedHuman(db, "h-1", "Carol", "Williams");
+
+    await db.insert(schema.humanRouteSignups).values({
+      id: "link-1",
+      humanId: "h-1",
+      routeSignupId: "rs-1",
+      linkedAt: ts,
+    });
+
+    const result = await getLinkedHumanForRouteSignup(db, "rs-1");
+    expect(result).not.toBeNull();
+    expect(result).toMatchObject({
+      id: "link-1",
+      humanId: "h-1",
+      humanFirstName: "Carol",
+      humanLastName: "Williams",
+      linkedAt: ts,
+    });
+    expect(result!.humanDisplayId).toMatch(/^HUM-/);
+  });
+
+  it("returns null when no link exists for the route signup", async () => {
+    const db = getTestDb();
+    const result = await getLinkedHumanForRouteSignup(db, "rs-nonexistent");
+    expect(result).toBeNull();
+  });
+});
+
+// ─── Branch coverage: toHumanStatus invalid input ─────────────────────────
+
+describe("createHuman — toHumanStatus invalid fallback", () => {
+  it("defaults status to open when an unrecognized status is provided", async () => {
+    const db = getTestDb();
+    await createHuman(db, {
+      firstName: "Branch",
+      lastName: "Status",
+      status: "totally_invalid",
+      emails: [{ email: "branch@test.com" }],
+      types: [],
+    });
+
+    const humanRows = await db.select().from(schema.humans);
+    expect(humanRows).toHaveLength(1);
+    expect(humanRows[0]!.status).toBe("open");
+  });
+});
+
+// ─── Branch coverage: toHumanType invalid input ────────────────────────────
+
+describe("createHuman — toHumanType invalid fallback", () => {
+  it("defaults type to client when an unrecognized type value is provided", async () => {
+    const db = getTestDb();
+    await createHuman(db, {
+      firstName: "Type",
+      lastName: "Fallback",
+      emails: [{ email: "typefallback@test.com" }],
+      types: ["invalid_type_value"],
+    });
+
+    const types = await db.select().from(schema.humanTypes);
+    expect(types).toHaveLength(1);
+    expect(types[0]!.type).toBe("client");
+  });
+});
+
+// ─── Branch coverage: listHumans with search parameter ────────────────────
+
+describe("listHumans — with search filter", () => {
+  it("returns only humans whose name or displayId match the search term", async () => {
+    const db = getTestDb();
+    await seedHuman(db, "h-1", "Alice", "Wonderland");
+    await seedHuman(db, "h-2", "Bob", "Builder");
+
+    const result = await listHumans(db, 1, 25, "Alice");
+    expect(result.data).toHaveLength(1);
+    expect(result.data[0]!.id).toBe("h-1");
+  });
+
+  it("returns empty results when search term matches nothing", async () => {
+    const db = getTestDb();
+    await seedHuman(db, "h-1", "Alice", "Wonderland");
+
+    const result = await listHumans(db, 1, 25, "Zzyzx");
+    expect(result.data).toHaveLength(0);
+    expect(result.meta.total).toBe(0);
+  });
+});
+
+// ─── Branch coverage: updateHumanStatus same status → no audit ────────────
+
+describe("updateHumanStatus — same status produces no audit entry", () => {
+  it("returns auditEntryId undefined when new status equals old status", async () => {
+    const db = getTestDb();
+    await seedColleague(db);
+    await seedHuman(db, "h-1");
+
+    const result = await updateHumanStatus(db, "h-1", "open", "col-1");
+    expect(result.id).toBe("h-1");
+    expect(result.status).toBe("open");
+    expect(result.auditEntryId).toBeUndefined();
+
+    const auditEntries = await db.select().from(schema.auditLog);
+    expect(auditEntries).toHaveLength(0);
+  });
+});
+
+// ─── Branch coverage: unlinkRouteSignup with nonexistent link id ──────────
+
+describe("unlinkRouteSignup — nonexistent link id", () => {
+  it("completes without error when the link id does not exist", async () => {
+    const db = getTestDb();
+    await expect(unlinkRouteSignup(db, "nonexistent-link-id")).resolves.toBeUndefined();
+
+    const links = await db.select().from(schema.humanRouteSignups);
+    expect(links).toHaveLength(0);
+  });
+});
+
+// ─── Branch coverage: createHuman emails with no labelId ──────────────────
+
+describe("createHuman — email with no labelId", () => {
+  it("stores null labelId when email is provided without a labelId field", async () => {
+    const db = getTestDb();
+    await createHuman(db, {
+      firstName: "Label",
+      lastName: "Absent",
+      emails: [{ email: "nolabel@test.com" }],
+      types: [],
+    });
+
+    const emailRows = await db.select().from(schema.emails);
+    expect(emailRows).toHaveLength(1);
+    expect(emailRows[0]!.email).toBe("nolabel@test.com");
+    expect(emailRows[0]!.labelId).toBeNull();
+  });
+
+  it("stores null labelId when email has an explicit labelId of null", async () => {
+    const db = getTestDb();
+    await createHuman(db, {
+      firstName: "Label",
+      lastName: "Null",
+      emails: [{ email: "nulllabel@test.com", labelId: null }],
+      types: [],
+    });
+
+    const emailRows = await db.select().from(schema.emails);
+    expect(emailRows).toHaveLength(1);
+    expect(emailRows[0]!.labelId).toBeNull();
+  });
+});
+
+// ─── Branch coverage: updateHuman emails with no labelId ──────────────────
+
+describe("updateHuman — email replacement with no labelId", () => {
+  it("stores null labelId when updating with an email that has no labelId", async () => {
+    const db = getTestDb();
+    const ts = now();
+    await seedColleague(db);
+    await seedHuman(db, "h-1");
+
+    await db.insert(schema.emails).values({
+      id: "e-old", displayId: nextDisplayId("EML"), humanId: "h-1",
+      email: "old@test.com", isPrimary: true, createdAt: ts,
+    });
+
+    await updateHuman(db, "h-1", {
+      emails: [{ email: "new@test.com" }],
+    }, "col-1");
+
+    const emailRows = await db.select().from(schema.emails);
+    expect(emailRows).toHaveLength(1);
+    expect(emailRows[0]!.email).toBe("new@test.com");
+    expect(emailRows[0]!.labelId).toBeNull();
+  });
+});
+
+// ─── Branch coverage: linkRouteSignup dual-associating records ────────────
+
+describe("linkRouteSignup — dual-associates linked activities, emails, phones, and socialIds", () => {
+  it("propagates humanId to records that were linked to the route signup with null humanId", async () => {
+    const db = getTestDb();
+    const ts = now();
+    await seedColleague(db);
+    await seedHuman(db, "h-1", "Link", "Human");
+
+    // Seed an activity, email, phone, and social ID linked to the route signup (no humanId yet)
+    await db.insert(schema.activities).values({
+      id: "act-1", displayId: nextDisplayId("ACT"), type: "email", subject: "Route act",
+      activityDate: ts, routeSignupId: "rs-link-1", humanId: null,
+      createdAt: ts, updatedAt: ts,
+    });
+    await db.insert(schema.emails).values({
+      id: "e-1", displayId: nextDisplayId("EML"), email: "rslink@test.com",
+      routeSignupId: "rs-link-1", humanId: null,
+      accountId: null, generalLeadId: null, websiteBookingRequestId: null,
+      labelId: null, isPrimary: false, createdAt: ts,
+    });
+    await db.insert(schema.phones).values({
+      id: "ph-1", displayId: nextDisplayId("FON"), phoneNumber: "+10000000001",
+      routeSignupId: "rs-link-1", humanId: null,
+      accountId: null, generalLeadId: null, websiteBookingRequestId: null,
+      labelId: null, hasWhatsapp: false, isPrimary: false, createdAt: ts,
+    });
+    await db.insert(schema.socialIds).values({
+      id: "soc-1", displayId: nextDisplayId("SOC"), handle: "@rslink",
+      routeSignupId: "rs-link-1", humanId: null,
+      accountId: null, generalLeadId: null, websiteBookingRequestId: null,
+      platformId: null, createdAt: ts,
+    });
+
+    const link = await linkRouteSignup(db, "h-1", "rs-link-1");
+
+    expect(link.humanId).toBe("h-1");
+    expect(link.routeSignupId).toBe("rs-link-1");
+    expect(link.id).toBeDefined();
+    expect(link.linkedAt).toBeDefined();
+
+    const links = await db.select().from(schema.humanRouteSignups);
+    expect(links).toHaveLength(1);
+
+    // Verify dual-association propagated humanId
+    const acts = await db.select().from(schema.activities);
+    expect(acts[0]!.humanId).toBe("h-1");
+    expect(acts[0]!.routeSignupId).toBe("rs-link-1");
+
+    const emailRows = await db.select().from(schema.emails);
+    expect(emailRows[0]!.humanId).toBe("h-1");
+    expect(emailRows[0]!.routeSignupId).toBe("rs-link-1");
+
+    const phoneRows = await db.select().from(schema.phones);
+    expect(phoneRows[0]!.humanId).toBe("h-1");
+
+    const socialRows = await db.select().from(schema.socialIds);
+    expect(socialRows[0]!.humanId).toBe("h-1");
+  });
+});
+
+describe("updateHumanRelationship", () => {
+  it("updates labelId on an existing relationship", async () => {
+    const db = getTestDb();
+    const ts = now();
+    await seedHuman(db, "h-1", "Alice", "Smith");
+    await seedHuman(db, "h-2", "Bob", "Jones");
+
+    await db.insert(schema.humanRelationshipLabelsConfig).values({
+      id: "lbl-1", name: "Colleague", createdAt: ts,
+    });
+    await db.insert(schema.humanRelationships).values({
+      id: "rel-1",
+      displayId: nextDisplayId("REL"),
+      humanId1: "h-1",
+      humanId2: "h-2",
+      labelId: null,
+      createdAt: ts,
+    });
+
+    const result = await updateHumanRelationship(db, "rel-1", { labelId: "lbl-1" });
+    expect(result.id).toBe("rel-1");
+    expect(result.labelId).toBe("lbl-1");
+  });
+
+  it("throws not found for a non-existent relationship id", async () => {
+    const db = getTestDb();
+    await expect(
+      updateHumanRelationship(db, "nonexistent", { labelId: null }),
+    ).rejects.toThrowError("Relationship not found");
+  });
+
+  it("preserves existing labelId when labelId is undefined in data", async () => {
+    const db = getTestDb();
+    const ts = now();
+    await seedHuman(db, "h-1", "Alice", "Smith");
+    await seedHuman(db, "h-2", "Bob", "Jones");
+
+    await db.insert(schema.humanRelationshipLabelsConfig).values({
+      id: "lbl-preserve", name: "Sibling", createdAt: ts,
+    });
+    await db.insert(schema.humanRelationships).values({
+      id: "rel-preserve",
+      displayId: nextDisplayId("REL"),
+      humanId1: "h-1",
+      humanId2: "h-2",
+      labelId: "lbl-preserve",
+      createdAt: ts,
+    });
+
+    // data.labelId === undefined → should keep the existing labelId
+    const result = await updateHumanRelationship(db, "rel-preserve", {});
+    expect(result.id).toBe("rel-preserve");
+    expect(result.labelId).toBe("lbl-preserve");
+  });
+});
+
+// ─── Branch coverage: getHumanDetail with Supabase returning null data ────────
+
+describe("getHumanDetail — Supabase null data fallback", () => {
+  it("treats referralCodes and discountCodes as empty arrays when Supabase returns null data", async () => {
+    const db = getTestDb();
+    await seedHuman(db, "h-supa-null");
+
+    // Supabase mock that returns null for both referral_codes and discount_codes queries
+    const nullDataSupabase = {
+      from: () => ({
+        select: () => ({
+          eq: () => Promise.resolve({ data: null, error: null }),
+        }),
+      }),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } as any;
+
+    const result = await getHumanDetail(nullDataSupabase, db, "h-supa-null");
+
+    expect(result.referralCodes).toEqual([]);
+    expect(result.discountCodes).toEqual([]);
+  });
+});
+
+// ─── Branch coverage: getHumanDetail — orphaned geo interest expression ───────
+
+describe("getHumanDetail — orphaned geo interest expression", () => {
+  it("returns city: null and country: null when expression's geoInterestId does not resolve", async () => {
+    const db = getTestDb();
+    const ts = now();
+    await seedHuman(db, "h-geo-orphan");
+    await seedColleague(db);
+
+    // Insert a real geo interest so the FK constraint is satisfied on insert
+    await db.insert(schema.geoInterests).values({
+      id: "gi-real", displayId: nextDisplayId("GEO"), city: "Berlin", country: "Germany", createdAt: ts,
+    });
+    await db.insert(schema.activities).values({
+      id: "act-geo-orphan", displayId: nextDisplayId("ACT"), type: "email", subject: "Orphan test",
+      activityDate: ts, colleagueId: "col-1", createdAt: ts, updatedAt: ts,
+    });
+    await db.insert(schema.geoInterestExpressions).values({
+      id: "gex-orphan", displayId: nextDisplayId("GEX"),
+      humanId: "h-geo-orphan", geoInterestId: "gi-real", activityId: "act-geo-orphan",
+      createdAt: ts,
+    });
+
+    // Orphan the expression by updating its geoInterestId to a value that no longer exists
+    await db.execute(sql`SET session_replication_role = 'replica'`);
+    await db.execute(
+      sql`UPDATE geo_interest_expressions SET geo_interest_id = 'orphan-gi-id' WHERE id = 'gex-orphan'`,
+    );
+    await db.execute(sql`SET session_replication_role = 'origin'`);
+
+    const result = await getHumanDetail(mockSupabase(), db, "h-geo-orphan");
+
+    expect(result.geoInterestExpressions).toHaveLength(1);
+    const expr = result.geoInterestExpressions[0] as { city: string | null; country: string | null };
+    expect(expr.city).toBeNull();
+    expect(expr.country).toBeNull();
+  });
+});
+
+// ─── Branch coverage: getHumanDetail — orphaned route interest expression ─────
+
+describe("getHumanDetail — orphaned route interest expression", () => {
+  it("returns all route fields as null when expression's routeInterestId does not resolve", async () => {
+    const db = getTestDb();
+    const ts = now();
+    await seedHuman(db, "h-route-orphan");
+
+    // Insert a real route interest so FK is satisfied on insert
+    await db.insert(schema.routeInterests).values({
+      id: "ri-real", displayId: nextDisplayId("ROI"),
+      originCity: "Paris", originCountry: "France",
+      destinationCity: "Rome", destinationCountry: "Italy",
+      createdAt: ts, updatedAt: ts,
+    });
+    await db.insert(schema.routeInterestExpressions).values({
+      id: "rex-orphan", displayId: nextDisplayId("REX"),
+      humanId: "h-route-orphan", routeInterestId: "ri-real",
+      frequency: "one_time", createdAt: ts,
+    });
+
+    // Orphan the expression by updating its routeInterestId to a non-existent value
+    await db.execute(sql`SET session_replication_role = 'replica'`);
+    await db.execute(
+      sql`UPDATE route_interest_expressions SET route_interest_id = 'orphan-ri-id' WHERE id = 'rex-orphan'`,
+    );
+    await db.execute(sql`SET session_replication_role = 'origin'`);
+
+    const result = await getHumanDetail(mockSupabase(), db, "h-route-orphan");
+
+    expect(result.routeInterestExpressions).toHaveLength(1);
+    const expr = result.routeInterestExpressions[0] as {
+      originCity: string | null;
+      originCountry: string | null;
+      destinationCity: string | null;
+      destinationCountry: string | null;
+    };
+    expect(expr.originCity).toBeNull();
+    expect(expr.originCountry).toBeNull();
+    expect(expr.destinationCity).toBeNull();
+    expect(expr.destinationCountry).toBeNull();
+  });
+});
+
+// ─── Branch coverage: getHumanDetail — orphaned linked account ────────────────
+
+describe("getHumanDetail — orphaned linked account", () => {
+  it("returns accountName: 'Unknown' and accountDisplayId: null when accountId does not resolve", async () => {
+    const db = getTestDb();
+    const ts = now();
+    await seedHuman(db, "h-acc-orphan");
+
+    // Insert a real account so FK is satisfied on insert
+    await db.insert(schema.accounts).values({
+      id: "acc-real-orphan", displayId: nextDisplayId("ACC"), name: "Real Corp", status: "open", createdAt: ts, updatedAt: ts,
+    });
+    await db.insert(schema.accountHumans).values({
+      id: "ah-orphan", accountId: "acc-real-orphan", humanId: "h-acc-orphan", labelId: null, createdAt: ts,
+    });
+
+    // Orphan the link by updating accountId to a non-existent value
+    await db.execute(sql`SET session_replication_role = 'replica'`);
+    await db.execute(
+      sql`UPDATE account_humans SET account_id = 'orphan-acc-id' WHERE id = 'ah-orphan'`,
+    );
+    await db.execute(sql`SET session_replication_role = 'origin'`);
+
+    const result = await getHumanDetail(mockSupabase(), db, "h-acc-orphan");
+
+    expect(result.linkedAccounts).toHaveLength(1);
+    const linked = result.linkedAccounts[0] as {
+      accountName: string;
+      accountDisplayId: string | null;
+      labelName: string | null;
+    };
+    expect(linked.accountName).toBe("Unknown");
+    expect(linked.accountDisplayId).toBeNull();
+    expect(linked.labelName).toBeNull();
+  });
+});
+
+// ─── Branch coverage: getHumanDetail — linked account with non-resolving labelId ─
+
+describe("getHumanDetail — linked account label not found", () => {
+  it("returns labelName: null when the labelId does not resolve to any config entry", async () => {
+    const db = getTestDb();
+    const ts = now();
+    await seedHuman(db, "h-lbl-orphan");
+
+    await db.insert(schema.accounts).values({
+      id: "acc-lbl-orphan", displayId: nextDisplayId("ACC"), name: "Label Test Corp", status: "open", createdAt: ts, updatedAt: ts,
+    });
+    // Insert accountHuman with a labelId that points to a non-existent config entry
+    // Use replica mode to bypass the FK on label_id
+    await db.execute(sql`SET session_replication_role = 'replica'`);
+    await db.execute(
+      sql`INSERT INTO account_humans (id, account_id, human_id, label_id, created_at)
+          VALUES ('ah-lbl-orphan', 'acc-lbl-orphan', 'h-lbl-orphan', 'nonexistent-label-id', ${ts})`,
+    );
+    await db.execute(sql`SET session_replication_role = 'origin'`);
+
+    const result = await getHumanDetail(mockSupabase(), db, "h-lbl-orphan");
+
+    expect(result.linkedAccounts).toHaveLength(1);
+    const linked = result.linkedAccounts[0] as { accountName: string; labelId: string | null; labelName: string | null };
+    expect(linked.accountName).toBe("Label Test Corp");
+    expect(linked.labelId).toBe("nonexistent-label-id");
+    expect(linked.labelName).toBeNull();
+  });
+});
+
+// ─── Branch coverage: getHumanDetail — email with non-resolving labelId ───────
+
+describe("getHumanDetail — email with non-resolving labelId", () => {
+  it("returns labelName: null when email's labelId does not match any config entry", async () => {
+    const db = getTestDb();
+    const ts = now();
+    await seedHuman(db, "h-email-lbl-orphan");
+
+    // Insert email with a labelId that doesn't exist in human_email_labels_config
+    // emails.label_id has no FK so we can insert directly
+    await db.insert(schema.emails).values({
+      id: "e-lbl-orphan",
+      displayId: nextDisplayId("EML"),
+      humanId: "h-email-lbl-orphan",
+      email: "orphan-label@test.com",
+      labelId: "nonexistent-email-label",
+      isPrimary: true,
+      createdAt: ts,
+    });
+
+    const result = await getHumanDetail(mockSupabase(), db, "h-email-lbl-orphan");
+
+    expect(result.emails).toHaveLength(1);
+    const email = result.emails[0] as { labelId: string | null; labelName: string | null };
+    expect(email.labelId).toBe("nonexistent-email-label");
+    expect(email.labelName).toBeNull();
+  });
+});
+
+// ─── Branch coverage: getHumanDetail — phone with non-resolving labelId ───────
+
+describe("getHumanDetail — phone with non-resolving labelId", () => {
+  it("returns labelName: null when phone's labelId does not match any config entry", async () => {
+    const db = getTestDb();
+    const ts = now();
+    await seedHuman(db, "h-phone-lbl-orphan");
+
+    // Insert phone with a labelId that doesn't exist in human_phone_labels_config
+    // phones.label_id has no FK so we can insert directly
+    await db.insert(schema.phones).values({
+      id: "ph-lbl-orphan",
+      displayId: nextDisplayId("FON"),
+      humanId: "h-phone-lbl-orphan",
+      phoneNumber: "+19990000001",
+      labelId: "nonexistent-phone-label",
+      hasWhatsapp: false,
+      isPrimary: true,
+      createdAt: ts,
+    });
+
+    const result = await getHumanDetail(mockSupabase(), db, "h-phone-lbl-orphan");
+
+    expect(result.phoneNumbers).toHaveLength(1);
+    const phone = result.phoneNumbers[0] as { labelId: string | null; labelName: string | null };
+    expect(phone.labelId).toBe("nonexistent-phone-label");
+    expect(phone.labelName).toBeNull();
+  });
+});
+
+// ─── Branch coverage: getHumanDetail — social ID with non-resolving platformId ─
+
+describe("getHumanDetail — social ID with non-resolving platformId", () => {
+  it("returns platformName: null when social ID's platformId does not match any config entry", async () => {
+    const db = getTestDb();
+    const ts = now();
+    await seedHuman(db, "h-soc-plat-orphan");
+
+    // Insert social ID with a platformId that doesn't exist in social_id_platforms_config
+    // Use replica mode to bypass the FK on platform_id
+    await db.execute(sql`SET session_replication_role = 'replica'`);
+    await db.execute(
+      sql`INSERT INTO social_ids (id, display_id, handle, platform_id, human_id, created_at)
+          VALUES ('soc-plat-orphan', ${nextDisplayId("SOC")}, '@orphan-platform', 'nonexistent-platform', 'h-soc-plat-orphan', ${ts})`,
+    );
+    await db.execute(sql`SET session_replication_role = 'origin'`);
+
+    const result = await getHumanDetail(mockSupabase(), db, "h-soc-plat-orphan");
+
+    expect(result.socialIds).toHaveLength(1);
+    const social = result.socialIds[0] as { platformId: string | null; platformName: string | null };
+    expect(social.platformId).toBe("nonexistent-platform");
+    expect(social.platformName).toBeNull();
+  });
+});
+
+// ─── Branch coverage: getHumanRelationships — orphaned other human ────────────
+
+describe("getHumanRelationships — orphaned other human", () => {
+  it("returns otherHumanName: 'Unknown' and otherHumanDisplayId: null when humanId2 does not exist", async () => {
+    const db = getTestDb();
+    const ts = now();
+    await seedHuman(db, "h-rel-main", "Main", "Human");
+
+    // Insert a relationship where humanId2 references a human that will be removed
+    await seedHuman(db, "h-rel-ghost", "Ghost", "Person");
+    await db.insert(schema.humanRelationships).values({
+      id: "rel-orphan",
+      displayId: nextDisplayId("REL"),
+      humanId1: "h-rel-main",
+      humanId2: "h-rel-ghost",
+      labelId: null,
+      createdAt: ts,
+    });
+
+    // Orphan the relationship by updating humanId2 to a non-existent value
+    await db.execute(sql`SET session_replication_role = 'replica'`);
+    await db.execute(
+      sql`UPDATE human_relationships SET human_id_2 = 'does-not-exist' WHERE id = 'rel-orphan'`,
+    );
+    await db.execute(sql`SET session_replication_role = 'origin'`);
+
+    const result = await getHumanRelationships(db, "h-rel-main");
+
+    expect(result).toHaveLength(1);
+    expect(result[0]!.otherHumanName).toBe("Unknown");
+    expect(result[0]!.otherHumanDisplayId).toBeNull();
+  });
+});
+
+// ─── Branch coverage: updateHumanRelationship — explicit null labelId ─────────
+
+describe("updateHumanRelationship — explicit null labelId clears the label", () => {
+  it("sets labelId to null when data.labelId is explicitly null", async () => {
+    const db = getTestDb();
+    const ts = now();
+    await seedHuman(db, "h-1", "Alice", "Smith");
+    await seedHuman(db, "h-2", "Bob", "Jones");
+
+    await db.insert(schema.humanRelationshipLabelsConfig).values({
+      id: "lbl-clear", name: "Partner", createdAt: ts,
+    });
+    await db.insert(schema.humanRelationships).values({
+      id: "rel-clear",
+      displayId: nextDisplayId("REL"),
+      humanId1: "h-1",
+      humanId2: "h-2",
+      labelId: "lbl-clear",
+      createdAt: ts,
+    });
+
+    // data.labelId === null → exercises the `?? null` branch (not the undefined branch)
+    const result = await updateHumanRelationship(db, "rel-clear", { labelId: null });
+    expect(result.id).toBe("rel-clear");
+    expect(result.labelId).toBeNull();
   });
 });

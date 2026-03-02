@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+import { sql } from "drizzle-orm";
 import { getTestDb } from "../setup";
 import {
   listAgreements,
@@ -233,6 +234,21 @@ describe("listAgreements", () => {
     expect(page2.data).toHaveLength(1);
     expect(page2.meta.total).toBe(3);
     expect(page2.meta.page).toBe(2);
+  });
+
+  it("returns null humanName when humanId references a deleted human (orphaned FK)", async () => {
+    const db = getTestDb();
+    await seedHuman(db, "h-1", "Ghost", "Human");
+    await seedAgreement(db, "agr-1", { humanId: "h-1" });
+    // Delete the human to orphan the FK
+    await db.execute(sql`SET session_replication_role = 'replica'`);
+    await db.delete(schema.humans).where(sql`id = 'h-1'`);
+    await db.execute(sql`SET session_replication_role = 'origin'`);
+
+    const result = await listAgreements(db, 1, 20, {});
+    expect(result.data).toHaveLength(1);
+    expect(result.data[0]!.humanName).toBeNull();
+    expect(result.data[0]!.humanDisplayId).toBeNull();
   });
 });
 

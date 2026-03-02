@@ -336,7 +336,7 @@
   });
 
   function formatDate(iso: string) {
-    return new Date(iso).toLocaleString();
+    return new Date(iso).toLocaleString("en-GB");
   }
 
   function parseUnmatchedContacts(json: string | null): UnmatchedContact[] {

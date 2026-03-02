@@ -2,7 +2,7 @@
   import { Root as Alert } from "$lib/components/ui/alert/index.js";
 
   type Props = {
-    type?: "success" | "error";
+    type?: "success" | "error" | "warning";
     message: string;
     code?: string;
     requestId?: string;
@@ -17,7 +17,7 @@
   <Alert
     variant={type === "error" ? "destructive" : "default"}
     role={type === "success" ? "status" : "alert"}
-    class="mb-4 {type === 'success' ? 'border-success-border bg-success-bg text-[var(--badge-green-text)]' : ''}"
+    class="mb-4 {type === 'success' ? 'border-success-border bg-success-bg text-[var(--badge-green-text)]' : ''} {type === 'warning' ? 'border-[var(--badge-yellow-border)] bg-[var(--badge-yellow-bg)] text-[var(--badge-yellow-text)]' : ''}"
   >
     {message}
     {#if type === "error" && (code || truncatedRef)}

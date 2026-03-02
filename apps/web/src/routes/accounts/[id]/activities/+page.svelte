@@ -6,6 +6,7 @@
   import { ApiRequestError } from "$lib/api";
   import { toast } from "svelte-sonner";
   import { invalidateAll } from "$app/navigation";
+  import { formatShortDate } from "$lib/utils/format";
 
   let { data }: { data: PageData } = $props();
 
@@ -20,8 +21,8 @@
   const dateRange = $derived.by(() => {
     if (activities.length === 0) return "";
     const sorted = [...activities].sort((a, b) => a.activityDate.localeCompare(b.activityDate));
-    const first = new Date(sorted[0]?.activityDate ?? "").toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
-    const last = new Date(sorted[sorted.length - 1]?.activityDate ?? "").toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+    const first = formatShortDate(sorted[0]?.activityDate ?? "");
+    const last = formatShortDate(sorted[sorted.length - 1]?.activityDate ?? "");
     return first === last ? first : `${first} – ${last}`;
   });
 

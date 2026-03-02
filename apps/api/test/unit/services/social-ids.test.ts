@@ -6,6 +6,7 @@ import {
   createSocialId,
   updateSocialId,
   deleteSocialId,
+  listSocialIdsForEntity,
 } from "../../../src/services/social-ids";
 import { AppError } from "../../../src/lib/errors";
 import * as schema from "@humans/db/schema";
@@ -62,6 +63,25 @@ async function seedPlatform(db: ReturnType<typeof getTestDb>, id = "plat-1", nam
   return id;
 }
 
+async function seedGeneralLead(
+  db: ReturnType<typeof getTestDb>,
+  id = "gl-1",
+  first = "Lead",
+  last = "Person",
+) {
+  const ts = now();
+  await db.insert(schema.generalLeads).values({
+    id,
+    displayId: nextDisplayId("LEA"),
+    status: "open",
+    firstName: first,
+    lastName: last,
+    createdAt: ts,
+    updatedAt: ts,
+  });
+  return id;
+}
+
 async function seedSocialId(
   db: ReturnType<typeof getTestDb>,
   id = "soc-1",
@@ -70,6 +90,8 @@ async function seedSocialId(
     platformId: string | null;
     humanId: string | null;
     accountId: string | null;
+    generalLeadId: string | null;
+    routeSignupId: string | null;
   }> = {},
 ) {
   const ts = now();
@@ -80,6 +102,8 @@ async function seedSocialId(
     platformId: overrides.platformId ?? null,
     humanId: overrides.humanId ?? null,
     accountId: overrides.accountId ?? null,
+    generalLeadId: overrides.generalLeadId ?? null,
+    routeSignupId: overrides.routeSignupId ?? null,
     createdAt: ts,
   });
   return id;
@@ -259,6 +283,18 @@ describe("getSocialId", () => {
     expect(result.humanName).toBe("Carol White");
     expect(result.accountName).toBe("Carol's Biz");
     expect(result.platformName).toBe("TikTok");
+  });
+
+  it("returns generalLeadName and generalLeadDisplayId when socialId has a generalLeadId", async () => {
+    const db = getTestDb();
+    await seedGeneralLead(db, "gl-1", "Maria", "Santos");
+    await seedSocialId(db, "soc-1", "@maria_lead", { generalLeadId: "gl-1" });
+
+    const result = await getSocialId(db, "soc-1");
+    expect(result.generalLeadName).toBe("Maria Santos");
+    expect(result.generalLeadDisplayId).toMatch(/^LEA-/);
+    expect(result.humanName).toBeNull();
+    expect(result.accountName).toBeNull();
   });
 });
 
@@ -509,5 +545,40 @@ describe("deleteSocialId", () => {
     const rows = await db.select().from(schema.socialIds);
     expect(rows).toHaveLength(1);
     expect(rows[0]!.id).toBe("soc-1");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// listSocialIdsForEntity
+// ---------------------------------------------------------------------------
+
+describe("listSocialIdsForEntity", () => {
+  it("returns empty array when no social IDs match the entity", async () => {
+    const db = getTestDb();
+
+    const result = await listSocialIdsForEntity(db, "generalLeadId", "gl-nonexistent");
+    expect(result).toHaveLength(0);
+    expect(result).toEqual([]);
+  });
+
+  it("returns social IDs for a generalLeadId with platform name resolved", async () => {
+    const db = getTestDb();
+    await seedPlatform(db, "plat-1", "Facebook");
+    await seedGeneralLead(db, "gl-1", "Tom", "Brady");
+    await seedSocialId(db, "soc-1", "@tom_fb", {
+      generalLeadId: "gl-1",
+      platformId: "plat-1",
+    });
+
+    const result = await listSocialIdsForEntity(db, "generalLeadId", "gl-1");
+    expect(result).toHaveLength(1);
+    expect(result[0]).toMatchObject({
+      id: "soc-1",
+      handle: "@tom_fb",
+      platformId: "plat-1",
+      platformName: "Facebook",
+    });
+    expect(result[0]!.displayId).toMatch(/^SOC-/);
+    expect(result[0]!.createdAt).toBeDefined();
   });
 });

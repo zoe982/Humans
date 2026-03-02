@@ -1359,6 +1359,102 @@ describe("humans/[id] load — additional branches", () => {
     expect(enriched.destination).toBeNull();
   });
 
+  it("enriches linkedRouteSignups via individual fetch when not in bulk list", async () => {
+    const humanWithLinkedSignup = {
+      id: "h-1",
+      firstName: "Jane",
+      lastName: "Doe",
+      emails: [],
+      phoneNumbers: [],
+      pets: [],
+      linkedRouteSignups: [{ id: "link-1", routeSignupId: "rs-old", linkedAt: "2025-01-01" }],
+      linkedWebsiteBookingRequests: [],
+    };
+
+    const mockFetch = createMockFetch({
+      "account-config/batch": mockBatchConfigResponse({
+        "human-email-labels": [],
+        "human-phone-labels": [],
+        "social-id-platforms": [],
+        "account-human-labels": [],
+        "human-relationship-labels": [],
+      }),
+      // Bulk list does NOT contain rs-old (simulates limit=100 missing older signups)
+      "/api/route-signups?": { body: { data: [] } },
+      // Individual fetch DOES return the signup
+      "/api/route-signups/rs-old": { body: { data: { id: "rs-old", display_id: "ROU-AAB-001", first_name: "Alice", last_name: "Wonder", origin: "MLA", destination: "LHR" } } },
+      "/api/website-booking-requests?": { body: { data: [] } },
+      "/api/ui/dropdown-data": { body: { data: { accounts: [], humans: [], discountCodes: [] } } },
+      "/api/humans/h-1/full": { body: { data: {
+        human: humanWithLinkedSignup,
+        activities: { data: [], meta: { page: 1, limit: 200, total: 0 } },
+        opportunities: { data: [], meta: { page: 1, limit: 50, total: 0 } },
+        generalLeads: { data: [], meta: { page: 1, limit: 50, total: 0 } },
+        relationships: [],
+        agreements: { data: [], meta: { page: 1, limit: 50, total: 0 } },
+      } } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent();
+    event.params = { id: "h-1" };
+    const result = await load(event as any);
+    expect(result.human.linkedRouteSignups).toHaveLength(1);
+    const enriched = (result.human.linkedRouteSignups as Array<Record<string, unknown>>)[0];
+    expect(enriched.displayId).toBe("ROU-AAB-001");
+    expect(enriched.passengerName).toBe("Alice Wonder");
+    expect(enriched.origin).toBe("MLA");
+    expect(enriched.destination).toBe("LHR");
+  });
+
+  it("enriches linkedWebsiteBookingRequests via individual fetch when not in bulk list", async () => {
+    const humanWithLinkedBooking = {
+      id: "h-1",
+      firstName: "Jane",
+      lastName: "Doe",
+      emails: [],
+      phoneNumbers: [],
+      pets: [],
+      linkedRouteSignups: [],
+      linkedWebsiteBookingRequests: [{ id: "blink-1", websiteBookingRequestId: "wbr-old", linkedAt: "2025-02-01" }],
+    };
+
+    const mockFetch = createMockFetch({
+      "account-config/batch": mockBatchConfigResponse({
+        "human-email-labels": [],
+        "human-phone-labels": [],
+        "social-id-platforms": [],
+        "account-human-labels": [],
+        "human-relationship-labels": [],
+      }),
+      "/api/route-signups?": { body: { data: [] } },
+      // Bulk list does NOT contain wbr-old
+      "/api/website-booking-requests?": { body: { data: [] } },
+      // Individual fetch DOES return the booking
+      "/api/website-booking-requests/wbr-old": { body: { data: { id: "wbr-old", crm_display_id: "BOR-AAB-001", first_name: "Bob", last_name: "Builder", origin_city: "Rome", destination_city: "Malta" } } },
+      "/api/ui/dropdown-data": { body: { data: { accounts: [], humans: [], discountCodes: [] } } },
+      "/api/humans/h-1/full": { body: { data: {
+        human: humanWithLinkedBooking,
+        activities: { data: [], meta: { page: 1, limit: 200, total: 0 } },
+        opportunities: { data: [], meta: { page: 1, limit: 50, total: 0 } },
+        generalLeads: { data: [], meta: { page: 1, limit: 50, total: 0 } },
+        relationships: [],
+        agreements: { data: [], meta: { page: 1, limit: 50, total: 0 } },
+      } } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent();
+    event.params = { id: "h-1" };
+    const result = await load(event as any);
+    expect(result.human.linkedWebsiteBookingRequests).toHaveLength(1);
+    const enriched = (result.human.linkedWebsiteBookingRequests as Array<Record<string, unknown>>)[0];
+    expect(enriched.displayId).toBe("BOR-AAB-001");
+    expect(enriched.passengerName).toBe("Bob Builder");
+    expect(enriched.originCity).toBe("Rome");
+    expect(enriched.destinationCity).toBe("Malta");
+  });
+
   it("enriches linkedWebsiteBookingRequests with matching booking data", async () => {
     const humanWithLinkedBooking = {
       id: "h-1",

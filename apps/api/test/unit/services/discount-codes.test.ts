@@ -289,6 +289,69 @@ function makeStores(
 }
 
 // ---------------------------------------------------------------------------
+// Error-returning Supabase mock variants
+// ---------------------------------------------------------------------------
+
+/**
+ * A Supabase mock that returns an error for all operations on a given table.
+ * Used to test the `if (error != null) throw` branches in each service function.
+ */
+function makeErrorSupabaseMock(
+  stores: MockStores,
+  errorTable: string,
+  errorMessage = "Supabase error",
+): SupabaseClient {
+  const err = new Error(errorMessage);
+
+  const normalClient = makeSupabaseMock(stores);
+
+  const errorBuilder: Record<string, unknown> = {};
+  errorBuilder["select"] = () => errorBuilder;
+  errorBuilder["insert"] = (_data: unknown) => errorBuilder;
+  errorBuilder["update"] = (_data: unknown) => errorBuilder;
+  errorBuilder["delete"] = () => errorBuilder;
+  errorBuilder["eq"] = (_col: string, _val: unknown) => errorBuilder;
+  errorBuilder["in"] = (_col: string, _vals: unknown[]) => errorBuilder;
+  errorBuilder["order"] = (_col: string, _opts?: unknown) => errorBuilder;
+  errorBuilder["overrideTypes"] = () => errorBuilder;
+  errorBuilder["single"] = (): Promise<{ data: null; error: Error }> =>
+    Promise.resolve({ data: null, error: err });
+  errorBuilder["then"] = (resolve: (result: { data: null; error: Error }) => void): Promise<void> =>
+    Promise.resolve(resolve({ data: null, error: err }));
+
+  return {
+    from(table: string) {
+      if (table === errorTable) return errorBuilder as unknown as ReturnType<SupabaseClient["from"]>;
+      return normalClient.from(table) as unknown as ReturnType<SupabaseClient["from"]>;
+    },
+  } as unknown as SupabaseClient;
+}
+
+/**
+ * A Supabase mock where the first call succeeds but returns null data (not an error).
+ * Covers the `codes ?? []` branches in getDiscountCodesForHuman / getDiscountCodesForAccount.
+ */
+function makeNullDataSupabaseMock(): SupabaseClient {
+  const nullSelf: Record<string, unknown> = {};
+  nullSelf["select"] = (_fields?: string) => nullSelf;
+  nullSelf["insert"] = (_data: unknown) => nullSelf;
+  nullSelf["update"] = (_data: unknown) => nullSelf;
+  nullSelf["delete"] = () => nullSelf;
+  nullSelf["eq"] = (_col: string, _val: unknown) => nullSelf;
+  nullSelf["in"] = (_col: string, _vals: unknown[]) => nullSelf;
+  nullSelf["order"] = (_col: string, _opts?: unknown) => nullSelf;
+  nullSelf["overrideTypes"] = () => nullSelf;
+  nullSelf["single"] = (): Promise<{ data: null; error: null }> =>
+    Promise.resolve({ data: null, error: null });
+  nullSelf["then"] = (resolve: (result: { data: null; error: null }) => void): Promise<void> =>
+    Promise.resolve(resolve({ data: null, error: null }));
+
+  return {
+    from(_table: string) { return nullSelf as unknown as ReturnType<SupabaseClient["from"]>; },
+  } as unknown as SupabaseClient;
+}
+
+// ---------------------------------------------------------------------------
 // listDiscountCodes
 // ---------------------------------------------------------------------------
 
@@ -737,6 +800,127 @@ describe("getDiscountCodesForHuman", () => {
     expect(result[0]!.percentOff).toBe(15);
     expect(result[0]!.isActive).toBe(true);
     expect(result[0]!.description).toBe("Some desc");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Error-path branch coverage
+// ---------------------------------------------------------------------------
+
+describe("listDiscountCodes — Supabase error", () => {
+  it("throws when Supabase returns an error fetching discount_codes", async () => {
+    const db = getTestDb();
+    const supabase = makeErrorSupabaseMock(makeStores(), "discount_codes", "DB unavailable");
+
+    await expect(listDiscountCodes(supabase, db)).rejects.toThrowError(
+      "Supabase error: DB unavailable",
+    );
+  });
+});
+
+describe("getDiscountCode — Supabase error", () => {
+  it("throws when Supabase returns an error fetching the code", async () => {
+    const db = getTestDb();
+    const supabase = makeErrorSupabaseMock(makeStores(), "discount_codes", "Network error");
+
+    await expect(
+      getDiscountCode(supabase, db, "dc-1"),
+    ).rejects.toThrowError("Supabase error: Network error");
+  });
+});
+
+describe("updateDiscountCode — Supabase update error", () => {
+  it("throws when the Supabase update call returns an error", async () => {
+    // The service first fetches (select) to confirm existence — that must succeed.
+    // Then it calls update — that should fail with an error.
+    // We track calls: the first .from("discount_codes") returns the normal builder (select),
+    // the second .from("discount_codes") returns an error builder (update).
+    const row = makeDiscountCodeRow({ id: "dc-update-err", code: "UPDERR" });
+    const stores = makeStores([row]);
+    const updateErr = new Error("Update failed");
+
+    let fromCallCount = 0;
+
+    const errBuilder: Record<string, unknown> = {};
+    errBuilder["select"] = () => errBuilder;
+    errBuilder["update"] = (_data: unknown) => errBuilder;
+    errBuilder["eq"] = (_c: string, _v: unknown) => errBuilder;
+    errBuilder["overrideTypes"] = () => errBuilder;
+    errBuilder["single"] = (): Promise<{ data: null; error: Error }> =>
+      Promise.resolve({ data: null, error: updateErr });
+    errBuilder["then"] = (resolve: (result: { data: null; error: Error }) => void): Promise<void> =>
+      Promise.resolve(resolve({ data: null, error: updateErr }));
+
+    const hybridMock: SupabaseClient = {
+      from(table: string) {
+        fromCallCount++;
+        // First call = existence check (select) → normal mock
+        // Second call = update → error mock
+        if (table === "discount_codes" && fromCallCount >= 2) {
+          return errBuilder as unknown as ReturnType<SupabaseClient["from"]>;
+        }
+        return makeSupabaseMock(stores).from(table) as unknown as ReturnType<SupabaseClient["from"]>;
+      },
+    } as unknown as SupabaseClient;
+
+    await expect(
+      updateDiscountCode(hybridMock, "dc-update-err", { humanId: "h-new" }),
+    ).rejects.toThrowError("Supabase error: Update failed");
+  });
+});
+
+describe("getDiscountCodesForFlight — inner codes fetch error", () => {
+  it("throws when Supabase errors fetching discount_codes for a flight", async () => {
+    const db = getTestDb();
+    // Provide a flight link so the first query (discount_code_flights) succeeds
+    const link: FlightLinkRow = { discount_code_id: "dc-1", flight_id: "flt-1" };
+    const stores = makeStores([], [link]);
+
+    const innerErr = new Error("Inner codes fetch failed");
+
+    const errSelf: Record<string, unknown> = {};
+    errSelf["select"] = (_f?: string) => errSelf;
+    errSelf["in"] = (_col: string, _vals: unknown[]) => errSelf;
+    errSelf["order"] = (_col: string, _opts?: unknown) => errSelf;
+    errSelf["overrideTypes"] = () => errSelf;
+    errSelf["then"] = (resolve: (result: { data: null; error: Error }) => void): Promise<void> =>
+      Promise.resolve(resolve({ data: null, error: innerErr }));
+
+    const hybridMock: SupabaseClient = {
+      from(table: string) {
+        if (table === "discount_code_flights") {
+          return makeSupabaseMock(stores).from("discount_code_flights") as unknown as ReturnType<SupabaseClient["from"]>;
+        }
+        if (table === "discount_codes") {
+          return errSelf as unknown as ReturnType<SupabaseClient["from"]>;
+        }
+        return makeSupabaseMock(stores).from(table) as unknown as ReturnType<SupabaseClient["from"]>;
+      },
+    } as unknown as SupabaseClient;
+
+    await expect(
+      getDiscountCodesForFlight(hybridMock, db, "flt-1"),
+    ).rejects.toThrowError("Supabase error: Inner codes fetch failed");
+  });
+});
+
+describe("getDiscountCodesForHuman — null data fallback", () => {
+  it("returns empty array when Supabase returns null data (codes ?? [])", async () => {
+    const supabase = makeNullDataSupabaseMock();
+
+    const result = await getDiscountCodesForHuman(supabase, "h-any");
+
+    expect(result).toEqual([]);
+  });
+});
+
+describe("getDiscountCodesForAccount — null data fallback", () => {
+  it("returns empty array when Supabase returns null data (codes ?? [])", async () => {
+    const supabase = makeNullDataSupabaseMock();
+
+    const result = await getDiscountCodesForAccount(supabase, "acc-any");
+
+    expect(result).toEqual([]);
   });
 });
 

@@ -6,6 +6,7 @@
   import { ApiRequestError } from "$lib/api";
   import { toast } from "svelte-sonner";
   import { invalidateAll } from "$app/navigation";
+  import { formatShortDate } from "$lib/utils/format";
   import { Search } from "lucide-svelte";
 
   let { data }: { data: PageData } = $props();
@@ -22,7 +23,7 @@
   const subtitle = $derived.by(() => {
     if (activities.length === 0) return "Activities";
     const sorted = [...activities].sort((a, b) => a.activityDate.localeCompare(b.activityDate));
-    const fmt = (d: string) => new Date(d).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+    const fmt = formatShortDate;
     const first = fmt(sorted[0].activityDate);
     const last = fmt(sorted[sorted.length - 1].activityDate);
     const range = first === last ? first : `${first} – ${last}`;

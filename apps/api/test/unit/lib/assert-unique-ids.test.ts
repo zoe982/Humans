@@ -122,4 +122,38 @@ describe("assertUniqueIds", () => {
       }),
     );
   });
+
+  it("does not add an ID to duplicateIds more than once when it appears three or more times", () => {
+    // Third occurrence of "a" hits the !duplicateIds.includes(item.id) === false branch
+    const items = [
+      { id: "a", val: 1 },
+      { id: "a", val: 2 },
+      { id: "a", val: 3 },
+      { id: "b", val: 4 },
+    ];
+
+    const mockContext = {
+      get: (key: string) => key === "requestId" ? "req-triple" : undefined,
+      req: { method: "GET", path: "/api/test" },
+    } as any;
+
+    const result = assertUniqueIds(items, "triple", mockContext);
+
+    // Only the first "a" survives
+    expect(result).toHaveLength(2);
+    expect(result[0]).toEqual({ id: "a", val: 1 });
+    expect(result[1]).toEqual({ id: "b", val: 4 });
+
+    // duplicateIds should contain "a" exactly once even though it appeared 3 times
+    expect(persistError).toHaveBeenCalledWith(
+      mockContext,
+      expect.objectContaining({
+        details: expect.objectContaining({
+          duplicateIds: ["a"],
+          totalItems: 4,
+          uniqueItems: 2,
+        }),
+      }),
+    );
+  });
 });

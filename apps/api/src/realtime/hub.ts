@@ -1,3 +1,5 @@
+import { sessionSchema } from "../middleware/auth";
+
 export interface ChangeEvent {
   actorId: string;
   path: string;
@@ -54,9 +56,15 @@ export class RealtimeHub implements DurableObject {
       return new Response("Missing token", { status: 401 });
     }
 
-    const session = await this.env.SESSIONS.get(`session:${token}`);
-    if (session === null) {
+    const sessionJson = await this.env.SESSIONS.get(`session:${token}`);
+    if (sessionJson === null) {
       return new Response("Invalid session", { status: 401 });
+    }
+
+    // Validate session JSON structure (reject corrupted KV entries)
+    const parsed = sessionSchema.safeParse(JSON.parse(sessionJson) as unknown);
+    if (!parsed.success) {
+      return new Response("Invalid session data", { status: 401 });
     }
 
     const pair = new WebSocketPair();

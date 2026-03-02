@@ -55,6 +55,22 @@ export const handle: Handle = async ({ event, resolve }) => {
   response.headers.set("X-Content-Type-Options", "nosniff");
   response.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
   response.headers.set("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
+  // CSP: 'unsafe-inline' required for app.html inline scripts (theme + diagnostics)
+  // and Svelte-injected component styles. Other directives restrict resource loading.
+  response.headers.set(
+    "Content-Security-Policy",
+    [
+      "default-src 'none'",
+      "script-src 'self' 'unsafe-inline'",
+      "style-src 'self' 'unsafe-inline'",
+      "img-src 'self' data: https:",
+      "font-src 'self'",
+      `connect-src 'self' ${API_BASE} https://api.humans.pavinfo.app`,
+      "frame-ancestors 'none'",
+      "base-uri 'self'",
+      "form-action 'self'",
+    ].join("; "),
+  );
   return response;
 };
 

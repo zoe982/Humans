@@ -107,7 +107,7 @@
 
   // Format a date string to a short month+day label: "Jan 19".
   function formatDaySeparator(dateStr: string): string {
-    return new Date(dateStr).toLocaleDateString(undefined, {
+    return new Date(dateStr).toLocaleDateString("en-GB", {
       month: "short",
       day: "numeric",
     });
@@ -115,7 +115,7 @@
 
   // Format a date string to time only: "4:11 PM".
   function formatTime(dateStr: string): string {
-    return new Date(dateStr).toLocaleTimeString(undefined, {
+    return new Date(dateStr).toLocaleTimeString("en-GB", {
       hour: "numeric",
       minute: "2-digit",
     });
@@ -410,7 +410,7 @@
               <span
                 class="text-xs shrink-0 hover:opacity-100"
                 style="color: var(--color-text-muted); opacity: 0.5; transition: opacity 0.2s;"
-                title={new Date(activity.activityDate).toLocaleString()}
+                title={new Date(activity.activityDate).toLocaleString("en-GB")}
               >
                 {formatTime(activity.activityDate)}
               </span>

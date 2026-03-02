@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { PageData } from "./$types";
   import RecordManagementBar from "$lib/components/RecordManagementBar.svelte";
-  import { formatDate } from "$lib/utils/format";
+  import { formatDate, formatShortDate } from "$lib/utils/format";
   import SearchableSelect from "$lib/components/SearchableSelect.svelte";
   import SaveIndicator from "$lib/components/SaveIndicator.svelte";
   import RelatedListTable from "$lib/components/RelatedListTable.svelte";
@@ -224,7 +224,7 @@
           {flight.originCity ?? "?"} &rarr; {flight.destinationCity ?? "?"}
         </td>
         <td class="text-sm text-text-secondary">
-          {flight.flightDate ? new Date(flight.flightDate + "T00:00:00").toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" }) : "\u2014"}
+          {flight.flightDate ? formatShortDate(flight.flightDate + "T00:00:00") : "\u2014"}
         </td>
       {/snippet}
     </RelatedListTable>

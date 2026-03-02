@@ -42,10 +42,24 @@ describe("POST /api/documents/upload", () => {
     expect(body.error).toContain("too large");
   });
 
+  it("returns 400 for disallowed file type", async () => {
+    const { token } = await createUserAndSession("agent");
+    const form = new FormData();
+    form.append("file", new Blob(["content"], { type: "text/html" }), "evil.html");
+    const res = await SELF.fetch("http://localhost/api/documents/upload", {
+      method: "POST",
+      headers: { Cookie: sessionCookie(token) },
+      body: form,
+    });
+    expect(res.status).toBe(400);
+    const body = (await res.json()) as { error: string };
+    expect(body.error).toContain("not allowed");
+  });
+
   it("returns 403 for viewer role", async () => {
     const { token } = await createUserAndSession("viewer");
     const form = new FormData();
-    form.append("file", new Blob(["content"], { type: "text/plain" }), "file.txt");
+    form.append("file", new Blob(["content"], { type: "application/pdf" }), "file.pdf");
     const res = await SELF.fetch("http://localhost/api/documents/upload", {
       method: "POST",
       headers: { Cookie: sessionCookie(token) },
@@ -102,6 +116,8 @@ describe("GET /api/documents/:key", () => {
 
     expect(res.status).toBe(200);
     expect(res.headers.get("content-type")).toContain("application/pdf");
+    // Key doesn't have UUID prefix, so entire key is used as filename
+    expect(res.headers.get("content-disposition")).toBe('attachment; filename="test-doc-key-preseeded.pdf"');
     expect(res.headers.get("cache-control")).toContain("private");
   });
 });

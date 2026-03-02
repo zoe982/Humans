@@ -16,3 +16,8 @@ playwright-report/
 test-results/
 .worktrees/
 d1-export.sql
+qa/auth-state.json
+qa/browser-profile/
+qa/screenshots/
+qa/cookies.json
+.playwright-mcp/

@@ -1,15 +1,17 @@
 <script lang="ts">
   import type { PageData, ActionData } from "./$types";
   import EntityListPage from "$lib/components/EntityListPage.svelte";
-  import StatusBadge from "$lib/components/StatusBadge.svelte";
   import LeadScoreBadge from "$lib/components/LeadScoreBadge.svelte";
-  import { getLeadScoreBand } from "@humans/shared";
+  import { getLeadScoreBand, routeSignupStatuses } from "@humans/shared";
   import { Search } from "lucide-svelte";
   import { signupStatusLabels } from "$lib/constants/labels";
-  import { formatRelativeTime, formatDateTime } from "$lib/utils/format";
+  import { signupStatusColors } from "$lib/constants/colors";
+  import { formatRelativeTime, formatDateTime, formatDate } from "$lib/utils/format";
   import { resolve } from "$app/paths";
   import InlineNoteEditor from "$lib/components/InlineNoteEditor.svelte";
   import { api } from "$lib/api";
+  import { toast } from "svelte-sonner";
+  import { SvelteMap } from "svelte/reactivity";
 
   let { data, form }: { data: PageData; form: ActionData } = $props();
 
@@ -28,7 +30,10 @@
     consent: boolean | null;
     newsletter_opt_in: boolean | null;
     lastActivityDate: string | null;
+    crm_channel: string | null;
+    crm_source: string | null;
     scoreTotal: number | null;
+    nextAction: { type: string | null; description: string | null; dueDate: string | null } | null;
   };
 
   const allSignups = $derived(data.signups as Signup[]);
@@ -64,13 +69,62 @@
     return parts.length > 0 ? parts.join(" ") : "\u2014";
   }
 
-  const statusColorMap: Record<string, string> = {
-    "Open": "badge-blue",
-    "Pending Response": "badge-yellow",
-    "Qualified": "badge-yellow",
-    "Closed - Lost": "badge-red",
-    "Closed - Converted": "badge-green",
+  // Inline status editing
+  let statusOverrides = new SvelteMap<string, string>();
+
+  const badgeStyleMap: Record<string, { bg: string; color: string }> = {
+    "badge-blue":   { bg: "var(--badge-blue-bg)",   color: "var(--badge-blue-text)" },
+    "badge-green":  { bg: "var(--badge-green-bg)",  color: "var(--badge-green-text)" },
+    "badge-red":    { bg: "var(--badge-red-bg)",    color: "var(--badge-red-text)" },
+    "badge-yellow": { bg: "var(--badge-yellow-bg)", color: "var(--badge-yellow-text)" },
+    "badge-purple": { bg: "var(--badge-purple-bg)", color: "var(--badge-purple-text)" },
+    "badge-orange": { bg: "var(--badge-orange-bg)", color: "var(--badge-orange-text)" },
   };
+
+  function getEffectiveStatus(signup: Signup): string {
+    return statusOverrides.get(String(signup.id)) ?? signup.status ?? "open";
+  }
+
+  function getStatusBadgeStyle(signup: Signup): string {
+    const effectiveStatus = getEffectiveStatus(signup);
+    // eslint-disable-next-line security/detect-object-injection
+    const badgeKey = signupStatusColors[effectiveStatus];
+    // eslint-disable-next-line security/detect-object-injection
+    const style = badgeKey ? badgeStyleMap[badgeKey] : null;
+    if (!style) return "";
+    return `background-color: ${style.bg}; color: ${style.color};`;
+  }
+
+  function isOverdue(dueDate: string | null): boolean {
+    if (dueDate == null) return false;
+    return new Date(dueDate) < new Date();
+  }
+
+  async function handleInlineStatusChange(signup: Signup, newStatus: string) {
+    // closed_lost — redirect to detail page for loss reason
+    if (newStatus === "closed_lost") {
+      toast.info("Loss reason required \u2014 please update status on the detail page");
+      return;
+    }
+
+    const prev = getEffectiveStatus(signup);
+    statusOverrides.set(String(signup.id), newStatus);
+
+    try {
+      await api(`/api/route-signups/${signup.id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ status: newStatus }),
+      });
+      toast.success("Status updated");
+    } catch {
+      if (prev === (signup.status ?? "open")) {
+        statusOverrides.delete(String(signup.id));
+      } else {
+        statusOverrides.set(String(signup.id), prev);
+      }
+      toast.error("Failed to update status");
+    }
+  }
 
   const hasActiveFilters = $derived(
     !!(filterStatus || filterOrigin || filterDestination || filterDateFrom || filterDateTo || filterQ),
@@ -90,7 +144,10 @@
     { key: "destination", label: "Destination", sortable: true, sortValue: (s) => s.destination ?? "" },
     { key: "score", label: "Score", sortable: true, sortValue: (s) => String(s.scoreTotal ?? -1).padStart(4, "0") },
     { key: "status", label: "Status", sortable: true, sortValue: (s) => s.status ?? "" },
+    { key: "channel", label: "Channel" },
+    { key: "source", label: "Source" },
     { key: "notes", label: "Notes" },
+    { key: "nextAction", label: "Next Action" },
     { key: "date", label: "Date", sortable: true, sortValue: (s) => s.inserted_at },
   ]}
   defaultSortKey="date"
@@ -158,8 +215,23 @@
       {/if}
     </td>
     <td>
-      <StatusBadge status={signupStatusLabels[signup.status ?? ""] ?? signup.status ?? "\u2014"} colorMap={statusColorMap} />
+      <select
+        class="glass-select-badge"
+        style={getStatusBadgeStyle(signup)}
+        value={getEffectiveStatus(signup)}
+        onchange={(e) => {
+          const target = e.currentTarget;
+          void handleInlineStatusChange(signup, target.value);
+        }}
+      >
+        {#each routeSignupStatuses as status, i (i)}
+          <!-- eslint-disable-next-line security/detect-object-injection -->
+          <option value={status}>{signupStatusLabels[status] ?? status}</option>
+        {/each}
+      </select>
     </td>
+    <td class="text-text-secondary text-sm">{signup.crm_channel ?? "\u2014"}</td>
+    <td class="text-text-secondary text-sm">{signup.crm_source ?? "\u2014"}</td>
     <td>
       <InlineNoteEditor
         value={signup.note}
@@ -172,6 +244,20 @@
           signup.note = note;
         }}
       />
+    </td>
+    <td class="text-sm max-w-[200px]">
+      {#if signup.nextAction}
+        <div class="text-text-primary truncate">
+          {#if signup.nextAction.type}{signup.nextAction.type}: {/if}{signup.nextAction.description ?? ""}
+        </div>
+        {#if signup.nextAction.dueDate}
+          <div class="text-xs {isOverdue(signup.nextAction.dueDate) ? 'text-[var(--badge-red-text)]' : 'text-text-muted'}">
+            Due {formatDate(signup.nextAction.dueDate)}
+          </div>
+        {/if}
+      {:else}
+        <span class="text-text-muted">&mdash;</span>
+      {/if}
     </td>
     <td class="text-text-muted">{formatDateTime(signup.inserted_at)}</td>
   {/snippet}
@@ -186,7 +272,11 @@
           {#if signup.scoreTotal != null}
             <LeadScoreBadge score={signup.scoreTotal} band={getLeadScoreBand(signup.scoreTotal)} />
           {/if}
-          <StatusBadge status={signupStatusLabels[signup.status ?? ""] ?? signup.status ?? "\u2014"} colorMap={statusColorMap} />
+          <!-- eslint-disable-next-line security/detect-object-injection -->
+          <span class="glass-badge {signupStatusColors[getEffectiveStatus(signup)] ?? 'bg-glass text-text-secondary'}">
+            <!-- eslint-disable-next-line security/detect-object-injection -->
+            {signupStatusLabels[getEffectiveStatus(signup)] ?? getEffectiveStatus(signup)}
+          </span>
         </div>
       </div>
       {#if signup.email}
@@ -197,8 +287,20 @@
         {#if signup.origin && signup.destination}<span>&rarr;</span>{/if}
         {#if signup.destination}<span>{signup.destination}</span>{/if}
       </div>
+      {#if signup.crm_channel || signup.crm_source}
+        <p class="text-xs text-text-secondary mt-1">
+          {#if signup.crm_channel}{signup.crm_channel}{/if}
+          {#if signup.crm_channel && signup.crm_source} &middot; {/if}
+          {#if signup.crm_source}{signup.crm_source}{/if}
+        </p>
+      {/if}
       {#if signup.lastActivityDate}
         <p class="mt-1 text-xs text-text-muted">Last activity: {formatRelativeTime(signup.lastActivityDate)}</p>
+      {/if}
+      {#if signup.nextAction}
+        <p class="text-xs text-text-muted mt-1 truncate">
+          Next: {#if signup.nextAction.type}{signup.nextAction.type}: {/if}{signup.nextAction.description ?? ""}
+        </p>
       {/if}
       <div class="mt-2 text-xs text-text-muted">{formatDateTime(signup.inserted_at)}</div>
     </a>

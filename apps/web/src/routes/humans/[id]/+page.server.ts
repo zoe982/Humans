@@ -115,9 +115,27 @@ export const load = async ({ locals, cookies, params }: RequestEvent): Promise<{
   function isSupabaseSignup(v: unknown): v is SupabaseSignup {
     return typeof v === "object" && v !== null && "id" in v;
   }
-  const enrichedLinkedSignups = linkedRouteSignupsRaw.filter(isLinkedRouteSignup).map((link) => {
-    const signupRaw = allRouteSignups.find((s) => isSupabaseSignup(s) && s.id === link.routeSignupId);
-    const signup = isSupabaseSignup(signupRaw) ? signupRaw : null;
+
+  // Fetch linked signups individually to avoid limit=100 miss
+  async function fetchSignupById(signupId: string): Promise<SupabaseSignup | null> {
+    const res = await fetch(`${PUBLIC_API_URL}/api/route-signups/${encodeURIComponent(signupId)}`, { headers });
+    if (!res.ok) return null;
+    const raw: unknown = await res.json();
+    if (isObjData(raw) && isSupabaseSignup(raw.data)) return raw.data;
+    return null;
+  }
+
+  const filteredLinkedSignups = linkedRouteSignupsRaw.filter(isLinkedRouteSignup);
+  const signupResults = await Promise.all(
+    filteredLinkedSignups.map(async (link) => {
+      // Try bulk list first, fall back to individual fetch
+      const cached = allRouteSignups.find((s) => isSupabaseSignup(s) && s.id === link.routeSignupId);
+      if (isSupabaseSignup(cached)) return cached;
+      return fetchSignupById(link.routeSignupId);
+    }),
+  );
+  const enrichedLinkedSignups = filteredLinkedSignups.map((link, i) => {
+    const signup = signupResults.at(i) ?? null;
     const joinedName = signup != null ? [signup.first_name, signup.last_name].filter(Boolean).join(" ") : "";
     return {
       ...link,
@@ -133,9 +151,26 @@ export const load = async ({ locals, cookies, params }: RequestEvent): Promise<{
   function isSupabaseBooking(v: unknown): v is SupabaseBooking {
     return typeof v === "object" && v !== null && "id" in v;
   }
-  const enrichedLinkedBookingRequests = linkedBookingRequestsRaw.filter(isLinkedBookingRequest).map((link) => {
-    const bookingRaw = allBookingRequests.find((b) => isSupabaseBooking(b) && b.id === link.websiteBookingRequestId);
-    const booking = isSupabaseBooking(bookingRaw) ? bookingRaw : null;
+
+  // Fetch linked bookings individually to avoid limit=100 miss
+  async function fetchBookingById(bookingId: string): Promise<SupabaseBooking | null> {
+    const res = await fetch(`${PUBLIC_API_URL}/api/website-booking-requests/${encodeURIComponent(bookingId)}`, { headers });
+    if (!res.ok) return null;
+    const raw: unknown = await res.json();
+    if (isObjData(raw) && isSupabaseBooking(raw.data)) return raw.data;
+    return null;
+  }
+
+  const filteredLinkedBookings = linkedBookingRequestsRaw.filter(isLinkedBookingRequest);
+  const bookingResults = await Promise.all(
+    filteredLinkedBookings.map(async (link) => {
+      const cached = allBookingRequests.find((b) => isSupabaseBooking(b) && b.id === link.websiteBookingRequestId);
+      if (isSupabaseBooking(cached)) return cached;
+      return fetchBookingById(link.websiteBookingRequestId);
+    }),
+  );
+  const enrichedLinkedBookingRequests = filteredLinkedBookings.map((link, i) => {
+    const booking = bookingResults.at(i) ?? null;
     const joinedName = booking != null ? [booking.first_name, booking.last_name].filter(Boolean).join(" ") : "";
     return {
       ...link,

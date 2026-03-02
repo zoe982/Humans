@@ -50,7 +50,7 @@ export async function listGeneralLeads(
   page: number,
   limit: number,
   filters: { q?: string | undefined; status?: string | undefined; convertedHumanId?: string | undefined },
-): Promise<{ data: { convertedHumanDisplayId: string | null; convertedHumanName: string | null; scoreTotal: number | null; id: string; displayId: string; status: string; firstName: string; middleName: string | null; lastName: string; notes: string | null; rejectReason: string | null; lossReason: string | null; convertedHumanId: string | null; ownerId: string | null; createdAt: string; updatedAt: string; ownerName: string | null }[]; meta: { page: number; limit: number; total: number } }> {
+): Promise<{ data: { convertedHumanDisplayId: string | null; convertedHumanName: string | null; scoreTotal: number | null; id: string; displayId: string; status: string; firstName: string; middleName: string | null; lastName: string; notes: string | null; rejectReason: string | null; lossReason: string | null; convertedHumanId: string | null; ownerId: string | null; source: string | null; channel: string | null; createdAt: string; updatedAt: string; ownerName: string | null }[]; meta: { page: number; limit: number; total: number } }> {
   const offset = (page - 1) * limit;
   const conditions: ReturnType<typeof eq>[] = [];
 
@@ -81,6 +81,8 @@ export async function listGeneralLeads(
       lossReason: generalLeads.lossReason,
       convertedHumanId: generalLeads.convertedHumanId,
       ownerId: generalLeads.ownerId,
+      source: generalLeads.source,
+      channel: generalLeads.channel,
       createdAt: generalLeads.createdAt,
       updatedAt: generalLeads.updatedAt,
       ownerName: colleagues.name,
@@ -324,13 +326,9 @@ export async function updateGeneralLeadStatus(
     throw notFound(ERROR_CODES.GENERAL_LEAD_NOT_FOUND, "General lead not found");
   }
 
-  // closed_converted must go through the convert/link-human endpoint
-  if (data.status === "closed_converted") {
-    throw badRequest(ERROR_CODES.GENERAL_LEAD_INVALID_STATUS_TRANSITION, "Use the convert endpoint to close as converted");
-  }
-
-  // Cannot transition from closed statuses
-  if (CLOSED_STATUSES.includes(existing.status)) {
+  // Cannot transition from closed statuses (except incomplete conversions — no human linked yet)
+  const isIncompleteConversion = existing.status === "closed_converted" && existing.convertedHumanId == null;
+  if (CLOSED_STATUSES.includes(existing.status) && !isIncompleteConversion) {
     throw badRequest(ERROR_CODES.GENERAL_LEAD_INVALID_STATUS_TRANSITION, "Cannot change status of a closed lead");
   }
 
@@ -466,10 +464,14 @@ export async function linkHumanToGeneralLead(
   }
 
   const now = new Date().toISOString();
-  await db.update(generalLeads).set({
+  const statusChanged = !CLOSED_STATUSES.includes(existing.status);
+  const updateFields: Record<string, unknown> = {
     convertedHumanId: humanId,
     updatedAt: now,
-  }).where(eq(generalLeads.id, leadId));
+    ...(statusChanged ? { status: "closed_converted" } : {}),
+  };
+
+  await db.update(generalLeads).set(updateFields).where(eq(generalLeads.id, leadId));
 
   // Dual-associate activities (keep generalLeadId, add humanId)
   await db.update(activities).set({ humanId }).where(
@@ -487,14 +489,25 @@ export async function linkHumanToGeneralLead(
     and(eq(socialIds.generalLeadId, leadId), sql`${socialIds.humanId} IS NULL`),
   );
 
+  const auditChanges: Record<string, { old: unknown; new: unknown }> = {
+    convertedHumanId: { old: null, new: humanId },
+  };
+  if (statusChanged) {
+    auditChanges["status"] = { old: existing.status, new: "closed_converted" };
+  }
+
   await logAuditEntry({
     db,
     colleagueId,
     action: "LINK_HUMAN",
     entityType: "general_lead",
     entityId: leadId,
-    changes: { convertedHumanId: { old: null, new: humanId } },
+    changes: auditChanges,
   });
+
+  if (statusChanged) {
+    await completeNextAction(db, "general_lead", leadId, colleagueId);
+  }
 }
 
 export async function unlinkHumanFromGeneralLead(
@@ -512,10 +525,15 @@ export async function unlinkHumanFromGeneralLead(
   const previousHumanId = existing.convertedHumanId;
   if (previousHumanId == null) return; // Nothing to unlink
 
-  await db.update(generalLeads).set({
+  const now = new Date().toISOString();
+  const revertStatus = existing.status === "closed_converted";
+  const unlinkFields: Record<string, unknown> = {
     convertedHumanId: null,
-    updatedAt: new Date().toISOString(),
-  }).where(eq(generalLeads.id, leadId));
+    updatedAt: now,
+    ...(revertStatus ? { status: "open" } : {}),
+  };
+
+  await db.update(generalLeads).set(unlinkFields).where(eq(generalLeads.id, leadId));
 
   // Clear humanId on records associated with this lead (compound WHERE — don't touch records linked directly to human)
   await db.update(activities).set({ humanId: null }).where(
@@ -531,13 +549,20 @@ export async function unlinkHumanFromGeneralLead(
     and(eq(socialIds.generalLeadId, leadId), eq(socialIds.humanId, previousHumanId)),
   );
 
+  const unlinkChanges: Record<string, { old: unknown; new: unknown }> = {
+    convertedHumanId: { old: previousHumanId, new: null },
+  };
+  if (revertStatus) {
+    unlinkChanges["status"] = { old: "closed_converted", new: "open" };
+  }
+
   await logAuditEntry({
     db,
     colleagueId,
     action: "UNLINK_HUMAN",
     entityType: "general_lead",
     entityId: leadId,
-    changes: { convertedHumanId: { old: previousHumanId, new: null } },
+    changes: unlinkChanges,
   });
 }
 

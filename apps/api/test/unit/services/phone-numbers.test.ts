@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+import { sql } from "drizzle-orm";
 import { getTestDb } from "../setup";
 import {
   listPhoneNumbers,
@@ -452,6 +453,102 @@ describe("deletePhoneNumber", () => {
   });
 });
 
+describe("listPhoneNumbers — label fallback for phone with no humanId (account labels used)", () => {
+  it("uses accountPhoneLabels (not humanPhoneLabels) for phone with no humanId", async () => {
+    const db = getTestDb();
+    await seedAccount(db, "acc-1", "Widget Corp");
+    await seedAccountPhoneLabel(db, "lbl-acc-1", "Reception");
+    // Also seed a human label with the same ID to confirm account labels win
+    await seedHumanPhoneLabel(db, "lbl-hum-1", "Mobile");
+    // Phone has no humanId — it belongs to an account, so account labels are consulted
+    await seedPhone(db, "ph-acc", "+7777777777", { accountId: "acc-1", labelId: "lbl-acc-1" });
+
+    const result = await listPhoneNumbers(db);
+    expect(result).toHaveLength(1);
+    expect(result[0]!.labelName).toBe("Reception");
+  });
+
+  it("returns null labelName when phone has no humanId and no accountId (orphan)", async () => {
+    const db = getTestDb();
+    // Orphan phone with a labelId pointing at a humanPhoneLabel
+    await seedHumanPhoneLabel(db, "lbl-human", "Personal");
+    // Phone is not linked to human or account — falls into account labels bucket
+    await seedPhone(db, "ph-orphan", "+8888888888", { labelId: "lbl-human" });
+
+    const result = await listPhoneNumbers(db);
+    expect(result).toHaveLength(1);
+    // Since phone.humanId is null we look in accountLabels, which has no "lbl-human"
+    expect(result[0]!.labelName).toBeNull();
+  });
+});
+
+describe("updatePhoneNumber — no phoneNumber field (L189 else branch)", () => {
+  it("updates non-phone fields without normalizing or checking duplicates", async () => {
+    const db = getTestDb();
+    await seedHuman(db, "h-1");
+    await seedPhone(db, "ph-1", "+1111111111", { humanId: "h-1" });
+
+    // Update only labelId — no phoneNumber field in the update payload
+    const result = await updatePhoneNumber(db, "ph-1", { labelId: null });
+
+    expect(result!.phoneNumber).toBe("+1111111111");
+    expect(result!.labelId).toBeNull();
+  });
+
+  it("updates hasWhatsapp flag without touching phoneNumber", async () => {
+    const db = getTestDb();
+    await seedHuman(db, "h-1");
+    await seedPhone(db, "ph-1", "+2222222222", { humanId: "h-1" });
+
+    const result = await updatePhoneNumber(db, "ph-1", { hasWhatsapp: true });
+
+    expect(result!.hasWhatsapp).toBe(true);
+    expect(result!.phoneNumber).toBe("+2222222222");
+  });
+});
+
+describe("createPhoneNumber — label and flag branches", () => {
+  it("stores provided labelId when given", async () => {
+    const db = getTestDb();
+    await seedHuman(db, "h-1");
+    await seedHumanPhoneLabel(db, "lbl-mobile", "Mobile");
+
+    const result = await createPhoneNumber(db, {
+      humanId: "h-1",
+      phoneNumber: "+3333333333",
+      labelId: "lbl-mobile",
+    });
+
+    expect(result.labelId).toBe("lbl-mobile");
+  });
+
+  it("stores hasWhatsapp=true when explicitly set", async () => {
+    const db = getTestDb();
+    await seedHuman(db, "h-1");
+
+    const result = await createPhoneNumber(db, {
+      humanId: "h-1",
+      phoneNumber: "+4444444444",
+      hasWhatsapp: true,
+    });
+
+    expect(result.hasWhatsapp).toBe(true);
+  });
+
+  it("stores isPrimary=true when explicitly set", async () => {
+    const db = getTestDb();
+    await seedHuman(db, "h-1");
+
+    const result = await createPhoneNumber(db, {
+      humanId: "h-1",
+      phoneNumber: "+5555555555",
+      isPrimary: true,
+    });
+
+    expect(result.isPrimary).toBe(true);
+  });
+});
+
 describe("listPhoneNumbersForEntity", () => {
   it("returns phones for a general lead", async () => {
     const db = getTestDb();
@@ -472,5 +569,91 @@ describe("listPhoneNumbersForEntity", () => {
     const db = getTestDb();
     const result = await listPhoneNumbersForEntity(db, "generalLeadId", "nonexistent");
     expect(result).toHaveLength(0);
+  });
+});
+
+// ─── resolveOwner fallbacks — orphaned humanId (L20 if[1]) ───────────────────
+
+describe("listPhoneNumbers — resolveOwner: humanId set but human not found", () => {
+  it("returns ownerName=null and ownerDisplayId=null when humanId points to nonexistent human", async () => {
+    const db = getTestDb();
+
+    // Seed a real human so the phones table row can be inserted, then delete it
+    await seedHuman(db, "h-ghost-1", "Ghost", "Human");
+    await seedPhone(db, "ph-ghost-1", "+19998887771", { humanId: "h-ghost-1" });
+
+    // Remove the human to orphan the phone's humanId
+    await db.execute(sql`SET session_replication_role = 'replica'`);
+    await db.execute(sql`DELETE FROM humans WHERE id = 'h-ghost-1'`);
+    await db.execute(sql`SET session_replication_role = 'origin'`);
+
+    const result = await listPhoneNumbers(db);
+    expect(result).toHaveLength(1);
+    // humanId is set but human not found in lookup → resolveOwner returns null
+    expect(result[0]!.ownerName).toBeNull();
+    expect(result[0]!.ownerDisplayId).toBeNull();
+  });
+});
+
+// ─── resolveOwner fallbacks — orphaned accountId (L24 if[1]) ─────────────────
+
+describe("listPhoneNumbers — resolveOwner: accountId set but account not found", () => {
+  it("returns ownerName=null and ownerDisplayId=null when accountId points to nonexistent account", async () => {
+    const db = getTestDb();
+
+    // Seed a real account so the row can be inserted, then delete it
+    await seedAccount(db, "acc-ghost-1", "Ghost Corp");
+    await seedPhone(db, "ph-ghost-acc-1", "+19998887772", { accountId: "acc-ghost-1" });
+
+    // Remove the account to orphan the phone's accountId
+    await db.execute(sql`SET session_replication_role = 'replica'`);
+    await db.execute(sql`DELETE FROM accounts WHERE id = 'acc-ghost-1'`);
+    await db.execute(sql`SET session_replication_role = 'origin'`);
+
+    const result = await listPhoneNumbers(db);
+    expect(result).toHaveLength(1);
+    // accountId is set but account not found → resolveOwner falls through to return null
+    expect(result[0]!.ownerName).toBeNull();
+    expect(result[0]!.ownerDisplayId).toBeNull();
+  });
+});
+
+// ─── resolveOwner — generalLeadId: lead found (L39/L46 truthy branch) ────────
+
+describe("listPhoneNumbers — resolveOwner: generalLeadId resolves correctly", () => {
+  it("returns lead name as ownerName when generalLeadId points to an existing lead", async () => {
+    const db = getTestDb();
+
+    await seedGeneralLead(db, "gl-owner-1", "Sam", "Wilson");
+    await seedPhone(db, "ph-gl-1", "+19998887773", { generalLeadId: "gl-owner-1" });
+
+    const result = await listPhoneNumbers(db);
+    expect(result).toHaveLength(1);
+    // generalLeadId is set and found → resolveOwner returns lead full name
+    expect(result[0]!.ownerName).toBe("Sam Wilson");
+    expect(result[0]!.ownerDisplayId).toMatch(/^LEA-/);
+  });
+});
+
+// ─── resolveOwner fallbacks — orphaned generalLeadId (L28 if[1]) ─────────────
+
+describe("listPhoneNumbers — resolveOwner: generalLeadId set but lead not found", () => {
+  it("returns ownerName=null when generalLeadId points to nonexistent lead", async () => {
+    const db = getTestDb();
+
+    // Seed a lead so the phone can be inserted, then remove it
+    await seedGeneralLead(db, "gl-ghost-1", "Ghost", "Lead");
+    await seedPhone(db, "ph-gl-ghost-1", "+19998887774", { generalLeadId: "gl-ghost-1" });
+
+    // Remove the lead to orphan the phone's generalLeadId
+    await db.execute(sql`SET session_replication_role = 'replica'`);
+    await db.execute(sql`DELETE FROM general_leads WHERE id = 'gl-ghost-1'`);
+    await db.execute(sql`SET session_replication_role = 'origin'`);
+
+    const result = await listPhoneNumbers(db);
+    expect(result).toHaveLength(1);
+    // generalLeadId is set but lead not found → resolveOwner returns null
+    expect(result[0]!.ownerName).toBeNull();
+    expect(result[0]!.ownerDisplayId).toBeNull();
   });
 });

@@ -14,6 +14,7 @@ function createMockRateLimiter(success = true): MockRateLimiter {
 
 interface TestEnv {
   RL_AUTH: MockRateLimiter;
+  RL_AUTH_ME: MockRateLimiter;
   RL_API: MockRateLimiter;
   RL_SEARCH: MockRateLimiter;
   RL_CLIENT_ERRORS: MockRateLimiter;
@@ -56,6 +57,7 @@ describe("rate-limit middleware", () => {
   beforeEach(() => {
     env = {
       RL_AUTH: createMockRateLimiter(true),
+      RL_AUTH_ME: createMockRateLimiter(true),
       RL_API: createMockRateLimiter(true),
       RL_SEARCH: createMockRateLimiter(true),
       RL_CLIENT_ERRORS: createMockRateLimiter(true),
@@ -64,15 +66,26 @@ describe("rate-limit middleware", () => {
     app = createTestApp(env);
   });
 
-  describe("/auth/me exemption", () => {
-    it("does NOT rate-limit /auth/me requests", async () => {
+  describe("/auth/me rate limiting", () => {
+    it("uses RL_AUTH_ME for /auth/me (separate generous limiter)", async () => {
       const res = await app.request("/auth/me", {
         headers: { "CF-Connecting-IP": "1.2.3.4" },
       });
       expect(res.status).toBe(200);
-      // No rate limiter should have been called
+      expect(env.RL_AUTH_ME.limit).toHaveBeenCalledWith({ key: "1.2.3.4" });
+      // Should NOT use the stricter auth or API limiters
       expect(env.RL_AUTH.limit).not.toHaveBeenCalled();
       expect(env.RL_API.limit).not.toHaveBeenCalled();
+    });
+
+    it("returns 429 when RL_AUTH_ME limit is exceeded", async () => {
+      env.RL_AUTH_ME = createMockRateLimiter(false);
+      app = createTestApp(env);
+
+      const res = await app.request("/auth/me", {
+        headers: { "CF-Connecting-IP": "1.2.3.4" },
+      });
+      expect(res.status).toBe(429);
     });
   });
 

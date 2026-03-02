@@ -1,29 +1,35 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { formatDateTime, formatDate, formatRelativeTime, summarizeChanges, displayName } from "./format";
+import { formatDateTime, formatDate, formatShortDate, formatRelativeTime, summarizeChanges, displayName } from "./format";
 
 describe("formatDateTime", () => {
-  it("returns a non-empty string for a valid ISO date string", () => {
-    const result = formatDateTime("2026-02-18T21:03:00.000Z");
-    expect(typeof result).toBe("string");
-    expect(result.length).toBeGreaterThan(0);
-  });
-
-  it("includes the year from the date string", () => {
-    const result = formatDateTime("2026-02-18T21:03:00.000Z");
-    expect(result).toContain("2026");
+  it("returns date in DD/MM/YYYY en-GB format (day before month) and 24h time", () => {
+    // Use a date string where the day (18) and month (02) are unambiguous
+    // The date portion must be "18/02/2026" regardless of timezone (within ±12h of midnight)
+    const result = formatDateTime("2026-02-18T12:00:00.000Z");
+    // en-GB format: day/month/year — day (18) must appear before month (02)
+    // Verify it matches DD/MM/YYYY, HH:MM pattern
+    expect(result).toMatch(/^\d{2}\/\d{2}\/\d{4}, \d{2}:\d{2}$/);
+    // Verify en-GB day-first ordering: "18/02" not "02/18"
+    expect(result).toMatch(/^18\/02\/2026/);
   });
 });
 
 describe("formatDate", () => {
-  it("returns a non-empty string for a valid ISO date string", () => {
+  it("returns date in DD/MM/YYYY format pinned to en-GB locale", () => {
     const result = formatDate("2026-02-18T00:00:00.000Z");
-    expect(typeof result).toBe("string");
-    expect(result.length).toBeGreaterThan(0);
+    expect(result).toBe("18/02/2026");
+  });
+});
+
+describe("formatShortDate", () => {
+  it("returns date in en-GB short format: '18 Feb 2026'", () => {
+    const result = formatShortDate("2026-02-18T00:00:00.000Z");
+    expect(result).toBe("18 Feb 2026");
   });
 
-  it("includes the year from the date string", () => {
-    const result = formatDate("2026-02-18T00:00:00.000Z");
-    expect(result).toContain("2026");
+  it("returns single-digit day without zero-padding: '9 Feb 2026'", () => {
+    const result = formatShortDate("2026-02-09T00:00:00.000Z");
+    expect(result).toBe("9 Feb 2026");
   });
 });
 

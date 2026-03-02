@@ -5,7 +5,7 @@ import { SESSION_COOKIE_NAME, SESSION_TTL_SECONDS, SESSION_REFRESH_THRESHOLD_SEC
 import type { AppContext } from "../types";
 import { getCookie } from "hono/cookie";
 
-const sessionSchema = z.object({
+export const sessionSchema = z.object({
   colleagueId: z.string(),
   email: z.string(),
   role: z.string(),

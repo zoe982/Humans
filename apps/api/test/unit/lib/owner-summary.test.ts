@@ -99,4 +99,38 @@ describe("resolveOwnerSummary", () => {
 
     expect(result).toEqual([]);
   });
+
+  it("returns empty array when accountId points to a missing record", async () => {
+    const db = getTestDb();
+
+    const result = await resolveOwnerSummary(db, { humanId: null, accountId: "nonexistent-acc", generalLeadId: null });
+
+    expect(result).toEqual([]);
+  });
+
+  it("returns empty array when generalLeadId points to a missing record", async () => {
+    const db = getTestDb();
+
+    const result = await resolveOwnerSummary(db, { humanId: null, accountId: null, generalLeadId: "nonexistent-gl" });
+
+    expect(result).toEqual([]);
+  });
+
+  it("resolves both human and account owners when both FKs are set", async () => {
+    const db = getTestDb();
+    await seedHuman(db, "h-multi", "Alice", "Jones");
+    await seedAccount(db, "a-multi", "Multi Corp");
+
+    const result = await resolveOwnerSummary(db, {
+      humanId: "h-multi",
+      accountId: "a-multi",
+      generalLeadId: null,
+    });
+
+    expect(result).toHaveLength(2);
+    const human = result.find((o) => o.type === "human");
+    const account = result.find((o) => o.type === "account");
+    expect(human).toMatchObject({ type: "human", id: "h-multi", name: "Alice Jones" });
+    expect(account).toMatchObject({ type: "account", id: "a-multi", name: "Multi Corp" });
+  });
 });

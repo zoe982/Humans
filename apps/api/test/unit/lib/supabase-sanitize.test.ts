@@ -44,4 +44,30 @@ describe("sanitizePostgrestValue", () => {
     expect(sanitizePostgrestValue("user@example")).toBe("user@example");
     expect(sanitizePostgrestValue("+1234")).toBe("+1234");
   });
+
+  it("strips percent signs (URL encoding injection)", () => {
+    expect(sanitizePostgrestValue("100%")).toBe("100");
+    expect(sanitizePostgrestValue("%25admin")).toBe("25admin");
+  });
+
+  it("strips asterisks (PostgREST wildcard operator)", () => {
+    expect(sanitizePostgrestValue("admin*")).toBe("admin");
+    expect(sanitizePostgrestValue("*")).toBe("");
+  });
+
+  it("strips colons (PostgREST range/cast operator)", () => {
+    expect(sanitizePostgrestValue("field:type")).toBe("fieldtype");
+  });
+
+  it("strips semicolons (statement separator)", () => {
+    expect(sanitizePostgrestValue("value;DROP")).toBe("valueDROP");
+  });
+
+  it("strips curly braces (PostgREST array literals)", () => {
+    expect(sanitizePostgrestValue("{1,2,3}")).toBe("123");
+  });
+
+  it("strips square brackets (PostgREST JSON path)", () => {
+    expect(sanitizePostgrestValue("data[0]")).toBe("data0");
+  });
 });

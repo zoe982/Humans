@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+import { sql } from "drizzle-orm";
 import { getTestDb } from "../setup";
 import {
   listGeoInterests,
@@ -372,6 +373,16 @@ describe("createExpression", () => {
     ).rejects.toThrowError("Human not found");
   });
 
+  it("throws notFound when no geoInterestId and no city/country provided", async () => {
+    const db = getTestDb();
+    await seedHuman(db, "h-1");
+
+    // Pass neither geoInterestId nor city+country — geoInterestId remains null after resolution
+    await expect(
+      createExpression(db, { humanId: "h-1" }),
+    ).rejects.toThrowError("Geo-interest could not be resolved");
+  });
+
   it("throws notFound for missing activity", async () => {
     const db = getTestDb();
     const ts = now();
@@ -515,6 +526,63 @@ describe("updateExpression", () => {
 });
 
 // ---------------------------------------------------------------------------
+// getGeoInterestDetail — null activityId branch
+// ---------------------------------------------------------------------------
+
+describe("getGeoInterestDetail — null activityId on expression", () => {
+  it("handles expression with null activityId (does not fetch activities)", async () => {
+    const db = getTestDb();
+    const ts = now();
+
+    await db.insert(schema.geoInterests).values({
+      id: "gi-null-act", displayId: nextDisplayId("GEO"), city: "Dublin", country: "Ireland", createdAt: ts,
+    });
+    await seedHuman(db, "h-null-act", "Paddy", "Murphy");
+
+    // Expression with activityId = null — exercises the activityId != null false branch
+    await db.insert(schema.geoInterestExpressions).values({
+      id: "expr-null-act", displayId: nextDisplayId("GIE"),
+      humanId: "h-null-act", geoInterestId: "gi-null-act",
+      activityId: null, notes: null, createdAt: ts,
+    });
+
+    const result = await getGeoInterestDetail(db, "gi-null-act");
+    expect(result.expressions).toHaveLength(1);
+    expect(result.expressions[0]!.humanName).toBe("Paddy Murphy");
+    expect(result.expressions[0]!.activitySubject).toBeNull();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// listExpressions — null activityId branch
+// ---------------------------------------------------------------------------
+
+describe("listExpressions — null activityId", () => {
+  it("returns null activitySubject for expression with null activityId", async () => {
+    const db = getTestDb();
+    const ts = now();
+
+    await db.insert(schema.geoInterests).values({
+      id: "gi-no-act", displayId: nextDisplayId("GEO"), city: "Valletta", country: "Malta", createdAt: ts,
+    });
+    await seedHuman(db, "h-no-act", "Maria", "Borg");
+
+    await db.insert(schema.geoInterestExpressions).values({
+      id: "expr-no-act", displayId: nextDisplayId("GIE"),
+      humanId: "h-no-act", geoInterestId: "gi-no-act",
+      activityId: null, createdAt: ts,
+    });
+
+    const result = await listExpressions(db, {});
+    expect(result).toHaveLength(1);
+    // The activityId == null branch returns null from allActivities.find()
+    expect(result[0]!.activitySubject).toBeNull();
+    expect(result[0]!.city).toBe("Valletta");
+    expect(result[0]!.country).toBe("Malta");
+  });
+});
+
+// ---------------------------------------------------------------------------
 // deleteExpression
 // ---------------------------------------------------------------------------
 
@@ -537,5 +605,245 @@ describe("deleteExpression", () => {
 
     await deleteExpression(db, "expr-1");
     expect(await db.select().from(schema.geoInterestExpressions)).toHaveLength(0);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// getGeoInterestDetail — orphaned human (humanName null branch)
+// ---------------------------------------------------------------------------
+
+describe("getGeoInterestDetail — orphaned human FK", () => {
+  it("sets humanName to null when the human row no longer exists", async () => {
+    const db = getTestDb();
+    const ts = now();
+
+    await db.insert(schema.geoInterests).values({
+      id: "gi-orphan-h", displayId: nextDisplayId("GEO"), city: "Athens", country: "Greece", createdAt: ts,
+    });
+    await seedHuman(db, "h-real");
+
+    // Insert an expression with a valid human so FK passes, then orphan it via replica mode
+    await db.insert(schema.geoInterestExpressions).values({
+      id: "expr-orphan-h", displayId: nextDisplayId("GIE"),
+      humanId: "h-real", geoInterestId: "gi-orphan-h", createdAt: ts,
+    });
+
+    // Bypass FK constraints and point humanId at a non-existent human
+    await db.execute(sql`SET session_replication_role = 'replica'`);
+    await db.execute(sql`UPDATE geo_interest_expressions SET human_id = 'ghost-human' WHERE id = 'expr-orphan-h'`);
+    await db.execute(sql`SET session_replication_role = 'origin'`);
+
+    // Delete the real human so inArray lookup also finds nothing
+    await db.delete(schema.humans).where(sql`id = 'h-real'`);
+
+    const result = await getGeoInterestDetail(db, "gi-orphan-h");
+    expect(result.expressions).toHaveLength(1);
+    // human not found → humanName: null  (exercises L73 cond-expr false branch)
+    expect(result.expressions[0]!.humanName).toBeNull();
+    // geo-interest data still comes from the parent record
+    expect(result.city).toBe("Athens");
+  });
+
+  it("skips the allHumans fetch when there are no expressions (humanIds empty)", async () => {
+    const db = getTestDb();
+    const ts = now();
+
+    await db.insert(schema.geoInterests).values({
+      id: "gi-no-expr", displayId: nextDisplayId("GEO"), city: "Lisbon", country: "Portugal", createdAt: ts,
+    });
+
+    // No expressions → humanIds.length === 0 → allHumans = []  (exercises L61 cond-expr false branch)
+    const result = await getGeoInterestDetail(db, "gi-no-expr");
+    expect(result.expressions).toHaveLength(0);
+    expect(result.city).toBe("Lisbon");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// listExpressions — filter by activityId (L133 if[0] true branch)
+// ---------------------------------------------------------------------------
+
+describe("listExpressions — filter by activityId", () => {
+  it("filters expressions by activityId", async () => {
+    const db = getTestDb();
+    const ts = now();
+
+    await db.insert(schema.geoInterests).values({
+      id: "gi-act-filter", displayId: nextDisplayId("GEO"), city: "Madrid", country: "Spain", createdAt: ts,
+    });
+    await seedHuman(db, "h-act-filter", "Carlos", "Lopez");
+    await seedColleague(db, "col-act-filter");
+
+    await db.insert(schema.activities).values({
+      id: "act-filter-1", displayId: nextDisplayId("ACT"), type: "email", subject: "Madrid visit",
+      activityDate: ts, colleagueId: "col-act-filter", createdAt: ts, updatedAt: ts,
+    });
+
+    // Expression with activity
+    await db.insert(schema.geoInterestExpressions).values({
+      id: "expr-with-act", displayId: nextDisplayId("GIE"),
+      humanId: "h-act-filter", geoInterestId: "gi-act-filter",
+      activityId: "act-filter-1", createdAt: ts,
+    });
+    // Expression without activity
+    await db.insert(schema.geoInterestExpressions).values({
+      id: "expr-no-act", displayId: nextDisplayId("GIE"),
+      humanId: "h-act-filter", geoInterestId: "gi-act-filter",
+      activityId: null, createdAt: ts,
+    });
+
+    // Filter by activityId — exercises L133 if[0] true branch
+    const result = await listExpressions(db, { activityId: "act-filter-1" });
+    expect(result).toHaveLength(1);
+    expect(result[0]!.id).toBe("expr-with-act");
+    expect(result[0]!.activitySubject).toBe("Madrid visit");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// listExpressions — orphaned human (L149 humanName null branch)
+// ---------------------------------------------------------------------------
+
+describe("listExpressions — orphaned human FK", () => {
+  it("sets humanName to null when the referenced human no longer exists", async () => {
+    const db = getTestDb();
+    const ts = now();
+
+    await db.insert(schema.geoInterests).values({
+      id: "gi-list-orphan-h", displayId: nextDisplayId("GEO"), city: "Prague", country: "Czech Republic", createdAt: ts,
+    });
+    await seedHuman(db, "h-list-orphan");
+
+    await db.insert(schema.geoInterestExpressions).values({
+      id: "expr-list-orphan-h", displayId: nextDisplayId("GIE"),
+      humanId: "h-list-orphan", geoInterestId: "gi-list-orphan-h", createdAt: ts,
+    });
+
+    // Orphan the human reference
+    await db.execute(sql`SET session_replication_role = 'replica'`);
+    await db.execute(sql`UPDATE geo_interest_expressions SET human_id = 'ghost-human-list' WHERE id = 'expr-list-orphan-h'`);
+    await db.execute(sql`SET session_replication_role = 'origin'`);
+
+    await db.delete(schema.humans).where(sql`id = 'h-list-orphan'`);
+
+    // L149 cond-expr false branch: human not found → humanName: null
+    const result = await listExpressions(db, {});
+    expect(result).toHaveLength(1);
+    expect(result[0]!.humanName).toBeNull();
+    // city/country still resolve from the existing geo interest
+    expect(result[0]!.city).toBe("Prague");
+    expect(result[0]!.country).toBe("Czech Republic");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// listExpressions — orphaned geoInterest (L165-167 city/country null branches)
+// ---------------------------------------------------------------------------
+
+describe("listExpressions — orphaned geoInterest FK", () => {
+  it("sets city and country to null when the referenced geo-interest no longer exists", async () => {
+    const db = getTestDb();
+    const ts = now();
+
+    await db.insert(schema.geoInterests).values({
+      id: "gi-list-orphan-gi", displayId: nextDisplayId("GEO"), city: "Warsaw", country: "Poland", createdAt: ts,
+    });
+    await seedHuman(db, "h-list-orphan-gi", "Anna", "Kowalski");
+
+    await db.insert(schema.geoInterestExpressions).values({
+      id: "expr-list-orphan-gi", displayId: nextDisplayId("GIE"),
+      humanId: "h-list-orphan-gi", geoInterestId: "gi-list-orphan-gi", createdAt: ts,
+    });
+
+    // Orphan the geoInterest reference — bypass FK to point at a non-existent geo interest
+    await db.execute(sql`SET session_replication_role = 'replica'`);
+    await db.execute(sql`UPDATE geo_interest_expressions SET geo_interest_id = 'ghost-gi' WHERE id = 'expr-list-orphan-gi'`);
+    await db.execute(sql`SET session_replication_role = 'origin'`);
+
+    // Remove the real geo interest so the inArray lookup finds nothing
+    await db.delete(schema.geoInterests).where(sql`id = 'gi-list-orphan-gi'`);
+
+    // L165-167: gi not found → city: null, country: null
+    const result = await listExpressions(db, {});
+    expect(result).toHaveLength(1);
+    expect(result[0]!.humanName).toBe("Anna Kowalski");
+    expect(result[0]!.city).toBeNull();
+    expect(result[0]!.country).toBeNull();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// getGeoInterestExpressionDetail — orphaned human (L261 humanName/humanDisplayId null)
+// ---------------------------------------------------------------------------
+
+describe("getGeoInterestExpressionDetail — orphaned human FK", () => {
+  it("sets humanName and humanDisplayId to null when human no longer exists", async () => {
+    const db = getTestDb();
+    const ts = now();
+
+    await db.insert(schema.geoInterests).values({
+      id: "gi-det-orphan-h", displayId: nextDisplayId("GEO"), city: "Budapest", country: "Hungary", createdAt: ts,
+    });
+    await seedHuman(db, "h-det-orphan");
+
+    await db.insert(schema.geoInterestExpressions).values({
+      id: "expr-det-orphan-h", displayId: nextDisplayId("GEX"),
+      humanId: "h-det-orphan", geoInterestId: "gi-det-orphan-h", createdAt: ts,
+    });
+
+    // Orphan the human reference
+    await db.execute(sql`SET session_replication_role = 'replica'`);
+    await db.execute(sql`UPDATE geo_interest_expressions SET human_id = 'ghost-human-det' WHERE id = 'expr-det-orphan-h'`);
+    await db.execute(sql`SET session_replication_role = 'origin'`);
+
+    await db.delete(schema.humans).where(sql`id = 'h-det-orphan'`);
+
+    // L261: human != null false branch → humanName: null
+    // L262: human?.displayId ?? null → humanDisplayId: null
+    const result = await getGeoInterestExpressionDetail(db, "expr-det-orphan-h");
+    expect(result.humanName).toBeNull();
+    expect(result.humanDisplayId).toBeNull();
+    // geo-interest still resolves
+    expect(result.city).toBe("Budapest");
+    expect(result.country).toBe("Hungary");
+    expect(result.geoDisplayId).toMatch(/^GEO-/);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// getGeoInterestExpressionDetail — orphaned geoInterest (L263-265 city/country/geoDisplayId null)
+// ---------------------------------------------------------------------------
+
+describe("getGeoInterestExpressionDetail — orphaned geoInterest FK", () => {
+  it("sets city, country, and geoDisplayId to null when geo-interest no longer exists", async () => {
+    const db = getTestDb();
+    const ts = now();
+
+    await db.insert(schema.geoInterests).values({
+      id: "gi-det-orphan-gi", displayId: nextDisplayId("GEO"), city: "Krakow", country: "Poland", createdAt: ts,
+    });
+    await seedHuman(db, "h-det-orphan-gi", "Piotr", "Nowak");
+
+    await db.insert(schema.geoInterestExpressions).values({
+      id: "expr-det-orphan-gi", displayId: nextDisplayId("GEX"),
+      humanId: "h-det-orphan-gi", geoInterestId: "gi-det-orphan-gi", createdAt: ts,
+    });
+
+    // Orphan the geoInterest reference by updating to a non-existent ID
+    await db.execute(sql`SET session_replication_role = 'replica'`);
+    await db.execute(sql`UPDATE geo_interest_expressions SET geo_interest_id = 'ghost-gi-det' WHERE id = 'expr-det-orphan-gi'`);
+    await db.execute(sql`SET session_replication_role = 'origin'`);
+
+    await db.delete(schema.geoInterests).where(sql`id = 'gi-det-orphan-gi'`);
+
+    // L263: gi?.city ?? null → city: null
+    // L264: gi?.country ?? null → country: null
+    // L265: gi?.displayId ?? null → geoDisplayId: null
+    const result = await getGeoInterestExpressionDetail(db, "expr-det-orphan-gi");
+    expect(result.humanName).toBe("Piotr Nowak");
+    expect(result.humanDisplayId).toMatch(/^HUM-/);
+    expect(result.city).toBeNull();
+    expect(result.country).toBeNull();
+    expect(result.geoDisplayId).toBeNull();
   });
 });

@@ -77,7 +77,7 @@
       // Format timestamps
       if (/^\d{4}-\d{2}-\d{2}T/.test(val)) {
         const d = new Date(val);
-        return d.toLocaleDateString() + " " + d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+        return d.toLocaleDateString("en-GB") + " " + d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
       }
       return val;
     }

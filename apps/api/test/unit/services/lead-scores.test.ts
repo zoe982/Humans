@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+import { sql } from "drizzle-orm";
 import { getTestDb } from "../setup";
 import {
   computeLeadScore,
@@ -422,6 +423,84 @@ describe("listLeadScores", () => {
     const page2 = await listLeadScores(db, 2, 2, {});
     expect(page2.data).toHaveLength(1);
   });
+
+  it("filters by q — returns only scores whose displayId matches the search term", async () => {
+    const db = getTestDb();
+    await seedDisplayIdCounter(db);
+    await seedGeneralLead(db, "gl-1");
+    await seedGeneralLead(db, "gl-2");
+    const score1 = await ensureLeadScore(db, "general_lead", "gl-1");
+    await ensureLeadScore(db, "general_lead", "gl-2");
+
+    // Search using a portion of score1's displayId
+    const result = await listLeadScores(db, 1, 25, { q: score1.displayId });
+    expect(result.data).toHaveLength(1);
+    expect(result.data[0]!.displayId).toBe(score1.displayId);
+  });
+
+  it("filters by parentType route_signup — returns only route signup scores", async () => {
+    const db = getTestDb();
+    await seedDisplayIdCounter(db);
+    await seedGeneralLead(db, "gl-1");
+    await ensureLeadScore(db, "general_lead", "gl-1");
+    await ensureLeadScore(db, "website_booking_request", "bor-1");
+    const routeScore = await ensureLeadScore(db, "route_signup", "rs-1");
+
+    const result = await listLeadScores(db, 1, 25, { parentType: "route_signup" });
+    expect(result.data).toHaveLength(1);
+    expect(result.data[0]!.id).toBe(routeScore.id);
+    expect(result.data[0]!.routeSignupId).toBe("rs-1");
+  });
+
+  it("filters by parentType website_booking_request — returns only booking request scores", async () => {
+    const db = getTestDb();
+    await seedDisplayIdCounter(db);
+    await seedGeneralLead(db, "gl-1");
+    await ensureLeadScore(db, "general_lead", "gl-1");
+    const borScore = await ensureLeadScore(db, "website_booking_request", "bor-99");
+    await ensureLeadScore(db, "route_signup", "rs-1");
+
+    const result = await listLeadScores(db, 1, 25, { parentType: "website_booking_request" });
+    expect(result.data).toHaveLength(1);
+    expect(result.data[0]!.id).toBe(borScore.id);
+    expect(result.data[0]!.websiteBookingRequestId).toBe("bor-99");
+  });
+
+  it("filters by band warm — returns scores in [50, 75) range", async () => {
+    const db = getTestDb();
+    await seedDisplayIdCounter(db);
+    await seedGeneralLead(db, "gl-warm");
+    await seedGeneralLead(db, "gl-hot");
+    await seedGeneralLead(db, "gl-cold");
+
+    const warmScore = await ensureLeadScore(db, "general_lead", "gl-warm");
+    const hotScore = await ensureLeadScore(db, "general_lead", "gl-hot");
+    const coldScore = await ensureLeadScore(db, "general_lead", "gl-cold");
+
+    // warm: score in [50, 75) — routeSignupSubmitted(5) + bookingStarted(10) + bookingSubmitted(20) = 35... use payment details sent (35) + fit(30) = 65
+    await updateLeadScoreFlags(db, warmScore.id, {
+      fitMatchesCurrentWebsiteFlight: true,   // +30 fit
+      intentPaymentDetailsSent: true,         // +35 intent → total 65
+    });
+    // hot: >= 75 — depositPaid override → 90
+    await updateLeadScoreFlags(db, hotScore.id, {
+      intentDepositPaid: true,
+    });
+    // cold: < 50 — no flags → 0
+    void coldScore;
+
+    const warm = await listLeadScores(db, 1, 25, { band: "warm" });
+    expect(warm.data).toHaveLength(1);
+    expect(warm.data[0]!.id).toBe(warmScore.id);
+
+    const hot = await listLeadScores(db, 1, 25, { band: "hot" });
+    expect(hot.data).toHaveLength(1);
+    expect(hot.data[0]!.id).toBe(hotScore.id);
+
+    const cold = await listLeadScores(db, 1, 25, { band: "cold" });
+    expect(cold.data).toHaveLength(1);
+    expect(cold.data[0]!.id).toBe(coldScore.id);
+  });
 });
 
 // ─── updateLeadScoreFlags ────────────────────────────────────────
@@ -525,5 +604,122 @@ describe("updateLeadScoreFlags", () => {
     // deposit override → max(50 - 30, 90) = 90
     // hard cap does not apply because deposit is paid
     expect(updated.scoreTotal).toBe(90);
+  });
+
+  it("skips undefined flag values (false branch of val !== undefined check)", async () => {
+    const db = getTestDb();
+    await seedDisplayIdCounter(db);
+    await seedGeneralLead(db, "gl-1");
+    const score = await ensureLeadScore(db, "general_lead", "gl-1");
+
+    // First set a flag to true
+    await updateLeadScoreFlags(db, score.id, { fitMatchesCurrentWebsiteFlight: true });
+
+    // Now pass a flags object where the existing flag is undefined (should be skipped/retained)
+    // and a different flag is set to true
+    const updated = await updateLeadScoreFlags(db, score.id, {
+      fitMatchesCurrentWebsiteFlight: undefined,
+      fitPriceAcknowledgedOk: true,
+    });
+
+    // fitMatchesCurrentWebsiteFlight was true and undefined means "no change" — stays true
+    expect(updated.fitMatchesCurrentWebsiteFlight).toBe(true);
+    expect(updated.fitPriceAcknowledgedOk).toBe(true);
+    // scoreFit should reflect both flags: min(35, 30+5) = 35
+    expect(updated.scoreFit).toBe(35);
+  });
+});
+
+// ─── listLeadScores — parentType and parentDisplayId branches ─────────────────
+
+describe("listLeadScores — parentType resolution branches", () => {
+  it("resolves parentType as 'route_signup' and parentId as routeSignupId", async () => {
+    const db = getTestDb();
+    await seedDisplayIdCounter(db);
+
+    // routeSignupId has no FK in the test schema, so we can insert directly
+    const score = await ensureLeadScore(db, "route_signup", "rs-branch-1");
+
+    const result = await listLeadScores(db, 1, 25, {});
+    expect(result.data).toHaveLength(1);
+    const row = result.data[0]!;
+    expect(row.parentType).toBe("route_signup");
+    expect(row.parentId).toBe("rs-branch-1");
+    expect(row.routeSignupId).toBe("rs-branch-1");
+    expect(row.id).toBe(score.id);
+  });
+
+  it("resolves parentType as 'website_booking_request' and parentId as websiteBookingRequestId", async () => {
+    const db = getTestDb();
+    await seedDisplayIdCounter(db);
+
+    const score = await ensureLeadScore(db, "website_booking_request", "wbr-branch-1");
+
+    const result = await listLeadScores(db, 1, 25, {});
+    expect(result.data).toHaveLength(1);
+    const row = result.data[0]!;
+    expect(row.parentType).toBe("website_booking_request");
+    expect(row.parentId).toBe("wbr-branch-1");
+    expect(row.websiteBookingRequestId).toBe("wbr-branch-1");
+    expect(row.id).toBe(score.id);
+  });
+
+  it("resolves generalLead displayId when parentType is general_lead", async () => {
+    const db = getTestDb();
+    await seedDisplayIdCounter(db);
+
+    // Use a known displayId for the general lead
+    const ts = new Date().toISOString();
+    await db.insert(schema.generalLeads).values({
+      id: "gl-display-1",
+      displayId: "LEA-DISPLAY-001",
+      status: "open",
+      firstName: "Display",
+      lastName: "Test",
+      createdAt: ts,
+      updatedAt: ts,
+    });
+    await ensureLeadScore(db, "general_lead", "gl-display-1");
+
+    const result = await listLeadScores(db, 1, 25, {});
+    expect(result.data).toHaveLength(1);
+    const row = result.data[0]!;
+    expect(row.parentType).toBe("general_lead");
+    expect(row.parentId).toBe("gl-display-1");
+    // parentDisplayId should be resolved from the general_leads table
+    expect(row.parentDisplayId).toBe("LEA-DISPLAY-001");
+  });
+
+  it("returns null parentDisplayId when generalLead row is not found in the lookup", async () => {
+    const db = getTestDb();
+    await seedDisplayIdCounter(db);
+
+    // Create a real general lead and score so the FK is satisfied at insert time
+    const now2 = new Date().toISOString();
+    await db.insert(schema.generalLeads).values({
+      id: "gl-orphan-host",
+      displayId: "LEA-ORPHAN-001",
+      status: "open",
+      firstName: "Orphan",
+      lastName: "Host",
+      createdAt: now2,
+      updatedAt: now2,
+    });
+    const score = await ensureLeadScore(db, "general_lead", "gl-orphan-host");
+
+    // Bypass FK enforcement to update the generalLeadId to a non-existent value,
+    // simulating an orphaned lead score reference (same technique used in search.test.ts)
+    await db.execute(sql`SET session_replication_role = 'replica'`);
+    await db.execute(
+      sql`UPDATE lead_scores SET general_lead_id = 'gl-nonexistent-id' WHERE id = ${score.id}`
+    );
+    await db.execute(sql`SET session_replication_role = 'origin'`);
+
+    const result = await listLeadScores(db, 1, 25, {});
+    expect(result.data).toHaveLength(1);
+    const row = result.data[0]!;
+    expect(row.parentType).toBe("general_lead");
+    // parentDisplayId is null because the referenced general_lead no longer exists in the lookup
+    expect(row.parentDisplayId).toBeNull();
   });
 });

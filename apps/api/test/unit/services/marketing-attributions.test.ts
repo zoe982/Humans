@@ -375,6 +375,118 @@ describe("listMarketingAttributions", () => {
   });
 });
 
+// ─── Branch coverage: ensureDisplayIds — Supabase update error (error != null) ──
+
+describe("listMarketingAttributions — ensureDisplayIds update error suppressed", () => {
+  it("still returns the attribution even when the display ID update call errors", async () => {
+    const db = getTestDb();
+    const row = makeRow({ id: "mat-err", crm_display_id: null });
+
+    // Build a mock where the update call returns an error
+    const updateErr = new Error("Update failed");
+    const hybridMock = {
+      from(table: string) {
+        if (table !== "marketing_attribution") {
+          return makeSupabaseMock([row] as MarketingAttributionRow[], [], []).from(table);
+        }
+        const normalBuilder = makeSupabaseMock([row] as MarketingAttributionRow[], [], []).from("marketing_attribution");
+
+        (normalBuilder as Record<string, unknown>)["update"] = function(_data: unknown) {
+          const errSelf: Record<string, unknown> = {
+            eq(_c: string, _v: unknown) { return errSelf; },
+            then(resolve: (result: { data: null; error: Error }) => void): Promise<void> {
+              return Promise.resolve(resolve({ data: null, error: updateErr }));
+            },
+            overrideTypes() { return errSelf; },
+          };
+          return errSelf;
+        };
+
+        return normalBuilder;
+      },
+    } as unknown as SupabaseClient;
+
+    const result = await listMarketingAttributions(hybridMock, db);
+    expect(result).toHaveLength(1);
+    expect(result[0]!.id).toBe("mat-err");
+    // crmDisplayId stays null because the update errored (error != null → row not updated)
+    expect(result[0]!.crmDisplayId).toBeNull();
+  });
+});
+
+// ─── Branch coverage: findLinkedLeads — null name when first+last are both empty ──
+
+describe("findLinkedLeads — null leadName when first and last name are empty", () => {
+  it("sets leadName to null for a signup with null first and last name", async () => {
+    const db = getTestDb();
+    const row = makeRow({ id: "mat-noname" });
+    const signup: SignupRow = {
+      id: "rs-noname",
+      marketing_attribution_id: "mat-noname",
+      first_name: null,
+      last_name: null,
+      display_id: "SIG-NONAME",
+    };
+    const supabase = makeSupabaseMock([row], [signup]);
+
+    const result = await listMarketingAttributions(supabase, db);
+    expect(result[0]!.linkedLead).toMatchObject({
+      leadType: "route_signup",
+      leadId: "rs-noname",
+      leadName: null,
+    });
+  });
+
+  it("sets leadName to null for a booking with null first and last name", async () => {
+    const db = getTestDb();
+    const row = makeRow({ id: "mat-noname-bk" });
+    const booking: BookingRow = {
+      id: "bk-noname",
+      marketing_attribution_id: "mat-noname-bk",
+      first_name: null,
+      last_name: null,
+      crm_display_id: "BOR-NONAME",
+    };
+    const supabase = makeSupabaseMock([row], [], [booking]);
+
+    const result = await listMarketingAttributions(supabase, db);
+    expect(result[0]!.linkedLead).toMatchObject({
+      leadType: "booking_request",
+      leadId: "bk-noname",
+      leadName: null,
+    });
+  });
+
+  it("handles partial name (first only) correctly for signup", async () => {
+    const db = getTestDb();
+    const row = makeRow({ id: "mat-partial" });
+    const signup: SignupRow = {
+      id: "rs-partial",
+      marketing_attribution_id: "mat-partial",
+      first_name: "OnlyFirst",
+      last_name: null,
+      display_id: "SIG-PART",
+    };
+    const supabase = makeSupabaseMock([row], [signup]);
+
+    const result = await listMarketingAttributions(supabase, db);
+    expect(result[0]!.linkedLead!.leadName).toBe("OnlyFirst");
+  });
+});
+
+// ─── Branch coverage: getMarketingAttribution — multiple results in typed array ──
+
+describe("getMarketingAttribution — attributions.length === 0 (not found)", () => {
+  it("throws not found when the attribution ID does not exist", async () => {
+    const db = getTestDb();
+    const supabase = makeSupabaseMock([]);
+
+    await expect(
+      getMarketingAttribution(supabase, db, "mat-missing"),
+    ).rejects.toThrowError("Marketing attribution not found");
+  });
+});
+
 // ---------------------------------------------------------------------------
 // getMarketingAttribution
 // ---------------------------------------------------------------------------
@@ -470,4 +582,5 @@ describe("getMarketingAttribution", () => {
       "Supabase error: DB error",
     );
   });
+
 });

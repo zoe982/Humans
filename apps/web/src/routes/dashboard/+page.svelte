@@ -59,7 +59,7 @@
       </div>
       <p class="mt-2 text-3xl font-bold text-text-primary">{data.counts.humans}</p>
     </a>
-    <a href={resolve('/humans')} class="glass-card p-6 transition hover:ring-1 hover:ring-accent/40">
+    <a href={resolve('/pets')} class="glass-card p-6 transition hover:ring-1 hover:ring-accent/40">
       <div class="flex items-center justify-between">
         <h3 class="text-sm font-medium text-text-muted">Pets</h3>
         <PawPrint size={20} class="text-text-muted" />

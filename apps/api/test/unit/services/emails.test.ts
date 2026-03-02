@@ -180,6 +180,17 @@ describe("listEmails", () => {
     expect(result).toHaveLength(1);
     expect(result[0]!.labelName).toBe("Billing");
   });
+
+  it("returns emails with general lead owner names", async () => {
+    const db = getTestDb();
+    await seedGeneralLead(db, "gl-1", "Sam", "Wilson");
+    await seedEmail(db, "em-1", "sam@test.com", { generalLeadId: "gl-1" });
+
+    const result = await listEmails(db);
+    expect(result).toHaveLength(1);
+    expect(result[0]!.ownerName).toBe("Sam Wilson");
+    expect(result[0]!.ownerDisplayId).toMatch(/^LEA-/);
+  });
 });
 
 // ---------------------------------------------------------------------------

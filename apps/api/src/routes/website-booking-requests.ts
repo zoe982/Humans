@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { inArray, eq } from "drizzle-orm";
-import { leadScores, humanWebsiteBookingRequests } from "@humans/db/schema";
+import { sql, and, inArray, eq } from "drizzle-orm";
+import { leadScores, humanWebsiteBookingRequests, entityNextActions } from "@humans/db/schema";
 import { updateWebsiteBookingRequestSchema, updateEntityNextActionSchema, createEmailSchema, createPhoneNumberSchema, createSocialIdSchema, linkHumanSchema, linkOpportunityFromBorSchema, ERROR_CODES } from "@humans/shared";
 import { authMiddleware } from "../middleware/auth";
 import { requirePermission } from "../middleware/rbac";
@@ -78,7 +78,7 @@ websiteBookingRequestRoutes.get(
 
     const { data, error, count } = await supabase
       .from("bookings")
-      .select("id, crm_display_id, first_name, middle_name, last_name, client_email, origin_city, destination_city, travel_date, status, deposit_status, crm_note, inserted_at", { count: "exact" })
+      .select("id, crm_display_id, first_name, middle_name, last_name, client_email, origin_city, destination_city, travel_date, status, deposit_status, crm_note, inserted_at, crm_channel, crm_source", { count: "exact" })
       .order("inserted_at", { ascending: false })
       .range(from, to);
 
@@ -105,6 +105,30 @@ websiteBookingRequestRoutes.get(
       enriched = data.map((b) => ({
         ...b,
         scoreTotal: scoreMap.get(String(b.id)) ?? null,
+      }));
+    }
+
+    // Bulk-fetch next actions
+    if (bookingIds.length > 0) {
+      const nextActions = await db
+        .select({
+          entityId: entityNextActions.entityId,
+          type: entityNextActions.type,
+          description: entityNextActions.description,
+          dueDate: entityNextActions.dueDate,
+        })
+        .from(entityNextActions)
+        .where(
+          and(
+            sql`${entityNextActions.entityType} = 'website_booking_request'`,
+            inArray(entityNextActions.entityId, bookingIds),
+            sql`${entityNextActions.completedAt} IS NULL`,
+          ),
+        );
+      const nextActionMap = new Map(nextActions.map((na) => [na.entityId, { type: na.type, description: na.description, dueDate: na.dueDate }]));
+      enriched = enriched.map((b) => ({
+        ...b,
+        nextAction: nextActionMap.get(b.id) ?? null,
       }));
     }
 

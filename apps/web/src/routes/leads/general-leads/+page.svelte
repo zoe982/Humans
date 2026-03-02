@@ -2,9 +2,11 @@
   import type { PageData, ActionData } from "./$types";
   import EntityListPage from "$lib/components/EntityListPage.svelte";
   import LeadScoreBadge from "$lib/components/LeadScoreBadge.svelte";
-  import { getLeadScoreBand } from "@humans/shared";
+  import { getLeadScoreBand, generalLeadStatuses } from "@humans/shared";
   import { generalLeadStatusLabels } from "$lib/constants/labels";
   import { generalLeadStatusColors } from "$lib/constants/colors";
+  import { toast } from "svelte-sonner";
+  import { SvelteMap } from "svelte/reactivity";
   import { resolve } from "$app/paths";
   import { formatDate } from "$lib/utils/format";
   import { enhance } from "$app/forms";
@@ -25,7 +27,10 @@
     lastName: string;
     notes: string | null;
     ownerName: string | null;
+    channel: string | null;
+    source: string | null;
     scoreTotal: number | null;
+    nextAction: { type: string | null; description: string | null; dueDate: string | null } | null;
     convertedHumanDisplayId: string | null;
     convertedHumanId: string | null;
     convertedHumanName: string | null;
@@ -69,6 +74,63 @@
   function handleImportKeydown(e: KeyboardEvent) {
     if (e.key === "Escape") closeImportPopover();
   }
+
+  // Inline status editing
+  let statusOverrides = new SvelteMap<string, string>();
+
+  const badgeStyleMap: Record<string, { bg: string; color: string }> = {
+    "badge-blue":   { bg: "var(--badge-blue-bg)",   color: "var(--badge-blue-text)" },
+    "badge-green":  { bg: "var(--badge-green-bg)",  color: "var(--badge-green-text)" },
+    "badge-red":    { bg: "var(--badge-red-bg)",    color: "var(--badge-red-text)" },
+    "badge-yellow": { bg: "var(--badge-yellow-bg)", color: "var(--badge-yellow-text)" },
+    "badge-purple": { bg: "var(--badge-purple-bg)", color: "var(--badge-purple-text)" },
+    "badge-orange": { bg: "var(--badge-orange-bg)", color: "var(--badge-orange-text)" },
+  };
+
+  function getEffectiveStatus(lead: Lead): string {
+    return statusOverrides.get(lead.id) ?? lead.status;
+  }
+
+  function getStatusBadgeStyle(lead: Lead): string {
+    const effectiveStatus = getEffectiveStatus(lead);
+    // eslint-disable-next-line security/detect-object-injection
+    const badgeKey = generalLeadStatusColors[effectiveStatus];
+    // eslint-disable-next-line security/detect-object-injection
+    const style = badgeKey ? badgeStyleMap[badgeKey] : null;
+    if (!style) return "";
+    return `background-color: ${style.bg}; color: ${style.color};`;
+  }
+
+  function isOverdue(dueDate: string | null): boolean {
+    if (dueDate == null) return false;
+    return new Date(dueDate) < new Date();
+  }
+
+  async function handleInlineStatusChange(lead: Lead, newStatus: string) {
+    // closed_lost requires loss reason — redirect to detail page
+    if (newStatus === "closed_lost") {
+      toast.info("Loss reason required \u2014 please update status on the detail page");
+      return;
+    }
+
+    const prev = getEffectiveStatus(lead);
+    statusOverrides.set(lead.id, newStatus);
+
+    try {
+      await api(`/api/general-leads/${lead.id}/status`, {
+        method: "PATCH",
+        body: JSON.stringify({ status: newStatus }),
+      });
+      toast.success("Status updated");
+    } catch {
+      if (prev === lead.status) {
+        statusOverrides.delete(lead.id);
+      } else {
+        statusOverrides.set(lead.id, prev);
+      }
+      toast.error("Failed to update status");
+    }
+  }
 </script>
 
 <EntityListPage
@@ -81,8 +143,11 @@
     { key: "name", label: "Name" },
     { key: "score", label: "Score" },
     { key: "status", label: "Status" },
+    { key: "channel", label: "Channel" },
+    { key: "source", label: "Source" },
     { key: "owner", label: "Owner" },
     { key: "notes", label: "Notes" },
+    { key: "nextAction", label: "Next Action" },
     { key: "createdAt", label: "Created" },
     { key: "convertedHuman", label: "Linked Human" },
   ]}
@@ -200,12 +265,23 @@
       {/if}
     </td>
     <td>
-      <!-- eslint-disable-next-line security/detect-object-injection -->
-      <span class="glass-badge inline-flex rounded-full px-2 py-0.5 text-xs font-medium {generalLeadStatusColors[lead.status] ?? 'bg-glass text-text-secondary'}">
-        <!-- eslint-disable-next-line security/detect-object-injection -->
-        {generalLeadStatusLabels[lead.status] ?? lead.status}
-      </span>
+      <select
+        class="glass-select-badge"
+        style={getStatusBadgeStyle(lead)}
+        value={getEffectiveStatus(lead)}
+        onchange={(e) => {
+          const target = e.currentTarget;
+          void handleInlineStatusChange(lead, target.value);
+        }}
+      >
+        {#each generalLeadStatuses as status, i (i)}
+          <!-- eslint-disable-next-line security/detect-object-injection -->
+          <option value={status}>{generalLeadStatusLabels[status] ?? status}</option>
+        {/each}
+      </select>
     </td>
+    <td class="text-text-secondary text-sm">{lead.channel ?? "\u2014"}</td>
+    <td class="text-text-secondary text-sm">{lead.source ?? "\u2014"}</td>
     <td class="text-text-secondary">{lead.ownerName ?? "\u2014"}</td>
     <td>
       <InlineNoteEditor
@@ -219,6 +295,20 @@
           lead.notes = note;
         }}
       />
+    </td>
+    <td class="text-sm max-w-[200px]">
+      {#if lead.nextAction}
+        <div class="text-text-primary truncate">
+          {#if lead.nextAction.type}{lead.nextAction.type}: {/if}{lead.nextAction.description ?? ""}
+        </div>
+        {#if lead.nextAction.dueDate}
+          <div class="text-xs {isOverdue(lead.nextAction.dueDate) ? 'text-[var(--badge-red-text)]' : 'text-text-muted'}">
+            Due {formatDate(lead.nextAction.dueDate)}
+          </div>
+        {/if}
+      {:else}
+        <span class="text-text-muted">&mdash;</span>
+      {/if}
     </td>
     <td class="text-text-muted whitespace-nowrap">{formatDate(lead.createdAt)}</td>
     <td>
@@ -250,8 +340,20 @@
       {#if lead.ownerName}
         <p class="text-sm text-text-secondary">{lead.ownerName}</p>
       {/if}
+      {#if lead.channel || lead.source}
+        <p class="text-xs text-text-secondary mt-1">
+          {#if lead.channel}{lead.channel}{/if}
+          {#if lead.channel && lead.source} &middot; {/if}
+          {#if lead.source}{lead.source}{/if}
+        </p>
+      {/if}
       {#if lead.notes}
         <p class="text-sm text-text-muted truncate mt-1">{lead.notes}</p>
+      {/if}
+      {#if lead.nextAction}
+        <p class="text-xs text-text-muted mt-1 truncate">
+          Next: {#if lead.nextAction.type}{lead.nextAction.type}: {/if}{lead.nextAction.description ?? ""}
+        </p>
       {/if}
       <div class="mt-2 text-xs text-text-muted">{formatDate(lead.createdAt)}</div>
     </a>

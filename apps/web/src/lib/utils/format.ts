@@ -1,6 +1,6 @@
-/** Format a date string as date + time in the user's local timezone, 24h format (e.g., "18/02/2026, 21:03") */
+/** Format a date string as date + time in en-GB locale, 24h format (e.g., "18/02/2026, 21:03") */
 export function formatDateTime(dateStr: string): string {
-  return new Date(dateStr).toLocaleString(undefined, {
+  return new Date(dateStr).toLocaleString("en-GB", {
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
@@ -10,11 +10,20 @@ export function formatDateTime(dateStr: string): string {
   });
 }
 
-/** Format a date string as date-only in the user's local timezone (e.g., "18/02/2026") */
+/** Format a date string as date-only in en-GB locale (e.g., "18/02/2026") */
 export function formatDate(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString(undefined, {
+  return new Date(dateStr).toLocaleDateString("en-GB", {
     day: "2-digit",
     month: "2-digit",
+    year: "numeric",
+  });
+}
+
+/** Format a date string as short date in en-GB locale (e.g., "9 Feb 2026") */
+export function formatShortDate(dateStr: string): string {
+  return new Date(dateStr).toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "short",
     year: "numeric",
   });
 }
