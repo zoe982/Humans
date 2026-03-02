@@ -111,15 +111,16 @@
 
 | Field | Value |
 |-------|-------|
-| Status | `open` |
+| Status | `fixed` |
 | Priority | `P3` |
 | Type | `visual` |
 | Page | `/dashboard` |
 | Discovered | 2026-03-02 |
+| Fixed | 2026-03-02 |
 | Screenshot | `qa/screenshots/audit-dashboard-2026-03-02.png` |
 
 **Expected**: Hover ring fades in over 200ms per the design system timing scale.
-**Actual**: Ring snaps on instantly because `transition` shorthand doesn't include ring properties. File: `apps/web/src/routes/dashboard/+page.svelte` lines 55/62/69/76.
+**Actual**: ~~Ring snaps on instantly because `transition` shorthand doesn't include ring properties.~~ **Fixed**: In Tailwind v4, `ring-*` uses CSS `outline` but the bare `transition` utility doesn't include `outline` in its property list. Changed `transition` to `transition-all duration-200` on all 4 dashboard stat cards and 6 other list pages with the same pattern (geo-interests, referral-codes, agreements, phone-numbers, websites, activities). Source audit test added in `test/routes/dashboard/+page.svelte.test.ts`.
 
 ---
 

@@ -88,4 +88,21 @@ describe("Dashboard +page.svelte — stat card links", () => {
       expect(match[1]).not.toContain("text-text-muted");
     }
   });
+
+  it("stat card hover rings use transition-all (not bare transition) — source audit", () => {
+    const src = readFileSync(
+      resolve(__dirname, "../../../src/routes/dashboard/+page.svelte"),
+      "utf-8",
+    );
+    // Find all class attributes containing hover:ring-
+    const hoverRingPattern = /class="[^"]*hover:ring-[^"]*"/g;
+    const matches = [...src.matchAll(hoverRingPattern)];
+    expect(matches.length).toBeGreaterThan(0);
+    for (const match of matches) {
+      // Must have transition-all, not bare transition
+      expect(match[0]).toContain("transition-all");
+      // Must not contain bare "transition" without a suffix (e.g. transition-all is OK, plain transition is not)
+      expect(match[0]).not.toMatch(/\btransition\b(?!-)/);
+    }
+  });
 });

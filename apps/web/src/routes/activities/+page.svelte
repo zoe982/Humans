@@ -147,7 +147,7 @@
     <td class="text-text-muted">{formatDate(activity.activityDate)}</td>
   {/snippet}
   {#snippet mobileCard(activity)}
-    <a href={resolve(`/activities/${activity.id}`)} class="glass-card p-4 block hover:ring-1 hover:ring-accent/40 transition">
+    <a href={resolve(`/activities/${activity.id}`)} class="glass-card p-4 block hover:ring-1 hover:ring-accent/40 transition-all duration-200">
       <span class="font-mono text-xs text-text-muted">{activity.displayId}</span>
       <div class="flex items-center justify-between mb-2">
         <span class="glass-badge text-xs {activityTypeColors[activity.type] ?? 'bg-glass text-text-secondary'}">

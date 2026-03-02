@@ -78,7 +78,7 @@
     </td>
   {/snippet}
   {#snippet mobileCard(rc)}
-    <a href={resolve(`/referral-codes/${rc.id}`)} class="glass-card p-4 block hover:ring-1 hover:ring-accent/40 transition">
+    <a href={resolve(`/referral-codes/${rc.id}`)} class="glass-card p-4 block hover:ring-1 hover:ring-accent/40 transition-all duration-200">
       <span class="font-mono text-xs text-text-muted">{rc.displayId}</span>
       <div class="font-medium text-accent">{rc.code}</div>
       <div class="text-sm text-text-secondary">

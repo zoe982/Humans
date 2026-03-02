@@ -123,7 +123,7 @@
     <td class="text-text-muted text-sm">{formatDate(gi.createdAt)}</td>
   {/snippet}
   {#snippet mobileCard(gi)}
-    <a href={resolve(`/geo-interests/${gi.id}`)} class="glass-card p-4 block hover:ring-1 hover:ring-accent/40 transition">
+    <a href={resolve(`/geo-interests/${gi.id}`)} class="glass-card p-4 block hover:ring-1 hover:ring-accent/40 transition-all duration-200">
       <span class="font-mono text-xs text-text-muted">{gi.displayId}</span>
       <div class="flex items-center justify-between mb-1">
         <span class="font-medium text-accent">{gi.city}</span>

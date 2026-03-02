@@ -79,7 +79,7 @@
     <td class="text-sm text-text-secondary">{a.activationDate ?? "\u2014"}</td>
   {/snippet}
   {#snippet mobileCard(a)}
-    <a href={resolve(`/agreements/${a.id}`)} class="glass-card p-4 block hover:ring-1 hover:ring-accent/40 transition">
+    <a href={resolve(`/agreements/${a.id}`)} class="glass-card p-4 block hover:ring-1 hover:ring-accent/40 transition-all duration-200">
       <div class="flex items-center justify-between">
         <span class="font-mono text-xs text-text-muted">{a.displayId}</span>
         <!-- eslint-disable-next-line security/detect-object-injection -->

@@ -75,7 +75,7 @@
     <td class="text-text-muted">{phone.isPrimary ? "Yes" : "\u2014"}</td>
   {/snippet}
   {#snippet mobileCard(phone)}
-    <a href={resolve(`/phone-numbers/${phone.id}`)} class="glass-card p-4 block hover:ring-1 hover:ring-accent/40 transition">
+    <a href={resolve(`/phone-numbers/${phone.id}`)} class="glass-card p-4 block hover:ring-1 hover:ring-accent/40 transition-all duration-200">
       <span class="font-mono text-xs text-text-muted">{phone.displayId}</span>
       <div class="font-medium text-accent">{phone.phoneNumber}</div>
       <div class="text-sm text-text-secondary">
