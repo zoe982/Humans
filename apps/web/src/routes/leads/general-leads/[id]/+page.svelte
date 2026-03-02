@@ -323,7 +323,9 @@
     onStatusChange={handleStatusChange}
   >
     {#snippet actions()}
-      {#if !isClosed}
+      {#if isClosed}
+        <Button size="sm" onclick={() => handleStatusChange("open")}>Reopen</Button>
+      {:else}
         {#if lead.status === "open"}
           <Button size="sm" onclick={() => handleStatusChange("qualified")}>Mark Qualified</Button>
         {/if}

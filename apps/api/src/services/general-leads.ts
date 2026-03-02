@@ -326,12 +326,6 @@ export async function updateGeneralLeadStatus(
     throw notFound(ERROR_CODES.GENERAL_LEAD_NOT_FOUND, "General lead not found");
   }
 
-  // Cannot transition from closed statuses (except incomplete conversions — no human linked yet)
-  const isIncompleteConversion = existing.status === "closed_converted" && existing.convertedHumanId == null;
-  if (CLOSED_STATUSES.includes(existing.status) && !isIncompleteConversion) {
-    throw badRequest(ERROR_CODES.GENERAL_LEAD_INVALID_STATUS_TRANSITION, "Cannot change status of a closed lead");
-  }
-
   // closed_lost requires lossReason
   if (data.status === "closed_lost") {
     if (data.lossReason == null || data.lossReason.trim() === "") {
@@ -343,6 +337,10 @@ export async function updateGeneralLeadStatus(
   const updateFields: Record<string, unknown> = { status: data.status, updatedAt: now };
   if (data.lossReason !== undefined) {
     updateFields["lossReason"] = data.lossReason;
+  }
+  // Clear lossReason when reopening from closed_lost
+  if (existing.status === "closed_lost" && !CLOSED_STATUSES.includes(data.status)) {
+    updateFields["lossReason"] = null;
   }
 
   await db.update(generalLeads).set(updateFields).where(eq(generalLeads.id, id));

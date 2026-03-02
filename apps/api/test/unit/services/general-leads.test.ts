@@ -83,6 +83,7 @@ async function seedLead(
     ownerId: string | null;
     convertedHumanId: string | null;
     rejectReason: string | null;
+    lossReason: string | null;
   }> = {},
 ) {
   const ts = now();
@@ -97,6 +98,7 @@ async function seedLead(
     ownerId: overrides.ownerId ?? null,
     convertedHumanId: overrides.convertedHumanId ?? null,
     rejectReason: overrides.rejectReason ?? null,
+    lossReason: overrides.lossReason ?? null,
     createdAt: ts,
     updatedAt: ts,
   });
@@ -596,25 +598,23 @@ describe("updateGeneralLeadStatus", () => {
     expect(result.data!.lossReason).toBe("Price/Budget");
   });
 
-  it("blocks transition from a closed_lost lead", async () => {
+  it("allows reopening a closed_lost lead to qualified", async () => {
     const db = getTestDb();
     await seedColleague(db, "col-1");
     await seedLead(db, "lead-1", { status: "closed_lost" });
 
-    await expect(
-      updateGeneralLeadStatus(db, "lead-1", { status: "qualified" }, "col-1"),
-    ).rejects.toThrowError("Cannot change status of a closed lead");
+    const result = await updateGeneralLeadStatus(db, "lead-1", { status: "qualified" }, "col-1");
+    expect(result.data!.status).toBe("qualified");
   });
 
-  it("blocks transition from a closed_converted lead", async () => {
+  it("allows reopening a closed_converted lead", async () => {
     const db = getTestDb();
     await seedColleague(db, "col-1");
     await seedHuman(db, "h-1");
     await seedLead(db, "lead-1", { status: "closed_converted", convertedHumanId: "h-1" });
 
-    await expect(
-      updateGeneralLeadStatus(db, "lead-1", { status: "open" }, "col-1"),
-    ).rejects.toThrowError("Cannot change status of a closed lead");
+    const result = await updateGeneralLeadStatus(db, "lead-1", { status: "open" }, "col-1");
+    expect(result.data!.status).toBe("open");
   });
 
   it("allows setting closed_converted on an open lead via status endpoint", async () => {
@@ -645,15 +645,13 @@ describe("updateGeneralLeadStatus", () => {
     expect(result.data!.status).toBe("open");
   });
 
-  it("blocks reopening a closed_converted lead when a human IS linked", async () => {
+  it("clears lossReason when reopening from closed_lost", async () => {
     const db = getTestDb();
     await seedColleague(db, "col-1");
-    await seedHuman(db, "h-1");
-    await seedLead(db, "lead-1", { status: "closed_converted", convertedHumanId: "h-1" });
+    await seedLead(db, "lead-1", { status: "closed_lost", lossReason: "Price/Budget" });
 
-    await expect(
-      updateGeneralLeadStatus(db, "lead-1", { status: "open" }, "col-1"),
-    ).rejects.toThrowError("Cannot change status of a closed lead");
+    const result = await updateGeneralLeadStatus(db, "lead-1", { status: "open" }, "col-1");
+    expect(result.data!.lossReason).toBeNull();
   });
 
   it("writes an audit log entry on status change", async () => {
