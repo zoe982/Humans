@@ -1,5 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/svelte";
+import { resolve } from "path";
+import { readFileSync } from "fs";
 import ActivityChart from "./ActivityChart.svelte";
 
 function makeData(days: number, count = 3): { date: string; count: number }[] {
@@ -146,7 +148,7 @@ describe("ActivityChart", () => {
   it("renders y-axis text labels", () => {
     const { container } = render(ActivityChart, { props: { data: makeData(30, 10) } });
     const yLabels = Array.from(container.querySelectorAll("text")).filter(
-      (t) => t.getAttribute("text-anchor") === "end" && t.getAttribute("fill") === "rgba(255,255,255,0.5)"
+      (t) => t.getAttribute("text-anchor") === "end" && t.getAttribute("fill") === "var(--color-text-muted)"
     );
     expect(yLabels.length).toBeGreaterThanOrEqual(2);
   });
@@ -315,6 +317,14 @@ describe("ActivityChart", () => {
     await fireEvent.mouseEnter(firstOverlay);
     await fireEvent.mouseLeave(firstOverlay);
     expect(dots[0]?.getAttribute("r")).toBe("3");
+  });
+
+  // --- Design token audit ---
+
+  it("uses design tokens for all text fills (no raw rgba)", () => {
+    const src = readFileSync(resolve(__dirname, "./ActivityChart.svelte"), "utf-8");
+    const textFillMatches = src.match(/<text[^>]*fill="rgba\(255,\s*255,\s*255/g);
+    expect(textFillMatches).toBeNull();
   });
 
   // --- Cumulative line always increases ---

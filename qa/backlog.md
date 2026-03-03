@@ -145,15 +145,16 @@
 
 | Field | Value |
 |-------|-------|
-| Status | `open` |
+| Status | `fixed` |
 | Priority | `P3` |
 | Type | `visual` |
 | Page | `/dashboard` |
 | Discovered | 2026-03-02 |
+| Fixed | 2026-03-03 |
 | Screenshot | `qa/screenshots/audit-dashboard-2026-03-02.png` |
 
 **Expected**: Chart axis/tooltip labels reference `--color-text-muted` token.
-**Actual**: Four distinct raw `rgba(255,255,255,0.x)` values used across SVG elements. Fragile and won't respond to future color system changes. File: `apps/web/src/lib/components/ActivityChart.svelte` lines 134/185/234/253.
+**Actual**: ~~Four distinct raw `rgba(255,255,255,0.x)` values used across SVG elements. Fragile and won't respond to future color system changes.~~ **Fixed**: Replaced all 4 text `fill` attributes (Y-axis labels, X-axis labels, tooltip date, tooltip daily count) from raw `rgba(255,255,255,0.x)` to `var(--color-text-muted)`. Source audit test added in `ActivityChart.test.ts`.
 
 ---
 

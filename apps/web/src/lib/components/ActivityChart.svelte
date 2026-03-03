@@ -131,7 +131,7 @@
       text-anchor="end"
       dominant-baseline="middle"
       font-size="10"
-      fill="rgba(255,255,255,0.5)"
+      fill="var(--color-text-muted)"
     >
       {value}
     </text>
@@ -182,7 +182,7 @@
         y={VIEW_HEIGHT - PADDING_BOTTOM + 14}
         text-anchor="middle"
         font-size="9"
-        fill="rgba(255,255,255,0.5)"
+        fill="var(--color-text-muted)"
       >
         {formatDateLabel(point.date)}
       </text>
@@ -231,7 +231,7 @@
         y={tooltip.y + 12}
         text-anchor="middle"
         font-size="9"
-        fill="rgba(255,255,255,0.5)"
+        fill="var(--color-text-muted)"
       >
         {tooltip.label}
       </text>
@@ -250,7 +250,7 @@
         y={tooltip.y + 40}
         text-anchor="middle"
         font-size="9"
-        fill="rgba(255,255,255,0.4)"
+        fill="var(--color-text-muted)"
       >
         +{tooltip.daily} today
       </text>
