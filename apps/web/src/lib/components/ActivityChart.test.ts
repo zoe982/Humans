@@ -322,6 +322,7 @@ describe("ActivityChart", () => {
   // --- Design token audit ---
 
   it("uses design tokens for all text fills (no raw rgba)", () => {
+    // eslint-disable-next-line security/detect-non-literal-fs-filename
     const src = readFileSync(resolve(__dirname, "./ActivityChart.svelte"), "utf-8");
     const textFillMatches = src.match(/<text[^>]*fill="rgba\(255,\s*255,\s*255/g);
     expect(textFillMatches).toBeNull();
