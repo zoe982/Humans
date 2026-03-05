@@ -28,6 +28,7 @@
   import { Button } from "$lib/components/ui/button";
   import { resolve } from "$app/paths";
   import { page } from "$app/stores";
+  import { getStore } from "$lib/data/stores.svelte";
 
   let { data, form }: { data: PageData; form: ActionData } = $props();
 
@@ -269,6 +270,7 @@
     onStatusChange: (s) => { saveStatus = s; },
     onSaved: (result) => {
       editingNames = false;
+      getStore("humans").patchItem(human.id, { firstName, middleName: middleName || null, lastName, types });
       if (result.auditEntryId) {
         lastAuditEntryId = result.auditEntryId;
         toast("Changes saved", {
@@ -387,6 +389,7 @@
       });
       saveStatus = "saved";
       toast("Status updated");
+      getStore("humans").patchItem(human.id, { status: newStatus });
       historyLoaded = false;
       await invalidateAll();
     } catch {

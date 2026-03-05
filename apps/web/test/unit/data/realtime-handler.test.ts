@@ -77,15 +77,15 @@ describe("handleRealtimeMessage", () => {
     expect(mockSyncEntity).toHaveBeenCalledWith("humans");
   });
 
-  it("ignores messages from the current user", () => {
+  it("processes messages from the current user (server confirmation)", () => {
     const result = handleRealtimeMessage({
       method: "POST",
       path: "/api/humans",
       actorId: "current-user",
     }, "current-user");
 
-    expect(result).toBe("ignored");
-    expect(mockSyncEntity).not.toHaveBeenCalled();
+    expect(result).toBe("handled");
+    expect(mockSyncEntity).toHaveBeenCalledWith("humans");
   });
 
   it("returns 'unknown' for unrecognized paths", () => {

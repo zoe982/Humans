@@ -40,6 +40,7 @@
     deleteAction?: string;
     deleteMessage?: string;
     canDelete?: boolean;
+    onDelete?: (id: string) => void;
 
     pagination?: PaginationInfo;
     clientPageSize?: number;
@@ -70,6 +71,7 @@
     deleteAction = "?/delete",
     deleteMessage = "Are you sure? This cannot be undone.",
     canDelete = false,
+    onDelete,
     pagination,
     clientPageSize,
     zebraStripe = false,
@@ -257,7 +259,7 @@
   <ConfirmDialog
     open={pendingDeleteId !== null}
     message={deleteMessage}
-    onConfirm={() => { deleteFormEl?.requestSubmit(); pendingDeleteId = null; }}
+    onConfirm={() => { if (pendingDeleteId) onDelete?.(pendingDeleteId); deleteFormEl?.requestSubmit(); pendingDeleteId = null; }}
     onCancel={() => { pendingDeleteId = null; }}
   />
 {/if}

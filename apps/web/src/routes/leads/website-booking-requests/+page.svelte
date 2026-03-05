@@ -12,6 +12,8 @@
   import { api } from "$lib/api";
   import { toast } from "svelte-sonner";
   import { SvelteMap } from "svelte/reactivity";
+  import { browser } from "$app/environment";
+  import { getStore } from "$lib/data/stores.svelte";
 
   let { data, form }: { data: PageData; form: ActionData } = $props();
 
@@ -35,7 +37,7 @@
     nextAction: { type: string | null; description: string | null; dueDate: string | null } | null;
   };
 
-  const bookings = $derived(data.bookings as Booking[]);
+  const bookings = $derived((browser ? getStore<Booking>("website-booking-requests").items : data.bookings) as Booking[]);
 
   // Inline status editing
   let statusOverrides = new SvelteMap<string, string>();

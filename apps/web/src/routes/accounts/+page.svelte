@@ -5,6 +5,8 @@
   import { statusColors } from "$lib/constants/colors";
   import { formatDate } from "$lib/utils/format";
   import { resolve } from "$app/paths";
+  import { browser } from "$app/environment";
+  import { getStore } from "$lib/data/stores.svelte";
 
   let { data, form }: { data: PageData; form: ActionData } = $props();
 
@@ -18,7 +20,7 @@
     createdAt: string;
   };
 
-  const accounts = $derived(data.accounts as Account[]);
+  const accounts = $derived((browser ? getStore<Account>("accounts").items : data.accounts) as Account[]);
 </script>
 
 <EntityListPage
@@ -45,6 +47,7 @@
   deleteAction="?/delete"
   deleteMessage="Are you sure you want to delete this account? This cannot be undone."
   canDelete={data.userRole === "admin"}
+  onDelete={(id) => getStore("accounts").removeItem(id)}
 >
   {#snippet desktopRow(account)}
     <td class="font-mono text-sm whitespace-nowrap">

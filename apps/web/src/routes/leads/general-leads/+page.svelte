@@ -13,6 +13,8 @@
   import InlineNoteEditor from "$lib/components/InlineNoteEditor.svelte";
   import { api } from "$lib/api";
   import { Loader2 } from "lucide-svelte";
+  import { browser } from "$app/environment";
+  import { getStore } from "$lib/data/stores.svelte";
 
   let { data, form }: { data: PageData; form: ActionData } = $props();
 
@@ -37,7 +39,7 @@
     createdAt: string;
   };
 
-  const allLeads = $derived(data.leads as Lead[]);
+  const allLeads = $derived((browser ? getStore<Lead>("general-leads").items : data.leads) as Lead[]);
 
   let filterStatus = $state("");
   let filterQ = $state("");

@@ -17,6 +17,7 @@
   import { Button } from "$lib/components/ui/button";
   import { resolve } from "$app/paths";
   import { page } from "$app/stores";
+  import { getStore } from "$lib/data/stores.svelte";
   import { formatRelativeTime, formatDateTime } from "$lib/utils/format";
   import { routeSignupStatuses } from "@humans/shared";
   import LeadScoreInlineFlags from "$lib/components/LeadScoreInlineFlags.svelte";
@@ -271,6 +272,7 @@
         method: "PATCH",
         body: JSON.stringify({ status: newStatus }),
       });
+      getStore("route-signups").patchItem(signup.id, { status: newStatus });
       await invalidateAll();
     } catch {
       // Status update failed - page will reload with current status

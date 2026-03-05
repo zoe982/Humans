@@ -12,6 +12,8 @@
   import { api } from "$lib/api";
   import { toast } from "svelte-sonner";
   import { SvelteMap } from "svelte/reactivity";
+  import { browser } from "$app/environment";
+  import { getStore } from "$lib/data/stores.svelte";
 
   let { data, form }: { data: PageData; form: ActionData } = $props();
 
@@ -36,7 +38,7 @@
     nextAction: { type: string | null; description: string | null; dueDate: string | null } | null;
   };
 
-  const allSignups = $derived(data.signups as Signup[]);
+  const allSignups = $derived((browser ? getStore<Signup>("route-signups").items : data.signups) as Signup[]);
 
   let filterStatus = $state("");
   let filterOrigin = $state("");

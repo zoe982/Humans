@@ -6,6 +6,8 @@
   import SearchableSelect from "$lib/components/SearchableSelect.svelte";
   import { formatDate } from "$lib/utils/format";
   import { resolve } from "$app/paths";
+  import { browser } from "$app/environment";
+  import { getStore } from "$lib/data/stores.svelte";
 
   let { data, form }: { data: PageData; form: ActionData } = $props();
 
@@ -29,7 +31,7 @@
     createdAt: string;
   };
 
-  const allActivities = $derived(data.activities as Activity[]);
+  const allActivities = $derived((browser ? getStore<Activity>("activities").items : data.activities) as Activity[]);
 
   let filterType = $state("");
   let filterDateFrom = $state("");
@@ -90,6 +92,7 @@
   deleteAction="?/delete"
   deleteMessage="Are you sure you want to delete this activity?"
   canDelete={true}
+  onDelete={(id) => getStore("activities").removeItem(id)}
 >
   {#snippet searchForm()}
     <div class="mt-4 flex flex-wrap items-end gap-4 glass-card p-4 mb-6">

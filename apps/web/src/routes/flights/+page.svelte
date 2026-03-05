@@ -2,6 +2,8 @@
   import EntityListPage from "$lib/components/EntityListPage.svelte";
   import { formatDate } from "$lib/utils/format";
   import { resolve } from "$app/paths";
+  import { browser } from "$app/environment";
+  import { getStore } from "$lib/data/stores.svelte";
 
   type Flight = {
     id: string;
@@ -18,7 +20,7 @@
 
   let { data }: { data: { flights: Flight[]; userRole: string } } = $props();
 
-  const flights = $derived(data.flights as Flight[]);
+  const flights = $derived((browser ? getStore<Flight>("flights").items : data.flights) as Flight[]);
 
   function searchFilter(item: Flight, q: string): boolean {
     const text = [

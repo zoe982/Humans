@@ -113,6 +113,37 @@ describe("createEntityStore", () => {
     expect(setCached).toHaveBeenCalledWith("humans", items);
   });
 
+  it("patchItem merges partial data into existing item", () => {
+    const store = createEntityStore<{ id: string; name: string; extra: string }>("test");
+    store.setItems([{ id: "1", name: "Old", extra: "kept" }]);
+
+    store.patchItem("1", { name: "New" });
+
+    expect(store.items[0]).toEqual({ id: "1", name: "New", extra: "kept" });
+  });
+
+  it("patchItem does nothing for non-existent id", () => {
+    const store = createEntityStore<{ id: string; name: string }>("test");
+    store.setItems([{ id: "1", name: "Alice" }]);
+
+    store.patchItem("999", { name: "Ghost" });
+
+    expect(store.items).toHaveLength(1);
+    expect(store.items[0]!.name).toBe("Alice");
+  });
+
+  it("patchItem calls setCached after update", async () => {
+    const { setCached } = await import("$lib/data/cache");
+    const store = createEntityStore<{ id: string; name: string }>("patch-persist");
+    store.setItems([{ id: "1", name: "Before" }]);
+    vi.clearAllMocks();
+
+    store.patchItem("1", { name: "After" });
+
+    await new Promise((r) => setTimeout(r, 0));
+    expect(setCached).toHaveBeenCalledWith("patch-persist", [{ id: "1", name: "After" }]);
+  });
+
   it("setLoading updates loading state", () => {
     const store = createEntityStore<{ id: string; name: string }>("test");
     expect(store.loading).toBe(false);

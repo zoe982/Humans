@@ -23,6 +23,7 @@
   import { Button } from "$lib/components/ui/button";
   import { resolve } from "$app/paths";
   import { page } from "$app/stores";
+  import { getStore } from "$lib/data/stores.svelte";
 
   let { data, form }: { data: PageData; form: ActionData } = $props();
 
@@ -214,6 +215,7 @@
     onStatusChange: (s) => { saveStatus = s; },
     onSaved: () => {
       toast("Changes saved");
+      getStore("opportunities").patchItem(opportunity.id, { passengerSeats, petSeats });
       historyLoaded = false;
     },
     onError: (err) => { toast(`Save failed: ${err}`); },
@@ -275,6 +277,7 @@
       });
       saveStatus = "saved";
       toast("Stage updated");
+      getStore("opportunities").patchItem(opportunity.id, { stage: newStage });
       historyLoaded = false;
       await invalidateAll();
     } catch (err) {

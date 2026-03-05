@@ -19,6 +19,7 @@
   import { Button } from "$lib/components/ui/button";
   import { resolve } from "$app/paths";
   import { page } from "$app/stores";
+  import { getStore } from "$lib/data/stores.svelte";
 
   let { data, form }: { data: PageData; form: ActionData } = $props();
 
@@ -140,6 +141,7 @@
       onStatusChange: (s) => { saveStatus = s; },
       onSaved: () => {
         toast("Changes saved");
+        getStore("activities").patchItem(activity.id, { subject, type, notes: notes || null });
         _history.resetHistory();
       },
       onError: (err) => {

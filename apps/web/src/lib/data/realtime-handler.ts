@@ -12,8 +12,6 @@ export function handleRealtimeMessage(
   message: RealtimeMessage,
   currentUserId: string,
 ): "handled" | "ignored" | "unknown" {
-  if (message.actorId === currentUserId) return "ignored";
-
   const parsed = parseRealtimePath(message.path);
   if (parsed === null) return "unknown";
 

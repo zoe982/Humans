@@ -6,6 +6,8 @@
   import { humanTypeLabels } from "$lib/constants/labels";
   import { displayName as formatDisplayName, formatDate } from "$lib/utils/format";
   import { resolve } from "$app/paths";
+  import { browser } from "$app/environment";
+  import { getStore } from "$lib/data/stores.svelte";
 
   let { data, form }: { data: PageData; form: ActionData } = $props();
 
@@ -28,7 +30,7 @@
     createdAt: string;
   };
 
-  const humans = $derived(data.humans as Human[]);
+  const humans = $derived((browser ? getStore<Human>("humans").items : data.humans) as Human[]);
 
   function primaryEmail(h: Human): string {
     const primary = h.emails.find((e) => e.isPrimary);
@@ -61,6 +63,7 @@
   deleteAction="?/delete"
   deleteMessage="Are you sure you want to delete this human? This cannot be undone."
   canDelete={data.userRole === "admin"}
+  onDelete={(id) => getStore("humans").removeItem(id)}
   {searchFilter}
   clientPageSize={25}
 >

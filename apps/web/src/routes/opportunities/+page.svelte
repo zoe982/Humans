@@ -7,6 +7,8 @@
   import { opportunityStageLabels, OPPORTUNITY_STAGE_OPTIONS } from "$lib/constants/labels";
   import { formatDate } from "$lib/utils/format";
   import { resolve } from "$app/paths";
+  import { browser } from "$app/environment";
+  import { getStore } from "$lib/data/stores.svelte";
 
   let { data, form }: { data: PageData; form: ActionData } = $props();
 
@@ -31,7 +33,7 @@
     createdAt: string;
   };
 
-  const allOpportunities = $derived(data.opportunities as Opportunity[]);
+  const allOpportunities = $derived((browser ? getStore<Opportunity>("opportunities").items : data.opportunities) as Opportunity[]);
   const colleagues = $derived(data.colleagues as Colleague[]);
   const colleagueOptions = $derived(colleagues.map((c) => ({ value: c.id, label: c.name })));
   const stageFilterOptions = $derived(OPPORTUNITY_STAGE_OPTIONS.map((s) => ({ value: s.value, label: s.label })));
@@ -89,6 +91,7 @@
   deleteAction="?/delete"
   deleteMessage="Are you sure you want to delete this opportunity? This cannot be undone."
   canDelete={data.userRole === "admin"}
+  onDelete={(id) => getStore("opportunities").removeItem(id)}
 >
   {#snippet searchForm()}
     <div class="mt-4 mb-6 flex flex-wrap items-end gap-3">

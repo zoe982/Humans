@@ -56,6 +56,12 @@ export function createEntityStore<T extends { id: string }>(
       items[idx] = data;
       persist(items);
     },
+    patchItem(id: string, patch: Partial<T>) {
+      const idx = items.findIndex((item) => item.id === id);
+      if (idx === -1) return;
+      items[idx] = { ...items[idx], ...patch } as T;
+      persist(items);
+    },
     removeItem(id: string) {
       items = items.filter((item) => item.id !== id);
       persist(items);

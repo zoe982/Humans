@@ -22,6 +22,7 @@
   import { Button } from "$lib/components/ui/button";
   import { resolve } from "$app/paths";
   import { page } from "$app/stores";
+  import { getStore } from "$lib/data/stores.svelte";
 
   let { data }: { data: PageData } = $props();
 
@@ -162,6 +163,7 @@
     endpoint: `/api/accounts/${accountId}`,
     onStatusChange: (s) => { saveStatus = s; },
     onSaved: (result) => {
+      getStore("accounts").patchItem(accountId, { name: accountName });
       if (result.auditEntryId) {
         lastAuditEntryId = result.auditEntryId;
         toast("Changes saved", {
@@ -308,6 +310,7 @@
       });
       saveStatus = "saved";
       toast("Status updated");
+      getStore("accounts").patchItem(accountId, { status: newStatus });
       historyLoaded = false;
       await loadData();
     } catch {

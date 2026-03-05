@@ -20,6 +20,7 @@
   import { api } from "$lib/api";
   import { resolve } from "$app/paths";
   import { page } from "$app/stores";
+  import { getStore } from "$lib/data/stores.svelte";
   import { Trash2 } from "lucide-svelte";
   import { SvelteURLSearchParams } from "svelte/reactivity";
   import DuplicateContactBanner from "$lib/components/DuplicateContactBanner.svelte";
@@ -323,6 +324,7 @@
         method: "PATCH",
         body: JSON.stringify({ status: newStatus }),
       });
+      getStore("website-booking-requests").patchItem(booking.id, { status: newStatus });
       await invalidateAll();
     } catch {
       toast("Failed to update status");
