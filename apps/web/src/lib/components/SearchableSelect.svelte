@@ -119,6 +119,12 @@
             searchValue = e.currentTarget.value;
             if (typeof props.oninput === "function") props.oninput(e);
           }}
+          onkeydown={(e) => {
+            if (typeof props.onkeydown === "function") props.onkeydown(e);
+            if (e.key === "Enter" && open) {
+              e.preventDefault();
+            }
+          }}
           onfocus={() => { open = true; }}
         />
       {/snippet}

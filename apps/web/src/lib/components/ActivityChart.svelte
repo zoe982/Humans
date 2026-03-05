@@ -221,7 +221,7 @@
         y={tooltip.y}
         width={tooltip.width}
         height={tooltip.height}
-        rx="4"
+        rx="12"
         fill="rgba(15, 36, 64, 0.92)"
         stroke="rgba(255, 255, 255, 0.08)"
         stroke-width="1"

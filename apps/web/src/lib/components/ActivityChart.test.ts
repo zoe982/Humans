@@ -328,6 +328,17 @@ describe("ActivityChart", () => {
     expect(textFillMatches).toBeNull();
   });
 
+  it("tooltip rect uses glass-popover border radius (rx=12)", async () => {
+    const data = [{ date: "2024-02-01", count: 5 }];
+    const { container } = render(ActivityChart, { props: { data } });
+    const overlay = container.querySelector('rect[role="button"]');
+    if (overlay == null) throw new Error("expected overlay");
+    await fireEvent.mouseEnter(overlay);
+    const tooltipGroup = container.querySelector('[role="tooltip"]');
+    const tooltipRect = tooltipGroup?.querySelector("rect");
+    expect(tooltipRect?.getAttribute("rx")).toBe("12");
+  });
+
   // --- Cumulative line always increases ---
 
   it("line is monotonically non-decreasing (cumulative)", () => {

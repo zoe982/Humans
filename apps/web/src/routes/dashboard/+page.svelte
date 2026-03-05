@@ -92,7 +92,7 @@
 
   <!-- Quick Actions -->
   <div class="mt-8">
-    <h2 class="text-lg font-semibold text-text-primary mb-3">Quick Actions</h2>
+    <h2 class="text-lg font-semibold text-text-primary mb-4">Quick Actions</h2>
     <div class="flex flex-wrap gap-3">
       <a href={resolve('/humans/new')} class="btn-ghost inline-flex items-center gap-2 text-sm">
         <Plus size={16} /> New Human
@@ -164,9 +164,11 @@
         </td>
         <td class="text-text-muted whitespace-nowrap">{formatDate(activity.activityDate)}</td>
       {/snippet}
+      {#snippet footer()}
+        <div class="text-right">
+          <a href={resolve('/activities')} class="text-sm text-accent hover:text-[var(--link-hover)]">View all activities</a>
+        </div>
+      {/snippet}
     </RelatedListTable>
-    <div class="mt-3 text-right">
-      <a href={resolve('/activities')} class="text-sm text-accent hover:text-[var(--link-hover)]">View all activities</a>
-    </div>
   </div>
 </div>

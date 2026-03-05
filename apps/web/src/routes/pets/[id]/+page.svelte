@@ -56,8 +56,6 @@
       }))
   );
 
-  let oppSelectKey = $state(0);
-
   // Auto-save state
   let petName = $state("");
   let petType = $state("dog");
@@ -298,16 +296,13 @@
       {#snippet addForm()}
         <form method="POST" action="?/linkOpportunity" class="space-y-3">
           <input type="hidden" name="petHumanId" value={pet.humanId ?? ""} />
-          {#key oppSelectKey}
-            <SearchableSelect
-              options={availableOpportunityOptions}
-              name="opportunityId"
-              id="oppSelect"
-              emptyOption="Select an opportunity..."
-              placeholder="Search opportunities..."
-              onSelect={() => { oppSelectKey++; }}
-            />
-          {/key}
+          <SearchableSelect
+            options={availableOpportunityOptions}
+            name="opportunityId"
+            id="oppSelect"
+            emptyOption="Select an opportunity..."
+            placeholder="Search opportunities..."
+          />
           <div class="flex items-center gap-3">
             <button type="submit" class="btn-primary text-sm px-3 py-1.5">Link Opportunity</button>
             <span class="text-text-muted text-xs">or</span>

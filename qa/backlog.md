@@ -162,15 +162,16 @@
 
 | Field | Value |
 |-------|-------|
-| Status | `open` |
+| Status | `fixed` |
 | Priority | `P3` |
 | Type | `visual` |
 | Page | `/dashboard` |
 | Discovered | 2026-03-02 |
+| Fixed | 2026-03-03 |
 | Screenshot | `qa/screenshots/audit-dashboard-2026-03-02.png` |
 
 **Expected**: Tooltip `rx="12"` to match `glass-popover` border-radius (0.75rem).
-**Actual**: `rx="4"` — not in the radius scale. File: `apps/web/src/lib/components/ActivityChart.svelte` line 224.
+**Actual**: ~~`rx="4"` — not in the radius scale.~~ **Fixed**: Changed `rx="4"` to `rx="12"` on the tooltip rect in `ActivityChart.svelte` line 224. DOM-based test added in `ActivityChart.test.ts` that hovers to show tooltip and asserts `rx="12"`.
 
 ---
 
@@ -178,15 +179,16 @@
 
 | Field | Value |
 |-------|-------|
-| Status | `open` |
+| Status | `fixed` |
 | Priority | `P3` |
 | Type | `visual` |
 | Page | `/dashboard` |
 | Discovered | 2026-03-02 |
+| Fixed | 2026-03-03 |
 | Screenshot | `qa/screenshots/audit-dashboard-2026-03-02.png` |
 
 **Expected**: Both section headings use `mb-4` (16px) consistently.
-**Actual**: Chart heading uses `mb-4`, Quick Actions heading uses `mb-3` (12px). File: `apps/web/src/routes/dashboard/+page.svelte` lines 88/95.
+**Actual**: ~~Chart heading uses `mb-4`, Quick Actions heading uses `mb-3` (12px).~~ **Fixed**: Changed `mb-3` to `mb-4` on Quick Actions heading (line 95). Source audit test added verifying all `<h2>` tags use `mb-4`.
 
 ---
 
@@ -194,15 +196,16 @@
 
 | Field | Value |
 |-------|-------|
-| Status | `open` |
+| Status | `fixed` |
 | Priority | `P3` |
 | Type | `visual` |
 | Page | `/dashboard` |
 | Discovered | 2026-03-02 |
+| Fixed | 2026-03-04 |
 | Screenshot | `qa/screenshots/audit-dashboard-2026-03-02.png` |
 
 **Expected**: Link sits inside the card as a footer row with border separation and matching padding.
-**Actual**: Free-floating right-aligned link below and outside the glass-card boundary with only 12px top margin. File: `apps/web/src/routes/dashboard/+page.svelte` lines 168-170.
+**Actual**: ~~Free-floating right-aligned link below and outside the glass-card boundary with only 12px top margin.~~ **Fixed**: Added `footer` snippet prop to `RelatedListTable` component, rendered inside the glass-card with `border-t border-glass-border px-5 py-3`. Moved the "View all activities" link into the footer snippet on the dashboard. Tests added: DOM test verifying the link is inside `.glass-card`, source audit test verifying no orphaned `mt-3 text-right` div.
 
 ---
 

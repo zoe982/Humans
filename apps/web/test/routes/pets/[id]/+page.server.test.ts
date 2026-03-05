@@ -174,6 +174,21 @@ describe("pets/[id] actions.linkOpportunity", () => {
     const failure = result as ActionFailure<{ error: string }>;
     expect(failure.status).toBe(409);
   });
+
+  it("returns failure when auto-link of owner to opportunity fails", async () => {
+    const mockFetch = createMockFetch({
+      "/api/opportunities/opp5/humans": { status: 500, body: { error: "Internal error", code: "INTERNAL" } },
+      "/api/opportunities/opp5": { body: { data: { id: "opp5", linkedHumans: [] } } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent({ formData: { opportunityId: "opp5", petHumanId: "h1" } });
+    const result = await actions.linkOpportunity(event as any);
+
+    expect(isActionFailure(result)).toBe(true);
+    const failure = result as ActionFailure<{ error: string }>;
+    expect(failure.status).toBe(500);
+  });
 });
 
 describe("pets/[id] actions.unlinkOpportunity", () => {

@@ -25,6 +25,7 @@
     onFormToggle?: (open: boolean) => void;
     row: Snippet<[item: T, searchQuery: string]>;
     addForm?: Snippet;
+    footer?: Snippet;
   };
 
   let {
@@ -40,6 +41,7 @@
     onFormToggle,
     row,
     addForm,
+    footer,
   }: Props = $props();
 
   let showForm = $state(false);
@@ -161,6 +163,11 @@
           {/each}
         </tbody>
       </table>
+    </div>
+  {/if}
+  {#if footer}
+    <div class="border-t border-glass-border px-5 py-3">
+      {@render footer()}
     </div>
   {/if}
 </div>

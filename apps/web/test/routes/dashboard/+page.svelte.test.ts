@@ -119,4 +119,40 @@ describe("Dashboard +page.svelte — stat card links", () => {
     expect(inputClass).toContain("py-2");
     expect(inputClass).toContain("text-sm");
   });
+  it("all section headings use consistent mb-4 bottom margin — source audit", () => {
+    // eslint-disable-next-line security/detect-non-literal-fs-filename
+    const src = readFileSync(resolve(__dirname, "../../../src/routes/dashboard/+page.svelte"), "utf-8");
+    const h2Tags = src.match(/<h2[^>]*>/g) ?? [];
+    expect(h2Tags.length).toBeGreaterThanOrEqual(2);
+    for (const tag of h2Tags) {
+      expect(tag).toContain("mb-4");
+    }
+  });
+});
+
+describe("Dashboard +page.svelte — BUG-010 view all activities link placement", () => {
+  it("'View all activities' link is inside a .glass-card container — DOM test", () => {
+    // Use empty recentActivities to avoid happy-dom snippet rendering crash.
+    // The footer snippet renders unconditionally (outside the items conditional),
+    // so the link is still present and inside the glass-card even with no items.
+    const { container } = render(DashboardPage, { props: { data: makeMockData() } });
+    const viewAllLink = Array.from(container.querySelectorAll("a")).find(
+      (a) => a.textContent?.trim() === "View all activities",
+    );
+    expect(viewAllLink).toBeDefined();
+    const glassCard = viewAllLink?.closest(".glass-card");
+    expect(glassCard).not.toBeNull();
+  });
+
+  it("no orphaned 'View all activities' div outside RelatedListTable — source audit", () => {
+    // eslint-disable-next-line security/detect-non-literal-fs-filename
+    const src = readFileSync(
+      resolve(__dirname, "../../../src/routes/dashboard/+page.svelte"),
+      "utf-8",
+    );
+    // The old pattern was a free-floating mt-3 text-right div after </RelatedListTable>
+    expect(src).not.toMatch(/mt-3 text-right/);
+    // The footer snippet must be present inside RelatedListTable
+    expect(src).toContain("{#snippet footer()}");
+  });
 });

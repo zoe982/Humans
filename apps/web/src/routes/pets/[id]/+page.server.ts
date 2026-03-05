@@ -84,11 +84,15 @@ export const actions = {
           });
 
           if (!ownerAlreadyLinked) {
-            await fetch(`${PUBLIC_API_URL}/api/opportunities/${opportunityId}/humans`, {
+            const linkRes = await fetch(`${PUBLIC_API_URL}/api/opportunities/${opportunityId}/humans`, {
               method: "POST",
               headers,
               body: JSON.stringify({ humanId: petHumanId }),
             });
+            if (!linkRes.ok) {
+              const linkBody: unknown = await linkRes.json();
+              return failFromApi(linkBody, linkRes.status, "Failed to auto-link pet owner to opportunity");
+            }
           }
         }
       }

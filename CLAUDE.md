@@ -157,10 +157,10 @@ Subagents (Task tool) must NEVER execute test commands. The `block-subagent-test
 ### Standardized Commands
 | Scenario | Command | Tail lines |
 |----------|---------|------------|
-| TDD single file | `cd <pkg> && pnpm test run <file> 2>&1 \| tail -n 20` | ~20 |
-| Full suite pass/fail | `cd <pkg> && pnpm test run 2>&1 \| tail -n 40` | ~40 |
-| Suite with coverage | `cd <pkg> && pnpm test run --coverage 2>&1 \| tail -n 80` | ~80 |
-| Failure diagnosis | `cd <pkg> && pnpm test run 2>&1 \| tail -n 200` | ~200 |
+| TDD single file | `cd <pkg> && pnpm test <file> 2>&1 \| tail -n 20` | ~20 |
+| Full suite pass/fail | `cd <pkg> && pnpm test 2>&1 \| tail -n 40` | ~40 |
+| Suite with coverage | `cd <pkg> && pnpm test -- --coverage 2>&1 \| tail -n 80` | ~80 |
+| Failure diagnosis | `cd <pkg> && pnpm test 2>&1 \| tail -n 200` | ~200 |
 
 ### Rules
 - **Tests run in Bash only** — never in subagents, never via Task tool

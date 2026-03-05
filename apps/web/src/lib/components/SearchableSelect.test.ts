@@ -408,4 +408,32 @@ describe("SearchableSelect", () => {
       expect(combobox.getAttribute("aria-expanded")).toBe("true");
     });
   });
+
+  // ── Enter key behavior ──────────────────────────────────────────
+
+  it("Enter keydown is always prevented when dropdown is open (defensive handler)", async () => {
+    render(SearchableSelect, {
+      props: { options: kvOptions, name: "type" },
+    });
+
+    const input = screen.getByRole("combobox");
+    await fireEvent.focus(input);
+
+    // Type a query that returns no matches — no item is highlighted by bits-ui
+    await fireEvent.input(input, { target: { value: "zzz" } });
+    expect(input.getAttribute("aria-expanded")).toBe("true");
+
+    // Capture whether the event was prevented
+    let eventPrevented = false;
+    input.addEventListener("keydown", (e) => {
+      // Check after all handlers have run (this listener runs last)
+      setTimeout(() => { eventPrevented = e.defaultPrevented; }, 0);
+    });
+
+    await fireEvent.keyDown(input, { key: "Enter" });
+
+    // Wait for the timeout callback
+    await new Promise((r) => { setTimeout(r, 10); });
+    expect(eventPrevented).toBe(true);
+  });
 });
