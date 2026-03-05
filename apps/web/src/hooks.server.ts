@@ -65,7 +65,7 @@ export const handle: Handle = async ({ event, resolve }) => {
       "style-src 'self' 'unsafe-inline'",
       "img-src 'self' data: https:",
       "font-src 'self'",
-      `connect-src 'self' ${API_BASE} https://api.humans.pavinfo.app`,
+      `connect-src 'self' ${API_BASE} https://api.humans.pavinfo.app wss://api.humans.pavinfo.app`,
       "frame-ancestors 'none'",
       "base-uri 'self'",
       "form-action 'self'",

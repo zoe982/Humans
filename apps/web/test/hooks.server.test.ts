@@ -70,6 +70,24 @@ describe("hooks.server handle", () => {
       const response = await handle({ event: event as never, resolve });
       expect(response.headers.get("Cache-Control")).toBe("no-store");
     });
+
+    it("CSP connect-src includes wss://api.humans.pavinfo.app for WebSocket support", async () => {
+      const event = makeEvent();
+      const resolve = makeResolve();
+      const response = await handle({ event: event as never, resolve });
+      const csp = response.headers.get("Content-Security-Policy") ?? "";
+      const connectSrc = csp.split(";").find((d) => d.trim().startsWith("connect-src")) ?? "";
+      expect(connectSrc).toContain("wss://api.humans.pavinfo.app");
+    });
+
+    it("CSP connect-src includes https://api.humans.pavinfo.app", async () => {
+      const event = makeEvent();
+      const resolve = makeResolve();
+      const response = await handle({ event: event as never, resolve });
+      const csp = response.headers.get("Content-Security-Policy") ?? "";
+      const connectSrc = csp.split(";").find((d) => d.trim().startsWith("connect-src")) ?? "";
+      expect(connectSrc).toContain("https://api.humans.pavinfo.app");
+    });
   });
 
   describe("auth behavior", () => {

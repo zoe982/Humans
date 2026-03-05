@@ -6,11 +6,10 @@
   import { CheckCircle, Check, Pencil, Clock } from "lucide-svelte";
   import * as Select from "$lib/components/ui/select";
   import GlassDatePicker from "$lib/components/GlassDatePicker.svelte";
-  import { createAutoSaver, type SaveStatus } from "$lib/autosave";
+  import type { SaveStatus } from "$lib/autosave";
   import { api } from "$lib/api";
   import { ACTIVITY_TYPE_OPTIONS, activityTypeLabels } from "$lib/constants/labels";
   import { formatDate } from "$lib/utils/format";
-  import { onDestroy } from "svelte";
   import { Button } from "$lib/components/ui/button";
 
   type Option = { value: string; label: string };
@@ -66,8 +65,6 @@
     (!cadenceWarning() || Boolean(naCadenceNote.trim()))
   );
 
-  let naAutoSaver: ReturnType<typeof createAutoSaver>;
-
   function init() {
     const na = nextAction;
     naOwnerId = na?.ownerId ?? currentColleagueId ?? "";
@@ -76,32 +73,36 @@
     naDueDate = na?.dueDate ?? "";
     naCadenceNote = na?.cadenceNote ?? "";
     naLocked = Boolean(na?.description && na?.dueDate);
-
-    naAutoSaver = createAutoSaver({
-      endpoint: apiEndpoint,
-      onStatusChange: (s) => { naSaveStatus = s; },
-      onSaved: () => {
-        toast("Next action saved");
-        naLocked = true;
-      },
-      onError: (err) => { toast(`Next action save failed: ${err}`); },
-    });
   }
 
   init();
 
-  onDestroy(() => { naAutoSaver.destroy(); });
+  let naSaving = $state(false);
 
-  function triggerNaSave() {
-    if (!naOwnerId || !naDescription || !naType || !naDueDate) return;
-    if (cadenceWarning() && !naCadenceNote.trim()) return;
-    naAutoSaver.save({
-      ownerId: naOwnerId,
-      description: naDescription,
-      type: naType,
-      dueDate: naDueDate,
-      cadenceNote: cadenceWarning() ? naCadenceNote : null,
-    });
+  async function saveNextAction() {
+    if (!naAllFilled || naSaving) return;
+    naSaving = true;
+    naSaveStatus = "saving";
+    try {
+      await api(apiEndpoint, {
+        method: "PATCH",
+        body: JSON.stringify({
+          ownerId: naOwnerId,
+          description: naDescription,
+          type: naType,
+          dueDate: naDueDate,
+          cadenceNote: cadenceWarning() ? naCadenceNote : null,
+        }),
+      });
+      naSaveStatus = "saved";
+      toast("Next action saved");
+      naLocked = true;
+    } catch (err) {
+      naSaveStatus = "error";
+      toast(`Next action save failed: ${err instanceof Error ? err.message : "Unknown error"}`);
+    } finally {
+      naSaving = false;
+    }
   }
 
   async function handleComplete() {
@@ -144,11 +145,19 @@
           <CheckCircle size={18} class="mr-1.5" />
           Done
         </Button>
-      {:else if naDescription}
-        <Button onclick={handleComplete} class="btn-primary" size="sm">
-          <CheckCircle size={18} class="mr-1.5" />
-          Done
-        </Button>
+      {:else}
+        {#if naAllFilled}
+          <Button onclick={saveNextAction} class="btn-primary" size="sm" disabled={naSaving}>
+            <Check size={14} class="mr-1.5" />
+            Save
+          </Button>
+        {/if}
+        {#if naDescription}
+          <Button onclick={handleComplete} variant="outline" size="sm">
+            <CheckCircle size={18} class="mr-1.5" />
+            Done
+          </Button>
+        {/if}
       {/if}
     </div>
   </div>
@@ -217,7 +226,7 @@
           value={naOwnerId}
           emptyOption="Select owner..."
           placeholder="Search colleagues..."
-          onSelect={(value) => { naOwnerId = value; triggerNaSave(); }}
+          onSelect={(value) => { naOwnerId = value; }}
         />
       </div>
       <div>
@@ -228,7 +237,7 @@
           {/if}
         </label>
         <input type="hidden" name="naType" value={naType} />
-        <Select.Root type="single" value={naType} onValueChange={(v) => { if (v) { naType = v; triggerNaSave(); } }}>
+        <Select.Root type="single" value={naType} onValueChange={(v) => { if (v) { naType = v; } }}>
           <Select.Trigger>
             <!-- eslint-disable-next-line security/detect-object-injection -->
             {activityTypeLabels[naType] ?? "Select type..."}
@@ -251,7 +260,7 @@
           name="naDueDate"
           id="naDueDate"
           value={naDueDate}
-          onchange={(v) => { naDueDate = v; triggerNaSave(); }}
+          onchange={(v) => { naDueDate = v; }}
         />
         {#if cadenceWarning()}
           <p class="mt-1 text-xs text-warning">Due date exceeds the recommended cadence for this stage.</p>
@@ -273,7 +282,7 @@
           </p>
         {/if}
         <textarea id="naCadenceNote" rows="2" bind:value={naCadenceNote}
-          oninput={(e) => { e.currentTarget.style.height = "auto"; e.currentTarget.style.height = e.currentTarget.scrollHeight + "px"; triggerNaSave(); }}
+          oninput={(e) => { e.currentTarget.style.height = "auto"; e.currentTarget.style.height = e.currentTarget.scrollHeight + "px"; }}
           class="glass-input block w-full resize-none {naCadenceNote.trim() ? 'ring-1 ring-success-border border-success-border' : ''}"
           placeholder="e.g. Client requested more time to review the proposal, follow-up scheduled for their return from travel"
           aria-required="true"
@@ -290,7 +299,7 @@
       <textarea
         id="naDescription" rows="3"
         bind:value={naDescription}
-        oninput={(e) => { const target = e.currentTarget; target.style.height = "auto"; target.style.height = target.scrollHeight + "px"; triggerNaSave(); }}
+        oninput={(e) => { const target = e.currentTarget; target.style.height = "auto"; target.style.height = target.scrollHeight + "px"; }}
         class="glass-input mt-1 block w-full resize-none {naDescription ? 'ring-1 ring-success-border border-success-border' : ''}"
         placeholder="What needs to happen next?"
       ></textarea>
