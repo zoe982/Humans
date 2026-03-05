@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { untrack } from "svelte";
   import type { ActionData, PageData } from "./$types";
   import PageHeader from "$lib/components/PageHeader.svelte";
   import AlertBanner from "$lib/components/AlertBanner.svelte";
@@ -62,8 +63,9 @@
   $effect(() => {
     if (selectedHumanId) {
       // Keep only pets that belong to the newly selected human
-      const validPets = allPets.filter((p) => p.humanId === selectedHumanId).map((p) => p.id);
-      selectedPetIds = selectedPetIds.filter((id) => validPets.includes(id));
+      const validPetIds = new Set(allPets.filter((p) => p.humanId === selectedHumanId).map((p) => p.id));
+      const current = untrack(() => selectedPetIds);
+      selectedPetIds = current.filter((id) => validPetIds.has(id));
     } else {
       selectedPetIds = [];
     }
