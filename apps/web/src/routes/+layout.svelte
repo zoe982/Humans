@@ -25,7 +25,7 @@
 
   onMount(() => {
     if (data.user && data.sessionToken) {
-      initRealtime(data.user.id, data.sessionToken);
+      initRealtime(data.sessionToken);
       void initCache(data.sessionToken).then(() => syncAll());
     }
   });

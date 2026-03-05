@@ -40,7 +40,7 @@ describe("handleRealtimeMessage", () => {
       method: "DELETE",
       path: "/api/humans/abc123",
       actorId: "other-user",
-    }, "current-user");
+    });
 
     expect(result).toBe("handled");
     const store = getStore("humans");
@@ -52,7 +52,7 @@ describe("handleRealtimeMessage", () => {
       method: "PATCH",
       path: "/api/accounts/xyz",
       actorId: "other-user",
-    }, "current-user");
+    });
 
     expect(mockFetchSingle).toHaveBeenCalledWith("accounts", "xyz");
   });
@@ -62,7 +62,7 @@ describe("handleRealtimeMessage", () => {
       method: "PUT",
       path: "/api/activities/act1",
       actorId: "other-user",
-    }, "current-user");
+    });
 
     expect(mockFetchSingle).toHaveBeenCalledWith("activities", "act1");
   });
@@ -72,7 +72,7 @@ describe("handleRealtimeMessage", () => {
       method: "POST",
       path: "/api/humans",
       actorId: "other-user",
-    }, "current-user");
+    });
 
     expect(mockSyncEntity).toHaveBeenCalledWith("humans");
   });
@@ -82,7 +82,7 @@ describe("handleRealtimeMessage", () => {
       method: "POST",
       path: "/api/humans",
       actorId: "current-user",
-    }, "current-user");
+    });
 
     expect(result).toBe("handled");
     expect(mockSyncEntity).toHaveBeenCalledWith("humans");
@@ -93,7 +93,7 @@ describe("handleRealtimeMessage", () => {
       method: "POST",
       path: "/api/unknown-thing",
       actorId: "other-user",
-    }, "current-user");
+    });
 
     expect(result).toBe("unknown");
   });
@@ -103,7 +103,7 @@ describe("handleRealtimeMessage", () => {
       method: "POST",
       path: "/dashboard",
       actorId: "other-user",
-    }, "current-user");
+    });
 
     expect(result).toBe("unknown");
   });
@@ -113,7 +113,7 @@ describe("handleRealtimeMessage", () => {
       method: "GET",
       path: "/api/pets",
       actorId: "other-user",
-    }, "current-user");
+    });
 
     expect(mockSyncEntity).toHaveBeenCalledWith("pets");
   });

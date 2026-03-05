@@ -10,8 +10,7 @@ export interface RealtimeMessage {
 
 export function handleRealtimeMessage(
   message: RealtimeMessage,
-  currentUserId: string,
-): "handled" | "ignored" | "unknown" {
+): "handled" | "unknown" {
   const parsed = parseRealtimePath(message.path);
   if (parsed === null) return "unknown";
 

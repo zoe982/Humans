@@ -6,7 +6,6 @@ import { handleRealtimeMessage, type RealtimeMessage } from "$lib/data/realtime-
 import { syncAll } from "$lib/data/sync";
 
 let socket: PartySocket | null = null;
-let currentUserId: string | null = null;
 let invalidateTimer: ReturnType<typeof setTimeout> | null = null;
 let hasConnectedBefore = false;
 
@@ -31,9 +30,8 @@ function isRealtimeMessage(raw: unknown): raw is RealtimeMessage {
   );
 }
 
-export function initRealtime(userId: string, sessionToken: string): void {
+export function initRealtime(sessionToken: string): void {
   if (!browser || socket != null) return;
-  currentUserId = userId;
 
   const host = PUBLIC_API_URL !== ""
     ? new URL(PUBLIC_API_URL).host
@@ -59,12 +57,12 @@ export function initRealtime(userId: string, sessionToken: string): void {
       const raw: unknown = typeof event.data === "string" ? JSON.parse(event.data) : event.data;
 
       if (isRealtimeMessage(raw)) {
-        const result = handleRealtimeMessage(raw, currentUserId ?? "");
+        const result = handleRealtimeMessage(raw);
         if (result === "unknown") {
           // Unknown path — fallback to invalidateAll for safety
           scheduleInvalidation();
         }
-        // "handled" or "ignored" — no further action needed
+        // "handled" — no further action needed
         return;
       }
 
@@ -79,7 +77,6 @@ export function initRealtime(userId: string, sessionToken: string): void {
 export function destroyRealtime(): void {
   socket?.close();
   socket = null;
-  currentUserId = null;
   hasConnectedBefore = false;
   if (invalidateTimer != null) {
     clearTimeout(invalidateTimer);
