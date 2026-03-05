@@ -435,6 +435,79 @@ describe("listOpportunities", () => {
     expect(result.data[0]!.ownerName).toBeNull();
     expect(result.data[0]!.ownerDisplayId).toBeNull();
   });
+
+  it("returns linkedHumanCount and linkedPetCount", async () => {
+    const db = getTestDb();
+    await seedColleague(db, "col-1");
+    await seedRoles(db);
+    await seedHuman(db, "h-1", "Alice", "Smith");
+    await seedHuman(db, "h-2", "Bob", "Jones");
+    await seedPet(db, "pet-1", "h-1", "Fluffy");
+    await seedPet(db, "pet-2", "h-1", "Spot");
+    await seedOpportunity(db, "opp-1");
+
+    // Link 2 humans and 2 pets
+    await linkOpportunityHuman(db, "opp-1", { humanId: "h-1" });
+    await linkOpportunityHuman(db, "opp-1", { humanId: "h-2" });
+    await linkOpportunityPet(db, "opp-1", { petId: "pet-1" });
+    await linkOpportunityPet(db, "opp-1", { petId: "pet-2" });
+
+    const result = await listOpportunities(db, 1, 10, {});
+    expect(result.data).toHaveLength(1);
+    expect(result.data[0]!.linkedHumanCount).toBe(2);
+    expect(result.data[0]!.linkedPetCount).toBe(2);
+  });
+
+  it("returns lastActivityDate from linked activities", async () => {
+    const db = getTestDb();
+    await seedOpportunity(db, "opp-1");
+
+    // Direct FK activity (older)
+    const olderDate = "2025-01-01T00:00:00.000Z";
+    const newerDate = "2025-06-15T00:00:00.000Z";
+
+    await db.insert(schema.activities).values({
+      id: "act-direct",
+      displayId: nextDisplayId("ACT"),
+      type: "email",
+      subject: "Direct activity",
+      activityDate: olderDate,
+      opportunityId: "opp-1",
+      createdAt: olderDate,
+      updatedAt: olderDate,
+    });
+
+    // Junction table activity (newer)
+    await db.insert(schema.activities).values({
+      id: "act-junction",
+      displayId: nextDisplayId("ACT"),
+      type: "phone_call",
+      subject: "Junction activity",
+      activityDate: newerDate,
+      opportunityId: null,
+      createdAt: newerDate,
+      updatedAt: newerDate,
+    });
+    await db.insert(schema.activityOpportunities).values({
+      id: "ao-1",
+      activityId: "act-junction",
+      opportunityId: "opp-1",
+      createdAt: newerDate,
+    });
+
+    const result = await listOpportunities(db, 1, 10, {});
+    expect(result.data).toHaveLength(1);
+    expect(result.data[0]!.lastActivityDate).toBe(newerDate);
+  });
+
+  it("returns null lastActivityDate when no activities linked", async () => {
+    const db = getTestDb();
+    await seedOpportunity(db, "opp-1");
+
+    const result = await listOpportunities(db, 1, 10, {});
+    expect(result.data).toHaveLength(1);
+    expect(result.data[0]!.lastActivityDate).toBeNull();
+  });
 });
 
 // ─── createOpportunity ───────────────────────────────────────────────────────

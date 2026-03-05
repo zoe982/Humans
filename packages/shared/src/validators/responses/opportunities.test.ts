@@ -33,6 +33,9 @@ describe("opportunityListItemSchema", () => {
     ownerName: null,
     ownerDisplayId: null,
     isOverdue: false,
+    linkedHumanCount: 0,
+    linkedPetCount: 0,
+    lastActivityDate: null,
   };
 
   it("accepts valid opportunity list item", () => {
@@ -57,6 +60,44 @@ describe("opportunityListItemSchema", () => {
   it("allows extra fields via passthrough", () => {
     const result: OpportunityListItem = opportunityListItemSchema.parse({ ...validListItem, futureField: true });
     expect(result["futureField"]).toBe(true);
+  });
+
+  it("accepts linkedHumanCount and linkedPetCount as numbers", () => {
+    const result: OpportunityListItem = opportunityListItemSchema.parse({
+      ...validListItem,
+      linkedHumanCount: 3,
+      linkedPetCount: 2,
+    });
+    expect(result.linkedHumanCount).toBe(3);
+    expect(result.linkedPetCount).toBe(2);
+  });
+
+  it("accepts lastActivityDate as an ISO string", () => {
+    const result: OpportunityListItem = opportunityListItemSchema.parse({
+      ...validListItem,
+      lastActivityDate: "2024-06-15T12:00:00.000Z",
+    });
+    expect(result.lastActivityDate).toBe("2024-06-15T12:00:00.000Z");
+  });
+
+  it("accepts lastActivityDate as null", () => {
+    const result: OpportunityListItem = opportunityListItemSchema.parse({
+      ...validListItem,
+      lastActivityDate: null,
+    });
+    expect(result.lastActivityDate).toBeNull();
+  });
+
+  it("rejects non-numeric linkedHumanCount", () => {
+    expect(() =>
+      opportunityListItemSchema.parse({ ...validListItem, linkedHumanCount: "three" })
+    ).toThrowError();
+  });
+
+  it("rejects missing linkedHumanCount", () => {
+    const withoutCount = { ...validListItem } as Partial<typeof validListItem>;
+    delete withoutCount.linkedHumanCount;
+    expect(() => opportunityListItemSchema.parse(withoutCount)).toThrowError();
   });
 });
 

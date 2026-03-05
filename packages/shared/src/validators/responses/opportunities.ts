@@ -33,6 +33,9 @@ export const opportunityListItemSchema = z.object({
   ownerName: z.string().nullable(),
   ownerDisplayId: z.string().nullable(),
   isOverdue: z.boolean(),
+  linkedHumanCount: z.number(),
+  linkedPetCount: z.number(),
+  lastActivityDate: z.string().nullable(),
 }).passthrough();
 
 export type OpportunityListItem = z.infer<typeof opportunityListItemSchema>;

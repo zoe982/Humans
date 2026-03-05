@@ -4,6 +4,7 @@ import {
   opportunityHumans,
   opportunityPets,
   opportunityHumanRolesConfig,
+  activityOpportunities,
   activities,
   humans,
   pets,
@@ -29,7 +30,7 @@ export async function listOpportunities(
   page: number,
   limit: number,
   filters: { q?: string | undefined; stage?: string | undefined; ownerId?: string | undefined; dealOwnerId?: string | undefined; overdueOnly?: boolean | undefined; humanId?: string | undefined },
-): Promise<{ data: { primaryHuman: { id: string; displayId: string; firstName: string; lastName: string } | null; primaryHumanName: string | null; nextActionOwnerName: string | null; ownerName: string | null; ownerDisplayId: string | null; isOverdue: boolean; id: string; displayId: string; stage: string; seatsRequested: number; passengerSeats: number; petSeats: number; lossReason: string | null; ownerId: string | null; nextActionOwnerId: string | null; nextActionDescription: string | null; nextActionType: string | null; nextActionStartDate: string | null; nextActionDueDate: string | null; nextActionCompletedAt: string | null; nextActionCadenceNote: string | null; flightId: string | null; notes: string | null; createdAt: string; updatedAt: string }[]; meta: { page: number; limit: number; total: number } }> {
+): Promise<{ data: { primaryHuman: { id: string; displayId: string; firstName: string; lastName: string } | null; primaryHumanName: string | null; nextActionOwnerName: string | null; ownerName: string | null; ownerDisplayId: string | null; isOverdue: boolean; linkedHumanCount: number; linkedPetCount: number; lastActivityDate: string | null; id: string; displayId: string; stage: string; seatsRequested: number; passengerSeats: number; petSeats: number; lossReason: string | null; ownerId: string | null; nextActionOwnerId: string | null; nextActionDescription: string | null; nextActionType: string | null; nextActionStartDate: string | null; nextActionDueDate: string | null; nextActionCompletedAt: string | null; nextActionCadenceNote: string | null; flightId: string | null; notes: string | null; createdAt: string; updatedAt: string }[]; meta: { page: number; limit: number; total: number } }> {
   const offset = (page - 1) * limit;
   const conditions: ReturnType<typeof eq>[] = [];
 
@@ -91,6 +92,56 @@ export async function listOpportunities(
 
   const oppIds = rows.map((r) => r.id);
 
+  // Pet counts per opportunity
+  const petCounts = oppIds.length > 0
+    ? await db
+        .select({
+          opportunityId: opportunityPets.opportunityId,
+          count: sql<number>`count(*)`.mapWith(Number),
+        })
+        .from(opportunityPets)
+        .where(inArray(opportunityPets.opportunityId, oppIds))
+        .groupBy(opportunityPets.opportunityId)
+    : [];
+  const petCountMap = new Map(petCounts.map((r) => [r.opportunityId, r.count]));
+
+  // Last activity date per opportunity (union of direct FK + junction table)
+  const directActivities = oppIds.length > 0
+    ? await db
+        .select({
+          opportunityId: activities.opportunityId,
+          maxDate: sql<string>`max(${activities.activityDate})`,
+        })
+        .from(activities)
+        .where(inArray(activities.opportunityId, oppIds))
+        .groupBy(activities.opportunityId)
+    : [];
+
+  const junctionActivities = oppIds.length > 0
+    ? await db
+        .select({
+          opportunityId: activityOpportunities.opportunityId,
+          maxDate: sql<string>`max(${activities.activityDate})`,
+        })
+        .from(activityOpportunities)
+        .innerJoin(activities, eq(activityOpportunities.activityId, activities.id))
+        .where(inArray(activityOpportunities.opportunityId, oppIds))
+        .groupBy(activityOpportunities.opportunityId)
+    : [];
+
+  const lastActivityMap = new Map<string, string>();
+  for (const row of directActivities) {
+    if (row.opportunityId != null) {
+      lastActivityMap.set(row.opportunityId, row.maxDate);
+    }
+  }
+  for (const row of junctionActivities) {
+    const existing = lastActivityMap.get(row.opportunityId);
+    if (existing == null || row.maxDate > existing) {
+      lastActivityMap.set(row.opportunityId, row.maxDate);
+    }
+  }
+
   // Fetch primary humans for each opportunity
   const linkedHumans = oppIds.length > 0
     ? await db
@@ -140,6 +191,9 @@ export async function listOpportunities(
       ownerName: dealOwner?.name ?? null,
       ownerDisplayId: dealOwner?.displayId ?? null,
       isOverdue,
+      linkedHumanCount: oppHumans.length,
+      linkedPetCount: petCountMap.get(opp.id) ?? 0,
+      lastActivityDate: lastActivityMap.get(opp.id) ?? null,
     };
   });
 

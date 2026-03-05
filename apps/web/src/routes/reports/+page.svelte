@@ -59,5 +59,9 @@
       <h2 class="text-lg font-semibold text-text-primary">Lead Scores</h2>
       <p class="mt-2 text-sm text-text-secondary">Score incoming leads on fit, intent, engagement, and negatives with automatic banding.</p>
     </a>
+    <a href={resolve('/reports/pipelines')} class="glass-card p-6 hover:bg-glass-hover transition-colors">
+      <h2 class="text-lg font-semibold text-text-primary">Pipelines</h2>
+      <p class="mt-2 text-sm text-text-secondary">View opportunities and leads organized by pipeline stage.</p>
+    </a>
   </div>
 </div>
