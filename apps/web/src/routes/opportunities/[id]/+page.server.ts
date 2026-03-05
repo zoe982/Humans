@@ -243,6 +243,23 @@ export const actions = {
     return { success: true };
   },
 
+  delete: async ({ cookies, params }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }>> => {
+    const sessionToken = cookies.get("humans_session");
+    const id = params.id ?? "";
+
+    const res = await fetch(`${PUBLIC_API_URL}/api/opportunities/${id}`, {
+      method: "DELETE",
+      headers: { Cookie: `humans_session=${sessionToken ?? ""}` },
+    });
+
+    if (!res.ok) {
+      const resBody: unknown = await res.json();
+      return failFromApi(resBody, res.status, "Failed to delete opportunity");
+    }
+
+    redirect(303, "/opportunities");
+  },
+
   addActivity: async ({ request, cookies, params }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
     const form = await request.formData();
     const sessionToken = cookies.get("humans_session");

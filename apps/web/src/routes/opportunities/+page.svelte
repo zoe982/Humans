@@ -88,10 +88,6 @@
     { key: "updatedAt", label: "Last Touched" },
   ]}
   clientPageSize={25}
-  deleteAction="?/delete"
-  deleteMessage="Are you sure you want to delete this opportunity? This cannot be undone."
-  canDelete={data.userRole === "admin"}
-  onDelete={(id) => getStore("opportunities").removeItem(id)}
 >
   {#snippet searchForm()}
     <div class="mt-4 mb-6 flex flex-wrap items-end gap-3">

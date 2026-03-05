@@ -21,6 +21,7 @@
   import { formatRelativeTime, formatDate, summarizeChanges } from "$lib/utils/format";
   import { onDestroy } from "svelte";
   import { Button } from "$lib/components/ui/button";
+  import ConfirmDialog from "$lib/components/ConfirmDialog.svelte";
   import { resolve } from "$app/paths";
   import { page } from "$app/stores";
   import { getStore } from "$lib/data/stores.svelte";
@@ -175,6 +176,8 @@
 
   // Loss reason dialog
   let lossReasonDialogOpen = $state(false);
+  let showDeleteConfirm = $state(false);
+  let deleteFormEl: HTMLFormElement | undefined = $state();
   let dialogLossReason = $state("");
 
   // New activity type
@@ -964,7 +967,31 @@
       {/snippet}
     </RelatedListTable>
   </div>
+
+  {#if data.userRole === "admin"}
+    <!-- Danger Zone -->
+    <div class="mt-6 rounded-xl border border-[rgba(239,68,68,0.20)] bg-[rgba(239,68,68,0.06)] p-5">
+      <h2 class="text-lg font-semibold text-destructive-foreground mb-2">Danger Zone</h2>
+      <p class="text-sm text-text-secondary mb-4">Permanently delete this opportunity. This action cannot be undone.</p>
+      {#if form?.error}
+        <p class="text-sm text-destructive-foreground mb-3">{form.error}</p>
+      {/if}
+      <button type="button" class="btn-danger text-sm" onclick={() => { showDeleteConfirm = true; }}>
+        Delete Opportunity
+      </button>
+    </div>
+  {/if}
 </div>
+
+<form method="POST" action="?/delete" bind:this={deleteFormEl} class="hidden"></form>
+
+<ConfirmDialog
+  open={showDeleteConfirm}
+  message="Permanently delete this opportunity? This cannot be undone."
+  confirmLabel="Delete Opportunity"
+  onConfirm={() => { deleteFormEl?.requestSubmit(); showDeleteConfirm = false; }}
+  onCancel={() => { showDeleteConfirm = false; }}
+/>
 
 <!-- Loss Reason Dialog -->
 <Dialog.Root bind:open={lossReasonDialogOpen}>
