@@ -60,7 +60,7 @@
   type Account = { id: string; displayId: string; name: string };
   type Colleague = { id: string; name: string; displayId: string };
   type GeneralLead = { id: string; displayId: string; source: string; status: string; email: string | null; phone: string | null };
-  type Opportunity = { id: string; displayId: string; stage: string };
+  type Opportunity = { id: string; displayId: string; stage: string; primaryHumanName: string | null };
   type Activity = {
     id: string;
     displayId: string;
@@ -115,7 +115,7 @@
   })));
   const colleagueOptions = $derived(colleaguesList.map((c) => ({ value: c.id, label: `${c.displayId} ${c.name}` })));
   const generalLeadOptions = $derived(generalLeadsList.map((g) => ({ value: g.id, label: `${g.displayId} ${g.source} — ${g.email ?? g.phone ?? "No contact"}` })));
-  const opportunityOptions = $derived(opportunitiesList.map((o) => ({ value: o.id, label: `${o.displayId} (${opportunityStageLabels[o.stage] ?? o.stage})` })));
+  const opportunityOptions = $derived(opportunitiesList.map((o) => ({ value: o.id, label: `${o.displayId} — ${opportunityStageLabels[o.stage] ?? o.stage}${o.primaryHumanName ? ` — ${o.primaryHumanName}` : ""}` })));
 
   // Auto-save state
   let type = $state("");

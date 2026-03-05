@@ -9,7 +9,7 @@
   import HighlightText from "$lib/components/HighlightText.svelte";
   import LinkHumanSection from "$lib/components/LinkHumanSection.svelte";
   import { bookingRequestStatusColors } from "$lib/constants/colors";
-  import { bookingRequestStatusLabels, BOOKING_REQUEST_STATUS_OPTIONS, depositStatusLabels, balanceStatusLabels, ACTIVITY_TYPE_OPTIONS } from "$lib/constants/labels";
+  import { bookingRequestStatusLabels, BOOKING_REQUEST_STATUS_OPTIONS, depositStatusLabels, balanceStatusLabels, ACTIVITY_TYPE_OPTIONS, opportunityStageLabels } from "$lib/constants/labels";
   import SearchableSelect from "$lib/components/SearchableSelect.svelte";
   import NextActionSection from "$lib/components/NextActionSection.svelte";
   import { invalidateAll } from "$app/navigation";
@@ -101,7 +101,7 @@
     opportunityId: string | null;
   };
 
-  type OpportunityOption = { id: string; displayId: string; stage: string; seatsRequested?: number; notes?: string | null };
+  type OpportunityOption = { id: string; displayId: string; stage: string; primaryHumanName: string | null; seatsRequested?: number; notes?: string | null };
 
   type MarketingAttr = {
     id: string;
@@ -139,7 +139,7 @@
   const opportunityOptions = $derived(
     allOpportunities
       .filter((o) => o.id !== linkedOpportunityId)
-      .map((o) => ({ value: o.id, label: `${o.displayId} — ${o.stage}` }))
+      .map((o) => ({ value: o.id, label: `${o.displayId} — ${opportunityStageLabels[o.stage] ?? o.stage}${o.primaryHumanName ? ` — ${o.primaryHumanName}` : ""}` }))
   );
   const hasLinkedHuman = $derived(linkedHumans.length > 0);
 

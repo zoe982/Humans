@@ -39,7 +39,7 @@
     primaryHumanName: string | null;
     createdAt: string;
   };
-  type OpportunityListItem = { id: string; displayId: string; stage: string };
+  type OpportunityListItem = { id: string; displayId: string; stage: string; primaryHumanName: string | null };
 
   const pet = $derived(data.pet as Pet);
   const allHumans = $derived(data.allHumans as HumanListItem[]);
@@ -52,7 +52,7 @@
       .filter((o) => !linkedOppIds.has(o.id))
       .map((o) => ({
         value: o.id,
-        label: `${o.displayId} — ${opportunityStageLabels[o.stage] ?? o.stage}`,
+        label: `${o.displayId} — ${opportunityStageLabels[o.stage] ?? o.stage}${o.primaryHumanName ? ` — ${o.primaryHumanName}` : ""}`,
       }))
   );
 
