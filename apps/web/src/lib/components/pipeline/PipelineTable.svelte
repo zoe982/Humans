@@ -22,26 +22,29 @@
   const { groups, header, row }: Props = $props();
 </script>
 
-<table>
-  <thead>
-    <tr>
-      {@render header()}
-    </tr>
-  </thead>
-  <tbody>
-    {#each groups as group, gi (gi)}
-      <tr data-stage={group.stage}>
-        <td>
-          <span style="background-color: {group.color}; display: inline-block; width: 10px; height: 10px; border-radius: 50%;"></span>
-          <span>{group.label}</span>
-          <span class="glass-badge">{group.items.length}</span>
-        </td>
+<div class="glass-card overflow-hidden">
+  <table class="w-full border-collapse">
+    <thead class="glass-thead">
+      <tr>
+        {@render header()}
       </tr>
-      {#each group.items as item, ii (ii)}
-        <tr>
-          {@render row(item)}
+    </thead>
+    <tbody>
+      {#each groups as group, gi (gi)}
+        <tr data-stage={group.stage}>
+          <td colspan="99" class="px-4 pt-5 pb-2">
+            <div class="flex items-center gap-2">
+              <span class="glass-badge {group.color} text-xs">{group.label}</span>
+              <span class="text-xs text-text-muted">{group.items.length}</span>
+            </div>
+          </td>
         </tr>
+        {#each group.items as item, ii (ii)}
+          <tr class="glass-row-hover">
+            {@render row(item)}
+          </tr>
+        {/each}
       {/each}
-    {/each}
-  </tbody>
-</table>
+    </tbody>
+  </table>
+</div>

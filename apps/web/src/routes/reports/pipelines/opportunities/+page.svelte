@@ -20,7 +20,7 @@
     displayId: string;
     stage: string;
     primaryHumanName: string | null;
-    primaryHuman: { id: string; name: string } | null;
+    primaryHuman: { id: string; displayId: string; firstName: string; lastName: string } | null;
     linkedHumanCount: number;
     linkedPetCount: number;
     nextActionDescription: string | null;
@@ -122,13 +122,13 @@
     <div class="mt-6 overflow-x-auto">
       <PipelineTable {groups}>
         {#snippet header()}
-          <th class="pb-3 pr-4 font-medium text-left text-sm text-text-muted whitespace-nowrap">Display ID</th>
-          <th class="pb-3 pr-4 font-medium text-left text-sm text-text-muted">Primary Human</th>
-          <th class="pb-3 pr-4 font-medium text-left text-sm text-text-muted">Humans</th>
-          <th class="pb-3 pr-4 font-medium text-left text-sm text-text-muted">Pets</th>
-          <th class="pb-3 pr-4 font-medium text-left text-sm text-text-muted">Next Action</th>
-          <th class="pb-3 pr-4 font-medium text-left text-sm text-text-muted">Due Date</th>
-          <th class="pb-3 font-medium text-left text-sm text-text-muted">Last Touch</th>
+          <th class="text-left whitespace-nowrap">Display ID</th>
+          <th class="text-left">Primary Human</th>
+          <th class="text-left">Humans</th>
+          <th class="text-left">Pets</th>
+          <th class="text-left">Next Action</th>
+          <th class="text-left">Due Date</th>
+          <th class="text-left">Last Touch</th>
         {/snippet}
         {#snippet row(item)}
           {@const opp = item as Opportunity}
@@ -146,8 +146,10 @@
                 href={resolve(`/humans/${opp.primaryHuman.id}`)}
                 class="text-accent hover:underline text-sm"
               >
-                {opp.primaryHuman.name}
+                {opp.primaryHumanName ?? `${opp.primaryHuman.firstName} ${opp.primaryHuman.lastName}`}
               </a>
+            {:else if opp.primaryHumanName != null}
+              <span class="text-sm text-text-secondary">{opp.primaryHumanName}</span>
             {:else}
               <span class="text-text-muted text-sm">—</span>
             {/if}
@@ -165,8 +167,16 @@
               <span class="text-text-muted">—</span>
             {/if}
           </td>
-          <td class="py-3 pr-4 text-sm {opp.isOverdue ? 'text-red-500 font-medium' : 'text-text-secondary'}">
-            {opp.nextActionDueDate != null ? formatDate(opp.nextActionDueDate) : "—"}
+          <td class="py-3 pr-4 text-sm text-text-secondary">
+            {#if opp.nextActionDueDate != null}
+              {#if opp.isOverdue}
+                <span class="glass-badge badge-red text-xs">{formatDate(opp.nextActionDueDate)}</span>
+              {:else}
+                {formatDate(opp.nextActionDueDate)}
+              {/if}
+            {:else}
+              <span class="text-text-muted">—</span>
+            {/if}
           </td>
           <td class="py-3 text-sm text-text-muted">
             {opp.lastActivityDate != null ? formatDate(opp.lastActivityDate) : "—"}
@@ -184,7 +194,7 @@
           {@const opp = item as Opportunity}
           <a
             href={resolve(`/opportunities/${opp.id}`)}
-            class="glass-card block p-3 hover:bg-glass-hover transition-colors"
+            class="block rounded-lg p-3 bg-[rgba(255,255,255,0.06)] border border-[rgba(255,255,255,0.10)] hover:bg-[rgba(255,255,255,0.11)] hover:border-[rgba(255,255,255,0.18)] transition-all duration-150"
           >
             <div class="flex items-start justify-between gap-2">
               <span class="font-mono text-xs text-text-muted">{opp.displayId}</span>
@@ -192,6 +202,11 @@
             <div class="mt-1 text-sm font-medium text-text-primary truncate">
               {opp.primaryHumanName ?? "—"}
             </div>
+            {#if opp.nextActionDescription != null}
+              <div class="mt-1.5 text-xs text-text-secondary truncate">
+                {nextActionTypeIcon(opp.nextActionType)}&nbsp;{opp.nextActionDescription}
+              </div>
+            {/if}
             {#if opp.nextActionDueDate != null}
               <div class="mt-2 text-xs {opp.isOverdue ? 'text-red-500 font-medium' : 'text-text-muted'}">
                 Due: {formatDate(opp.nextActionDueDate)}
