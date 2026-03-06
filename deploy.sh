@@ -1,6 +1,14 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# ─── Project-level Cloudflare auth (overrides global OAuth) ─────────
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [[ -f "$SCRIPT_DIR/.env" ]]; then
+  set -a
+  source "$SCRIPT_DIR/.env"
+  set +a
+fi
+
 # ─── Colors & Symbols ────────────────────────────────────────────────
 RED='\033[0;31m'
 GREEN='\033[0;32m'
