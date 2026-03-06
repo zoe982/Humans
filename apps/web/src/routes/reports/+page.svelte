@@ -63,5 +63,9 @@
       <h2 class="text-lg font-semibold text-text-primary">Pipelines</h2>
       <p class="mt-2 text-sm text-text-secondary">View opportunities and leads organized by pipeline stage.</p>
     </a>
+    <a href={resolve('/reports/next-actions')} class="glass-card p-6 hover:bg-glass-hover transition-colors">
+      <h2 class="text-lg font-semibold text-text-primary">Next Actions</h2>
+      <p class="mt-2 text-sm text-text-secondary">View all programmed next actions by colleague.</p>
+    </a>
   </div>
 </div>
