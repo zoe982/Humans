@@ -21,3 +21,4 @@ qa/browser-profile/
 qa/screenshots/
 qa/cookies.json
 .playwright-mcp/
+.envrc
