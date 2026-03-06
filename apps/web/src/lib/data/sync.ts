@@ -17,6 +17,15 @@ function isEntityRecord(value: unknown): value is { id: string } {
   return typeof value === "object" && value !== null && "id" in value && typeof (value as { id: unknown }).id === "string";
 }
 
+function isWrappedRecord(value: unknown): value is { data: { id: string } } {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "data" in value &&
+    isEntityRecord((value as { data: unknown }).data)
+  );
+}
+
 function handleSessionExpiry(error: unknown): void {
   if (error instanceof ApiRequestError && error.status === 401) {
     void clearCache();
@@ -78,9 +87,10 @@ export async function fetchSingleRecord(
 
   try {
     const raw = await api(`${path}/${id}`);
-    if (isEntityRecord(raw)) {
+    const unwrapped = isWrappedRecord(raw) ? raw.data : raw;
+    if (isEntityRecord(unwrapped)) {
       const store = getStore(entityType);
-      store.updateItem(id, raw);
+      store.patchItem(id, unwrapped);
     }
   } catch (error) {
     handleSessionExpiry(error);

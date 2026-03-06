@@ -43,6 +43,7 @@ vi.mock("$lib/data/stores.svelte", () => {
         this.lastSync = Date.now();
       }),
       updateItem: vi.fn(),
+      patchItem: vi.fn(),
       removeItem: vi.fn(),
       addItem: vi.fn(),
       clear: vi.fn(),
@@ -291,7 +292,6 @@ describe("sync", () => {
       }
     });
   });
-
   describe("fetchSingleRecord", () => {
     it("returns early when getApiPath returns null for unknown entity type", async () => {
       await fetchSingleRecord("nonexistent", "some-id");
@@ -299,40 +299,61 @@ describe("sync", () => {
     });
 
     it("calls api with the correct path including the id", async () => {
-      mockApi.mockResolvedValueOnce({ id: "h-1", name: "Alice" });
+      mockApi.mockResolvedValueOnce({ data: { id: "h-1", name: "Alice" } });
 
       await fetchSingleRecord("humans", "h-1");
 
       expect(mockApi).toHaveBeenCalledWith("/api/humans/h-1");
     });
 
-    it("updates the store item when API returns a valid entity record", async () => {
-      const record = { id: "p-1", name: "Fluffy" };
-      mockApi.mockResolvedValueOnce(record);
+    it("unwraps { data: record } envelope and calls patchItem with the inner record", async () => {
+      const inner = { id: "p-1", name: "Fluffy" };
+      mockApi.mockResolvedValueOnce({ data: inner });
 
       const store = getStore("pets");
       await fetchSingleRecord("pets", "p-1");
 
-      expect(store.updateItem).toHaveBeenCalledWith("p-1", record);
+      expect(store.patchItem).toHaveBeenCalledWith("p-1", inner);
+      expect(store.updateItem).not.toHaveBeenCalled();
     });
 
-    it("does not call updateItem when API response is not an entity record", async () => {
-      // Response has no `id` string field
+    it("falls back to unwrapped record when API returns bare { id: string } (no envelope)", async () => {
+      const record = { id: "p-2", name: "Rex" };
+      mockApi.mockResolvedValueOnce(record);
+
+      const store = getStore("pets");
+      await fetchSingleRecord("pets", "p-2");
+
+      expect(store.patchItem).toHaveBeenCalledWith("p-2", record);
+      expect(store.updateItem).not.toHaveBeenCalled();
+    });
+
+    it("does not call patchItem when API response has no id (not a record or envelope)", async () => {
       mockApi.mockResolvedValueOnce({ data: [] });
 
       const store = getStore("flights");
       await fetchSingleRecord("flights", "f-1");
 
+      expect(store.patchItem).not.toHaveBeenCalled();
       expect(store.updateItem).not.toHaveBeenCalled();
     });
 
-    it("does not call updateItem when id field is not a string", async () => {
+    it("does not call patchItem when envelope data.id is not a string", async () => {
+      mockApi.mockResolvedValueOnce({ data: { id: 42 } });
+
+      const store = getStore("humans");
+      await fetchSingleRecord("humans", "h-1");
+
+      expect(store.patchItem).not.toHaveBeenCalled();
+    });
+
+    it("does not call patchItem when bare record id is not a string", async () => {
       mockApi.mockResolvedValueOnce({ id: 42 });
 
       const store = getStore("humans");
       await fetchSingleRecord("humans", "h-1");
 
-      expect(store.updateItem).not.toHaveBeenCalled();
+      expect(store.patchItem).not.toHaveBeenCalled();
     });
 
     it("calls clearCache on 401 ApiRequestError", async () => {
@@ -380,7 +401,6 @@ describe("sync", () => {
     it("silently swallows plain non-ApiRequestError errors", async () => {
       mockApi.mockRejectedValueOnce(new Error("connection reset"));
 
-      // Should not throw
       await expect(fetchSingleRecord("humans", "h-1")).resolves.toBeUndefined();
       expect(mockClearCache).not.toHaveBeenCalled();
     });
