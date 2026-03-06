@@ -21,6 +21,7 @@ export const createOpportunitySchema = z
     passengerSeats: z.number().int().min(0).default(1),
     petSeats: z.number().int().min(0).default(0),
     lossReason: z.string().max(2000).optional(),
+    lossNotes: z.string().max(10000).optional(),
   })
   .superRefine((data, ctx) => {
     if (data.stage === "closed_lost" && (data.lossReason == null || data.lossReason.trim() === "")) {
@@ -38,6 +39,7 @@ export const updateOpportunitySchema = z.object({
   petSeats: z.number().int().min(0).optional(),
   notes: z.string().max(10000).optional().nullable(),
   lossReason: z.string().max(2000).optional().nullable(),
+  lossNotes: z.string().max(10000).optional().nullable(),
   flightId: z.string().uuid().optional().nullable(),
   ownerId: z.string().min(1).optional().nullable(),
 });
@@ -46,6 +48,7 @@ export const updateOpportunityStageSchema = z
   .object({
     stage: opportunityStageEnum,
     lossReason: z.string().max(2000).optional(),
+    lossNotes: z.string().max(10000).optional(),
   })
   .superRefine((data, ctx) => {
     if (data.stage === "closed_lost" && (data.lossReason == null || data.lossReason.trim() === "")) {

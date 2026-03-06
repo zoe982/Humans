@@ -24,6 +24,7 @@
   import { Trash2 } from "lucide-svelte";
   import { SvelteURLSearchParams } from "svelte/reactivity";
   import DuplicateContactBanner from "$lib/components/DuplicateContactBanner.svelte";
+  import LossDetailsCard from "$lib/components/LossDetailsCard.svelte";
 
   type ConfigItem = { id: string; name: string };
   let { data, form }: { data: PageData; form: ActionData } = $props();
@@ -298,6 +299,24 @@
       // Loss submission failed
     }
   }
+
+  let savingLossDetails = $state(false);
+
+  async function saveLossDetails(newLossReason: string | null, newLossNotes: string | null) {
+    savingLossDetails = true;
+    try {
+      await api(`/api/route-signups/${signup.id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ loss_reason: newLossReason, loss_notes: newLossNotes }),
+      });
+      toast("Loss details saved");
+      await invalidateAll();
+    } catch {
+      toast.error("Failed to save loss details");
+    } finally {
+      savingLossDetails = false;
+    }
+  }
 </script>
 
 <svelte:head>
@@ -415,20 +434,21 @@
         <dt class="text-sm font-medium text-text-muted">Last Activity</dt>
         <dd class="mt-1 text-sm text-text-primary">{lastActivityDate ? formatRelativeTime(lastActivityDate) : "—"}</dd>
       </div>
-      {#if signup.loss_reason}
-        <div>
-          <dt class="text-sm font-medium text-text-muted">Loss Reason</dt>
-          <dd class="mt-1 text-sm text-text-primary">{signup.loss_reason}</dd>
-        </div>
-      {/if}
-      {#if signup.loss_notes}
-        <div class="col-span-2">
-          <dt class="text-sm font-medium text-text-muted">Loss Notes</dt>
-          <dd class="mt-1 text-sm text-text-secondary">{signup.loss_notes}</dd>
-        </div>
-      {/if}
     </dl>
   </div>
+
+  <!-- Loss Details -->
+  {#if signup.status === "closed_lost"}
+    <div class="mb-6">
+      <LossDetailsCard
+        lossReason={signup.loss_reason}
+        lossNotes={signup.loss_notes}
+        {lossReasons}
+        saving={savingLossDetails}
+        onSave={saveLossDetails}
+      />
+    </div>
+  {/if}
 
   <!-- Marketing Attribution -->
   <div class="glass-card p-6 mb-6">

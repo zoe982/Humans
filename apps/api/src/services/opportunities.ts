@@ -67,6 +67,7 @@ export async function listOpportunities(
       petSeats: opportunities.petSeats,
       notes: opportunities.notes,
       lossReason: opportunities.lossReason,
+      lossNotes: opportunities.lossNotes,
       ownerId: opportunities.ownerId,
       nextActionOwnerId: opportunities.nextActionOwnerId,
       nextActionDescription: opportunities.nextActionDescription,
@@ -309,7 +310,7 @@ export async function getOpportunityDetail(db: DB, id: string): Promise<{ linked
 
 export async function createOpportunity(
   db: DB,
-  data: { stage?: string | undefined; seatsRequested?: number | undefined; passengerSeats?: number | undefined; petSeats?: number | undefined; lossReason?: string | undefined },
+  data: { stage?: string | undefined; seatsRequested?: number | undefined; passengerSeats?: number | undefined; petSeats?: number | undefined; lossReason?: string | undefined; lossNotes?: string | undefined },
   colleagueId: string,
 ): Promise<{ id: string; displayId: string }> {
   const now = new Date().toISOString();
@@ -325,6 +326,7 @@ export async function createOpportunity(
     passengerSeats: data.passengerSeats ?? 1,
     petSeats: data.petSeats ?? 0,
     lossReason: data.lossReason ?? null,
+    lossNotes: data.lossNotes ?? null,
     ownerId: colleagueId,
     nextActionOwnerId: colleagueId,
     createdAt: now,
@@ -348,7 +350,7 @@ export async function createOpportunity(
 export async function updateOpportunity(
   db: DB,
   id: string,
-  data: { seatsRequested?: number | undefined; passengerSeats?: number | undefined; petSeats?: number | undefined; notes?: string | null | undefined; lossReason?: string | null | undefined; flightId?: string | null | undefined; ownerId?: string | null | undefined },
+  data: { seatsRequested?: number | undefined; passengerSeats?: number | undefined; petSeats?: number | undefined; notes?: string | null | undefined; lossReason?: string | null | undefined; lossNotes?: string | null | undefined; flightId?: string | null | undefined; ownerId?: string | null | undefined },
   colleagueId: string,
 ): Promise<{ data: typeof opportunities.$inferSelect | undefined; auditEntryId: string | undefined }> {
   const existing = await db.query.opportunities.findFirst({
@@ -387,6 +389,11 @@ export async function updateOpportunity(
     oldValues["lossReason"] = existing.lossReason;
     newValues["lossReason"] = data.lossReason;
     updateFields["lossReason"] = data.lossReason;
+  }
+  if (data.lossNotes !== undefined) {
+    oldValues["lossNotes"] = existing.lossNotes;
+    newValues["lossNotes"] = data.lossNotes;
+    updateFields["lossNotes"] = data.lossNotes;
   }
   if (data.flightId !== undefined) {
     oldValues["flightId"] = existing.flightId;
@@ -441,7 +448,7 @@ export async function deleteOpportunity(db: DB, id: string): Promise<void> {
 export async function updateOpportunityStage(
   db: DB,
   id: string,
-  data: { stage: string; lossReason?: string | undefined },
+  data: { stage: string; lossReason?: string | undefined; lossNotes?: string | undefined },
   colleagueId: string,
 ): Promise<{ data: typeof opportunities.$inferSelect | undefined; auditEntryId: string | undefined }> {
   const existing = await db.query.opportunities.findFirst({
@@ -460,6 +467,9 @@ export async function updateOpportunityStage(
       throw badRequest(ERROR_CODES.OPPORTUNITY_LOSS_REASON_REQUIRED, "Loss reason is required for closed_lost");
     }
     updateFields["lossReason"] = data.lossReason;
+    if (data.lossNotes !== undefined) {
+      updateFields["lossNotes"] = data.lossNotes;
+    }
     // Clear next action
     updateFields["nextActionOwnerId"] = null;
     updateFields["nextActionDescription"] = null;
@@ -503,6 +513,12 @@ export async function updateOpportunityStage(
     updateFields["nextActionDueDate"] = null;
     updateFields["nextActionCompletedAt"] = null;
     updateFields["nextActionCadenceNote"] = null;
+  }
+
+  // Clear loss fields when reopening from closed_lost
+  if (existing.stage === "closed_lost" && !TERMINAL_STAGES.includes(data.stage)) {
+    updateFields["lossReason"] = null;
+    updateFields["lossNotes"] = null;
   }
 
   await db.update(opportunities).set(updateFields).where(eq(opportunities.id, id));

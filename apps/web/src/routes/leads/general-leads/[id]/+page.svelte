@@ -23,6 +23,7 @@
   import { Trash2, Pencil, Check, X } from "lucide-svelte";
   import { SvelteURLSearchParams } from "svelte/reactivity";
   import DuplicateContactBanner from "$lib/components/DuplicateContactBanner.svelte";
+  import LossDetailsCard from "$lib/components/LossDetailsCard.svelte";
 
   let { data, form }: { data: PageData; form: ActionData } = $props();
 
@@ -56,6 +57,7 @@
     notes: string | null;
     rejectReason: string | null;
     lossReason: string | null;
+    lossNotes: string | null;
     ownerName: string | null;
     ownerId: string | null;
     convertedHumanId: string | null;
@@ -156,6 +158,7 @@
   let showDeleteConfirm = $state(false);
   let showRejectDialog = $state(false);
   let selectedLossReason = $state("");
+  let dialogLossNotes = $state("");
   let pendingCloseStatus = $state("");
   // Link-existing state for emails, phones, social IDs
   let emailAddMode = $state<"create" | "link">("create");
@@ -291,18 +294,38 @@
   async function submitReject() {
     if (!selectedLossReason) return;
     try {
-      const payload: Record<string, string | undefined> = { status: pendingCloseStatus };
+      const payload: Record<string, string | undefined | null> = { status: pendingCloseStatus };
       if (selectedLossReason) payload.lossReason = selectedLossReason;
+      if (dialogLossNotes) payload.lossNotes = dialogLossNotes;
       await api(`/api/general-leads/${lead.id}/status`, {
         method: "PATCH",
         body: JSON.stringify(payload),
       });
       showRejectDialog = false;
       selectedLossReason = "";
+      dialogLossNotes = "";
       pendingCloseStatus = "";
       await invalidateAll();
     } catch {
       // Rejection failed
+    }
+  }
+
+  let savingLossDetails = $state(false);
+
+  async function saveLossDetails(newLossReason: string | null, newLossNotes: string | null) {
+    savingLossDetails = true;
+    try {
+      await api(`/api/general-leads/${lead.id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ lossReason: newLossReason, lossNotes: newLossNotes }),
+      });
+      toast("Loss details saved");
+      await invalidateAll();
+    } catch {
+      toast.error("Failed to save loss details");
+    } finally {
+      savingLossDetails = false;
     }
   }
 
@@ -474,14 +497,21 @@
           <dd class="mt-1 text-sm text-destructive-foreground">{lead.rejectReason}</dd>
         </div>
       {/if}
-      {#if lead.lossReason}
-        <div>
-          <dt class="text-sm font-medium text-text-muted">Loss Reason</dt>
-          <dd class="mt-1 text-sm text-text-primary">{lead.lossReason}</dd>
-        </div>
-      {/if}
     </dl>
   </div>
+
+  <!-- Loss Details -->
+  {#if lead.status === "closed_lost"}
+    <div class="mb-6">
+      <LossDetailsCard
+        lossReason={lead.lossReason}
+        lossNotes={lead.lossNotes}
+        {lossReasons}
+        saving={savingLossDetails}
+        onSave={saveLossDetails}
+      />
+    </div>
+  {/if}
 
   <!-- Lead Score -->
   {#if leadScore != null}
@@ -826,8 +856,18 @@
           {/each}
         </select>
       </div>
+      <div class="mt-3">
+        <label for="dialogLossNotes" class="block text-sm font-medium text-text-secondary mb-1">Loss Notes</label>
+        <textarea
+          id="dialogLossNotes"
+          bind:value={dialogLossNotes}
+          rows="3"
+          class="glass-input block w-full px-3 py-2 text-sm"
+          placeholder="Additional notes about why this lead was lost..."
+        ></textarea>
+      </div>
       <div class="mt-4 flex gap-2 justify-end">
-        <Button variant="ghost" size="sm" onclick={() => { showRejectDialog = false; selectedLossReason = ""; pendingCloseStatus = ""; }}>Cancel</Button>
+        <Button variant="ghost" size="sm" onclick={() => { showRejectDialog = false; selectedLossReason = ""; dialogLossNotes = ""; pendingCloseStatus = ""; }}>Cancel</Button>
         <Button variant="destructive" size="sm" onclick={submitReject} disabled={!selectedLossReason}>
           Close Lead
         </Button>

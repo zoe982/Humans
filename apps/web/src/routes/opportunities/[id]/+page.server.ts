@@ -17,6 +17,7 @@ export const load = async ({ locals, cookies, params }: RequestEvent): Promise<{
   flightSummary: unknown[];
   bookingRequests: { linked: unknown[]; available: unknown[] };
   cadenceConfigs: unknown[];
+  lossReasons: unknown[];
   apiUrl: string;
   userRole: string;
   currentColleagueId: string;
@@ -35,13 +36,14 @@ export const load = async ({ locals, cookies, params }: RequestEvent): Promise<{
 
   // Batch 1 (4 concurrent — Cloudflare Workers limit: 6 TCP, auth uses 1, safety margin 1)
   const [configs, colleagues, allHumans, allPets] = await Promise.all([
-    fetchConfigs(token, ["opportunity-human-roles"]),
+    fetchConfigs(token, ["opportunity-human-roles", "loss-reasons"]),
     fetchList(`${PUBLIC_API_URL}/api/colleagues`, token),
     fetchList(`${PUBLIC_API_URL}/api/humans?limit=200`, token),
     fetchList(`${PUBLIC_API_URL}/api/pets`, token),
   ]);
 
   const roleConfigs = configs["opportunity-human-roles"] ?? [];
+  const lossReasons = configs["loss-reasons"] ?? [];
 
   // Batch 2 (3 concurrent — batch 1 connections already released)
   const [flightSummary, bookingRequestsRaw, cadenceConfigs] = await Promise.all([
@@ -66,6 +68,7 @@ export const load = async ({ locals, cookies, params }: RequestEvent): Promise<{
     flightSummary,
     bookingRequests,
     cadenceConfigs,
+    lossReasons,
     apiUrl: PUBLIC_API_URL,
     userRole: locals.user.role,
     currentColleagueId: locals.user.id,

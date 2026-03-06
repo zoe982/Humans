@@ -22,6 +22,7 @@
   import { onDestroy } from "svelte";
   import { Button } from "$lib/components/ui/button";
   import ConfirmDialog from "$lib/components/ConfirmDialog.svelte";
+  import LossDetailsCard from "$lib/components/LossDetailsCard.svelte";
   import { resolve } from "$app/paths";
   import { page } from "$app/stores";
   import { getStore } from "$lib/data/stores.svelte";
@@ -70,6 +71,7 @@
     petSeats: number;
     notes: string | null;
     lossReason: string | null;
+    lossNotes: string | null;
     flightId: string | null;
     ownerId: string | null;
     ownerName: string | null;
@@ -117,6 +119,7 @@
   const roleOptions = $derived(roleConfigs.map((r) => ({ value: r.id, label: r.name })));
 
   const cadenceConfigs = $derived((data.cadenceConfigs ?? []) as CadenceConfig[]);
+  const lossReasons = $derived((data.lossReasons ?? []) as ConfigItem[]);
   const cadenceMap = $derived(new Map(cadenceConfigs.map((c) => [c.stage, c])));
 
   const isTerminal = $derived(TERMINAL_STAGES.has(opportunity.stage));
@@ -179,6 +182,7 @@
   let showDeleteConfirm = $state(false);
   let deleteFormEl: HTMLFormElement | undefined = $state();
   let dialogLossReason = $state("");
+  let dialogLossNotes = $state("");
 
   // New activity type
   let newActivityType = $state("email");
@@ -228,7 +232,7 @@
 
   function triggerSave() {
     if (!initialized) return;
-    autoSaver.save({ passengerSeats, petSeats, notes: notes || null, lossReason: lossReason || null, ownerId: dealOwnerId || null });
+    autoSaver.save({ passengerSeats, petSeats, notes: notes || null, ownerId: dealOwnerId || null });
   }
 
   let naSaving = $state(false);
@@ -294,30 +298,45 @@
 
   async function confirmCloseLost() {
     if (!dialogLossReason.trim()) {
-      toast("Please provide a loss reason.");
+      toast("Please select a loss reason.");
       return;
     }
 
     saveStatus = "saving";
     try {
-      // First save the loss reason
-      await api(`/api/opportunities/${opportunity.id}`, {
-        method: "PATCH",
-        body: JSON.stringify({ lossReason: dialogLossReason }),
-      });
-      // Then change the stage
       await api(`/api/opportunities/${opportunity.id}/stage`, {
         method: "PATCH",
-        body: JSON.stringify({ stage: "closed_lost", lossReason: dialogLossReason }),
+        body: JSON.stringify({ stage: "closed_lost", lossReason: dialogLossReason, lossNotes: dialogLossNotes || null }),
       });
       saveStatus = "saved";
       lossReasonDialogOpen = false;
+      dialogLossReason = "";
+      dialogLossNotes = "";
       toast("Opportunity closed as lost");
       historyLoaded = false;
       await invalidateAll();
     } catch (err) {
       saveStatus = "error";
       toast(`Failed: ${err instanceof Error ? err.message : "Unknown error"}`);
+    }
+  }
+
+  let savingLossDetails = $state(false);
+
+  async function saveLossDetails(newLossReason: string | null, newLossNotes: string | null) {
+    savingLossDetails = true;
+    try {
+      await api(`/api/opportunities/${opportunity.id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ lossReason: newLossReason, lossNotes: newLossNotes }),
+      });
+      toast("Loss details saved");
+      historyLoaded = false;
+      await invalidateAll();
+    } catch {
+      toast.error("Failed to save loss details");
+    } finally {
+      savingLossDetails = false;
     }
   }
 
@@ -670,19 +689,21 @@
           </form>
         {/if}
       </div>
-      {#if opportunity.stage === "closed_lost"}
-        <div class="sm:col-span-2">
-          <label for="lossReason" class="block text-sm font-medium text-text-secondary">Loss Reason</label>
-          <textarea
-            id="lossReason" rows="2"
-            bind:value={lossReason}
-            oninput={triggerSave}
-            class="glass-input mt-1 block w-full"
-          ></textarea>
-        </div>
-      {/if}
     </div>
   </div>
+
+  <!-- Loss Details -->
+  {#if opportunity.stage === "closed_lost"}
+    <div class="mt-6">
+      <LossDetailsCard
+        lossReason={opportunity.lossReason}
+        lossNotes={opportunity.lossNotes}
+        {lossReasons}
+        saving={savingLossDetails}
+        onSave={saveLossDetails}
+      />
+    </div>
+  {/if}
 
   <!-- Notes -->
   <div class="mt-6 glass-card p-6 space-y-4">
@@ -1000,18 +1021,29 @@
       <Dialog.Title>Close as Lost</Dialog.Title>
       <Dialog.Description>Please provide a reason for closing this opportunity.</Dialog.Description>
     </Dialog.Header>
-    <div class="mt-4">
-      <label for="dialogLossReason" class="block text-sm font-medium text-text-secondary mb-1">Loss Reason</label>
-      <textarea
-        id="dialogLossReason"
-        rows="3"
-        bind:value={dialogLossReason}
-        class="glass-input w-full px-3 py-2 text-sm"
-        placeholder="Why was this opportunity lost?"
-      ></textarea>
+    <div class="mt-4 space-y-3">
+      <div>
+        <label for="dialogLossReason" class="block text-sm font-medium text-text-secondary mb-1">Loss Reason</label>
+        <select id="dialogLossReason" class="glass-input block w-full px-3 py-2 text-sm" bind:value={dialogLossReason}>
+          <option value="">-- Select --</option>
+          {#each lossReasons as reason, i (i)}
+            <option value={reason.name}>{reason.name}</option>
+          {/each}
+        </select>
+      </div>
+      <div>
+        <label for="dialogLossNotes" class="block text-sm font-medium text-text-secondary mb-1">Loss Notes</label>
+        <textarea
+          id="dialogLossNotes"
+          rows="3"
+          bind:value={dialogLossNotes}
+          class="glass-input w-full px-3 py-2 text-sm"
+          placeholder="Additional notes about why this opportunity was lost..."
+        ></textarea>
+      </div>
     </div>
     <Dialog.Footer>
-      <Button size="sm" onclick={confirmCloseLost}>
+      <Button size="sm" onclick={confirmCloseLost} disabled={!dialogLossReason.trim()}>
         Confirm Close
       </Button>
     </Dialog.Footer>

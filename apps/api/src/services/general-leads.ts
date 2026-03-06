@@ -79,6 +79,7 @@ export async function listGeneralLeads(
       notes: generalLeads.notes,
       rejectReason: generalLeads.rejectReason,
       lossReason: generalLeads.lossReason,
+      lossNotes: generalLeads.lossNotes,
       convertedHumanId: generalLeads.convertedHumanId,
       ownerId: generalLeads.ownerId,
       source: generalLeads.source,
@@ -136,6 +137,7 @@ export async function getGeneralLead(db: DB, id: string): Promise<{ convertedHum
       notes: generalLeads.notes,
       rejectReason: generalLeads.rejectReason,
       lossReason: generalLeads.lossReason,
+      lossNotes: generalLeads.lossNotes,
       convertedHumanId: generalLeads.convertedHumanId,
       ownerId: generalLeads.ownerId,
       source: generalLeads.source,
@@ -237,7 +239,7 @@ export async function createGeneralLead(
 export async function updateGeneralLead(
   db: DB,
   id: string,
-  data: { firstName?: string | undefined; middleName?: string | null | undefined; lastName?: string | undefined; notes?: string | undefined; ownerId?: string | null | undefined; source?: string | null | undefined; channel?: string | null | undefined },
+  data: { firstName?: string | undefined; middleName?: string | null | undefined; lastName?: string | undefined; notes?: string | undefined; ownerId?: string | null | undefined; source?: string | null | undefined; channel?: string | null | undefined; lossNotes?: string | null | undefined },
   colleagueId: string,
 ): Promise<{ data: typeof generalLeads.$inferSelect | undefined }> {
   const existing = await db.query.generalLeads.findFirst({
@@ -290,6 +292,11 @@ export async function updateGeneralLead(
     newValues["channel"] = data.channel;
     updateFields["channel"] = data.channel;
   }
+  if (data.lossNotes !== undefined) {
+    oldValues["lossNotes"] = existing.lossNotes;
+    newValues["lossNotes"] = data.lossNotes;
+    updateFields["lossNotes"] = data.lossNotes;
+  }
 
   await db.update(generalLeads).set(updateFields).where(eq(generalLeads.id, id));
 
@@ -316,7 +323,7 @@ export async function updateGeneralLead(
 export async function updateGeneralLeadStatus(
   db: DB,
   id: string,
-  data: { status: string; rejectReason?: string | undefined; lossReason?: string | undefined },
+  data: { status: string; rejectReason?: string | undefined; lossReason?: string | undefined; lossNotes?: string | undefined },
   colleagueId: string,
 ): Promise<{ data: typeof generalLeads.$inferSelect | undefined }> {
   const existing = await db.query.generalLeads.findFirst({
@@ -338,9 +345,13 @@ export async function updateGeneralLeadStatus(
   if (data.lossReason !== undefined) {
     updateFields["lossReason"] = data.lossReason;
   }
+  if (data.lossNotes !== undefined) {
+    updateFields["lossNotes"] = data.lossNotes;
+  }
   // Clear lossReason when reopening from closed_lost
   if (existing.status === "closed_lost" && !CLOSED_STATUSES.includes(data.status)) {
     updateFields["lossReason"] = null;
+    updateFields["lossNotes"] = null;
   }
 
   await db.update(generalLeads).set(updateFields).where(eq(generalLeads.id, id));

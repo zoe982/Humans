@@ -22,6 +22,7 @@ export const generalLeads = pgTable("general_leads", {
   notes: text("notes"),
   rejectReason: text("reject_reason"),
   lossReason: text("loss_reason"),
+  lossNotes: text("loss_notes"),
   convertedHumanId: text("converted_human_id").references(() => humans.id),
   ownerId: text("owner_id").references(() => colleagues.id),
   frontConversationId: text("front_conversation_id"),

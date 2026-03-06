@@ -12,6 +12,8 @@ const sampleLead = {
   status: "open",
   notes: "Some notes",
   rejectReason: null,
+  lossReason: null,
+  lossNotes: null,
   convertedHumanId: null,
   ownerId: null,
   createdAt: "2024-01-01T00:00:00.000Z",

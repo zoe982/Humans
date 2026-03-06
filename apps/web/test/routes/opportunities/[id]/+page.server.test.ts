@@ -12,6 +12,7 @@ const mockOpportunity = {
   petSeats: 1,
   notes: null,
   lossReason: null,
+  lossNotes: null,
   ownerId: null,
   nextActionOwnerId: null,
   nextActionDescription: null,

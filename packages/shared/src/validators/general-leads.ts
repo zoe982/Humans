@@ -26,12 +26,14 @@ export const updateGeneralLeadSchema = z.object({
   ownerId: z.string().nullable().optional(),
   source: z.string().max(255).nullable().optional(),
   channel: z.string().max(255).nullable().optional(),
+  lossNotes: z.string().max(10000).nullable().optional(),
 });
 
 export const updateGeneralLeadStatusSchema = z
   .object({
     status: z.enum(generalLeadStatuses),
     lossReason: z.string().max(255).optional(),
+    lossNotes: z.string().max(10000).optional(),
   })
   .superRefine((data, ctx) => {
     if (data.status === "closed_lost" && (data.lossReason == null || data.lossReason.trim() === "")) {

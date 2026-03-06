@@ -448,6 +448,7 @@ export function buildOpportunity(overrides: Partial<{
   passengerSeats: number;
   petSeats: number;
   lossReason: string | null;
+  lossNotes: string | null;
   nextActionOwnerId: string | null;
   nextActionDescription: string | null;
   nextActionType: string | null;
@@ -467,6 +468,7 @@ export function buildOpportunity(overrides: Partial<{
   passengerSeats: number;
   petSeats: number;
   lossReason: string | null;
+  lossNotes: string | null;
   nextActionOwnerId: string | null;
   nextActionDescription: string | null;
   nextActionType: string | null;
@@ -488,6 +490,7 @@ export function buildOpportunity(overrides: Partial<{
     passengerSeats: 1,
     petSeats: 0,
     lossReason: null,
+    lossNotes: null,
     nextActionOwnerId: null,
     nextActionDescription: null,
     nextActionType: null,
@@ -678,6 +681,8 @@ export function buildGeneralLead(overrides: Partial<{
   lastName: string;
   notes: string | null;
   rejectReason: string | null;
+  lossReason: string | null;
+  lossNotes: string | null;
   convertedHumanId: string | null;
   ownerId: string | null;
   createdAt: string;
@@ -691,6 +696,8 @@ export function buildGeneralLead(overrides: Partial<{
   lastName: string;
   notes: string | null;
   rejectReason: string | null;
+  lossReason: string | null;
+  lossNotes: string | null;
   convertedHumanId: string | null;
   ownerId: string | null;
   createdAt: string;
@@ -706,6 +713,8 @@ export function buildGeneralLead(overrides: Partial<{
     lastName: "Lead",
     notes: null,
     rejectReason: null,
+    lossReason: null,
+    lossNotes: null,
     convertedHumanId: null,
     ownerId: null,
     createdAt: ts,
