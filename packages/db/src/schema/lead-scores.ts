@@ -11,6 +11,7 @@ export const leadScores = pgTable(
     generalLeadId: text("general_lead_id").references(() => generalLeads.id),
     websiteBookingRequestId: text("website_booking_request_id"), // Supabase — no FK
     routeSignupId: text("route_signup_id"), // Supabase — no FK
+    evacuationLeadId: text("evacuation_lead_id"), // Supabase — no FK
 
     // Fit flags
     fitMatchesCurrentWebsiteFlight: boolean("fit_matches_current_website_flight").notNull().default(false),
@@ -53,5 +54,6 @@ export const leadScores = pgTable(
     index("lead_scores_website_booking_request_id_idx").on(table.websiteBookingRequestId),
     index("lead_scores_route_signup_id_idx").on(table.routeSignupId),
     index("lead_scores_score_total_idx").on(table.scoreTotal),
+    index("lead_scores_evacuation_lead_id_idx").on(table.evacuationLeadId),
   ],
 );

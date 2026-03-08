@@ -225,9 +225,6 @@
     backLabel="Activities"
     title="{activity.displayId} — {activity.subject || activityTypeLabels[activity.type] || 'Activity'}"
   >
-    {#snippet actions()}
-      <button type="button" class="btn-danger text-sm py-1.5 px-3" onclick={() => { showDeleteConfirm = true; }}>Delete</button>
-    {/snippet}
   </RecordManagementBar>
 
   {#if form?.error}
@@ -635,6 +632,18 @@
         <td class="text-xs text-text-secondary max-w-sm truncate">{summarizeChanges(entry.changes)}</td>
       {/snippet}
     </RelatedListTable>
+  </div>
+
+  <!-- Danger Zone -->
+  <div class="mt-6 rounded-xl border border-[rgba(239,68,68,0.20)] bg-[rgba(239,68,68,0.06)] p-5">
+    <h2 class="text-lg font-semibold text-destructive-foreground mb-2">Danger Zone</h2>
+    <p class="text-sm text-text-secondary mb-4">Permanently delete this activity and all its linked data.</p>
+    {#if form?.error}
+      <p class="text-sm text-destructive-foreground mb-3">{form.error}</p>
+    {/if}
+    <button type="button" class="btn-danger text-sm" onclick={() => { showDeleteConfirm = true; }}>
+      Delete Activity
+    </button>
   </div>
 </div>
 

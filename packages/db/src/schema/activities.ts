@@ -29,6 +29,7 @@ export const activities = pgTable(
     humanId: text("human_id").references(() => humans.id),
     accountId: text("account_id").references(() => accounts.id),
     routeSignupId: text("route_signup_id"),
+    evacuationLeadId: text("evacuation_lead_id"),
     websiteBookingRequestId: text("website_booking_request_id"),
     opportunityId: text("opportunity_id").references(() => opportunities.id),
     generalLeadId: text("general_lead_id").references(() => generalLeads.id),
@@ -52,5 +53,6 @@ export const activities = pgTable(
     index("activities_activity_date_idx").on(table.activityDate),
     index("activities_general_lead_id_idx").on(table.generalLeadId),
     index("activities_opportunity_id_idx").on(table.opportunityId),
+    index("activities_evacuation_lead_id_idx").on(table.evacuationLeadId),
   ],
 );

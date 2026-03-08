@@ -6,6 +6,7 @@ import {
   humanTypes,
   humanTypeValues,
   humanRouteSignups,
+  humanEvacuationLeads,
   humanWebsiteBookingRequests,
   phones,
   pets,
@@ -506,6 +507,7 @@ export async function deleteHuman(supabase: SupabaseClient, db: DB, id: string):
   await db.update(emails).set({ humanId: null }).where(eq(emails.humanId, id));
   await db.delete(humanTypes).where(eq(humanTypes.humanId, id));
   await db.delete(humanRouteSignups).where(eq(humanRouteSignups.humanId, id));
+  await db.delete(humanEvacuationLeads).where(eq(humanEvacuationLeads.humanId, id));
   await db.delete(humanWebsiteBookingRequests).where(eq(humanWebsiteBookingRequests.humanId, id));
   await db.update(phones).set({ humanId: null }).where(eq(phones.humanId, id));
   await db.delete(pets).where(eq(pets.humanId, id));
@@ -760,4 +762,80 @@ export async function updateHumanRelationship(db: DB, id: string, data: { labelI
 
 export async function deleteHumanRelationship(db: DB, id: string): Promise<void> {
   await db.delete(humanRelationships).where(eq(humanRelationships.id, id));
+}
+
+export async function linkEvacuationLead(db: DB, humanId: string, evacuationLeadId: string): Promise<{ id: string; humanId: string; evacuationLeadId: string; linkedAt: string }> {
+  const existing = await db.query.humans.findFirst({
+    where: eq(humans.id, humanId),
+  });
+  if (existing == null) {
+    throw notFound(ERROR_CODES.HUMAN_NOT_FOUND, "Human not found");
+  }
+
+  const link = {
+    id: createId(),
+    humanId,
+    evacuationLeadId,
+    linkedAt: new Date().toISOString(),
+  };
+  await db.insert(humanEvacuationLeads).values(link);
+
+  // Dual-associate activities/emails/phones/socialIds (keep evacuationLeadId, add humanId)
+  await db.update(activities).set({ humanId }).where(
+    and(eq(activities.evacuationLeadId, evacuationLeadId), sql`${activities.humanId} IS NULL`),
+  );
+  await db.update(emails).set({ humanId }).where(
+    and(eq(emails.evacuationLeadId, evacuationLeadId), sql`${emails.humanId} IS NULL`),
+  );
+  await db.update(phones).set({ humanId }).where(
+    and(eq(phones.evacuationLeadId, evacuationLeadId), sql`${phones.humanId} IS NULL`),
+  );
+  await db.update(socialIds).set({ humanId }).where(
+    and(eq(socialIds.evacuationLeadId, evacuationLeadId), sql`${socialIds.humanId} IS NULL`),
+  );
+
+  return link;
+}
+
+export async function unlinkEvacuationLead(db: DB, linkId: string): Promise<void> {
+  const link = await db.query.humanEvacuationLeads.findFirst({
+    where: eq(humanEvacuationLeads.id, linkId),
+  });
+  if (link != null) {
+    // Clear humanId from records associated with this evacuation lead
+    await db.update(activities).set({ humanId: null }).where(
+      and(eq(activities.evacuationLeadId, link.evacuationLeadId), eq(activities.humanId, link.humanId)),
+    );
+    await db.update(emails).set({ humanId: null }).where(
+      and(eq(emails.evacuationLeadId, link.evacuationLeadId), eq(emails.humanId, link.humanId)),
+    );
+    await db.update(phones).set({ humanId: null }).where(
+      and(eq(phones.evacuationLeadId, link.evacuationLeadId), eq(phones.humanId, link.humanId)),
+    );
+    await db.update(socialIds).set({ humanId: null }).where(
+      and(eq(socialIds.evacuationLeadId, link.evacuationLeadId), eq(socialIds.humanId, link.humanId)),
+    );
+  }
+  await db.delete(humanEvacuationLeads).where(eq(humanEvacuationLeads.id, linkId));
+}
+
+export async function getLinkedHumanForEvacuationLead(
+  db: DB,
+  evacuationLeadId: string,
+): Promise<{ id: string; humanId: string; humanDisplayId: string; humanFirstName: string; humanLastName: string; linkedAt: string } | null> {
+  const links = await db
+    .select({
+      id: humanEvacuationLeads.id,
+      humanId: humanEvacuationLeads.humanId,
+      humanDisplayId: humans.displayId,
+      humanFirstName: humans.firstName,
+      humanLastName: humans.lastName,
+      linkedAt: humanEvacuationLeads.linkedAt,
+    })
+    .from(humanEvacuationLeads)
+    .innerJoin(humans, eq(humanEvacuationLeads.humanId, humans.id))
+    .where(eq(humanEvacuationLeads.evacuationLeadId, evacuationLeadId))
+    .limit(1);
+
+  return links[0] ?? null;
 }

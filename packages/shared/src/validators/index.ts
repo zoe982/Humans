@@ -222,4 +222,13 @@ export {
   type CreateConfigItemInput,
 } from "./accounts";
 
+export {
+  evacuationLeadStatuses,
+  updateEvacuationLeadStatusSchema,
+  updateEvacuationLeadSchema,
+  type EvacuationLeadStatus,
+  type UpdateEvacuationLeadStatusInput,
+  type UpdateEvacuationLeadInput,
+} from "./evacuation-leads";
+
 export * from "./responses/index";

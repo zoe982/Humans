@@ -156,6 +156,7 @@ export async function createEmail(
     generalLeadId?: string | undefined;
     websiteBookingRequestId?: string | undefined;
     routeSignupId?: string | undefined;
+    evacuationLeadId?: string | undefined;
     email: string;
     labelId?: string | null | undefined;
     isPrimary?: boolean | undefined;
@@ -185,6 +186,7 @@ export async function createEmail(
     generalLeadId: data.generalLeadId ?? null,
     websiteBookingRequestId: data.websiteBookingRequestId ?? null,
     routeSignupId: data.routeSignupId ?? null,
+    evacuationLeadId: data.evacuationLeadId ?? null,
     email: normalized,
     labelId: data.labelId ?? null,
     isPrimary: data.isPrimary ?? false,
@@ -214,7 +216,7 @@ export async function deleteEmail(db: DB, id: string): Promise<void> {
 
 export async function listEmailsForEntity(
   db: DB,
-  column: "generalLeadId" | "websiteBookingRequestId" | "routeSignupId",
+  column: "generalLeadId" | "websiteBookingRequestId" | "routeSignupId" | "evacuationLeadId",
   entityId: string,
 ): Promise<{ id: string; displayId: string; email: string; labelId: string | null; isPrimary: boolean; createdAt: string }[]> {
   // eslint-disable-next-line security/detect-object-injection -- column is a typed union, not user input

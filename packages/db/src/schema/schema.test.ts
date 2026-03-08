@@ -11,6 +11,7 @@ import { emails } from "./emails";
 import { emailLabelsConfig } from "./email-labels-config";
 import { humanTypes, humanTypeValues } from "./human-types";
 import { humanRouteSignups } from "./human-route-signups";
+import { humanEvacuationLeads } from "./human-evacuation-leads";
 import { humanWebsiteBookingRequests } from "./human-website-booking-requests";
 import { lossReasonsConfig } from "./loss-reasons-config";
 import { phones } from "./phones";
@@ -81,6 +82,10 @@ describe("schema tables", () => {
 
   it("humanRouteSignups table has correct name", () => {
     expect(getTableName(humanRouteSignups)).toBe("human_route_signups");
+  });
+
+  it("humanEvacuationLeads table has correct name", () => {
+    expect(getTableName(humanEvacuationLeads)).toBe("human_evacuation_leads");
   });
 
   it("humanWebsiteBookingRequests table has correct name", () => {
@@ -294,6 +299,7 @@ describe("schema index re-exports", () => {
     expect(schemaIndex.humanTypes).toBeDefined();
     expect(schemaIndex.humanTypeValues).toBeDefined();
     expect(schemaIndex.humanRouteSignups).toBeDefined();
+    expect(schemaIndex.humanEvacuationLeads).toBeDefined();
     expect(schemaIndex.humanWebsiteBookingRequests).toBeDefined();
     expect(schemaIndex.lossReasonsConfig).toBeDefined();
     expect(schemaIndex.phones).toBeDefined();
@@ -326,6 +332,14 @@ describe("humanRouteSignups schema", () => {
   });
 });
 
+describe("humanEvacuationLeads schema", () => {
+  it("has a unique index on evacuationLeadId", () => {
+    const config = getTableConfig(humanEvacuationLeads);
+    const idx = config.indexes.find((i) => i.config.name === "human_evacuation_leads_evacuation_lead_id_unique");
+    expect(idx).toBeDefined();
+  });
+});
+
 describe("humanWebsiteBookingRequests schema", () => {
   it("has a unique index on websiteBookingRequestId", () => {
     const config = getTableConfig(humanWebsiteBookingRequests);
@@ -337,7 +351,7 @@ describe("humanWebsiteBookingRequests schema", () => {
 describe("activities schema", () => {
   it("activities table has a conditional unique index on front_id", () => {
     const config = getTableConfig(activities);
-    expect(config.indexes.length).toBe(6);
+    expect(config.indexes.length).toBe(7);
     const frontIdIndex = config.indexes.find((idx) =>
       idx.config.name === "activities_front_id_unique",
     );
@@ -435,9 +449,9 @@ describe("leadScores schema", () => {
     expect(getTableName(leadScores)).toBe("lead_scores");
   });
 
-  it("leadScores table has 4 indexes", () => {
+  it("leadScores table has 5 indexes", () => {
     const config = getTableConfig(leadScores);
-    expect(config.indexes.length).toBe(4);
+    expect(config.indexes.length).toBe(5);
   });
 
   it("leadScores table has a unique index on general_lead_id", () => {

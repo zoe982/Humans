@@ -31,6 +31,15 @@ export const signupStatusColors: Record<string, string> = {
   closed_converted: "badge-green",
 };
 
+/** Evacuation lead status badge colors */
+export const evacuationLeadStatusColors: Record<string, string> = {
+  open: "badge-blue",
+  pending_response: "badge-yellow",
+  qualified: "badge-yellow",
+  closed_lost: "badge-red",
+  closed_converted: "badge-green",
+};
+
 /** Booking request status colors */
 export const bookingRequestStatusColors: Record<string, string> = {
   open: "badge-blue",
@@ -89,6 +98,7 @@ export const leadTypeColors: Record<string, string> = {
   general_lead: "badge-purple",
   route_signup: "badge-blue",
   website_booking_request: "badge-orange",
+  evacuation_lead: "badge-red",
 };
 
 /** Merged status colors across all lead types */
@@ -96,6 +106,7 @@ export const allLeadStatusColors: Record<string, string> = {
   ...signupStatusColors,
   ...bookingRequestStatusColors,
   ...generalLeadStatusColors,
+  ...evacuationLeadStatusColors,
 };
 
 /** Opportunity stage badge colors */

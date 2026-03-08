@@ -136,6 +136,7 @@ export async function createSocialId(
     generalLeadId?: string | null | undefined;
     websiteBookingRequestId?: string | null | undefined;
     routeSignupId?: string | null | undefined;
+    evacuationLeadId?: string | null | undefined;
   },
 ): Promise<{ id: string; displayId: string; handle: string; platformId: string | null; humanId: string | null; accountId: string | null; generalLeadId: string | null; websiteBookingRequestId: string | null; routeSignupId: string | null; createdAt: string }> {
   const normalizedHandle = normalizeSocialHandle(data.handle);
@@ -156,6 +157,7 @@ export async function createSocialId(
     generalLeadId: data.generalLeadId ?? null,
     websiteBookingRequestId: data.websiteBookingRequestId ?? null,
     routeSignupId: data.routeSignupId ?? null,
+    evacuationLeadId: data.evacuationLeadId ?? null,
     createdAt: now,
   };
 
@@ -223,7 +225,7 @@ export async function deleteSocialId(db: DB, id: string): Promise<void> {
 
 export async function listSocialIdsForEntity(
   db: DB,
-  column: "generalLeadId" | "websiteBookingRequestId" | "routeSignupId",
+  column: "generalLeadId" | "websiteBookingRequestId" | "routeSignupId" | "evacuationLeadId",
   entityId: string,
 ): Promise<{ id: string; displayId: string; handle: string; platformId: string | null; platformName: string | null; createdAt: string }[]> {
   // eslint-disable-next-line security/detect-object-injection -- column is a typed union, not user input

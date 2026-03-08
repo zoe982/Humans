@@ -89,10 +89,6 @@
     { key: "date", label: "Date", sortable: true, sortValue: (a) => a.activityDate },
   ]}
   clientPageSize={25}
-  deleteAction="?/delete"
-  deleteMessage="Are you sure you want to delete this activity?"
-  canDelete={true}
-  onDelete={(id) => getStore("activities").removeItem(id)}
 >
   {#snippet searchForm()}
     <div class="mt-4 flex flex-wrap items-end gap-4 glass-card p-4 mb-6">

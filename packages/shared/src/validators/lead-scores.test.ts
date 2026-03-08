@@ -11,7 +11,8 @@ describe("leadScoreParentTypes", () => {
     expect(leadScoreParentTypes).toContain("general_lead");
     expect(leadScoreParentTypes).toContain("website_booking_request");
     expect(leadScoreParentTypes).toContain("route_signup");
-    expect(leadScoreParentTypes).toHaveLength(3);
+    expect(leadScoreParentTypes).toContain("evacuation_lead");
+    expect(leadScoreParentTypes).toHaveLength(4);
   });
 });
 

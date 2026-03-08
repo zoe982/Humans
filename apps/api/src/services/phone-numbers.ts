@@ -125,6 +125,7 @@ export async function createPhoneNumber(
     generalLeadId?: string | undefined;
     websiteBookingRequestId?: string | undefined;
     routeSignupId?: string | undefined;
+    evacuationLeadId?: string | undefined;
     phoneNumber: string;
     labelId?: string | null | undefined;
     hasWhatsapp?: boolean | undefined;
@@ -155,6 +156,7 @@ export async function createPhoneNumber(
     generalLeadId: data.generalLeadId ?? null,
     websiteBookingRequestId: data.websiteBookingRequestId ?? null,
     routeSignupId: data.routeSignupId ?? null,
+    evacuationLeadId: data.evacuationLeadId ?? null,
     phoneNumber: normalized,
     labelId: data.labelId ?? null,
     hasWhatsapp: data.hasWhatsapp ?? false,
@@ -224,7 +226,7 @@ export async function deletePhoneNumber(db: DB, id: string): Promise<void> {
 
 export async function listPhoneNumbersForEntity(
   db: DB,
-  column: "generalLeadId" | "websiteBookingRequestId" | "routeSignupId",
+  column: "generalLeadId" | "websiteBookingRequestId" | "routeSignupId" | "evacuationLeadId",
   entityId: string,
 ): Promise<{ id: string; displayId: string; phoneNumber: string; labelId: string | null; hasWhatsapp: boolean; isPrimary: boolean; createdAt: string }[]> {
   // eslint-disable-next-line security/detect-object-injection -- column is a typed union, not user input

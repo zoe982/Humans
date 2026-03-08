@@ -20,6 +20,7 @@ export const createActivitySchema = z
     websiteBookingRequestId: z.string().uuid().optional(),
     generalLeadId: z.string().optional(),
     opportunityId: z.string().optional(),
+    evacuationLeadId: z.string().uuid().optional(),
     gmailId: z.string().optional(),
     frontId: z.string().optional(),
     frontConversationId: z.string().optional(),
@@ -34,11 +35,11 @@ export const createActivitySchema = z
         message: "Subject is required for email activities",
       });
     }
-    if (data.humanId == null && data.routeSignupId == null && data.accountId == null && data.websiteBookingRequestId == null && data.generalLeadId == null && data.opportunityId == null) {
+    if (data.humanId == null && data.routeSignupId == null && data.accountId == null && data.websiteBookingRequestId == null && data.generalLeadId == null && data.opportunityId == null && data.evacuationLeadId == null) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ["humanId"],
-        message: "At least one of humanId, accountId, routeSignupId, websiteBookingRequestId, generalLeadId, or opportunityId is required",
+        message: "At least one of humanId, accountId, routeSignupId, websiteBookingRequestId, generalLeadId, opportunityId, or evacuationLeadId is required",
       });
     }
   });
@@ -51,6 +52,7 @@ export const updateActivitySchema = z.object({
   humanId: z.string().nullish(),
   accountId: z.string().nullish(),
   routeSignupId: z.string().uuid().nullish(),
+  evacuationLeadId: z.string().uuid().nullish(),
   websiteBookingRequestId: z.string().uuid().nullish(),
   generalLeadId: z.string().nullish(),
   opportunityId: z.string().nullish(),

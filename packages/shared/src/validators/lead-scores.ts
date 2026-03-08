@@ -4,6 +4,7 @@ export const leadScoreParentTypes = [
   "general_lead",
   "website_booking_request",
   "route_signup",
+  "evacuation_lead",
 ] as const;
 export type LeadScoreParentType = (typeof leadScoreParentTypes)[number];
 

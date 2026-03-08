@@ -146,7 +146,7 @@ function enforceEngagementExclusion(
 
 // ─── Parent FK column resolver ───────────────────────────────────
 
-function parentFkColumn(parentType: LeadScoreParentType): "generalLeadId" | "websiteBookingRequestId" | "routeSignupId" {
+function parentFkColumn(parentType: LeadScoreParentType): "generalLeadId" | "websiteBookingRequestId" | "routeSignupId" | "evacuationLeadId" {
   switch (parentType) {
     case "general_lead":
       return "generalLeadId";
@@ -154,10 +154,12 @@ function parentFkColumn(parentType: LeadScoreParentType): "generalLeadId" | "web
       return "websiteBookingRequestId";
     case "route_signup":
       return "routeSignupId";
+    case "evacuation_lead":
+      return "evacuationLeadId";
   }
 }
 
-function parentDbColumn(parentType: LeadScoreParentType): typeof leadScores.generalLeadId | typeof leadScores.websiteBookingRequestId | typeof leadScores.routeSignupId {
+function parentDbColumn(parentType: LeadScoreParentType): typeof leadScores.generalLeadId | typeof leadScores.websiteBookingRequestId | typeof leadScores.routeSignupId | typeof leadScores.evacuationLeadId {
   switch (parentType) {
     case "general_lead":
       return leadScores.generalLeadId;
@@ -165,6 +167,8 @@ function parentDbColumn(parentType: LeadScoreParentType): typeof leadScores.gene
       return leadScores.websiteBookingRequestId;
     case "route_signup":
       return leadScores.routeSignupId;
+    case "evacuation_lead":
+      return leadScores.evacuationLeadId;
   }
 }
 
@@ -194,6 +198,7 @@ export async function ensureLeadScore(
     generalLeadId: null,
     websiteBookingRequestId: null,
     routeSignupId: null,
+    evacuationLeadId: null,
     createdAt: now,
     updatedAt: now,
   };
@@ -202,6 +207,7 @@ export async function ensureLeadScore(
   const fkCol = parentFkColumn(parentType);
   if (fkCol === "generalLeadId") values.generalLeadId = parentId;
   else if (fkCol === "websiteBookingRequestId") values.websiteBookingRequestId = parentId;
+  else if (fkCol === "evacuationLeadId") values.evacuationLeadId = parentId;
   else values.routeSignupId = parentId;
 
   try {
@@ -293,6 +299,8 @@ export async function listLeadScores(
     conditions.push(sql`${leadScores.websiteBookingRequestId} IS NOT NULL`);
   } else if (filters.parentType === "route_signup") {
     conditions.push(sql`${leadScores.routeSignupId} IS NOT NULL`);
+  } else if (filters.parentType === "evacuation_lead") {
+    conditions.push(sql`${leadScores.evacuationLeadId} IS NOT NULL`);
   }
 
   // Search filter
@@ -312,6 +320,7 @@ export async function listLeadScores(
       generalLeadId: leadScores.generalLeadId,
       websiteBookingRequestId: leadScores.websiteBookingRequestId,
       routeSignupId: leadScores.routeSignupId,
+      evacuationLeadId: leadScores.evacuationLeadId,
       fitMatchesCurrentWebsiteFlight: leadScores.fitMatchesCurrentWebsiteFlight,
       fitPriceAcknowledgedOk: leadScores.fitPriceAcknowledgedOk,
       intentDepositPaid: leadScores.intentDepositPaid,
@@ -359,8 +368,10 @@ export async function listLeadScores(
       ? "general_lead"
       : row.websiteBookingRequestId != null
         ? "website_booking_request"
-        : "route_signup";
-    const parentId = row.generalLeadId ?? row.websiteBookingRequestId ?? row.routeSignupId ?? "";
+        : row.evacuationLeadId != null
+          ? "evacuation_lead"
+          : "route_signup";
+    const parentId = row.generalLeadId ?? row.websiteBookingRequestId ?? row.evacuationLeadId ?? row.routeSignupId ?? "";
 
     // General lead display IDs resolved here; BOR/ROU resolved at route layer
     let parentDisplayId: string | null = null;

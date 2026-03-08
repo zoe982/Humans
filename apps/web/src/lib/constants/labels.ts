@@ -41,6 +41,15 @@ export const signupStatusLabels: Record<string, string> = {
   closed_converted: "Closed - Converted",
 };
 
+/** Evacuation lead status display labels */
+export const evacuationLeadStatusLabels: Record<string, string> = {
+  open: "Open",
+  pending_response: "Pending Response",
+  qualified: "Qualified",
+  closed_lost: "Closed - Lost",
+  closed_converted: "Closed - Converted",
+};
+
 /** Booking request status display labels */
 export const bookingRequestStatusLabels: Record<string, string> = {
   open: "Open",
@@ -117,6 +126,7 @@ export const leadTypeLabels: Record<string, string> = {
   general_lead: "General Lead",
   route_signup: "Route Signup",
   website_booking_request: "Booking Request",
+  evacuation_lead: "Evacuation Lead",
 };
 
 /** Merged status labels across all lead types */
@@ -124,6 +134,7 @@ export const allLeadStatusLabels: Record<string, string> = {
   ...signupStatusLabels,
   ...bookingRequestStatusLabels,
   ...generalLeadStatusLabels,
+  ...evacuationLeadStatusLabels,
 };
 
 /** Agreement status display labels */

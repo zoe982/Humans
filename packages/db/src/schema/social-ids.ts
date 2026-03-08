@@ -13,6 +13,7 @@ export const socialIds = pgTable(
     generalLeadId: text("general_lead_id"),
     websiteBookingRequestId: text("website_booking_request_id"),
     routeSignupId: text("route_signup_id"),
+    evacuationLeadId: text("evacuation_lead_id"),
     createdAt: text("created_at").notNull(),
   },
   (table) => [
@@ -21,5 +22,6 @@ export const socialIds = pgTable(
     index("social_ids_general_lead_id_idx").on(table.generalLeadId),
     index("social_ids_website_booking_request_id_idx").on(table.websiteBookingRequestId),
     index("social_ids_route_signup_id_idx").on(table.routeSignupId),
+    index("social_ids_evacuation_lead_id_idx").on(table.evacuationLeadId),
   ],
 );

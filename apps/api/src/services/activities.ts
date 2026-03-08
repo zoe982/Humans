@@ -23,6 +23,7 @@ interface ActivityFilters {
   routeSignupId?: string | undefined;
   websiteBookingRequestId?: string | undefined;
   generalLeadId?: string | undefined;
+  evacuationLeadId?: string | undefined;
   type?: string | undefined;
   dateFrom?: string | undefined;
   dateTo?: string | undefined;
@@ -42,6 +43,7 @@ export async function listActivities(db: DB, filters: ActivityFilters): Promise<
   if (filters.routeSignupId != null) conditions.push(eq(activities.routeSignupId, filters.routeSignupId));
   if (filters.websiteBookingRequestId != null) conditions.push(eq(activities.websiteBookingRequestId, filters.websiteBookingRequestId));
   if (filters.generalLeadId != null) conditions.push(eq(activities.generalLeadId, filters.generalLeadId));
+  if (filters.evacuationLeadId != null) conditions.push(eq(activities.evacuationLeadId, filters.evacuationLeadId));
   if (filters.type != null) {
     const validTypes = ["email", "whatsapp_message", "online_meeting", "phone_call", "social_message"] as const;
     type ValidType = typeof validTypes[number];
@@ -74,6 +76,7 @@ export async function listActivities(db: DB, filters: ActivityFilters): Promise<
       humanId: activities.humanId,
       accountId: activities.accountId,
       routeSignupId: activities.routeSignupId,
+      evacuationLeadId: activities.evacuationLeadId,
       websiteBookingRequestId: activities.websiteBookingRequestId,
       opportunityId: activities.opportunityId,
       generalLeadId: activities.generalLeadId,
@@ -302,6 +305,7 @@ export async function createActivity(
     routeSignupId?: string | null | undefined;
     websiteBookingRequestId?: string | null | undefined;
     generalLeadId?: string | null | undefined;
+    evacuationLeadId?: string | null | undefined;
     opportunityId?: string | null | undefined;
     gmailId?: string | null | undefined;
     frontId?: string | null | undefined;
@@ -336,6 +340,7 @@ export async function createActivity(
     routeSignupId: data.routeSignupId ?? null,
     websiteBookingRequestId: data.websiteBookingRequestId ?? null,
     generalLeadId: data.generalLeadId ?? null,
+    evacuationLeadId: data.evacuationLeadId ?? null,
     opportunityId: data.opportunityId ?? null,
     gmailId: data.gmailId ?? null,
     frontId: data.frontId ?? null,
@@ -364,6 +369,7 @@ export async function updateActivity(
     routeSignupId?: string | null | undefined;
     websiteBookingRequestId?: string | null | undefined;
     generalLeadId?: string | null | undefined;
+    evacuationLeadId?: string | null | undefined;
     gmailId?: string | null | undefined;
     frontId?: string | null | undefined;
     frontConversationId?: string | null | undefined;
@@ -392,6 +398,7 @@ export async function updateActivity(
   if (data.routeSignupId !== undefined) updateFields["routeSignupId"] = data.routeSignupId;
   if (data.websiteBookingRequestId !== undefined) updateFields["websiteBookingRequestId"] = data.websiteBookingRequestId;
   if (data.generalLeadId !== undefined) updateFields["generalLeadId"] = data.generalLeadId;
+  if (data.evacuationLeadId !== undefined) updateFields["evacuationLeadId"] = data.evacuationLeadId;
   if (data.gmailId !== undefined) updateFields["gmailId"] = data.gmailId;
   if (data.frontId !== undefined) updateFields["frontId"] = data.frontId;
   if (data.frontConversationId !== undefined) updateFields["frontConversationId"] = data.frontConversationId;

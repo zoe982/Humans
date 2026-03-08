@@ -97,6 +97,9 @@ export const ERROR_CODES = {
   // Lead Scores
   LEAD_SCORE_NOT_FOUND: "LEAD_SCORE_NOT_FOUND",
   LEAD_SCORE_INVALID_PARENT: "LEAD_SCORE_INVALID_PARENT",
+
+  // Evacuation Leads
+  EVACUATION_LEAD_NOT_FOUND: "EVACUATION_LEAD_NOT_FOUND",
 } as const;
 
 export type ErrorCode = (typeof ERROR_CODES)[keyof typeof ERROR_CODES];

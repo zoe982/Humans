@@ -1,9 +1,9 @@
 <script lang="ts">
   import EntityListPage from "$lib/components/EntityListPage.svelte";
   import LeadScoreBadge from "$lib/components/LeadScoreBadge.svelte";
-  import { getLeadScoreBand, generalLeadStatuses, routeSignupStatuses, websiteBookingRequestStatuses } from "@humans/shared";
+  import { getLeadScoreBand, generalLeadStatuses, routeSignupStatuses, websiteBookingRequestStatuses, evacuationLeadStatuses } from "@humans/shared";
   import { leadTypeColors, allLeadStatusColors } from "$lib/constants/colors";
-  import { leadTypeLabels, allLeadStatusLabels, generalLeadStatusLabels, signupStatusLabels, bookingRequestStatusLabels } from "$lib/constants/labels";
+  import { leadTypeLabels, allLeadStatusLabels, generalLeadStatusLabels, signupStatusLabels, bookingRequestStatusLabels, evacuationLeadStatusLabels } from "$lib/constants/labels";
   import { resolve } from "$app/paths";
   import { formatDate } from "$lib/utils/format";
   import { api } from "$lib/api";
@@ -15,7 +15,7 @@
   type UnifiedLead = {
     id: string;
     displayId: string;
-    leadType: "general_lead" | "route_signup" | "website_booking_request";
+    leadType: "general_lead" | "route_signup" | "website_booking_request" | "evacuation_lead";
     status: string;
     firstName: string;
     middleName: string | null;
@@ -41,6 +41,7 @@
     if (filterType === "general_lead") return Object.entries(generalLeadStatusLabels);
     if (filterType === "route_signup") return Object.entries(signupStatusLabels);
     if (filterType === "website_booking_request") return Object.entries(bookingRequestStatusLabels);
+    if (filterType === "evacuation_lead") return Object.entries(evacuationLeadStatusLabels);
     return Object.entries(allLeadStatusLabels);
   });
 
@@ -73,6 +74,7 @@
       case "general_lead": return `/leads/general-leads/${originalId}`;
       case "route_signup": return `/leads/route-signups/${originalId}`;
       case "website_booking_request": return `/leads/website-booking-requests/${originalId}`;
+      case "evacuation_lead": return `/leads/evacuation-leads/${originalId}`;
     }
   }
 
@@ -94,6 +96,7 @@
       case "general_lead": return generalLeadStatuses;
       case "route_signup": return routeSignupStatuses;
       case "website_booking_request": return websiteBookingRequestStatuses;
+      case "evacuation_lead": return evacuationLeadStatuses;
     }
   }
 
@@ -102,6 +105,7 @@
       case "general_lead": return generalLeadStatusLabels;
       case "route_signup": return signupStatusLabels;
       case "website_booking_request": return bookingRequestStatusLabels;
+      case "evacuation_lead": return evacuationLeadStatusLabels;
     }
   }
 
@@ -129,8 +133,8 @@
   async function handleInlineStatusChange(lead: UnifiedLead, newStatus: string) {
     const originalId = lead.id.split(":").slice(1).join(":");
 
-    // General leads with closed_lost require a loss reason — redirect to detail page
-    if (lead.leadType === "general_lead" && newStatus === "closed_lost") {
+    // Leads with closed_lost require a loss reason — redirect to detail page
+    if ((lead.leadType === "general_lead" || lead.leadType === "evacuation_lead") && newStatus === "closed_lost") {
       toast.info("Loss reason required — please update status on the detail page");
       return;
     }
@@ -154,6 +158,12 @@
           break;
         case "website_booking_request":
           await api(`/api/website-booking-requests/${originalId}`, {
+            method: "PATCH",
+            body: JSON.stringify({ status: newStatus }),
+          });
+          break;
+        case "evacuation_lead":
+          await api(`/api/evacuation-leads/${originalId}`, {
             method: "PATCH",
             body: JSON.stringify({ status: newStatus }),
           });
@@ -202,6 +212,7 @@
           <option value="general_lead">General Lead</option>
           <option value="route_signup">Route Signup</option>
           <option value="website_booking_request">Booking Request</option>
+          <option value="evacuation_lead">Evacuation Lead</option>
         </select>
       </div>
       <div>

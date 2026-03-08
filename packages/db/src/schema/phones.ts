@@ -10,6 +10,7 @@ export const phones = pgTable(
     generalLeadId: text("general_lead_id"),
     websiteBookingRequestId: text("website_booking_request_id"),
     routeSignupId: text("route_signup_id"),
+    evacuationLeadId: text("evacuation_lead_id"),
     phoneNumber: text("phone_number").notNull(),
     labelId: text("label_id"),
     hasWhatsapp: boolean("has_whatsapp").notNull().default(false),
@@ -23,5 +24,6 @@ export const phones = pgTable(
     index("phones_general_lead_id_idx").on(table.generalLeadId),
     index("phones_website_booking_request_id_idx").on(table.websiteBookingRequestId),
     index("phones_route_signup_id_idx").on(table.routeSignupId),
+    index("phones_evacuation_lead_id_idx").on(table.evacuationLeadId),
   ],
 );

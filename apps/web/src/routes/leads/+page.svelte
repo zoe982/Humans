@@ -12,10 +12,10 @@
 
   <a href={resolve('/leads/all')} class="mt-6 glass-card p-6 block hover:bg-glass-hover transition-colors">
     <h2 class="text-lg font-semibold text-text-primary">All Leads</h2>
-    <p class="mt-2 text-sm text-text-secondary">Unified view of all lead types — general leads, route signups, and booking requests — in a single table.</p>
+    <p class="mt-2 text-sm text-text-secondary">Unified view of all lead types — general leads, route signups, booking requests, and evacuation leads — in a single table.</p>
   </a>
 
-  <div class="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+  <div class="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
     <a href={resolve('/leads/route-signups')} class="glass-card p-6 hover:bg-glass-hover transition-colors">
       <h2 class="text-lg font-semibold text-text-primary">Route Signups</h2>
       <p class="mt-2 text-sm text-text-secondary">View and manage route announcement signups from the website.</p>
@@ -27,6 +27,10 @@
     <a href={resolve('/leads/general-leads')} class="glass-card p-6 hover:bg-glass-hover transition-colors">
       <h2 class="text-lg font-semibold text-text-primary">General Leads</h2>
       <p class="mt-2 text-sm text-text-secondary">Capture and work early enquiries before converting to a verified Human.</p>
+    </a>
+    <a href={resolve('/leads/evacuation-leads')} class="glass-card p-6 hover:bg-glass-hover transition-colors">
+      <h2 class="text-lg font-semibold text-text-primary">Evacuation Leads</h2>
+      <p class="mt-2 text-sm text-text-secondary">Manage urgent contact requests from people seeking evacuation assistance.</p>
     </a>
   </div>
 </div>

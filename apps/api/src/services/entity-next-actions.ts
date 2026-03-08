@@ -4,7 +4,7 @@ import { createId } from "@humans/db";
 import { computeDiff, logAuditEntry } from "../lib/audit";
 import type { DB } from "./types";
 
-type EntityType = "route_signup" | "general_lead" | "website_booking_request";
+type EntityType = "route_signup" | "general_lead" | "website_booking_request" | "evacuation_lead";
 
 export async function getNextAction(
   db: DB,
