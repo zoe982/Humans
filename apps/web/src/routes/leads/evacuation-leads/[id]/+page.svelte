@@ -7,7 +7,8 @@
   import MarketingAttributionCard from "$lib/components/MarketingAttributionCard.svelte";
   import HighlightText from "$lib/components/HighlightText.svelte";
   import LinkHumanSection from "$lib/components/LinkHumanSection.svelte";
-  import { invalidateAll } from "$app/navigation";
+  import { invalidateAll, goto } from "$app/navigation";
+  import { enhance } from "$app/forms";
   import { api } from "$lib/api";
   import { toast } from "svelte-sonner";
   import { evacuationLeadStatusColors as statusColorMap } from "$lib/constants/colors";
@@ -798,7 +799,12 @@
       {#if showDeleteConfirm}
         <p class="mt-2 text-sm text-destructive-foreground/80">Are you sure you want to delete this lead? This cannot be undone.</p>
         <div class="mt-3 flex gap-2">
-          <form method="POST" action="?/delete">
+          <form method="POST" action="?/delete" use:enhance={() => {
+            getStore("evacuation-leads").removeItem(lead.id);
+            return async () => {
+              await goto(resolve("/leads/evacuation-leads"));
+            };
+          }}>
             <button type="submit" class="btn-danger text-sm">
               Yes, Delete
             </button>

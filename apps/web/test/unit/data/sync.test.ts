@@ -280,7 +280,7 @@ describe("sync", () => {
       await syncAll();
 
       // Supabase entities should appear after all D1 entities
-      const supabasePaths = ["/api/flights", "/api/route-signups", "/api/website-booking-requests"];
+      const supabasePaths = ["/api/flights", "/api/route-signups", "/api/website-booking-requests", "/api/evacuation-leads"];
       const d1Paths = callOrder.filter((p) => !supabasePaths.includes(p));
       const supabaseCalls = callOrder.filter((p) => supabasePaths.includes(p));
 

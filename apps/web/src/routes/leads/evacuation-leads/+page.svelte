@@ -155,7 +155,10 @@
   defaultSortKey="date"
   defaultSortDirection="desc"
   clientPageSize={25}
-  canDelete={false}
+  deleteAction="?/delete"
+  deleteMessage="Are you sure you want to delete this lead? This cannot be undone."
+  canDelete={data.userRole === "admin"}
+  onDelete={(id) => getStore("evacuation-leads").removeItem(id)}
   emptyMessage="No evacuation leads found."
 >
   {#snippet searchForm()}

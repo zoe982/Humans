@@ -9,6 +9,7 @@ const ENTITY_REGISTRY: Record<string, string> = {
   "general-leads": "/api/general-leads",
   "route-signups": "/api/route-signups",
   "website-booking-requests": "/api/website-booking-requests",
+  "evacuation-leads": "/api/evacuation-leads",
 };
 
 export const ENTITY_TYPES = Object.keys(ENTITY_REGISTRY);
@@ -17,6 +18,7 @@ export const SUPABASE_ENTITIES = new Set([
   "flights",
   "route-signups",
   "website-booking-requests",
+  "evacuation-leads",
 ]);
 
 export function getApiPath(entityType: string): string | null {
