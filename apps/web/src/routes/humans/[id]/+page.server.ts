@@ -32,6 +32,7 @@ export const load = async ({ locals, cookies, params }: RequestEvent): Promise<{
   allHumans: unknown[];
   humanAgreements: unknown[];
   agreementTypes: unknown[];
+  allEvacuationLeads: unknown[];
 }> => {
   if (locals.user == null) redirect(302, "/login");
 
@@ -65,13 +66,16 @@ export const load = async ({ locals, cookies, params }: RequestEvent): Promise<{
     return isListData(raw) ? raw.data : [];
   }
 
-  // Parallel batch: configs + dropdown data + Supabase lists (route signups & booking requests)
+  // Parallel batch 1: configs + dropdown data + Supabase lists (max 4 per Cloudflare Workers TCP limit)
   const [configs, dropdownRes, allRouteSignups, allBookingRequests] = await Promise.all([
     fetchConfigs(token, ["human-email-labels", "human-phone-labels", "social-id-platforms", "account-human-labels", "human-relationship-labels", "agreement-types"]),
     fetch(`${PUBLIC_API_URL}/api/ui/dropdown-data`, { headers }),
     fetchList(`${PUBLIC_API_URL}/api/route-signups?limit=100`),
     fetchList(`${PUBLIC_API_URL}/api/website-booking-requests?limit=100`),
   ]);
+
+  // Parallel batch 2: evacuation leads
+  const allEvacuationLeads = await fetchList(`${PUBLIC_API_URL}/api/evacuation-leads?limit=200`);
 
   const emailLabelConfigs = configs["human-email-labels"] ?? [];
   const phoneLabelConfigs = configs["human-phone-labels"] ?? [];
@@ -181,11 +185,48 @@ export const load = async ({ locals, cookies, params }: RequestEvent): Promise<{
     };
   });
 
+  // Enrich linked evacuation leads with Supabase data
+  interface LinkedEvacuationLead { id: string; evacuationLeadId: string; linkedAt: string }
+  function isLinkedEvacuationLead(v: unknown): v is LinkedEvacuationLead {
+    return typeof v === "object" && v !== null && "id" in v && "evacuationLeadId" in v && "linkedAt" in v;
+  }
+  interface SupabaseEvacuation { id: string; display_id?: string | null; first_name?: string | null; last_name?: string | null; status?: string | null }
+  function isSupabaseEvacuation(v: unknown): v is SupabaseEvacuation {
+    return typeof v === "object" && v !== null && "id" in v;
+  }
+  async function fetchEvacuationById(evaId: string): Promise<SupabaseEvacuation | null> {
+    const res = await fetch(`${PUBLIC_API_URL}/api/evacuation-leads/${encodeURIComponent(evaId)}`, { headers });
+    if (!res.ok) return null;
+    const raw: unknown = await res.json();
+    if (isObjData(raw) && isSupabaseEvacuation(raw.data)) return raw.data;
+    return null;
+  }
+  const linkedEvacuationLeadsRaw = Array.isArray(human.linkedEvacuationLeads) ? human.linkedEvacuationLeads : [];
+  const filteredLinkedEvacuations = linkedEvacuationLeadsRaw.filter(isLinkedEvacuationLead);
+  const evacuationResults = await Promise.all(
+    filteredLinkedEvacuations.map(async (link) => {
+      const cached = allEvacuationLeads.find((e) => isSupabaseEvacuation(e) && e.id === link.evacuationLeadId);
+      if (isSupabaseEvacuation(cached)) return cached;
+      return fetchEvacuationById(link.evacuationLeadId);
+    }),
+  );
+  const enrichedLinkedEvacuations = filteredLinkedEvacuations.map((link, i) => {
+    const eva = evacuationResults.at(i) ?? null;
+    const joinedName = eva != null ? [eva.first_name, eva.last_name].filter(Boolean).join(" ") : "";
+    return {
+      ...link,
+      displayId: eva?.display_id ?? null,
+      contactName: joinedName !== "" ? joinedName : null,
+      status: eva?.status ?? null,
+    };
+  });
+
   return {
     human: {
       ...human,
       linkedRouteSignups: enrichedLinkedSignups,
       linkedWebsiteBookingRequests: enrichedLinkedBookingRequests,
+      linkedEvacuationLeads: enrichedLinkedEvacuations,
     },
     activities,
     apiUrl: PUBLIC_API_URL,
@@ -205,6 +246,7 @@ export const load = async ({ locals, cookies, params }: RequestEvent): Promise<{
     allHumans,
     humanAgreements,
     agreementTypes,
+    allEvacuationLeads,
   };
 };
 
@@ -942,6 +984,50 @@ export const actions = {
     if (!res.ok) {
       const resBody: unknown = await res.json();
       return failFromApi(resBody, res.status, "Failed to unlink booking request");
+    }
+
+    return { success: true };
+  },
+
+  linkEvacuationLead: async ({ request, cookies, params }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
+    const form = await request.formData();
+    const sessionToken = cookies.get("humans_session");
+    const evacuationLeadId = form.get("evacuationLeadId");
+    const id = params.id ?? "";
+
+    const res = await fetch(`${PUBLIC_API_URL}/api/humans/${id}/evacuation-leads`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Cookie: `humans_session=${sessionToken ?? ""}`,
+      },
+      body: JSON.stringify({ evacuationLeadId }),
+    });
+
+    if (!res.ok) {
+      const resBody: unknown = await res.json();
+      return failFromApi(resBody, res.status, "Failed to link evacuation lead");
+    }
+
+    return { success: true };
+  },
+
+  unlinkEvacuationLead: async ({ request, cookies, params }: RequestEvent): Promise<ActionFailure<{ error: string; code?: string; requestId?: string }> | { success: true }> => {
+    const form = await request.formData();
+    const sessionToken = cookies.get("humans_session");
+    const linkId = formStr(form.get("linkId"));
+    const id = params.id ?? "";
+
+    const res = await fetch(`${PUBLIC_API_URL}/api/humans/${id}/evacuation-leads/${linkId}`, {
+      method: "DELETE",
+      headers: {
+        Cookie: `humans_session=${sessionToken ?? ""}`,
+      },
+    });
+
+    if (!res.ok) {
+      const resBody: unknown = await res.json();
+      return failFromApi(resBody, res.status, "Failed to unlink evacuation lead");
     }
 
     return { success: true };

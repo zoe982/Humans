@@ -120,7 +120,7 @@ export async function getHumanDetail(supabase: SupabaseClient, db: DB, humanId: 
     throw notFound(ERROR_CODES.HUMAN_NOT_FOUND, "Human not found");
   }
 
-  const [humanEmails, types, linkedSignups, linkedBookingRequests, humanPhones, humanPets, geoExpressions, routeExpressions, linkedAccountRows, emailLabelConfigs, phoneLabelConfigs, humanSocialIds, allPlatforms, humanWebsites] = await Promise.all([
+  const [humanEmails, types, linkedSignups, linkedBookingRequests, humanPhones, humanPets, geoExpressions, routeExpressions, linkedAccountRows, emailLabelConfigs, phoneLabelConfigs, humanSocialIds, allPlatforms, humanWebsites, linkedEvacuationLeads] = await Promise.all([
     db.select().from(emails).where(eq(emails.humanId, human.id)),
     db.select().from(humanTypes).where(eq(humanTypes.humanId, human.id)),
     db.select().from(humanRouteSignups).where(eq(humanRouteSignups.humanId, human.id)),
@@ -135,6 +135,7 @@ export async function getHumanDetail(supabase: SupabaseClient, db: DB, humanId: 
     db.select().from(socialIds).where(eq(socialIds.humanId, human.id)),
     getCachedConfig(db, socialIdPlatformsConfig, "socialIdPlatformsConfig"),
     db.select().from(websites).where(eq(websites.humanId, human.id)),
+    db.select().from(humanEvacuationLeads).where(eq(humanEvacuationLeads.humanId, human.id)),
   ]);
 
   // Fetch referral codes from Supabase
@@ -246,6 +247,7 @@ export async function getHumanDetail(supabase: SupabaseClient, db: DB, humanId: 
     referralCodes: humanReferralCodes,
     discountCodes: humanDiscountCodes,
     websites: humanWebsites,
+    linkedEvacuationLeads,
   };
 }
 

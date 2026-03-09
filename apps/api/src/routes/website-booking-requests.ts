@@ -147,10 +147,13 @@ websiteBookingRequestRoutes.get(
       .from("bookings")
       .select("*")
       .eq("id", c.req.param("id"))
-      .single<Record<string, unknown>>();
+      .maybeSingle<Record<string, unknown>>();
 
     if (result.error !== null) {
-      throw notFound(ERROR_CODES.WEBSITE_BOOKING_REQUEST_NOT_FOUND, result.error.message);
+      throw internal(ERROR_CODES.SUPABASE_ERROR, result.error.message);
+    }
+    if (result.data === null) {
+      throw notFound(ERROR_CODES.WEBSITE_BOOKING_REQUEST_NOT_FOUND, "Website booking request not found");
     }
 
     // Auto-assign display ID if missing
@@ -251,10 +254,13 @@ websiteBookingRequestRoutes.patch(
       .update(updateFields)
       .eq("id", c.req.param("id"))
       .select()
-      .single<Record<string, unknown>>();
+      .maybeSingle<Record<string, unknown>>();
 
     if (result.error !== null) {
       throw internal(ERROR_CODES.SUPABASE_ERROR, result.error.message);
+    }
+    if (result.data === null) {
+      throw notFound(ERROR_CODES.WEBSITE_BOOKING_REQUEST_NOT_FOUND, "Website booking request not found");
     }
 
     // Clear next action when transitioning to a closed status

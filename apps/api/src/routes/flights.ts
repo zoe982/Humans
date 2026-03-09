@@ -125,10 +125,13 @@ flightRoutes.get(
       .from("flights")
       .select("*")
       .eq("id", flightId)
-      .single<Record<string, unknown>>();
+      .maybeSingle<Record<string, unknown>>();
 
     if (flightResult.error !== null) {
-      throw notFound(ERROR_CODES.FLIGHT_NOT_FOUND, flightResult.error.message);
+      throw internal(ERROR_CODES.SUPABASE_ERROR, flightResult.error.message);
+    }
+    if (flightResult.data === null) {
+      throw notFound(ERROR_CODES.FLIGHT_NOT_FOUND, "Flight not found");
     }
 
     const flightData = flightResult.data;

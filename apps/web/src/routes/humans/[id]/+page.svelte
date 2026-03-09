@@ -106,6 +106,8 @@
   };
   type HumanOption = { id: string; displayId?: string; firstName: string; lastName: string };
   type LinkedBookingRequest = { id: string; websiteBookingRequestId: string; linkedAt: string; displayId: string | null; passengerName: string | null; originCity: string | null; destinationCity: string | null };
+  type LinkedEvacuationLead = { id: string; evacuationLeadId: string; linkedAt: string; displayId: string | null; contactName: string | null; status: string | null };
+  type EvacuationLeadOption = { id: string; display_id?: string | null; first_name?: string | null; last_name?: string | null; status?: string | null };
   type RouteSignupOption = { id: string; display_id?: string | null; first_name?: string | null; last_name?: string | null; origin?: string | null; destination?: string | null };
   type BookingRequestOption = { id: string; crm_display_id?: string | null; first_name?: string | null; last_name?: string | null; origin_city?: string | null; destination_city?: string | null };
   type AccountOption = { id: string; name: string; displayId?: string };
@@ -120,6 +122,7 @@
     types: string[];
     linkedRouteSignups: LinkedSignup[];
     linkedWebsiteBookingRequests: LinkedBookingRequest[];
+    linkedEvacuationLeads: LinkedEvacuationLead[];
     phoneNumbers: PhoneNumber[];
     pets: Pet[];
     geoInterestExpressions: GeoInterestExpression[];
@@ -153,6 +156,7 @@
 
   const allRouteSignups = $derived(data.allRouteSignups as RouteSignupOption[]);
   const allBookingRequests = $derived(data.allBookingRequests as BookingRequestOption[]);
+  const allEvacuationLeads = $derived(data.allEvacuationLeads as EvacuationLeadOption[]);
   const allAccounts = $derived(data.allAccounts as AccountOption[]);
   const accountHumanLabelConfigs = $derived(data.accountHumanLabelConfigs as ConfigItem[]);
   const convertedFromLead = $derived(data.convertedFromLead as { id: string; displayId: string } | null);
@@ -185,6 +189,11 @@
     const route = [b.origin_city, b.destination_city].filter(Boolean).join(" → ");
     const label = [b.crm_display_id, name, route].filter(Boolean).join(" — ");
     return { value: b.id, label: label || b.id };
+  }));
+  const evacuationLeadOptions = $derived(allEvacuationLeads.map((e) => {
+    const name = [e.first_name, e.last_name].filter(Boolean).join(" ");
+    const label = [e.display_id, name, e.status].filter(Boolean).join(" — ");
+    return { value: e.id, label: label || e.id };
   }));
   const accountOptions = $derived(allAccounts.map((a) => ({ value: a.id, label: a.displayId ? `${a.displayId} — ${a.name}` : a.name })));
   const accountHumanLabelOptions = $derived(accountHumanLabelConfigs.map((l) => ({ value: l.id, label: l.name })));
@@ -1996,6 +2005,65 @@
             />
           </div>
           <Button type="submit" size="sm">Link Booking Request</Button>
+        </form>
+      {/snippet}
+    </RelatedListTable>
+  </div>
+
+  <!-- Linked Evacuation Leads -->
+  <div class="mt-6">
+    <RelatedListTable
+      title="Linked Evacuation Leads"
+      items={human.linkedEvacuationLeads}
+      columns={[
+        { key: "displayId", label: "ID" },
+        { key: "contactName", label: "Contact" },
+        { key: "status", label: "Status" },
+        { key: "linkedAt", label: "Linked Date", sortable: true, sortValue: (l) => l.linkedAt },
+        { key: "unlink", label: "", headerClass: "w-10" },
+      ]}
+      defaultSortKey="linkedAt"
+      defaultSortDirection="desc"
+      searchFilter={(l, q) => (l.displayId ?? "").toLowerCase().includes(q) || (l.contactName ?? "").toLowerCase().includes(q) || (l.status ?? "").toLowerCase().includes(q)}
+      emptyMessage="No linked evacuation leads."
+      addLabel="Evacuation Lead"
+    >
+      {#snippet row(link, _searchQuery)}
+        <td class="font-mono text-sm whitespace-nowrap">
+          <a href={resolve(`/leads/evacuation-leads/${link.evacuationLeadId}?from=${$page.url.pathname}`)} class="text-accent hover:text-[var(--link-hover)]">{link.displayId ?? "\u2014"}</a>
+        </td>
+        <td class="text-sm text-text-secondary">{link.contactName ?? "\u2014"}</td>
+        <td class="text-sm">
+          {#if link.status}
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-surface-secondary text-text-secondary">{link.status}</span>
+          {:else}
+            &mdash;
+          {/if}
+        </td>
+        <td class="text-sm text-text-muted">{formatDate(link.linkedAt)}</td>
+        <td>
+          <form method="POST" action="?/unlinkEvacuationLead">
+            <input type="hidden" name="linkId" value={link.id} />
+            <button type="submit" class="flex items-center justify-center w-7 h-7 rounded-lg text-text-muted hover:text-destructive-foreground hover:bg-destructive transition-colors duration-150" aria-label="Unlink evacuation lead">
+              <Trash2 size={14} />
+            </button>
+          </form>
+        </td>
+      {/snippet}
+      {#snippet addForm()}
+        <form method="POST" action="?/linkEvacuationLead" class="space-y-3">
+          <div>
+            <label for="evacuationLeadSelect" class="block text-sm font-medium text-text-secondary">Evacuation Lead</label>
+            <SearchableSelect
+              options={evacuationLeadOptions}
+              name="evacuationLeadId"
+              id="evacuationLeadSelect"
+              required={true}
+              emptyOption="Select an evacuation lead..."
+              placeholder="Search evacuation leads..."
+            />
+          </div>
+          <Button type="submit" size="sm">Link Evacuation Lead</Button>
         </form>
       {/snippet}
     </RelatedListTable>

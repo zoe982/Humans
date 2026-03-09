@@ -25,3 +25,9 @@ export const updateEvacuationLeadSchema = z.object({
 
 export type UpdateEvacuationLeadStatusInput = z.infer<typeof updateEvacuationLeadStatusSchema>;
 export type UpdateEvacuationLeadInput = z.infer<typeof updateEvacuationLeadSchema>;
+
+export const linkEvacuationLeadSchema = z.object({
+  evacuationLeadId: z.string().uuid(),
+});
+
+export type LinkEvacuationLeadInput = z.infer<typeof linkEvacuationLeadSchema>;

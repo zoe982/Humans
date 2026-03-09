@@ -39,7 +39,7 @@ phoneNumberRoutes.get("/api/phone-numbers/:id", requirePermission("viewRecords")
       .from("bookings")
       .select("crm_display_id, first_name, last_name")
       .eq("id", data.websiteBookingRequestId)
-      .single();
+      .maybeSingle();
     if (bor != null) {
       const borData = bor as { crm_display_id?: string | null; first_name?: string | null; last_name?: string | null };
       data.websiteBookingRequestDisplayId = typeof borData.crm_display_id === "string" ? borData.crm_display_id : null;
@@ -54,7 +54,7 @@ phoneNumberRoutes.get("/api/phone-numbers/:id", requirePermission("viewRecords")
       .from("announcement_signups")
       .select("display_id, first_name, last_name")
       .eq("id", data.routeSignupId)
-      .single();
+      .maybeSingle();
     if (rou != null) {
       const rouData = rou as { display_id?: string | null; first_name?: string | null; last_name?: string | null };
       data.routeSignupDisplayId = typeof rouData.display_id === "string" ? rouData.display_id : null;

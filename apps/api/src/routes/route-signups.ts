@@ -181,10 +181,13 @@ routeSignupRoutes.get("/api/route-signups/:id", requirePermission("viewRouteSign
     .from("announcement_signups")
     .select("*")
     .eq("id", c.req.param("id"))
-    .single<Record<string, unknown>>();
+    .maybeSingle<Record<string, unknown>>();
 
   if (result.error !== null) {
-    throw notFound(ERROR_CODES.ROUTE_SIGNUP_NOT_FOUND, result.error.message);
+    throw internal(ERROR_CODES.SUPABASE_ERROR, result.error.message);
+  }
+  if (result.data === null) {
+    throw notFound(ERROR_CODES.ROUTE_SIGNUP_NOT_FOUND, "Route signup not found");
   }
 
   // Auto-assign display ID if missing
@@ -222,10 +225,13 @@ routeSignupRoutes.patch("/api/route-signups/:id", requirePermission("manageRoute
     .update(updateFields)
     .eq("id", c.req.param("id"))
     .select()
-    .single<Record<string, unknown>>();
+    .maybeSingle<Record<string, unknown>>();
 
   if (result.error !== null) {
     throw internal(ERROR_CODES.SUPABASE_ERROR, result.error.message);
+  }
+  if (result.data === null) {
+    throw notFound(ERROR_CODES.ROUTE_SIGNUP_NOT_FOUND, "Route signup not found");
   }
 
   // Clear next action when transitioning to a closed status

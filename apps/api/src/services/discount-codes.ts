@@ -204,9 +204,12 @@ export async function updateDiscountCode(
     .update(updates)
     .eq("id", id)
     .select("*")
-    .single<SupabaseDiscountCode>();
+    .maybeSingle<SupabaseDiscountCode>();
 
   if (error != null) throw new Error(`Supabase error: ${error.message}`);
+  if (updated === null) {
+    throw notFound(ERROR_CODES.DISCOUNT_CODE_NOT_FOUND, "Discount code not found");
+  }
 
   return toApiShape(updated);
 }

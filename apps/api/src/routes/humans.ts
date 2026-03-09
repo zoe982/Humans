@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { eq } from "drizzle-orm";
 import { activities } from "@humans/db/schema";
-import { createHumanSchema, updateHumanSchema, updateHumanStatusSchema, linkRouteSignupSchema, linkWebsiteBookingRequestSchema, createHumanRelationshipSchema, updateHumanRelationshipSchema } from "@humans/shared";
+import { createHumanSchema, updateHumanSchema, updateHumanStatusSchema, linkRouteSignupSchema, linkWebsiteBookingRequestSchema, createHumanRelationshipSchema, updateHumanRelationshipSchema, linkEvacuationLeadSchema } from "@humans/shared";
 import { ERROR_CODES } from "@humans/shared";
 import { authMiddleware } from "../middleware/auth";
 import { requirePermission } from "../middleware/rbac";
@@ -19,6 +19,8 @@ import {
   unlinkRouteSignup,
   linkWebsiteBookingRequest,
   unlinkWebsiteBookingRequest,
+  linkEvacuationLead,
+  unlinkEvacuationLead,
   getHumanRelationships,
   createHumanRelationship,
   updateHumanRelationship,
@@ -104,6 +106,18 @@ humanRoutes.post("/api/humans/:id/website-booking-requests", requirePermission("
 
 humanRoutes.delete("/api/humans/:id/website-booking-requests/:linkId", requirePermission("manageHumans"), async (c) => {
   await unlinkWebsiteBookingRequest(c.get("db"), c.req.param("linkId"));
+  return c.json({ success: true });
+});
+
+humanRoutes.post("/api/humans/:id/evacuation-leads", requirePermission("manageHumans"), async (c) => {
+  const body: unknown = await c.req.json();
+  const data = linkEvacuationLeadSchema.parse(body);
+  const link = await linkEvacuationLead(c.get("db"), c.req.param("id"), data.evacuationLeadId);
+  return c.json({ data: link }, 201);
+});
+
+humanRoutes.delete("/api/humans/:id/evacuation-leads/:linkId", requirePermission("manageHumans"), async (c) => {
+  await unlinkEvacuationLead(c.get("db"), c.req.param("linkId"));
   return c.json({ success: true });
 });
 

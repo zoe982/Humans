@@ -226,9 +226,11 @@ export {
   evacuationLeadStatuses,
   updateEvacuationLeadStatusSchema,
   updateEvacuationLeadSchema,
+  linkEvacuationLeadSchema,
   type EvacuationLeadStatus,
   type UpdateEvacuationLeadStatusInput,
   type UpdateEvacuationLeadInput,
+  type LinkEvacuationLeadInput,
 } from "./evacuation-leads";
 
 export * from "./responses/index";

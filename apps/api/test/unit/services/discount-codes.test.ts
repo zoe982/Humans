@@ -172,6 +172,13 @@ function makeSupabaseMock(stores: MockStores) {
           return { data: arr[0] ?? null, error: null };
         });
       },
+      maybeSingle(): Promise<{ data: unknown; error: Error | null }> {
+        return Promise.resolve(execute()).then((res) => {
+          if (res.error) return { data: null, error: res.error };
+          const arr = res.data ?? [];
+          return { data: arr[0] ?? null, error: null };
+        });
+      },
       then(
         resolve: (result: { data: unknown[] | null; error: Error | null }) => void,
       ): Promise<void> {
@@ -316,6 +323,8 @@ function makeErrorSupabaseMock(
   errorBuilder["overrideTypes"] = () => errorBuilder;
   errorBuilder["single"] = (): Promise<{ data: null; error: Error }> =>
     Promise.resolve({ data: null, error: err });
+  errorBuilder["maybeSingle"] = (): Promise<{ data: null; error: Error }> =>
+    Promise.resolve({ data: null, error: err });
   errorBuilder["then"] = (resolve: (result: { data: null; error: Error }) => void): Promise<void> =>
     Promise.resolve(resolve({ data: null, error: err }));
 
@@ -342,6 +351,8 @@ function makeNullDataSupabaseMock(): SupabaseClient {
   nullSelf["order"] = (_col: string, _opts?: unknown) => nullSelf;
   nullSelf["overrideTypes"] = () => nullSelf;
   nullSelf["single"] = (): Promise<{ data: null; error: null }> =>
+    Promise.resolve({ data: null, error: null });
+  nullSelf["maybeSingle"] = (): Promise<{ data: null; error: null }> =>
     Promise.resolve({ data: null, error: null });
   nullSelf["then"] = (resolve: (result: { data: null; error: null }) => void): Promise<void> =>
     Promise.resolve(resolve({ data: null, error: null }));
@@ -847,6 +858,8 @@ describe("updateDiscountCode — Supabase update error", () => {
     errBuilder["eq"] = (_c: string, _v: unknown) => errBuilder;
     errBuilder["overrideTypes"] = () => errBuilder;
     errBuilder["single"] = (): Promise<{ data: null; error: Error }> =>
+      Promise.resolve({ data: null, error: updateErr });
+    errBuilder["maybeSingle"] = (): Promise<{ data: null; error: Error }> =>
       Promise.resolve({ data: null, error: updateErr });
     errBuilder["then"] = (resolve: (result: { data: null; error: Error }) => void): Promise<void> =>
       Promise.resolve(resolve({ data: null, error: updateErr }));

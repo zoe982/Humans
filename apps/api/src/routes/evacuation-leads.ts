@@ -177,10 +177,13 @@ evacuationLeadRoutes.get("/api/evacuation-leads/:id", requirePermission("viewEva
     .from("urgent_contact_requests")
     .select("*")
     .eq("id", c.req.param("id"))
-    .single<Record<string, unknown>>();
+    .maybeSingle<Record<string, unknown>>();
 
   if (result.error !== null) {
-    throw notFound(ERROR_CODES.EVACUATION_LEAD_NOT_FOUND, result.error.message);
+    throw internal(ERROR_CODES.SUPABASE_ERROR, result.error.message);
+  }
+  if (result.data === null) {
+    throw notFound(ERROR_CODES.EVACUATION_LEAD_NOT_FOUND, "Evacuation lead not found");
   }
 
   // Auto-assign display ID if missing
@@ -218,10 +221,13 @@ evacuationLeadRoutes.patch("/api/evacuation-leads/:id", requirePermission("manag
     .update(updateFields)
     .eq("id", c.req.param("id"))
     .select()
-    .single<Record<string, unknown>>();
+    .maybeSingle<Record<string, unknown>>();
 
   if (result.error !== null) {
     throw internal(ERROR_CODES.SUPABASE_ERROR, result.error.message);
+  }
+  if (result.data === null) {
+    throw notFound(ERROR_CODES.EVACUATION_LEAD_NOT_FOUND, "Evacuation lead not found");
   }
 
   // Clear next action when transitioning to a closed status

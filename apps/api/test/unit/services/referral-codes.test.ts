@@ -43,6 +43,7 @@ function makeSupabaseErrorMock(errorMessage: string) {
       order: (col: string, opts?: { ascending?: boolean }) => typeof self;
       overrideTypes: () => typeof self;
       single: () => Promise<{ data: null; error: Error }>;
+      maybeSingle: () => Promise<{ data: null; error: Error }>;
       then: (resolve: (result: { data: null; error: Error }) => void) => Promise<void>;
     } = {
       select() { return self; },
@@ -53,6 +54,7 @@ function makeSupabaseErrorMock(errorMessage: string) {
       order() { return self; },
       overrideTypes() { return self; },
       single() { return Promise.resolve({ data: null, error: err }); },
+      maybeSingle() { return Promise.resolve({ data: null, error: err }); },
       then(resolve) { return Promise.resolve(resolve({ data: null, error: err })); },
     };
     return self;
@@ -83,6 +85,7 @@ function makeSupabaseFetchOkUpdateErrorMock(store: ReferralCodeRow[], errorMessa
       order: (col: string, opts?: { ascending?: boolean }) => typeof self;
       overrideTypes: () => typeof self;
       single: () => Promise<{ data: ReferralCodeRow | null; error: Error | null }>;
+      maybeSingle: () => Promise<{ data: ReferralCodeRow | null; error: Error | null }>;
       then: (resolve: (result: { data: ReferralCodeRow[] | null; error: Error | null }) => void) => Promise<void>;
     } = {
       select() { return self; },
@@ -92,6 +95,16 @@ function makeSupabaseFetchOkUpdateErrorMock(store: ReferralCodeRow[], errorMessa
       order() { return self; },
       overrideTypes() { return self; },
       single() {
+        if (isUpdate) return Promise.resolve({ data: null, error: updateErr });
+        if (isDelete) return Promise.resolve({ data: null, error: updateErr });
+        // select single
+        let filtered = [...rows];
+        for (const f of eqFilters) {
+          filtered = filtered.filter((r) => (r as Record<string, unknown>)[f.col] === f.val);
+        }
+        return Promise.resolve({ data: filtered[0] ?? null, error: null });
+      },
+      maybeSingle() {
         if (isUpdate) return Promise.resolve({ data: null, error: updateErr });
         if (isDelete) return Promise.resolve({ data: null, error: updateErr });
         // select single
@@ -190,6 +203,7 @@ function makeSupabaseMock(store: ReferralCodeRow[]) {
       order: (col: string, opts?: { ascending?: boolean }) => typeof self;
       overrideTypes: () => typeof self;
       single: () => Promise<{ data: ReferralCodeRow | null; error: Error | null }>;
+      maybeSingle: () => Promise<{ data: ReferralCodeRow | null; error: Error | null }>;
       then: (resolve: (result: { data: ReferralCodeRow[] | null; error: Error | null }) => void) => Promise<void>;
     } = {
       select(fields?: string) {
@@ -223,6 +237,13 @@ function makeSupabaseMock(store: ReferralCodeRow[]) {
       },
       overrideTypes() { return self; },
       single() {
+        return Promise.resolve(execute()).then((res) => {
+          if (res.error) return { data: null, error: res.error };
+          const arr = res.data ?? [];
+          return { data: arr[0] ?? null, error: null };
+        });
+      },
+      maybeSingle() {
         return Promise.resolve(execute()).then((res) => {
           if (res.error) return { data: null, error: res.error };
           const arr = res.data ?? [];

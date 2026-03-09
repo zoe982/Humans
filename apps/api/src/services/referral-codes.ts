@@ -132,9 +132,12 @@ export async function createReferralCode(
       account_id: data.accountId ?? null,
     })
     .select("*")
-    .single<SupabaseReferralCode>();
+    .maybeSingle<SupabaseReferralCode>();
 
   if (error != null) throw new Error(`Supabase error: ${error.message}`);
+  if (inserted === null) {
+    throw new Error("Failed to create referral code");
+  }
 
   return toApiShape(inserted);
 }
@@ -172,9 +175,12 @@ export async function updateReferralCode(
     .update(updates)
     .eq("id", id)
     .select("*")
-    .single<SupabaseReferralCode>();
+    .maybeSingle<SupabaseReferralCode>();
 
   if (error != null) throw new Error(`Supabase error: ${error.message}`);
+  if (updated === null) {
+    throw notFound(ERROR_CODES.REFERRAL_CODE_NOT_FOUND, "Referral code not found");
+  }
 
   return toApiShape(updated);
 }
