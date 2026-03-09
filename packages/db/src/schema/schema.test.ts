@@ -415,6 +415,7 @@ describe("entityNextActions schema", () => {
       "route_signup",
       "general_lead",
       "website_booking_request",
+      "evacuation_lead",
     ]);
   });
 });

@@ -359,16 +359,16 @@ allLeadRoutes.get("/api/leads/all", requirePermission("viewGeneralLeads"), async
 
   const lastActivityMap = new Map<string, string>();
   for (const a of glActivities) {
-    if (a.entityId != null && a.lastDate != null) lastActivityMap.set(`general_lead:${a.entityId}`, a.lastDate);
+    if (a.entityId != null) lastActivityMap.set(`general_lead:${a.entityId}`, a.lastDate);
   }
   for (const a of rsActivities) {
-    if (a.entityId != null && a.lastDate != null) lastActivityMap.set(`route_signup:${a.entityId}`, a.lastDate);
+    if (a.entityId != null) lastActivityMap.set(`route_signup:${a.entityId}`, a.lastDate);
   }
   for (const a of brActivities) {
-    if (a.entityId != null && a.lastDate != null) lastActivityMap.set(`website_booking_request:${a.entityId}`, a.lastDate);
+    if (a.entityId != null) lastActivityMap.set(`website_booking_request:${a.entityId}`, a.lastDate);
   }
   for (const a of elActivities) {
-    if (a.entityId != null && a.lastDate != null) lastActivityMap.set(`evacuation_lead:${a.entityId}`, a.lastDate);
+    if (a.entityId != null) lastActivityMap.set(`evacuation_lead:${a.entityId}`, a.lastDate);
   }
 
   for (const lead of unified) {
