@@ -76,7 +76,6 @@
       website_booking_request: `/leads/website-booking-requests/${entityId}`,
       evacuation_lead: `/leads/evacuation-leads/${entityId}`,
     };
-    // eslint-disable-next-line security/detect-object-injection
     return routes[lead.leadType] ?? "#";
   }
 

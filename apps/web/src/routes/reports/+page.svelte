@@ -51,9 +51,9 @@
       <h2 class="text-lg font-semibold text-text-primary">Agreements</h2>
       <p class="mt-2 text-sm text-text-secondary">Track contracts and agreements linked to humans and accounts.</p>
     </a>
-    <a href={resolve('/marketing-attributions')} class="glass-card p-6 hover:bg-glass-hover transition-colors">
-      <h2 class="text-lg font-semibold text-text-primary">Marketing Attributions</h2>
-      <p class="mt-2 text-sm text-text-secondary">View marketing attribution data linked to route signups and booking requests.</p>
+    <a href={resolve('/reports/marketing')} class="glass-card p-6 hover:bg-glass-hover transition-colors">
+      <h2 class="text-lg font-semibold text-text-primary">Marketing</h2>
+      <p class="mt-2 text-sm text-text-secondary">Marketing reports including lead attribution tracking.</p>
     </a>
     <a href={resolve('/reports/lead-scores')} class="glass-card p-6 hover:bg-glass-hover transition-colors">
       <h2 class="text-lg font-semibold text-text-primary">Lead Scores</h2>
