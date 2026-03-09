@@ -528,6 +528,141 @@ describe("general-leads/[id] updateSourceChannel action", () => {
   });
 });
 
+describe("general-leads/[id] addSocialId action", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("returns success when social ID is added", async () => {
+    const mockFetch = createMockFetch({
+      "/api/general-leads/lea-1/social-ids": { status: 200, body: { data: { id: "soc-1" } } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent({ formData: { handle: "@janedoe", platformId: "plt-1" } });
+    const result = await actions.addSocialId(event as any);
+    expect(result).toEqual({ success: true });
+  });
+
+  it("returns success when social ID is added without platformId", async () => {
+    const mockFetch = createMockFetch({
+      "/api/general-leads/lea-1/social-ids": { status: 200, body: { data: { id: "soc-2" } } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent({ formData: { handle: "@janedoe" } });
+    const result = await actions.addSocialId(event as any);
+    expect(result).toEqual({ success: true });
+  });
+
+  it("returns failure when API returns error", async () => {
+    const mockFetch = createMockFetch({
+      "/api/general-leads/lea-1/social-ids": { status: 422, body: { error: "Invalid handle" } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent({ formData: { handle: "" } });
+    const result = await actions.addSocialId(event as any);
+    expect(isActionFailure(result)).toBe(true);
+    if (isActionFailure(result)) {
+      expect(result.data.error).toBe("Invalid handle");
+    }
+  });
+});
+
+describe("general-leads/[id] deleteSocialId action", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("returns success when social ID is deleted", async () => {
+    const mockFetch = createMockFetch({
+      "/api/general-leads/lea-1/social-ids/soc-1": { status: 200, body: {} },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent({ formData: { socialIdId: "soc-1" } });
+    const result = await actions.deleteSocialId(event as any);
+    expect(result).toEqual({ success: true });
+  });
+
+  it("returns failure when API returns error", async () => {
+    const mockFetch = createMockFetch({
+      "/api/general-leads/lea-1/social-ids/soc-missing": { status: 404, body: { error: "Social ID not found" } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent({ formData: { socialIdId: "soc-missing" } });
+    const result = await actions.deleteSocialId(event as any);
+    expect(isActionFailure(result)).toBe(true);
+    if (isActionFailure(result)) {
+      expect(result.data.error).toBe("Social ID not found");
+    }
+  });
+});
+
+describe("general-leads/[id] linkHuman action", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("returns success when human is linked", async () => {
+    const mockFetch = createMockFetch({
+      "/api/general-leads/lea-1/link-human": { status: 200, body: {} },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent({ formData: { humanId: "hum-1" } });
+    const result = await actions.linkHuman(event as any);
+    expect(result).toEqual({ success: true });
+  });
+
+  it("returns failure when API returns error", async () => {
+    const mockFetch = createMockFetch({
+      "/api/general-leads/lea-1/link-human": { status: 400, body: { error: "Human not found" } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent({ formData: { humanId: "hum-missing" } });
+    const result = await actions.linkHuman(event as any);
+    expect(isActionFailure(result)).toBe(true);
+    if (isActionFailure(result)) {
+      expect(result.data.error).toBe("Human not found");
+    }
+  });
+});
+
+describe("general-leads/[id] unlinkHuman action", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("returns success when human is unlinked", async () => {
+    const mockFetch = createMockFetch({
+      "/api/general-leads/lea-1/link-human": { status: 200, body: {} },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent();
+    const result = await actions.unlinkHuman(event as any);
+    expect(result).toEqual({ success: true });
+  });
+
+  it("returns failure when API returns error", async () => {
+    const mockFetch = createMockFetch({
+      "/api/general-leads/lea-1/link-human": { status: 400, body: { error: "No human linked" } },
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const event = makeEvent();
+    const result = await actions.unlinkHuman(event as any);
+    expect(isActionFailure(result)).toBe(true);
+    if (isActionFailure(result)) {
+      expect(result.data.error).toBe("No human linked");
+    }
+  });
+});
+
 describe("general-leads/[id] load returns leadSources and leadChannels", () => {
   afterEach(() => {
     vi.unstubAllGlobals();
