@@ -30,7 +30,7 @@
       </div>
       <div class="flex flex-col gap-2 p-3 min-h-[120px]">
         {#if group.items.length === 0}
-          <div data-empty class="flex items-center justify-center py-6 text-xs text-text-muted italic">No opportunities</div>
+          <div data-empty class="flex items-center justify-center py-6 text-xs text-text-muted italic">No items</div>
         {/if}
         {#each group.items as item, ii (ii)}
           {@render card(item)}

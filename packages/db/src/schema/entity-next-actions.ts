@@ -5,6 +5,7 @@ export const entityNextActionTypes = [
   "route_signup",
   "general_lead",
   "website_booking_request",
+  "evacuation_lead",
 ] as const;
 export type EntityNextActionType = (typeof entityNextActionTypes)[number];
 

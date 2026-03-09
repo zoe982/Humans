@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { eq, sql, and, inArray } from "drizzle-orm";
-import { generalLeads, leadScores, entityNextActions } from "@humans/db/schema";
+import { generalLeads, leadScores, entityNextActions, colleagues, activities } from "@humans/db/schema";
 import { ERROR_CODES } from "@humans/shared";
 import { authMiddleware } from "../middleware/auth";
 import { requirePermission } from "../middleware/rbac";
@@ -116,7 +116,9 @@ allLeadRoutes.get("/api/leads/all", requirePermission("viewGeneralLeads"), async
     channel: string | null;
     source: string | null;
     scoreTotal: number | null;
-    nextAction: { type: string | null; description: string | null; dueDate: string | null } | null;
+    nextAction: { type: string | null; description: string | null; dueDate: string | null; ownerName: string | null } | null;
+    isOverdue: boolean;
+    lastActivityDate: string | null;
     createdAt: string;
   }
 
@@ -135,6 +137,8 @@ allLeadRoutes.get("/api/leads/all", requirePermission("viewGeneralLeads"), async
       source: gl.source,
       scoreTotal: gl.scoreTotal,
       nextAction: null,
+      isOverdue: false,
+      lastActivityDate: null,
       createdAt: gl.createdAt,
     });
   }
@@ -152,6 +156,8 @@ allLeadRoutes.get("/api/leads/all", requirePermission("viewGeneralLeads"), async
       source: rs.crm_source != null ? String(rs.crm_source) : null,
       scoreTotal: routeScoreMap.get(String(rs.id)) ?? null,
       nextAction: null,
+      isOverdue: false,
+      lastActivityDate: null,
       createdAt: String(rs.inserted_at ?? ""),
     });
   }
@@ -169,6 +175,8 @@ allLeadRoutes.get("/api/leads/all", requirePermission("viewGeneralLeads"), async
       source: br.crm_source != null ? String(br.crm_source) : null,
       scoreTotal: bookingScoreMap.get(String(br.id)) ?? null,
       nextAction: null,
+      isOverdue: false,
+      lastActivityDate: null,
       createdAt: String(br.inserted_at ?? ""),
     });
   }
@@ -186,6 +194,8 @@ allLeadRoutes.get("/api/leads/all", requirePermission("viewGeneralLeads"), async
       source: el.crm_source != null ? String(el.crm_source) : null,
       scoreTotal: evacuationScoreMap.get(String(el.id)) ?? null,
       nextAction: null,
+      isOverdue: false,
+      lastActivityDate: null,
       createdAt: String(el.inserted_at ?? ""),
     });
   }
@@ -201,6 +211,7 @@ allLeadRoutes.get("/api/leads/all", requirePermission("viewGeneralLeads"), async
     type: entityNextActions.type,
     description: entityNextActions.description,
     dueDate: entityNextActions.dueDate,
+    ownerId: entityNextActions.ownerId,
   };
 
   const [glNextActions, rsNextActions, brNextActions, elNextActions] = await Promise.all([
@@ -255,26 +266,115 @@ allLeadRoutes.get("/api/leads/all", requirePermission("viewGeneralLeads"), async
       : Promise.resolve([]),
   ]);
 
-  // Build next action lookup map (keyed by composite ID)
-  const nextActionMap = new Map<string, { type: string | null; description: string | null; dueDate: string | null }>();
-  for (const na of glNextActions) {
-    nextActionMap.set(`general_lead:${na.entityId}`, { type: na.type, description: na.description, dueDate: na.dueDate });
-  }
-  for (const na of rsNextActions) {
-    nextActionMap.set(`route_signup:${na.entityId}`, { type: na.type, description: na.description, dueDate: na.dueDate });
-  }
-  for (const na of brNextActions) {
-    nextActionMap.set(`website_booking_request:${na.entityId}`, { type: na.type, description: na.description, dueDate: na.dueDate });
-  }
-  for (const na of elNextActions) {
-    nextActionMap.set(`evacuation_lead:${na.entityId}`, { type: na.type, description: na.description, dueDate: na.dueDate });
+  // Resolve owner names for next actions
+  const allNextActions = [...glNextActions, ...rsNextActions, ...brNextActions, ...elNextActions];
+  const ownerIds = [...new Set(allNextActions.map((na) => na.ownerId).filter((id): id is string => id != null))];
+  const ownerMap = new Map<string, string>();
+  if (ownerIds.length > 0) {
+    const owners = await db
+      .select({ id: colleagues.id, name: colleagues.name })
+      .from(colleagues)
+      .where(inArray(colleagues.id, ownerIds));
+    for (const o of owners) {
+      ownerMap.set(o.id, o.name);
+    }
   }
 
-  // Merge next actions into unified leads
+  // Build next action lookup map (keyed by composite ID)
+  const nextActionMap = new Map<string, { type: string | null; description: string | null; dueDate: string | null; ownerName: string | null }>();
+  for (const na of glNextActions) {
+    nextActionMap.set(`general_lead:${na.entityId}`, { type: na.type, description: na.description, dueDate: na.dueDate, ownerName: na.ownerId != null ? (ownerMap.get(na.ownerId) ?? null) : null });
+  }
+  for (const na of rsNextActions) {
+    nextActionMap.set(`route_signup:${na.entityId}`, { type: na.type, description: na.description, dueDate: na.dueDate, ownerName: na.ownerId != null ? (ownerMap.get(na.ownerId) ?? null) : null });
+  }
+  for (const na of brNextActions) {
+    nextActionMap.set(`website_booking_request:${na.entityId}`, { type: na.type, description: na.description, dueDate: na.dueDate, ownerName: na.ownerId != null ? (ownerMap.get(na.ownerId) ?? null) : null });
+  }
+  for (const na of elNextActions) {
+    nextActionMap.set(`evacuation_lead:${na.entityId}`, { type: na.type, description: na.description, dueDate: na.dueDate, ownerName: na.ownerId != null ? (ownerMap.get(na.ownerId) ?? null) : null });
+  }
+
+  // Merge next actions into unified leads, computing isOverdue
   for (const lead of unified) {
     const action = nextActionMap.get(lead.id);
     if (action != null) {
       lead.nextAction = action;
+    }
+    if (lead.nextAction?.dueDate != null) {
+      lead.isOverdue = new Date(lead.nextAction.dueDate) < new Date();
+    }
+  }
+
+  // Resolve lastActivityDate from activities table
+  const allIds = {
+    generalLead: glIds,
+    routeSignup: rsIds,
+    bookingRequest: brIds,
+    evacuationLead: elIds,
+  };
+
+  const [glActivities, rsActivities, brActivities, elActivities] = await Promise.all([
+    allIds.generalLead.length > 0
+      ? db
+          .select({
+            entityId: activities.generalLeadId,
+            lastDate: sql<string>`MAX(${activities.createdAt})`.as("last_date"),
+          })
+          .from(activities)
+          .where(inArray(activities.generalLeadId, allIds.generalLead))
+          .groupBy(activities.generalLeadId)
+      : Promise.resolve([]),
+    allIds.routeSignup.length > 0
+      ? db
+          .select({
+            entityId: activities.routeSignupId,
+            lastDate: sql<string>`MAX(${activities.createdAt})`.as("last_date"),
+          })
+          .from(activities)
+          .where(inArray(activities.routeSignupId, allIds.routeSignup))
+          .groupBy(activities.routeSignupId)
+      : Promise.resolve([]),
+    allIds.bookingRequest.length > 0
+      ? db
+          .select({
+            entityId: activities.websiteBookingRequestId,
+            lastDate: sql<string>`MAX(${activities.createdAt})`.as("last_date"),
+          })
+          .from(activities)
+          .where(inArray(activities.websiteBookingRequestId, allIds.bookingRequest))
+          .groupBy(activities.websiteBookingRequestId)
+      : Promise.resolve([]),
+    allIds.evacuationLead.length > 0
+      ? db
+          .select({
+            entityId: activities.evacuationLeadId,
+            lastDate: sql<string>`MAX(${activities.createdAt})`.as("last_date"),
+          })
+          .from(activities)
+          .where(inArray(activities.evacuationLeadId, allIds.evacuationLead))
+          .groupBy(activities.evacuationLeadId)
+      : Promise.resolve([]),
+  ]);
+
+  const lastActivityMap = new Map<string, string>();
+  for (const a of glActivities) {
+    if (a.entityId != null && a.lastDate != null) lastActivityMap.set(`general_lead:${a.entityId}`, a.lastDate);
+  }
+  for (const a of rsActivities) {
+    if (a.entityId != null && a.lastDate != null) lastActivityMap.set(`route_signup:${a.entityId}`, a.lastDate);
+  }
+  for (const a of brActivities) {
+    if (a.entityId != null && a.lastDate != null) lastActivityMap.set(`website_booking_request:${a.entityId}`, a.lastDate);
+  }
+  for (const a of elActivities) {
+    if (a.entityId != null && a.lastDate != null) lastActivityMap.set(`evacuation_lead:${a.entityId}`, a.lastDate);
+  }
+
+  for (const lead of unified) {
+    const lastDate = lastActivityMap.get(lead.id);
+    if (lastDate != null) {
+      lead.lastActivityDate = lastDate;
     }
   }
 

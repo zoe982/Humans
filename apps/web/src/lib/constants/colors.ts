@@ -109,6 +109,13 @@ export const allLeadStatusColors: Record<string, string> = {
   ...evacuationLeadStatusColors,
 };
 
+/** Lead pipeline status badge colors (active statuses only) */
+export const leadPipelineStatusColors: Record<string, string> = {
+  open: "badge-blue",
+  pending_response: "badge-yellow",
+  qualified: "badge-yellow",
+};
+
 /** Opportunity stage badge colors */
 export const opportunityStageColors: Record<string, string> = {
   open: "badge-blue",

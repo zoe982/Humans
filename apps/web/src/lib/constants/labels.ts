@@ -184,3 +184,10 @@ export const OPPORTUNITY_STAGE_OPTIONS = [
 /** Terminal opportunity stages */
 export const TERMINAL_STAGES = new Set(["closed_flown", "closed_lost"]);
 
+/** Lead pipeline status labels (active statuses only) */
+export const leadPipelineStatusLabels: Record<string, string> = {
+  open: "Open",
+  pending_response: "Pending Response",
+  qualified: "Qualified",
+};
+

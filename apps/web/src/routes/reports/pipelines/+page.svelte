@@ -27,5 +27,14 @@
         View all active opportunities grouped by stage with table and kanban views.
       </p>
     </a>
+    <a
+      href={resolve("/reports/pipelines/leads")}
+      class="glass-card p-6 hover:bg-glass-hover transition-colors"
+    >
+      <h2 class="text-lg font-semibold text-text-primary">Leads Pipeline</h2>
+      <p class="mt-2 text-sm text-text-secondary">
+        View all active leads grouped by status with table and kanban views.
+      </p>
+    </a>
   </div>
 </div>
