@@ -31,11 +31,13 @@
     general_lead: "General Lead",
     website_booking_request: "Booking Request",
     route_signup: "Route Signup",
+    evacuation_lead: "Evacuation Lead",
   };
 
   function parentPath(s: Score): string {
     if (s.parentType === "general_lead") return `/leads/general-leads/${s.parentId}`;
     if (s.parentType === "website_booking_request") return `/leads/website-booking-requests/${s.parentId}`;
+    if (s.parentType === "evacuation_lead") return `/leads/evacuation-leads/${s.parentId}`;
     return `/leads/route-signups/${s.parentId}`;
   }
 
@@ -108,6 +110,10 @@
       class="glass-badge rounded-full px-3 py-1 text-sm {currentParentType === 'route_signup' ? 'bg-accent-dim text-accent' : 'bg-glass text-text-secondary'}"
       onclick={() => setFilter("parentType", "route_signup")}
     >Route Signups</button>
+    <button
+      class="glass-badge rounded-full px-3 py-1 text-sm {currentParentType === 'evacuation_lead' ? 'bg-accent-dim text-accent' : 'bg-glass text-text-secondary'}"
+      onclick={() => setFilter("parentType", "evacuation_lead")}
+    >Evacuation Leads</button>
   </div>
 
   <!-- Table -->

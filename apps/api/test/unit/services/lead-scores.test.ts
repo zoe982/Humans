@@ -308,6 +308,17 @@ describe("ensureLeadScore", () => {
     const result = await ensureLeadScore(db, "route_signup", "rou-1");
     expect(result.routeSignupId).toBe("rou-1");
   });
+
+  it("creates a lead score for evacuation_lead", async () => {
+    const db = getTestDb();
+    await seedDisplayIdCounter(db);
+
+    const result = await ensureLeadScore(db, "evacuation_lead", "eva-1");
+    expect(result.evacuationLeadId).toBe("eva-1");
+    expect(result.generalLeadId).toBeNull();
+    expect(result.websiteBookingRequestId).toBeNull();
+    expect(result.routeSignupId).toBeNull();
+  });
 });
 
 // ─── getLeadScore ────────────────────────────────────────────────
@@ -348,6 +359,16 @@ describe("getLeadScoreByParent", () => {
     const db = getTestDb();
     const result = await getLeadScoreByParent(db, "general_lead", "nonexistent");
     expect(result).toBeNull();
+  });
+
+  it("returns lead score by evacuation_lead parent", async () => {
+    const db = getTestDb();
+    await seedDisplayIdCounter(db);
+    await ensureLeadScore(db, "evacuation_lead", "eva-1");
+
+    const result = await getLeadScoreByParent(db, "evacuation_lead", "eva-1");
+    expect(result).not.toBeNull();
+    expect(result!.evacuationLeadId).toBe("eva-1");
   });
 });
 
@@ -633,6 +654,35 @@ describe("updateLeadScoreFlags", () => {
 // ─── listLeadScores — parentType and parentDisplayId branches ─────────────────
 
 describe("listLeadScores — parentType resolution branches", () => {
+  it("resolves parentType as 'evacuation_lead' and parentId as evacuationLeadId", async () => {
+    const db = getTestDb();
+    await seedDisplayIdCounter(db);
+
+    const score = await ensureLeadScore(db, "evacuation_lead", "eva-branch-1");
+
+    const result = await listLeadScores(db, 1, 25, {});
+    expect(result.data).toHaveLength(1);
+    const row = result.data[0]!;
+    expect(row.parentType).toBe("evacuation_lead");
+    expect(row.parentId).toBe("eva-branch-1");
+    expect(row.evacuationLeadId).toBe("eva-branch-1");
+    expect(row.id).toBe(score.id);
+  });
+
+  it("filters by parentType evacuation_lead — returns only evacuation lead scores", async () => {
+    const db = getTestDb();
+    await seedDisplayIdCounter(db);
+    await seedGeneralLead(db, "gl-1");
+    await ensureLeadScore(db, "general_lead", "gl-1");
+    await ensureLeadScore(db, "website_booking_request", "bor-1");
+    const evaScore = await ensureLeadScore(db, "evacuation_lead", "eva-1");
+
+    const result = await listLeadScores(db, 1, 25, { parentType: "evacuation_lead" });
+    expect(result.data).toHaveLength(1);
+    expect(result.data[0]!.id).toBe(evaScore.id);
+    expect(result.data[0]!.evacuationLeadId).toBe("eva-1");
+  });
+
   it("resolves parentType as 'route_signup' and parentId as routeSignupId", async () => {
     const db = getTestDb();
     await seedDisplayIdCounter(db);

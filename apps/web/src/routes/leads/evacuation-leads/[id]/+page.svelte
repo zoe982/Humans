@@ -139,7 +139,13 @@
     customerHasFlown: boolean;
   };
 
-  let leadScore = $derived(data.leadScore as LeadScoreFull | null);
+  let leadScore = $state<LeadScoreFull | null>(data.leadScore as LeadScoreFull | null);
+
+  $effect(() => {
+    if (data.leadScore != null) {
+      leadScore = data.leadScore as LeadScoreFull;
+    }
+  });
 
   // Auto-create lead score on first view if none exists
   $effect(() => {

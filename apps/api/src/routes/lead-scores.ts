@@ -2,10 +2,14 @@ import { Hono } from "hono";
 import {
   updateLeadScoreFlagsSchema,
   ensureLeadScoreSchema,
+  leadScoreParentTypes,
+  type LeadScoreParentType,
+  ERROR_CODES,
 } from "@humans/shared";
 import { authMiddleware } from "../middleware/auth";
 import { requirePermission } from "../middleware/rbac";
 import { supabaseMiddleware } from "../middleware/supabase";
+import { badRequest } from "../lib/errors";
 import {
   listLeadScores,
   getLeadScore,
@@ -76,6 +80,26 @@ leadScoreRoutes.get("/api/lead-scores", requirePermission("viewLeadScores"), sup
     }
   }
 
+  const evaIds = result.data.flatMap((s) =>
+    s.evacuationLeadId != null && s.parentDisplayId == null ? [s.evacuationLeadId] : []
+  );
+  if (evaIds.length > 0) {
+    const { data: evas } = await supabase
+      .from("urgent_contact_requests")
+      .select("id, display_id")
+      .in("id", evaIds);
+    if (evas != null) {
+      const evaMap = new Map(
+        (evas as { id: string; display_id: string | null }[]).map((e) => [e.id, e.display_id])
+      );
+      for (const score of result.data) {
+        if (score.evacuationLeadId != null && score.parentDisplayId == null) {
+          score.parentDisplayId = evaMap.get(score.evacuationLeadId) ?? null;
+        }
+      }
+    }
+  }
+
   return c.json(result);
 });
 
@@ -83,8 +107,10 @@ leadScoreRoutes.get("/api/lead-scores", requirePermission("viewLeadScores"), sup
 leadScoreRoutes.get("/api/lead-scores/by-parent/:parentType/:parentId", requirePermission("viewLeadScores"), async (c) => {
   const db = c.get("db");
   const rawParentType = c.req.param("parentType");
-  if (rawParentType !== "general_lead" && rawParentType !== "website_booking_request" && rawParentType !== "route_signup") {
-    return c.json({ error: "Invalid parent type" }, 400);
+  const isValidParentType = (v: string): v is LeadScoreParentType =>
+    (leadScoreParentTypes as readonly string[]).includes(v);
+  if (!isValidParentType(rawParentType)) {
+    throw badRequest(ERROR_CODES.VALIDATION_FAILED, `Invalid parent type: ${rawParentType}`);
   }
   const parentId = c.req.param("parentId");
   const result = await getLeadScoreByParent(db, rawParentType, parentId);
