@@ -126,7 +126,7 @@
     }
   }
 
-  const evacuationLeadStatusValues = ["open", "pending_response", "qualified", "closed_lost", "closed_converted"] as const;
+  const evacuationLeadStatusValues = ["open", "pending_response", "closed_lost", "closed_converted"] as const;
 
   const hasActiveFilters = $derived(
     !!(filterStatus || filterDateFrom || filterDateTo || filterQ),

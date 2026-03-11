@@ -236,6 +236,18 @@ websiteBookingRequestRoutes.patch(
       throw badRequest(ERROR_CODES.VALIDATION_FAILED, "Invalid input", parsed.error.flatten().fieldErrors);
     }
 
+    // Block status changes when BOR is linked to an opportunity (status synced from opp)
+    if (parsed.data.status !== undefined) {
+      const db = c.get("db");
+      const link = await db.select({ opportunityId: humanWebsiteBookingRequests.opportunityId })
+        .from(humanWebsiteBookingRequests)
+        .where(eq(humanWebsiteBookingRequests.websiteBookingRequestId, c.req.param("id")))
+        .limit(1);
+      if (link[0]?.opportunityId != null) {
+        throw badRequest(ERROR_CODES.VALIDATION_FAILED, "Status is synced from the linked opportunity. Unlink the opportunity first to edit status directly.");
+      }
+    }
+
     const updateFields: Record<string, unknown> = {};
     if (parsed.data.crm_note !== undefined) updateFields["crm_note"] = parsed.data.crm_note;
     if (parsed.data.status !== undefined) updateFields["status"] = parsed.data.status;

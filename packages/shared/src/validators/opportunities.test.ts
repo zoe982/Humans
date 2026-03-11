@@ -13,8 +13,8 @@ import {
 describe("opportunityStageEnum", () => {
   it("accepts all valid stages", () => {
     const stages = [
-      "open", "qualified", "deposit_request_sent", "deposit_received",
-      "group_forming", "confirmed_to_operate", "paid", "docs_in_progress",
+      "open", "qualified", "deposit_requested", "deposit_received",
+      "group_forming", "flight_confirmed", "final_payment_requested", "paid", "docs_in_progress",
       "docs_complete", "closed_flown", "closed_lost",
     ];
     for (const stage of stages) {

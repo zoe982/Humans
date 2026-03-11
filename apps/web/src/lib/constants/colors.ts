@@ -26,7 +26,6 @@ export const activityTypeColors: Record<string, string> = {
 export const signupStatusColors: Record<string, string> = {
   open: "badge-blue",
   pending_response: "badge-yellow",
-  qualified: "badge-yellow",
   closed_lost: "badge-red",
   closed_converted: "badge-green",
 };
@@ -35,7 +34,6 @@ export const signupStatusColors: Record<string, string> = {
 export const evacuationLeadStatusColors: Record<string, string> = {
   open: "badge-blue",
   pending_response: "badge-yellow",
-  qualified: "badge-yellow",
   closed_lost: "badge-red",
   closed_converted: "badge-green",
 };
@@ -74,7 +72,6 @@ export const roleLabelBadgeColor = "badge-orange";
 export const generalLeadStatusColors: Record<string, string> = {
   open: "badge-blue",
   pending_response: "badge-yellow",
-  qualified: "badge-yellow",
   closed_lost: "badge-red",
   closed_converted: "badge-green",
 };
@@ -113,17 +110,17 @@ export const allLeadStatusColors: Record<string, string> = {
 export const leadPipelineStatusColors: Record<string, string> = {
   open: "badge-blue",
   pending_response: "badge-yellow",
-  qualified: "badge-yellow",
 };
 
 /** Opportunity stage badge colors */
 export const opportunityStageColors: Record<string, string> = {
   open: "badge-blue",
   qualified: "badge-yellow",
-  deposit_request_sent: "badge-orange",
+  deposit_requested: "badge-orange",
   deposit_received: "badge-green",
   group_forming: "badge-purple",
-  confirmed_to_operate: "badge-green",
+  flight_confirmed: "badge-green",
+  final_payment_requested: "badge-orange",
   paid: "badge-green",
   docs_in_progress: "badge-yellow",
   docs_complete: "badge-blue",

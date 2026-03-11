@@ -9,20 +9,19 @@ describe("routeSignupStatuses", () => {
   it("contains expected statuses", () => {
     expect(routeSignupStatuses).toContain("open");
     expect(routeSignupStatuses).toContain("pending_response");
-    expect(routeSignupStatuses).toContain("qualified");
     expect(routeSignupStatuses).toContain("closed_lost");
     expect(routeSignupStatuses).toContain("closed_converted");
   });
 
-  it("has exactly 5 statuses", () => {
-    expect(routeSignupStatuses).toHaveLength(5);
+  it("has exactly 4 statuses", () => {
+    expect(routeSignupStatuses).toHaveLength(4);
   });
 });
 
 describe("updateRouteSignupStatusSchema", () => {
   it("accepts valid status", () => {
-    const result = updateRouteSignupStatusSchema.parse({ status: "qualified" });
-    expect(result.status).toBe("qualified");
+    const result = updateRouteSignupStatusSchema.parse({ status: "pending_response" });
+    expect(result.status).toBe("pending_response");
   });
 
   it("accepts all valid statuses", () => {

@@ -167,14 +167,12 @@ describe("reports/pipelines/leads load", () => {
   it("returns only active leads (non-terminal statuses)", async () => {
     const event = mockEvent();
     const result = await load(event as any);
-    // open general lead, qualified route signup, qualified evacuation lead, pending_response lead
-    // Excludes: closed_lost, closed_converted, qualified BOR
-    expect(result.leads).toHaveLength(4);
+    // open general lead and pending_response lead
+    // Excludes: closed_lost, closed_converted, and ALL qualified leads (now terminal for all types)
+    expect(result.leads).toHaveLength(2);
     expect(result.leads).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ id: "general_lead:gl-1", status: "open" }),
-        expect.objectContaining({ id: "route_signup:rs-1", status: "qualified" }),
-        expect.objectContaining({ id: "evacuation_lead:el-1", status: "qualified" }),
         expect.objectContaining({ id: "general_lead:gl-3", status: "pending_response" }),
       ]),
     );
@@ -194,19 +192,21 @@ describe("reports/pipelines/leads load", () => {
     expect(statuses).not.toContain("closed_converted");
   });
 
-  it("excludes BORs with qualified status (terminal for BORs)", async () => {
+  it("excludes all leads with qualified status (now terminal)", async () => {
     const event = mockEvent();
     const result = await load(event as any);
     const ids = result.leads.map((l: Record<string, unknown>) => l["id"]);
     expect(ids).not.toContain("website_booking_request:br-1");
+    expect(ids).not.toContain("route_signup:rs-1");
+    expect(ids).not.toContain("evacuation_lead:el-1");
   });
 
-  it("includes qualified general leads, route signups, and evacuation leads", async () => {
+  it("excludes qualified route signups and evacuation leads (now terminal)", async () => {
     const event = mockEvent();
     const result = await load(event as any);
     const ids = result.leads.map((l: Record<string, unknown>) => l["id"]);
-    expect(ids).toContain("route_signup:rs-1");
-    expect(ids).toContain("evacuation_lead:el-1");
+    expect(ids).not.toContain("route_signup:rs-1");
+    expect(ids).not.toContain("evacuation_lead:el-1");
   });
 
   it("returns empty array on API error (non-ok response)", async () => {

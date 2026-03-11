@@ -23,7 +23,7 @@ function isLeadsResponse(value: unknown): value is LeadsResponse {
 // Terminal statuses — excluded from the active pipeline view
 // ---------------------------------------------------------------------------
 
-const TERMINAL_STATUSES = new Set(["closed_lost", "closed_converted"]);
+const TERMINAL_STATUSES = new Set(["closed_lost", "closed_converted", "qualified"]);
 
 // ---------------------------------------------------------------------------
 // Load
@@ -56,8 +56,6 @@ export const load = async ({
       if (typeof status !== "string") return false;
       // Terminal for all types
       if (TERMINAL_STATUSES.has(status)) return false;
-      // BORs: qualified is also terminal (they graduate to opportunities)
-      if (lead["leadType"] === "website_booking_request" && status === "qualified") return false;
       return true;
     });
     return { leads: active, user: locals.user };

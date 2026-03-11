@@ -36,7 +36,6 @@ export const ROLE_OPTIONS = [
 export const signupStatusLabels: Record<string, string> = {
   open: "Open",
   pending_response: "Pending Response",
-  qualified: "Qualified",
   closed_lost: "Closed - Lost",
   closed_converted: "Closed - Converted",
 };
@@ -45,7 +44,6 @@ export const signupStatusLabels: Record<string, string> = {
 export const evacuationLeadStatusLabels: Record<string, string> = {
   open: "Open",
   pending_response: "Pending Response",
-  qualified: "Qualified",
   closed_lost: "Closed - Lost",
   closed_converted: "Closed - Converted",
 };
@@ -102,7 +100,6 @@ export const balanceStatusLabels: Record<string, string> = {
 export const generalLeadStatusLabels: Record<string, string> = {
   open: "Open",
   pending_response: "Pending Response",
-  qualified: "Qualified",
   closed_lost: "Closed - Lost",
   closed_converted: "Closed - Converted",
 };
@@ -155,10 +152,11 @@ export const AGREEMENT_STATUS_OPTIONS = [
 export const opportunityStageLabels: Record<string, string> = {
   open: "Open",
   qualified: "Qualified",
-  deposit_request_sent: "Deposit Requested",
+  deposit_requested: "Deposit Requested",
   deposit_received: "Deposit Received",
   group_forming: "Group Forming",
-  confirmed_to_operate: "Confirmed",
+  flight_confirmed: "Flight Confirmed",
+  final_payment_requested: "Final Payment Requested",
   paid: "Paid",
   docs_in_progress: "Docs in Progress",
   docs_complete: "Docs Complete",
@@ -170,10 +168,11 @@ export const opportunityStageLabels: Record<string, string> = {
 export const OPPORTUNITY_STAGE_OPTIONS = [
   { value: "open", label: "Open" },
   { value: "qualified", label: "Qualified" },
-  { value: "deposit_request_sent", label: "Deposit Requested" },
+  { value: "deposit_requested", label: "Deposit Requested" },
   { value: "deposit_received", label: "Deposit Received" },
   { value: "group_forming", label: "Group Forming" },
-  { value: "confirmed_to_operate", label: "Confirmed" },
+  { value: "flight_confirmed", label: "Flight Confirmed" },
+  { value: "final_payment_requested", label: "Final Payment Requested" },
   { value: "paid", label: "Paid" },
   { value: "docs_in_progress", label: "Docs in Progress" },
   { value: "docs_complete", label: "Docs Complete" },
@@ -188,6 +187,5 @@ export const TERMINAL_STAGES = new Set(["closed_flown", "closed_lost"]);
 export const leadPipelineStatusLabels: Record<string, string> = {
   open: "Open",
   pending_response: "Pending Response",
-  qualified: "Qualified",
 };
 

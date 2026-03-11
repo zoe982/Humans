@@ -241,7 +241,6 @@
           <option value="">All</option>
           <option value="open">Open</option>
           <option value="pending_response">Pending Response</option>
-          <option value="qualified">Qualified</option>
           <option value="closed_lost">Closed - Lost</option>
           <option value="closed_converted">Closed - Converted</option>
         </select>

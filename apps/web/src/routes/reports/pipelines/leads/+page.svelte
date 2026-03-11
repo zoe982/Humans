@@ -39,7 +39,7 @@
   // Pipeline status ordering
   // ---------------------------------------------------------------------------
 
-  const PIPELINE_STATUSES = ["open", "pending_response", "qualified"] as const;
+  const PIPELINE_STATUSES = ["open", "pending_response"] as const;
 
   // ---------------------------------------------------------------------------
   // State

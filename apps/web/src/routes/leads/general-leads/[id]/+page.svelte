@@ -351,9 +351,6 @@
       {#if isClosed}
         <Button size="sm" onclick={() => handleStatusChange("open")}>Reopen</Button>
       {:else}
-        {#if lead.status === "open"}
-          <Button size="sm" onclick={() => handleStatusChange("qualified")}>Mark Qualified</Button>
-        {/if}
         <Button size="sm" variant="destructive" onclick={() => { pendingCloseStatus = "closed_lost"; showRejectDialog = true; }}>Close - Lost</Button>
       {/if}
     {/snippet}

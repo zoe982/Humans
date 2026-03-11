@@ -3,7 +3,6 @@ import { z } from "zod";
 export const evacuationLeadStatuses = [
   "open",
   "pending_response",
-  "qualified",
   "closed_lost",
   "closed_converted",
 ] as const;

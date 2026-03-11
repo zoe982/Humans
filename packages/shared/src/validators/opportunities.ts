@@ -3,10 +3,11 @@ import { z } from "zod";
 export const opportunityStageEnum = z.enum([
   "open",
   "qualified",
-  "deposit_request_sent",
+  "deposit_requested",
   "deposit_received",
   "group_forming",
-  "confirmed_to_operate",
+  "flight_confirmed",
+  "final_payment_requested",
   "paid",
   "docs_in_progress",
   "docs_complete",

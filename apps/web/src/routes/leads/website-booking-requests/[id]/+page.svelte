@@ -136,6 +136,7 @@
   const allOpportunities = $derived((data.opportunities ?? []) as OpportunityOption[]);
   const linkedOpportunityId = $derived(linkedHumans[0]?.opportunityId ?? null);
   const linkedOpportunity = $derived(linkedOpportunityId ? allOpportunities.find((o) => o.id === linkedOpportunityId) ?? null : null);
+  const statusSyncedFromOpp = $derived(linkedOpportunity != null);
   const opportunityOptions = $derived(
     allOpportunities
       .filter((o) => o.id !== linkedOpportunityId)
@@ -382,6 +383,8 @@
     statusLabels={bookingRequestStatusLabels}
     statusColorMap={bookingRequestStatusColors}
     onStatusChange={handleStatusChange}
+    statusDisabled={statusSyncedFromOpp}
+    statusHint={statusSyncedFromOpp ? `Status synced from opportunity ${linkedOpportunity?.displayId ?? ""}` : undefined}
   >
     {#snippet actions()}
       <a href={resolve(createNewHumanUrl)} class="btn-primary text-sm py-1.5">
@@ -671,7 +674,7 @@
               <a href={resolve(`/opportunities/${linkedOpportunity.id}`)} class="text-sm font-mono text-accent hover:text-[var(--link-hover)]">
                 {linkedOpportunity.displayId}
               </a>
-              <span class="ml-2 text-sm text-text-secondary">{linkedOpportunity.stage}</span>
+              <span class="ml-2 text-sm text-text-secondary">{opportunityStageLabels[linkedOpportunity.stage] ?? linkedOpportunity.stage}</span>
             </div>
             <form method="POST" action="?/unlinkOpportunity">
               <Button type="submit" variant="ghost" size="sm">Unlink</Button>

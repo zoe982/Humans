@@ -243,10 +243,10 @@ describe("listGeneralLeads", () => {
   it("filters by status", async () => {
     const db = getTestDb();
     await seedLead(db, "lead-1", { status: "open" });
-    await seedLead(db, "lead-2", { status: "qualified" });
+    await seedLead(db, "lead-2", { status: "pending_response" });
     await seedLead(db, "lead-3", { status: "closed_lost" });
 
-    const result = await listGeneralLeads(db, 1, 25, { status: "qualified" });
+    const result = await listGeneralLeads(db, 1, 25, { status: "pending_response" });
     expect(result.data).toHaveLength(1);
     expect(result.data[0]!.id).toBe("lead-2");
   });
@@ -541,17 +541,8 @@ describe("updateGeneralLeadStatus", () => {
     const db = getTestDb();
     await seedColleague(db, "col-1");
     await expect(
-      updateGeneralLeadStatus(db, "nonexistent", { status: "qualified" }, "col-1"),
+      updateGeneralLeadStatus(db, "nonexistent", { status: "pending_response" }, "col-1"),
     ).rejects.toThrowError("General lead not found");
-  });
-
-  it("transitions to qualified status", async () => {
-    const db = getTestDb();
-    await seedColleague(db, "col-1");
-    await seedLead(db, "lead-1", { status: "open" });
-
-    const result = await updateGeneralLeadStatus(db, "lead-1", { status: "qualified" }, "col-1");
-    expect(result.data!.status).toBe("qualified");
   });
 
   it("transitions to pending_response status", async () => {
@@ -598,13 +589,13 @@ describe("updateGeneralLeadStatus", () => {
     expect(result.data!.lossReason).toBe("Price/Budget");
   });
 
-  it("allows reopening a closed_lost lead to qualified", async () => {
+  it("allows reopening a closed_lost lead to pending_response", async () => {
     const db = getTestDb();
     await seedColleague(db, "col-1");
     await seedLead(db, "lead-1", { status: "closed_lost" });
 
-    const result = await updateGeneralLeadStatus(db, "lead-1", { status: "qualified" }, "col-1");
-    expect(result.data!.status).toBe("qualified");
+    const result = await updateGeneralLeadStatus(db, "lead-1", { status: "pending_response" }, "col-1");
+    expect(result.data!.status).toBe("pending_response");
   });
 
   it("allows reopening a closed_converted lead", async () => {
@@ -659,7 +650,7 @@ describe("updateGeneralLeadStatus", () => {
     await seedColleague(db, "col-1");
     await seedLead(db, "lead-1", { status: "open" });
 
-    await updateGeneralLeadStatus(db, "lead-1", { status: "qualified" }, "col-1");
+    await updateGeneralLeadStatus(db, "lead-1", { status: "pending_response" }, "col-1");
 
     const auditRows = await db.select().from(schema.auditLog);
     expect(auditRows).toHaveLength(1);
@@ -1173,7 +1164,7 @@ describe("listGeneralLeads — toGeneralLeadStatus invalid fallback via status f
   it("treats an invalid status filter as 'open' and returns leads with open status", async () => {
     const db = getTestDb();
     await seedLead(db, "lead-1", { status: "open" });
-    await seedLead(db, "lead-2", { status: "qualified" });
+    await seedLead(db, "lead-2", { status: "pending_response" });
 
     // "invalid_status" is not in generalLeadStatuses, toGeneralLeadStatus maps it to "open"
     const result = await listGeneralLeads(db, 1, 25, { status: "invalid_status" });
@@ -1199,7 +1190,7 @@ describe("listGeneralLeads — combined filter branches", () => {
   it("filters by status returning only the matching status value", async () => {
     const db = getTestDb();
     await seedLead(db, "lead-1", { status: "open" });
-    await seedLead(db, "lead-2", { status: "qualified" });
+    await seedLead(db, "lead-2", { status: "pending_response" });
     await seedLead(db, "lead-3", { status: "closed_lost" });
 
     const result = await listGeneralLeads(db, 1, 25, { status: "open" });

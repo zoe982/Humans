@@ -126,7 +126,7 @@ describe("evacuation-leads/[id] updateStatus action", () => {
       "/api/evacuation-leads/eva-1": { body: { data: {} } },
     }));
 
-    const event = makeEvent({ formData: { status: "qualified" } });
+    const event = makeEvent({ formData: { status: "pending_response" } });
     const result = await actions.updateStatus(event as any);
     expect(result).toEqual({ success: true });
   });

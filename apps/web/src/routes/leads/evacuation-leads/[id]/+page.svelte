@@ -345,7 +345,7 @@
     backLabel="Evacuation Leads"
     title="{lead.display_id ? lead.display_id + ' — ' : ''}{displayName(lead)}"
     status={lead.status ?? undefined}
-    statusOptions={["open", "pending_response", "qualified", "closed_lost", "closed_converted"]}
+    statusOptions={["open", "pending_response", "closed_lost", "closed_converted"]}
     statusLabels={evacuationLeadStatusLabels}
     {statusColorMap}
     onStatusChange={handleStatusChange}

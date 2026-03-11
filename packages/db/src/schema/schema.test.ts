@@ -438,7 +438,6 @@ describe("generalLeads schema", () => {
     expect(generalLeadStatuses).toStrictEqual([
       "open",
       "pending_response",
-      "qualified",
       "closed_lost",
       "closed_converted",
     ]);

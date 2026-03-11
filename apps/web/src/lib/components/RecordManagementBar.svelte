@@ -19,6 +19,8 @@
     statusLabel?: string;
     statusFormAction?: string;
     onStatusChange?: (newStatus: string) => void;
+    statusDisabled?: boolean;
+    statusHint?: string;
     actions?: Snippet;
   };
 
@@ -33,6 +35,8 @@
     statusLabel,
     statusFormAction,
     onStatusChange,
+    statusDisabled = false,
+    statusHint,
     actions,
   }: Props = $props();
 
@@ -91,23 +95,9 @@
     </div>
     <div class="flex items-center gap-3">
       {#if status && statusOptions.length > 0}
-        {#if onStatusChange}
-          <Select.Root type="single" value={selectedStatus} onValueChange={handleBitsStatusChange}>
-            <Select.Trigger class="w-52 text-sm" aria-label="Status">
-              <!-- eslint-disable-next-line security/detect-object-injection -->
-              {statusLabels?.[selectedStatus] ?? selectedStatus ?? "Select status..."}
-            </Select.Trigger>
-            <Select.Content>
-              {#each statusOptions as opt (opt)}
-                <!-- eslint-disable-next-line security/detect-object-injection -->
-                <Select.Item value={opt}>{statusLabels?.[opt] ?? opt}</Select.Item>
-              {/each}
-            </Select.Content>
-          </Select.Root>
-        {:else if statusFormAction}
-          <form method="POST" action={statusFormAction} class="flex items-center gap-2">
-            <input type="hidden" name="status" value={selectedStatus} />
-            <Select.Root type="single" value={selectedStatus} onValueChange={(v) => { if (v) selectedStatus = v; }}>
+        <div class="flex flex-col">
+          {#if onStatusChange}
+            <Select.Root type="single" value={selectedStatus} onValueChange={handleBitsStatusChange} disabled={statusDisabled}>
               <Select.Trigger class="w-52 text-sm" aria-label="Status">
                 <!-- eslint-disable-next-line security/detect-object-injection -->
                 {statusLabels?.[selectedStatus] ?? selectedStatus ?? "Select status..."}
@@ -119,9 +109,28 @@
                 {/each}
               </Select.Content>
             </Select.Root>
-            <Button variant="ghost" size="sm" type="submit">Update</Button>
-          </form>
-        {/if}
+          {:else if statusFormAction}
+            <form method="POST" action={statusFormAction} class="flex items-center gap-2">
+              <input type="hidden" name="status" value={selectedStatus} />
+              <Select.Root type="single" value={selectedStatus} onValueChange={(v) => { if (v) selectedStatus = v; }} disabled={statusDisabled}>
+                <Select.Trigger class="w-52 text-sm" aria-label="Status">
+                  <!-- eslint-disable-next-line security/detect-object-injection -->
+                  {statusLabels?.[selectedStatus] ?? selectedStatus ?? "Select status..."}
+                </Select.Trigger>
+                <Select.Content>
+                  {#each statusOptions as opt (opt)}
+                    <!-- eslint-disable-next-line security/detect-object-injection -->
+                    <Select.Item value={opt}>{statusLabels?.[opt] ?? opt}</Select.Item>
+                  {/each}
+                </Select.Content>
+              </Select.Root>
+              <Button variant="ghost" size="sm" type="submit">Update</Button>
+            </form>
+          {/if}
+          {#if statusHint}
+            <p class="text-xs text-text-muted mt-1">{statusHint}</p>
+          {/if}
+        </div>
       {/if}
       {#if actions}
         {@render actions()}

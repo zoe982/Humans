@@ -57,17 +57,17 @@ describe("GET /api/general-leads", () => {
     const db = getDb();
     await db.insert(schema.generalLeads).values([
       buildGeneralLead({ status: "open" }),
-      buildGeneralLead({ status: "qualified" }),
+      buildGeneralLead({ status: "pending_response" }),
     ]);
 
     const { token } = await createUserAndSession("agent");
-    const res = await SELF.fetch(`${BASE}?status=qualified`, {
+    const res = await SELF.fetch(`${BASE}?status=pending_response`, {
       headers: { Cookie: sessionCookie(token) },
     });
     expect(res.status).toBe(200);
     const body = (await res.json()) as { data: { status: string }[] };
     expect(body.data).toHaveLength(1);
-    expect(body.data[0]!.status).toBe("qualified");
+    expect(body.data[0]!.status).toBe("pending_response");
   });
 
   it("filters by search query on displayId", async () => {
@@ -249,7 +249,7 @@ describe("PATCH /api/general-leads/:id", () => {
 // ─── Status transitions ──────────────────────────────────────────
 
 describe("PATCH /api/general-leads/:id/status", () => {
-  it("transitions open → qualified", async () => {
+  it("transitions open → pending_response", async () => {
     const db = getDb();
     const lead = buildGeneralLead({ status: "open" });
     await db.insert(schema.generalLeads).values(lead);
@@ -258,11 +258,11 @@ describe("PATCH /api/general-leads/:id/status", () => {
     const res = await SELF.fetch(`${BASE}/${lead.id}/status`, {
       method: "PATCH",
       headers: jsonHeaders(token),
-      body: JSON.stringify({ status: "qualified" }),
+      body: JSON.stringify({ status: "pending_response" }),
     });
     expect(res.status).toBe(200);
     const body = (await res.json()) as { data: { status: string } };
-    expect(body.data.status).toBe("qualified");
+    expect(body.data.status).toBe("pending_response");
   });
 
   it("transitions to closed_lost with loss reason", async () => {
@@ -347,11 +347,11 @@ describe("POST /api/general-leads/:id/convert", () => {
     expect(body.data.convertedHumanId).toBe(human.id);
   });
 
-  it("converts qualified lead", async () => {
+  it("converts pending_response lead", async () => {
     const db = getDb();
     const human = buildHuman();
     await db.insert(schema.humans).values(human);
-    const lead = buildGeneralLead({ status: "qualified" });
+    const lead = buildGeneralLead({ status: "pending_response" });
     await db.insert(schema.generalLeads).values(lead);
 
     const { token } = await createUserAndSession("agent");

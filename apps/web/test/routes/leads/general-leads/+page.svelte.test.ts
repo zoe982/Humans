@@ -55,7 +55,6 @@ describe("General Leads status filter audit", () => {
       { value: "", label: "All" },
       { value: "open", label: "Open" },
       { value: "pending_response", label: "Pending Response" },
-      { value: "qualified", label: "Qualified" },
       { value: "closed_lost", label: "Closed - Lost" },
       { value: "closed_converted", label: "Closed - Converted" },
     ];

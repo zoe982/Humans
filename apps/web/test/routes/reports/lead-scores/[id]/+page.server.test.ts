@@ -66,7 +66,7 @@ describe("lead-score detail load", () => {
         body: { data: sampleScore },
       },
       "/api/general-leads/gl-1": {
-        body: { data: { id: "gl-1", firstName: "Jane", lastName: "Doe", status: "qualified", emails: [{ email: "jane@example.com" }], phoneNumbers: [{ phoneNumber: "+1234" }] } },
+        body: { data: { id: "gl-1", firstName: "Jane", lastName: "Doe", status: "pending_response", emails: [{ email: "jane@example.com" }], phoneNumbers: [{ phoneNumber: "+1234" }] } },
       },
     });
     vi.stubGlobal("fetch", mockFetch);
@@ -79,7 +79,7 @@ describe("lead-score detail load", () => {
       type: "general_lead",
       firstName: "Jane",
       lastName: "Doe",
-      status: "qualified",
+      status: "pending_response",
     });
   });
 
@@ -89,7 +89,7 @@ describe("lead-score detail load", () => {
         body: { data: sampleScore },
       },
       "/api/general-leads/gl-1": {
-        body: { data: { id: "gl-1", firstName: "Jane", lastName: "Doe", status: "qualified", emails: [{ email: "jane@example.com" }], phoneNumbers: [{ phoneNumber: "+1234" }] } },
+        body: { data: { id: "gl-1", firstName: "Jane", lastName: "Doe", status: "pending_response", emails: [{ email: "jane@example.com" }], phoneNumbers: [{ phoneNumber: "+1234" }] } },
       },
     });
     vi.stubGlobal("fetch", mockFetch);

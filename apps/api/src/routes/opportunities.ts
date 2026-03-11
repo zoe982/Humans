@@ -12,6 +12,9 @@ import {
 } from "@humans/shared";
 import { authMiddleware } from "../middleware/auth";
 import { requirePermission } from "../middleware/rbac";
+import { supabaseMiddleware } from "../middleware/supabase";
+import { humanWebsiteBookingRequests } from "@humans/db/schema";
+import { eq } from "drizzle-orm";
 import {
   listOpportunities,
   getOpportunityDetail,
@@ -93,12 +96,35 @@ opportunityRoutes.delete("/api/opportunities/:id", requirePermission("deleteOppo
 });
 
 // PATCH /api/opportunities/:id/stage
-opportunityRoutes.patch("/api/opportunities/:id/stage", requirePermission("manageOpportunities"), async (c) => {
+opportunityRoutes.patch("/api/opportunities/:id/stage", supabaseMiddleware, requirePermission("manageOpportunities"), async (c) => {
   const body: unknown = await c.req.json();
   const data = updateOpportunityStageSchema.parse(body);
   const session = c.get("session");
   if (session === null) return c.json({ error: "Unauthorized" }, 401);
-  const result = await updateOpportunityStage(c.get("db"), c.req.param("id"), data, session.colleagueId);
+  const db = c.get("db");
+  const result = await updateOpportunityStage(db, c.req.param("id"), data, session.colleagueId);
+
+  // Sync linked BOR statuses to match the new opp stage (identity mapping from qualified onward)
+  if (data.stage !== "open") {
+    const linkedBors = await db
+      .select({ id: humanWebsiteBookingRequests.id, websiteBookingRequestId: humanWebsiteBookingRequests.websiteBookingRequestId })
+      .from(humanWebsiteBookingRequests)
+      .where(eq(humanWebsiteBookingRequests.opportunityId, c.req.param("id")));
+
+    if (linkedBors.length > 0) {
+      const supabase = c.get("supabase");
+      const borIds = linkedBors
+        .map((b) => b.websiteBookingRequestId)
+        .filter((id): id is string => id != null);
+      if (borIds.length > 0) {
+        await supabase
+          .from("bookings")
+          .update({ status: data.stage })
+          .in("id", borIds);
+      }
+    }
+  }
+
   return c.json(result);
 });
 

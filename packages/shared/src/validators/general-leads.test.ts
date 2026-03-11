@@ -12,13 +12,12 @@ describe("generalLeadStatuses", () => {
   it("contains all expected statuses", () => {
     expect(generalLeadStatuses).toContain("open");
     expect(generalLeadStatuses).toContain("pending_response");
-    expect(generalLeadStatuses).toContain("qualified");
     expect(generalLeadStatuses).toContain("closed_lost");
     expect(generalLeadStatuses).toContain("closed_converted");
   });
 
-  it("has exactly 5 statuses", () => {
-    expect(generalLeadStatuses).toHaveLength(5);
+  it("has exactly 4 statuses", () => {
+    expect(generalLeadStatuses).toHaveLength(4);
   });
 });
 
@@ -146,9 +145,9 @@ describe("updateGeneralLeadStatusSchema", () => {
     expect(result.status).toBe("pending_response");
   });
 
-  it("accepts qualified status", () => {
-    const result = updateGeneralLeadStatusSchema.parse({ status: "qualified" });
-    expect(result.status).toBe("qualified");
+  it("accepts pending_response status", () => {
+    const result = updateGeneralLeadStatusSchema.parse({ status: "pending_response" });
+    expect(result.status).toBe("pending_response");
   });
 
   it("accepts closed_converted without lossReason", () => {

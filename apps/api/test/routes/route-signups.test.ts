@@ -75,7 +75,7 @@ describe("PATCH /api/route-signups/:id", () => {
     const res = await SELF.fetch("http://localhost/api/route-signups/some-id", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status: "qualified" }),
+      body: JSON.stringify({ status: "pending_response" }),
     });
     expect(res.status).toBe(401);
   });
@@ -85,7 +85,7 @@ describe("PATCH /api/route-signups/:id", () => {
     const res = await SELF.fetch("http://localhost/api/route-signups/some-id", {
       method: "PATCH",
       headers: { "Content-Type": "application/json", Cookie: sessionCookie(token) },
-      body: JSON.stringify({ status: "qualified" }),
+      body: JSON.stringify({ status: "pending_response" }),
     });
     expect(res.status).toBe(403);
   });
@@ -95,7 +95,7 @@ describe("PATCH /api/route-signups/:id", () => {
     const res = await SELF.fetch("http://localhost/api/route-signups/some-id", {
       method: "PATCH",
       headers: { "Content-Type": "application/json", Cookie: sessionCookie(token) },
-      body: JSON.stringify({ status: "qualified" }),
+      body: JSON.stringify({ status: "pending_response" }),
     });
     expect(res.status).toBe(403);
   });
@@ -125,7 +125,7 @@ describe("PATCH /api/route-signups/:id", () => {
     const res = await SELF.fetch("http://localhost/api/route-signups/some-id", {
       method: "PATCH",
       headers: { "Content-Type": "application/json", Cookie: sessionCookie(token) },
-      body: JSON.stringify({ status: "qualified", note: "Looks good" }),
+      body: JSON.stringify({ status: "pending_response", note: "Looks good" }),
     });
     // Should not be 401 or 403; may be 500 without Supabase
     expect(res.status).not.toBe(401);
