@@ -113,15 +113,11 @@ opportunityRoutes.patch("/api/opportunities/:id/stage", supabaseMiddleware, requ
 
     if (linkedBors.length > 0) {
       const supabase = c.get("supabase");
-      const borIds = linkedBors
-        .map((b) => b.websiteBookingRequestId)
-        .filter((id): id is string => id != null);
-      if (borIds.length > 0) {
-        await supabase
-          .from("bookings")
-          .update({ status: data.stage })
-          .in("id", borIds);
-      }
+      const borIds = linkedBors.map((b) => b.websiteBookingRequestId);
+      await supabase
+        .from("bookings")
+        .update({ status: data.stage })
+        .in("id", borIds);
     }
   }
 

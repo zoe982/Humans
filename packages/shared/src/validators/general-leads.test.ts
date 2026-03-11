@@ -145,11 +145,6 @@ describe("updateGeneralLeadStatusSchema", () => {
     expect(result.status).toBe("pending_response");
   });
 
-  it("accepts pending_response status", () => {
-    const result = updateGeneralLeadStatusSchema.parse({ status: "pending_response" });
-    expect(result.status).toBe("pending_response");
-  });
-
   it("accepts closed_converted without lossReason", () => {
     const result = updateGeneralLeadStatusSchema.parse({ status: "closed_converted" });
     expect(result.status).toBe("closed_converted");
