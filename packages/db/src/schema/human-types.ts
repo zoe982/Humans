@@ -1,14 +1,14 @@
 import { pgTable, text } from "drizzle-orm/pg-core";
 import { humans } from "./humans";
-
-export const humanTypeValues = ["client", "trainer", "travel_agent", "flight_broker"] as const;
-export type HumanType = (typeof humanTypeValues)[number];
+import { humanTypesConfig } from "./human-types-config";
 
 export const humanTypes = pgTable("human_types", {
   id: text("id").primaryKey(),
   humanId: text("human_id")
     .notNull()
     .references(() => humans.id),
-  type: text("type", { enum: humanTypeValues }).notNull(),
+  typeId: text("type_id")
+    .notNull()
+    .references(() => humanTypesConfig.id),
   createdAt: text("created_at").notNull(),
 });

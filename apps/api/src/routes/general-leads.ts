@@ -16,7 +16,7 @@ import { sql, and, inArray } from "drizzle-orm";
 import { entityNextActions } from "@humans/db/schema";
 import { authMiddleware } from "../middleware/auth";
 import { requirePermission } from "../middleware/rbac";
-import { badRequest } from "../lib/errors";
+import { badRequest, internal, unauthorized } from "../lib/errors";
 import {
   listGeneralLeads,
   getGeneralLead,
@@ -93,11 +93,11 @@ generalLeadRoutes.post("/api/general-leads/import-from-front", requirePermission
   }
 
   const session = c.get("session");
-  if (session === null) return c.json({ error: "Unauthorized" }, 401);
+  if (session === null) throw unauthorized(ERROR_CODES.AUTH_REQUIRED, "Authentication required");
 
   const frontToken = c.env.FRONT_API_TOKEN;
   if (frontToken === "") {
-    return c.json({ error: "Front API token not configured" }, 500);
+    throw internal(ERROR_CODES.FRONT_SYNC_FAILED, "Front integration unavailable");
   }
 
   const result = await importLeadFromFront(c.get("db"), parsed.data.frontId, frontToken, session.colleagueId);
@@ -117,7 +117,7 @@ generalLeadRoutes.post("/api/general-leads", requirePermission("manageGeneralLea
   const body: unknown = await c.req.json();
   const data = createGeneralLeadSchema.parse(body);
   const session = c.get("session");
-  if (session === null) return c.json({ error: "Unauthorized" }, 401);
+  if (session === null) throw unauthorized(ERROR_CODES.AUTH_REQUIRED, "Authentication required");
   const result = await createGeneralLead(c.get("db"), data, session.colleagueId);
   return c.json({ data: result }, 201);
 });
@@ -127,7 +127,7 @@ generalLeadRoutes.patch("/api/general-leads/:id", requirePermission("manageGener
   const body: unknown = await c.req.json();
   const data = updateGeneralLeadSchema.parse(body);
   const session = c.get("session");
-  if (session === null) return c.json({ error: "Unauthorized" }, 401);
+  if (session === null) throw unauthorized(ERROR_CODES.AUTH_REQUIRED, "Authentication required");
   const result = await updateGeneralLead(c.get("db"), c.req.param("id"), data, session.colleagueId);
   return c.json(result);
 });
@@ -137,7 +137,7 @@ generalLeadRoutes.patch("/api/general-leads/:id/status", requirePermission("mana
   const body: unknown = await c.req.json();
   const data = updateGeneralLeadStatusSchema.parse(body);
   const session = c.get("session");
-  if (session === null) return c.json({ error: "Unauthorized" }, 401);
+  if (session === null) throw unauthorized(ERROR_CODES.AUTH_REQUIRED, "Authentication required");
   const result = await updateGeneralLeadStatus(c.get("db"), c.req.param("id"), data, session.colleagueId);
   return c.json(result);
 });
@@ -147,7 +147,7 @@ generalLeadRoutes.post("/api/general-leads/:id/convert", requirePermission("mana
   const body: unknown = await c.req.json();
   const data = convertGeneralLeadSchema.parse(body);
   const session = c.get("session");
-  if (session === null) return c.json({ error: "Unauthorized" }, 401);
+  if (session === null) throw unauthorized(ERROR_CODES.AUTH_REQUIRED, "Authentication required");
   const result = await convertGeneralLead(c.get("db"), c.req.param("id"), data.humanId, session.colleagueId);
   return c.json(result);
 });
@@ -157,7 +157,7 @@ generalLeadRoutes.post("/api/general-leads/:id/link-human", requirePermission("m
   const body: unknown = await c.req.json();
   const data = linkHumanSchema.parse(body);
   const session = c.get("session");
-  if (session === null) return c.json({ error: "Unauthorized" }, 401);
+  if (session === null) throw unauthorized(ERROR_CODES.AUTH_REQUIRED, "Authentication required");
   await linkHumanToGeneralLead(c.get("db"), c.req.param("id"), data.humanId, session.colleagueId);
   return c.json({ success: true });
 });
@@ -165,7 +165,7 @@ generalLeadRoutes.post("/api/general-leads/:id/link-human", requirePermission("m
 // DELETE /api/general-leads/:id/link-human
 generalLeadRoutes.delete("/api/general-leads/:id/link-human", requirePermission("manageGeneralLeads"), async (c) => {
   const session = c.get("session");
-  if (session === null) return c.json({ error: "Unauthorized" }, 401);
+  if (session === null) throw unauthorized(ERROR_CODES.AUTH_REQUIRED, "Authentication required");
   await unlinkHumanFromGeneralLead(c.get("db"), c.req.param("id"), session.colleagueId);
   return c.json({ success: true });
 });
@@ -185,7 +185,7 @@ generalLeadRoutes.patch("/api/general-leads/:id/next-action", requirePermission(
   }
 
   const session = c.get("session");
-  if (session === null) return c.json({ error: "Unauthorized" }, 401);
+  if (session === null) throw unauthorized(ERROR_CODES.AUTH_REQUIRED, "Authentication required");
 
   const db = c.get("db");
   const nextAction = await updateNextAction(db, "general_lead", c.req.param("id"), parsed.data, session.colleagueId);
@@ -195,7 +195,7 @@ generalLeadRoutes.patch("/api/general-leads/:id/next-action", requirePermission(
 // POST /api/general-leads/:id/next-action/done
 generalLeadRoutes.post("/api/general-leads/:id/next-action/done", requirePermission("manageGeneralLeads"), async (c) => {
   const session = c.get("session");
-  if (session === null) return c.json({ error: "Unauthorized" }, 401);
+  if (session === null) throw unauthorized(ERROR_CODES.AUTH_REQUIRED, "Authentication required");
 
   const db = c.get("db");
   await completeNextAction(db, "general_lead", c.req.param("id"), session.colleagueId);

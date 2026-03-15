@@ -1,5 +1,6 @@
 import { createMiddleware } from "hono/factory";
 import type { AppContext, RateLimiter } from "../types";
+import { SECURITY_HEADER_MAP } from "./security-headers";
 
 function getRateLimiter(env: AppContext["Bindings"], path: string): RateLimiter | null {
   if (path === "/auth/me") return env.RL_AUTH_ME;
@@ -28,6 +29,7 @@ export const rateLimitMiddleware = createMiddleware<AppContext>(async (c, next) 
         headers: {
           "Content-Type": "application/json",
           "Retry-After": "60",
+          ...SECURITY_HEADER_MAP,
         },
       });
       return;

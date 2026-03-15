@@ -7,7 +7,7 @@ import { authMiddleware } from "../middleware/auth";
 import { requirePermission } from "../middleware/rbac";
 import { supabaseMiddleware } from "../middleware/supabase";
 import { linkBookingRequestFromBor, unlinkBookingRequestFromBor } from "../services/opportunities";
-import { internal, notFound, badRequest } from "../lib/errors";
+import { internal, notFound, badRequest, unauthorized } from "../lib/errors";
 import { nextDisplayIdBatch } from "../lib/display-id";
 import { getNextAction, updateNextAction, completeNextAction } from "../services/entity-next-actions";
 import { getLinkedHumansForBookingRequest, linkWebsiteBookingRequest, unlinkWebsiteBookingRequest } from "../services/humans";
@@ -319,7 +319,7 @@ websiteBookingRequestRoutes.patch(
     }
 
     const session = c.get("session");
-    if (session === null) return c.json({ error: "Unauthorized" }, 401);
+    if (session === null) throw unauthorized(ERROR_CODES.AUTH_REQUIRED, "Authentication required");
 
     const db = c.get("db");
     const nextAction = await updateNextAction(db, "website_booking_request", c.req.param("id"), parsed.data, session.colleagueId);
@@ -333,7 +333,7 @@ websiteBookingRequestRoutes.post(
   requirePermission("manageWebsiteBookingRequests"),
   async (c) => {
     const session = c.get("session");
-    if (session === null) return c.json({ error: "Unauthorized" }, 401);
+    if (session === null) throw unauthorized(ERROR_CODES.AUTH_REQUIRED, "Authentication required");
 
     const db = c.get("db");
     await completeNextAction(db, "website_booking_request", c.req.param("id"), session.colleagueId);

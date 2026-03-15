@@ -178,6 +178,49 @@ else
 fi
 
 # ═════════════════════════════════════════════════════════════════════
+# Phase 2.5: Migration Check
+# ═════════════════════════════════════════════════════════════════════
+header "Phase 2.5: Migration Check"
+FAILED_PHASE="migration check"
+
+# List local migration files (excluding meta/ directory)
+LOCAL_MIGRATIONS=$(ls packages/db/drizzle/*.sql 2>/dev/null | xargs -I{} basename {} | sort)
+
+# Query applied migrations from production D1
+APPLIED=$(npx wrangler d1 execute humans-db --remote \
+  --command "SELECT filename FROM schema_migrations ORDER BY filename;" \
+  --config apps/api/wrangler.toml --json 2>/dev/null \
+  | node -e "const d=JSON.parse(require('fs').readFileSync('/dev/stdin','utf8'));
+    (d[0]?.results||[]).forEach(r=>console.log(r.filename))")
+
+# Find pending migrations
+PENDING=$(comm -23 <(echo "$LOCAL_MIGRATIONS") <(echo "$APPLIED"))
+
+if [[ -n "$PENDING" ]]; then
+  PENDING_COUNT=$(echo "$PENDING" | wc -l | tr -d ' ')
+  echo -e "${YELLOW}⚠ Pending migrations detected:${NC}"
+  echo "$PENDING" | while read f; do echo "  - $f"; done
+  echo ""
+  read -rp "Apply ${PENDING_COUNT} pending migration(s) before deploying? [y/N] " APPLY
+  if [[ "$APPLY" =~ ^[Yy]$ ]]; then
+    echo "$PENDING" | while read f; do
+      log "Applying $f..."
+      npx wrangler d1 execute humans-db --remote \
+        --file="packages/db/drizzle/$f" --config apps/api/wrangler.toml
+      npx wrangler d1 execute humans-db --remote \
+        --command "INSERT OR IGNORE INTO schema_migrations (filename) VALUES ('$f');" \
+        --config apps/api/wrangler.toml
+      ok "Applied $f"
+    done
+  else
+    fail "Aborting deploy — pending migrations must be applied first."
+    exit 1
+  fi
+else
+  ok "All migrations applied"
+fi
+
+# ═════════════════════════════════════════════════════════════════════
 # Phase 3: Deploy
 # ═════════════════════════════════════════════════════════════════════
 header "Phase 3: Deploy"

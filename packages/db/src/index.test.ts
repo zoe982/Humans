@@ -58,7 +58,7 @@ describe("package root exports", () => {
     expect(db.leadSourceCategories).toBeDefined();
     expect(db.leadEventTypes).toBeDefined();
     expect(db.humanStatuses).toBeDefined();
-    expect(db.humanTypeValues).toBeDefined();
+    expect(db.humanTypesConfig).toBeDefined();
     expect(db.accountStatuses).toBeDefined();
   });
 });

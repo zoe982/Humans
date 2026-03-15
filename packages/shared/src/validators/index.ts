@@ -28,7 +28,7 @@ export {
   linkWebsiteBookingRequestSchema,
   createHumanRelationshipSchema,
   updateHumanRelationshipSchema,
-  humanTypeEnum,
+  humanTypeIdSchema,
   humanStatusEnum,
   type CreateHumanInput,
   type UpdateHumanInput,

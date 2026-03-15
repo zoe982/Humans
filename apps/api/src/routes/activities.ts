@@ -1,9 +1,10 @@
 import { Hono } from "hono";
 import { sql, gte } from "drizzle-orm";
 import { activities } from "@humans/db/schema";
-import { createActivitySchema, updateActivitySchema, linkActivityOpportunitySchema } from "@humans/shared";
+import { createActivitySchema, updateActivitySchema, linkActivityOpportunitySchema, ERROR_CODES } from "@humans/shared";
 import { authMiddleware } from "../middleware/auth";
 import { requirePermission } from "../middleware/rbac";
+import { unauthorized } from "../lib/errors";
 import {
   listActivities,
   getActivityDetail,
@@ -97,7 +98,7 @@ activityRoutes.post("/api/activities", requirePermission("createEditRecords"), a
   const body: unknown = await c.req.json();
   const data = createActivitySchema.parse(body);
   const session = c.get("session");
-  if (session === null) return c.json({ error: "Unauthorized" }, 401);
+  if (session === null) throw unauthorized(ERROR_CODES.AUTH_REQUIRED, "Authentication required");
   const result = await createActivity(c.get("db"), data, session.colleagueId);
   return c.json({ data: result }, 201);
 });

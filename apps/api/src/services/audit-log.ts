@@ -7,7 +7,6 @@ import {
   accounts,
   accountTypes,
 } from "@humans/db/schema";
-import type { HumanType } from "@humans/db/schema";
 import { createId } from "@humans/db";
 import { ERROR_CODES } from "@humans/shared";
 import { logAuditEntry } from "../lib/audit";
@@ -96,18 +95,13 @@ export async function undoAuditEntry(db: DB, entryId: string, colleagueId: strin
     }
 
     if (Array.isArray(types)) {
-      const typeArray: string[] = types.filter((t): t is string => typeof t === "string");
+      const typeIdArray: string[] = types.filter((t): t is string => typeof t === "string");
       await db.delete(humanTypes).where(eq(humanTypes.humanId, entry.entityId));
-      for (const type of typeArray) {
-        const validHumanTypes: HumanType[] = ["client", "trainer", "travel_agent", "flight_broker"];
-         
-        const isHumanType = (v: string): v is HumanType => (validHumanTypes as string[]).includes(v);
-        if (!isHumanType(type)) continue;
-        const humanType = type;
+      for (const typeId of typeIdArray) {
         await db.insert(humanTypes).values({
           id: createId(),
           humanId: entry.entityId,
-          type: humanType,
+          typeId,
           createdAt: now,
         });
       }

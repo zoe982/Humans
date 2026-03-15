@@ -34,8 +34,8 @@ it("exports createLeadSourceSchema", () => {
     expect(validators.updateHumanSchema).toBeDefined();
   });
 
-  it("exports humanTypeEnum", () => {
-    expect(validators.humanTypeEnum).toBeDefined();
+  it("exports humanTypeIdSchema", () => {
+    expect(validators.humanTypeIdSchema).toBeDefined();
   });
 
   it("exports humanStatusEnum", () => {

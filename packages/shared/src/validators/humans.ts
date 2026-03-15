@@ -6,7 +6,7 @@ const emailEntrySchema = z.object({
   isPrimary: z.boolean().default(false),
 });
 
-export const humanTypeEnum = z.enum(["client", "trainer", "travel_agent", "flight_broker"]);
+export const humanTypeIdSchema = z.string().min(1);
 
 export const humanStatusEnum = z.enum(["open", "active", "closed"]);
 
@@ -15,7 +15,7 @@ export const createHumanSchema = z.object({
   middleName: z.string().max(100).optional(),
   lastName: z.string().min(1).max(100),
   emails: z.array(emailEntrySchema).max(20).default([]),
-  types: z.array(humanTypeEnum).min(1).max(10),
+  types: z.array(z.string().min(1)).min(1).max(10),
   status: humanStatusEnum.default("open"),
 });
 
@@ -24,7 +24,7 @@ export const updateHumanSchema = z.object({
   middleName: z.string().max(100).optional().nullable(),
   lastName: z.string().min(1).max(100).optional(),
   emails: z.array(emailEntrySchema).max(20).optional(),
-  types: z.array(humanTypeEnum).min(1).optional(),
+  types: z.array(z.string().min(1)).min(1).optional(),
   status: humanStatusEnum.optional(),
 });
 

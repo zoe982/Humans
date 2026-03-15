@@ -62,6 +62,7 @@ export const errorHandler: ErrorHandler<AppContext> = (err, c) => {
   // For 500 errors, hide internal details from the client
   const clientMessage = status === 500 ? "An internal error occurred" : message;
 
-  const body: ApiErrorResponse = { error: clientMessage, code, requestId, details };
+  const clientDetails = status === 500 ? null : details;
+  const body: ApiErrorResponse = { error: clientMessage, code, requestId, details: clientDetails };
   return c.json(body, status);
 };

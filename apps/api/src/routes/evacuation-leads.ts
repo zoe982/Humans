@@ -6,7 +6,7 @@ import { updateEvacuationLeadSchema, updateEntityNextActionSchema, createEmailSc
 import { authMiddleware } from "../middleware/auth";
 import { requirePermission } from "../middleware/rbac";
 import { supabaseMiddleware } from "../middleware/supabase";
-import { internal, notFound, badRequest } from "../lib/errors";
+import { internal, notFound, badRequest, unauthorized } from "../lib/errors";
 import { sanitizePostgrestValue } from "../lib/supabase-sanitize";
 import { nextDisplayIdBatch } from "../lib/display-id";
 import { getNextAction, updateNextAction, completeNextAction } from "../services/entity-next-actions";
@@ -266,7 +266,7 @@ evacuationLeadRoutes.patch("/api/evacuation-leads/:id/next-action", requirePermi
   }
 
   const session = c.get("session");
-  if (session === null) return c.json({ error: "Unauthorized" }, 401);
+  if (session === null) throw unauthorized(ERROR_CODES.AUTH_REQUIRED, "Authentication required");
 
   const db = c.get("db");
   const nextAction = await updateNextAction(db, "evacuation_lead", c.req.param("id"), parsed.data, session.colleagueId);
@@ -276,7 +276,7 @@ evacuationLeadRoutes.patch("/api/evacuation-leads/:id/next-action", requirePermi
 // Complete next action
 evacuationLeadRoutes.post("/api/evacuation-leads/:id/next-action/done", requirePermission("manageEvacuationLeads"), async (c) => {
   const session = c.get("session");
-  if (session === null) return c.json({ error: "Unauthorized" }, 401);
+  if (session === null) throw unauthorized(ERROR_CODES.AUTH_REQUIRED, "Authentication required");
 
   const db = c.get("db");
   await completeNextAction(db, "evacuation_lead", c.req.param("id"), session.colleagueId);

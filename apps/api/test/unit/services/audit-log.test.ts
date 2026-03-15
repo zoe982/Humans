@@ -153,23 +153,31 @@ describe("undoAuditEntry", () => {
     await seedColleague(db);
     await seedHuman(db, "h-1");
 
-    // Current state: pet_shipper
-    await db.insert(schema.humanTypes).values({
-      id: "ht-1", humanId: "h-1", type: "pet_shipper", createdAt: ts,
+    // Seed config rows for both typeIds used in this test
+    await db.insert(schema.humanTypesConfig).values({
+      id: "ht_pet_shipper", name: "Pet Shipper", createdAt: ts,
+    });
+    await db.insert(schema.humanTypesConfig).values({
+      id: "ht_flight_broker", name: "Flight Broker", createdAt: ts,
     });
 
-    // Audit says types changed from ["flight_broker"] to ["pet_shipper"]
+    // Current state: ht_pet_shipper
+    await db.insert(schema.humanTypes).values({
+      id: "ht-1", humanId: "h-1", typeId: "ht_pet_shipper", createdAt: ts,
+    });
+
+    // Audit says types changed from ["ht_flight_broker"] to ["ht_pet_shipper"]
     await seedAuditEntry(db, "aud-1", {
       entityType: "human",
       entityId: "h-1",
-      changes: { types: { old: ["flight_broker"], new: ["pet_shipper"] } },
+      changes: { types: { old: ["ht_flight_broker"], new: ["ht_pet_shipper"] } },
     });
 
     await undoAuditEntry(db, "aud-1", "col-1");
 
     const types = await db.select().from(schema.humanTypes);
     expect(types).toHaveLength(1);
-    expect(types[0]!.type).toBe("flight_broker");
+    expect(types[0]!.typeId).toBe("ht_flight_broker");
   });
 
   it("reverts account scalar fields", async () => {

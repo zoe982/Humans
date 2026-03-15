@@ -4,7 +4,7 @@ import {
   humanStatuses,
   emails,
   humanTypes,
-  humanTypeValues,
+  humanTypesConfig,
   humanRouteSignups,
   humanEvacuationLeads,
   humanWebsiteBookingRequests,
@@ -26,7 +26,7 @@ import {
   humanRelationshipLabelsConfig,
   activities,
 } from "@humans/db/schema";
-import type { HumanStatus, HumanType } from "@humans/db/schema";
+import type { HumanStatus } from "@humans/db/schema";
 import { createId } from "@humans/db";
 import { ERROR_CODES } from "@humans/shared";
 import { computeDiff, logAuditEntry } from "../lib/audit";
@@ -43,7 +43,6 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { DB } from "./types";
 
 const humanStatusesSet = new Set<string>(humanStatuses);
-const humanTypeValuesSet = new Set<string>(humanTypeValues);
 
 function isHumanStatus(value: string): value is HumanStatus {
   return humanStatusesSet.has(value);
@@ -53,15 +52,7 @@ function toHumanStatus(value: string): HumanStatus {
   return isHumanStatus(value) ? value : "open";
 }
 
-function isHumanType(value: string): value is HumanType {
-  return humanTypeValuesSet.has(value);
-}
-
-function toHumanType(value: string): HumanType {
-  return isHumanType(value) ? value : "client";
-}
-
-export async function listHumans(db: DB, page: number, limit: number, search?: string): Promise<{ data: { emails: (typeof emails.$inferSelect)[]; types: string[]; id: string; displayId: string; firstName: string; middleName: string | null; lastName: string; status: string; createdAt: string; updatedAt: string }[]; meta: { page: number; limit: number; total: number } }> {
+export async function listHumans(db: DB, page: number, limit: number, search?: string): Promise<{ data: { emails: (typeof emails.$inferSelect)[]; types: { id: string; name: string }[]; id: string; displayId: string; firstName: string; middleName: string | null; lastName: string; status: string; createdAt: string; updatedAt: string }[]; meta: { page: number; limit: number; total: number } }> {
   const offset = (page - 1) * limit;
 
   const searchFilter = search != null
@@ -102,11 +93,17 @@ export async function listHumans(db: DB, page: number, limit: number, search?: s
   const relatedTypes = humanIds.length > 0
     ? await db.select().from(humanTypes).where(inArray(humanTypes.humanId, humanIds))
     : [];
+  const typeConfigs = humanIds.length > 0
+    ? await getCachedConfig(db, humanTypesConfig, "humanTypesConfig")
+    : [];
 
   const data = pagedHumans.map((h) => ({
     ...h,
     emails: relatedEmails.filter((e) => e.humanId === h.id),
-    types: relatedTypes.filter((t) => t.humanId === h.id).map((t) => t.type),
+    types: relatedTypes.filter((t) => t.humanId === h.id).map((t) => {
+      const config = typeConfigs.find((c) => c.id === t.typeId);
+      return { id: t.typeId, name: config?.name ?? t.typeId };
+    }),
   }));
 
   return { data, meta: { page, limit, total } };
@@ -120,7 +117,7 @@ export async function getHumanDetail(supabase: SupabaseClient, db: DB, humanId: 
     throw notFound(ERROR_CODES.HUMAN_NOT_FOUND, "Human not found");
   }
 
-  const [humanEmails, types, linkedSignups, linkedBookingRequests, humanPhones, humanPets, geoExpressions, routeExpressions, linkedAccountRows, emailLabelConfigs, phoneLabelConfigs, humanSocialIds, allPlatforms, humanWebsites, linkedEvacuationLeads] = await Promise.all([
+  const [humanEmails, types, linkedSignups, linkedBookingRequests, humanPhones, humanPets, geoExpressions, routeExpressions, linkedAccountRows, emailLabelConfigs, phoneLabelConfigs, humanSocialIds, allPlatforms, humanWebsites, linkedEvacuationLeads, humanTypeConfigs] = await Promise.all([
     db.select().from(emails).where(eq(emails.humanId, human.id)),
     db.select().from(humanTypes).where(eq(humanTypes.humanId, human.id)),
     db.select().from(humanRouteSignups).where(eq(humanRouteSignups.humanId, human.id)),
@@ -136,6 +133,7 @@ export async function getHumanDetail(supabase: SupabaseClient, db: DB, humanId: 
     getCachedConfig(db, socialIdPlatformsConfig, "socialIdPlatformsConfig"),
     db.select().from(websites).where(eq(websites.humanId, human.id)),
     db.select().from(humanEvacuationLeads).where(eq(humanEvacuationLeads.humanId, human.id)),
+    getCachedConfig(db, humanTypesConfig, "humanTypesConfig"),
   ]);
 
   // Fetch referral codes from Supabase
@@ -235,7 +233,10 @@ export async function getHumanDetail(supabase: SupabaseClient, db: DB, humanId: 
   return {
     ...human,
     emails: emailsWithLabels,
-    types: types.map((t) => t.type),
+    types: types.map((t) => {
+      const config = humanTypeConfigs.find((c) => c.id === t.typeId);
+      return { id: t.typeId, name: config?.name ?? t.typeId };
+    }),
     linkedRouteSignups: linkedSignups,
     linkedWebsiteBookingRequests: linkedBookingRequests,
     phoneNumbers: phoneNumbersWithLabels,
@@ -349,11 +350,11 @@ export async function createHuman(
     });
   }
 
-  for (const type of data.types) {
+  for (const typeId of data.types) {
     await db.insert(humanTypes).values({
       id: createId(),
       humanId,
-      type: toHumanType(type),
+      typeId,
       createdAt: now,
     });
   }
@@ -394,7 +395,7 @@ export async function updateHuman(
     lastName: existing.lastName,
   };
   if (data.types !== undefined) {
-    oldValues["types"] = existingTypes.map((t) => t.type).sort((a, b) => a.localeCompare(b));
+    oldValues["types"] = existingTypes.map((t) => t.typeId).sort((a, b) => a.localeCompare(b));
   }
 
   const updateFields: Record<string, unknown> = { updatedAt: now };
@@ -431,11 +432,11 @@ export async function updateHuman(
 
   if (data.types != null) {
     await db.delete(humanTypes).where(eq(humanTypes.humanId, id));
-    for (const type of data.types) {
+    for (const typeId of data.types) {
       await db.insert(humanTypes).values({
         id: createId(),
         humanId: id,
-        type: toHumanType(type),
+        typeId,
         createdAt: now,
       });
     }

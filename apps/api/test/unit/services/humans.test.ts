@@ -17,6 +17,9 @@ import {
   deleteHumanRelationship,
   getLinkedHumanForRouteSignup,
   updateHumanRelationship,
+  linkEvacuationLead,
+  unlinkEvacuationLead,
+  getLinkedHumanForEvacuationLead,
 } from "../../../src/services/humans";
 import { AppError } from "../../../src/lib/errors";
 import * as schema from "@humans/db/schema";
@@ -93,8 +96,11 @@ describe("listHumans", () => {
     await db.insert(schema.emails).values({
       id: "e-1", displayId: nextDisplayId("EML"), humanId: "h-1", email: "alice@test.com", isPrimary: true, createdAt: ts,
     });
+    await db.insert(schema.humanTypesConfig).values({
+      id: "ht_flight_broker", name: "Flight Broker", createdAt: ts,
+    });
     await db.insert(schema.humanTypes).values({
-      id: "t-1", humanId: "h-1", type: "flight_broker", createdAt: ts,
+      id: "t-1", humanId: "h-1", typeId: "ht_flight_broker", createdAt: ts,
     });
 
     const result = await listHumans(db, 1, 25);
@@ -103,7 +109,7 @@ describe("listHumans", () => {
 
     const alice = result.data.find((h) => h.id === "h-1");
     expect(alice?.emails).toHaveLength(1);
-    expect(alice?.types).toContain("flight_broker");
+    expect(alice?.types).toContainEqual({ id: "ht_flight_broker", name: "Flight Broker" });
   });
 
   it("respects page and limit", async () => {
@@ -135,8 +141,11 @@ describe("getHumanDetail", () => {
     await db.insert(schema.emails).values({
       id: "e-1", displayId: nextDisplayId("EML"), humanId: "h-1", email: "jane@test.com", isPrimary: true, createdAt: ts,
     });
+    await db.insert(schema.humanTypesConfig).values({
+      id: "ht_flight_broker", name: "Flight Broker", createdAt: ts,
+    });
     await db.insert(schema.humanTypes).values({
-      id: "t-1", humanId: "h-1", type: "flight_broker", createdAt: ts,
+      id: "t-1", humanId: "h-1", typeId: "ht_flight_broker", createdAt: ts,
     });
     await db.insert(schema.phones).values({
       id: "p-1", displayId: nextDisplayId("FON"), humanId: "h-1", phoneNumber: "+1234567890", hasWhatsapp: false, isPrimary: true, createdAt: ts,
@@ -145,7 +154,7 @@ describe("getHumanDetail", () => {
     const result = await getHumanDetail(mockSupabase(), db, "h-1");
     expect(result.firstName).toBe("Jane");
     expect(result.emails).toHaveLength(1);
-    expect(result.types).toContain("flight_broker");
+    expect(result.types).toContainEqual({ id: "ht_flight_broker", name: "Flight Broker" });
     expect(result.phoneNumbers).toHaveLength(1);
     expect(result.linkedRouteSignups).toHaveLength(0);
     expect(result.pets).toHaveLength(0);
@@ -245,11 +254,15 @@ describe("getHumanDetail", () => {
 describe("createHuman", () => {
   it("creates human with emails and types", async () => {
     const db = getTestDb();
+    const ts = now();
+    await db.insert(schema.humanTypesConfig).values({
+      id: "ht_flight_broker", name: "Flight Broker", createdAt: ts,
+    });
     const result = await createHuman(db, {
       firstName: "New",
       lastName: "Human",
       emails: [{ email: "new@test.com", isPrimary: true }],
-      types: ["flight_broker"],
+      types: ["ht_flight_broker"],
     });
 
     expect(result.id).toBeDefined();
@@ -263,7 +276,7 @@ describe("createHuman", () => {
 
     const types = await db.select().from(schema.humanTypes);
     expect(types).toHaveLength(1);
-    expect(types[0]!.type).toBe("flight_broker");
+    expect(types[0]!.typeId).toBe("ht_flight_broker");
   });
 
   it("defaults status to open", async () => {
@@ -414,17 +427,23 @@ describe("updateHuman", () => {
     await seedColleague(db);
     await seedHuman(db, "h-1");
 
+    await db.insert(schema.humanTypesConfig).values({
+      id: "ht_flight_broker", name: "Flight Broker", createdAt: ts,
+    });
+    await db.insert(schema.humanTypesConfig).values({
+      id: "ht_trainer", name: "Trainer", createdAt: ts,
+    });
     await db.insert(schema.humanTypes).values({
-      id: "t-1", humanId: "h-1", type: "flight_broker", createdAt: ts,
+      id: "t-1", humanId: "h-1", typeId: "ht_flight_broker", createdAt: ts,
     });
 
     await updateHuman(db, "h-1", {
-      types: ["trainer"],
+      types: ["ht_trainer"],
     }, "col-1");
 
     const types = await db.select().from(schema.humanTypes);
     expect(types).toHaveLength(1);
-    expect(types[0]!.type).toBe("trainer");
+    expect(types[0]!.typeId).toBe("ht_trainer");
   });
 
   it("updates middleName and lastName", async () => {
@@ -494,8 +513,11 @@ describe("deleteHuman", () => {
     await db.insert(schema.emails).values({
       id: "e-1", displayId: nextDisplayId("EML"), humanId: "h-1", email: "test@test.com", isPrimary: true, createdAt: ts,
     });
+    await db.insert(schema.humanTypesConfig).values({
+      id: "ht_flight_broker", name: "Flight Broker", createdAt: ts,
+    });
     await db.insert(schema.humanTypes).values({
-      id: "t-1", humanId: "h-1", type: "flight_broker", createdAt: ts,
+      id: "t-1", humanId: "h-1", typeId: "ht_flight_broker", createdAt: ts,
     });
     await db.insert(schema.phones).values({
       id: "p-1", displayId: nextDisplayId("FON"), humanId: "h-1", phoneNumber: "+1234567890", hasWhatsapp: false, isPrimary: true, createdAt: ts,
@@ -974,21 +996,25 @@ describe("createHuman — toHumanStatus invalid fallback", () => {
   });
 });
 
-// ─── Branch coverage: toHumanType invalid input ────────────────────────────
+// ─── Branch coverage: createHuman stores typeId directly ────────────────────
 
-describe("createHuman — toHumanType invalid fallback", () => {
-  it("defaults type to client when an unrecognized type value is provided", async () => {
+describe("createHuman — stores typeId directly", () => {
+  it("stores the provided typeId without transformation", async () => {
     const db = getTestDb();
-    await createHuman(db, {
-      firstName: "Type",
-      lastName: "Fallback",
-      emails: [{ email: "typefallback@test.com" }],
-      types: ["invalid_type_value"],
+    const ts = now();
+    await db.insert(schema.humanTypesConfig).values({
+      id: "ht_custom_type", name: "Custom Type", createdAt: ts,
     });
-
+    const result = await createHuman(db, {
+      firstName: "Test",
+      lastName: "Direct",
+      emails: [],
+      types: ["ht_custom_type"],
+    });
+    expect(result.id).toBeDefined();
     const types = await db.select().from(schema.humanTypes);
     expect(types).toHaveLength(1);
-    expect(types[0]!.type).toBe("client");
+    expect(types[0]!.typeId).toBe("ht_custom_type");
   });
 });
 
@@ -1538,5 +1564,190 @@ describe("updateHumanRelationship — explicit null labelId clears the label", (
     const result = await updateHumanRelationship(db, "rel-clear", { labelId: null });
     expect(result.id).toBe("rel-clear");
     expect(result.labelId).toBeNull();
+  });
+});
+
+// ─── linkEvacuationLead ───────────────────────────────────────────────────────
+
+describe("linkEvacuationLead", () => {
+  it("throws notFound for missing human", async () => {
+    const db = getTestDb();
+    await expect(linkEvacuationLead(db, "nonexistent", "eva-1")).rejects.toThrowError("Human not found");
+  });
+
+  it("creates link between human and evacuation lead", async () => {
+    const db = getTestDb();
+    await seedHuman(db, "h-1");
+
+    const link = await linkEvacuationLead(db, "h-1", "eva-1");
+    expect(link.humanId).toBe("h-1");
+    expect(link.evacuationLeadId).toBe("eva-1");
+    expect(link.id).toBeDefined();
+    expect(link.linkedAt).toBeDefined();
+
+    const links = await db.select().from(schema.humanEvacuationLeads);
+    expect(links).toHaveLength(1);
+    expect(links[0]!.humanId).toBe("h-1");
+    expect(links[0]!.evacuationLeadId).toBe("eva-1");
+  });
+
+  it("dual-associates activities, emails, phones, and socialIds with null humanId", async () => {
+    const db = getTestDb();
+    const ts = now();
+    await seedColleague(db);
+    await seedHuman(db, "h-1", "Eva", "Link");
+
+    // Seed records linked to the evacuation lead with no humanId yet
+    await db.insert(schema.activities).values({
+      id: "act-eva-1", displayId: nextDisplayId("ACT"), type: "email", subject: "Eva act",
+      activityDate: ts, evacuationLeadId: "eva-link-1", humanId: null,
+      createdAt: ts, updatedAt: ts,
+    });
+    await db.insert(schema.emails).values({
+      id: "e-eva-1", displayId: nextDisplayId("EML"), email: "evalink@test.com",
+      evacuationLeadId: "eva-link-1", humanId: null,
+      accountId: null, generalLeadId: null, websiteBookingRequestId: null,
+      labelId: null, isPrimary: false, createdAt: ts,
+    });
+    await db.insert(schema.phones).values({
+      id: "ph-eva-1", displayId: nextDisplayId("FON"), phoneNumber: "+10000000002",
+      evacuationLeadId: "eva-link-1", humanId: null,
+      accountId: null, generalLeadId: null, websiteBookingRequestId: null,
+      labelId: null, hasWhatsapp: false, isPrimary: false, createdAt: ts,
+    });
+    await db.insert(schema.socialIds).values({
+      id: "soc-eva-1", displayId: nextDisplayId("SOC"), handle: "@evalink",
+      evacuationLeadId: "eva-link-1", humanId: null,
+      accountId: null, generalLeadId: null, websiteBookingRequestId: null,
+      platformId: null, createdAt: ts,
+    });
+
+    const link = await linkEvacuationLead(db, "h-1", "eva-link-1");
+
+    expect(link.humanId).toBe("h-1");
+    expect(link.evacuationLeadId).toBe("eva-link-1");
+    expect(link.id).toBeDefined();
+    expect(link.linkedAt).toBeDefined();
+
+    const links = await db.select().from(schema.humanEvacuationLeads);
+    expect(links).toHaveLength(1);
+
+    // Verify dual-association propagated humanId to all related records
+    const acts = await db.select().from(schema.activities);
+    expect(acts[0]!.humanId).toBe("h-1");
+    expect(acts[0]!.evacuationLeadId).toBe("eva-link-1");
+
+    const emailRows = await db.select().from(schema.emails);
+    expect(emailRows[0]!.humanId).toBe("h-1");
+    expect(emailRows[0]!.evacuationLeadId).toBe("eva-link-1");
+
+    const phoneRows = await db.select().from(schema.phones);
+    expect(phoneRows[0]!.humanId).toBe("h-1");
+
+    const socialRows = await db.select().from(schema.socialIds);
+    expect(socialRows[0]!.humanId).toBe("h-1");
+  });
+});
+
+// ─── unlinkEvacuationLead ─────────────────────────────────────────────────────
+
+describe("unlinkEvacuationLead", () => {
+  it("deletes link and clears humanId from dual-associated records", async () => {
+    const db = getTestDb();
+    const ts = now();
+    await seedColleague(db);
+    await seedHuman(db, "h-1", "Eva", "Unlink");
+
+    await db.insert(schema.humanEvacuationLeads).values({
+      id: "eva-link-1", humanId: "h-1", evacuationLeadId: "eva-unlink-1", linkedAt: ts,
+    });
+
+    // Seed records already dual-associated (have both evacuationLeadId and humanId)
+    await db.insert(schema.activities).values({
+      id: "act-unlink-1", displayId: nextDisplayId("ACT"), type: "email", subject: "Unlink act",
+      activityDate: ts, evacuationLeadId: "eva-unlink-1", humanId: "h-1",
+      createdAt: ts, updatedAt: ts,
+    });
+    await db.insert(schema.emails).values({
+      id: "e-unlink-1", displayId: nextDisplayId("EML"), email: "evaunlink@test.com",
+      evacuationLeadId: "eva-unlink-1", humanId: "h-1",
+      accountId: null, generalLeadId: null, websiteBookingRequestId: null,
+      labelId: null, isPrimary: false, createdAt: ts,
+    });
+    await db.insert(schema.phones).values({
+      id: "ph-unlink-1", displayId: nextDisplayId("FON"), phoneNumber: "+10000000003",
+      evacuationLeadId: "eva-unlink-1", humanId: "h-1",
+      accountId: null, generalLeadId: null, websiteBookingRequestId: null,
+      labelId: null, hasWhatsapp: false, isPrimary: false, createdAt: ts,
+    });
+    await db.insert(schema.socialIds).values({
+      id: "soc-unlink-1", displayId: nextDisplayId("SOC"), handle: "@evaunlink",
+      evacuationLeadId: "eva-unlink-1", humanId: "h-1",
+      accountId: null, generalLeadId: null, websiteBookingRequestId: null,
+      platformId: null, createdAt: ts,
+    });
+
+    await unlinkEvacuationLead(db, "eva-link-1");
+
+    // Link row is deleted
+    const links = await db.select().from(schema.humanEvacuationLeads);
+    expect(links).toHaveLength(0);
+
+    // humanId is cleared from all dual-associated records
+    const acts = await db.select().from(schema.activities);
+    expect(acts[0]!.humanId).toBeNull();
+    expect(acts[0]!.evacuationLeadId).toBe("eva-unlink-1");
+
+    const emailRows = await db.select().from(schema.emails);
+    expect(emailRows[0]!.humanId).toBeNull();
+    expect(emailRows[0]!.evacuationLeadId).toBe("eva-unlink-1");
+
+    const phoneRows = await db.select().from(schema.phones);
+    expect(phoneRows[0]!.humanId).toBeNull();
+
+    const socialRows = await db.select().from(schema.socialIds);
+    expect(socialRows[0]!.humanId).toBeNull();
+  });
+
+  it("completes without error when the link id does not exist", async () => {
+    const db = getTestDb();
+    await expect(unlinkEvacuationLead(db, "nonexistent-link-id")).resolves.toBeUndefined();
+
+    const links = await db.select().from(schema.humanEvacuationLeads);
+    expect(links).toHaveLength(0);
+  });
+});
+
+// ─── getLinkedHumanForEvacuationLead ─────────────────────────────────────────
+
+describe("getLinkedHumanForEvacuationLead", () => {
+  it("returns linked human when a link exists", async () => {
+    const db = getTestDb();
+    const ts = now();
+    await seedHuman(db, "h-1", "Eva", "Linked");
+
+    await db.insert(schema.humanEvacuationLeads).values({
+      id: "eva-get-link-1",
+      humanId: "h-1",
+      evacuationLeadId: "eva-get-1",
+      linkedAt: ts,
+    });
+
+    const result = await getLinkedHumanForEvacuationLead(db, "eva-get-1");
+    expect(result).not.toBeNull();
+    expect(result).toMatchObject({
+      id: "eva-get-link-1",
+      humanId: "h-1",
+      humanFirstName: "Eva",
+      humanLastName: "Linked",
+      linkedAt: ts,
+    });
+    expect(result!.humanDisplayId).toMatch(/^HUM-/);
+  });
+
+  it("returns null when no link exists for the evacuation lead", async () => {
+    const db = getTestDb();
+    const result = await getLinkedHumanForEvacuationLead(db, "eva-nonexistent");
+    expect(result).toBeNull();
   });
 });

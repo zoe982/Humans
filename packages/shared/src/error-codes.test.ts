@@ -43,4 +43,11 @@ describe("ERROR_CODES", () => {
   it("contains internal error code", () => {
     expect(ERROR_CODES.INTERNAL_ERROR).toBe("INTERNAL_ERROR");
   });
+
+  it("contains front sync and config error codes", () => {
+    expect(ERROR_CODES.FRONT_SYNC_RUN_NOT_FOUND).toBe("FRONT_SYNC_RUN_NOT_FOUND");
+    expect(ERROR_CODES.FRONT_SYNC_REVERT_FAILED).toBe("FRONT_SYNC_REVERT_FAILED");
+    expect(ERROR_CODES.CONFIG_LAST_TYPE).toBe("CONFIG_LAST_TYPE");
+    expect(ERROR_CODES.CONFIG_TYPE_IN_USE).toBe("CONFIG_TYPE_IN_USE");
+  });
 });

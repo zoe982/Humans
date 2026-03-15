@@ -524,4 +524,38 @@ describe("getOpportunitiesForPet", () => {
     expect(second!.displayId).toBe("OPP-AAA-004");
     expect(second!.stage).toBe("qualified");
   });
+
+  it("falls back to ?? defaults when the linked opportunity no longer exists (orphaned link)", async () => {
+    const db = getTestDb();
+    const { sql: drizzleSql } = await import("drizzle-orm");
+    await seedHuman(db, "h-1", "Orphan", "Owner");
+    await seedPet(db, "pet-1", "h-1", "Ghost");
+
+    // Seed a real opportunity so the FK is satisfied on insert
+    await seedOpportunity(db, "opp-real", "OPP-BBB-001", "open");
+    await seedOpportunityPetLink(db, "link-orphan", "opp-real", "pet-1");
+
+    // Orphan the link by updating opportunityId to a non-existent value via raw SQL,
+    // bypassing FK enforcement — exercises the ?? fallbacks in the map function
+    await db.execute(drizzleSql`SET session_replication_role = 'replica'`);
+    await db.execute(
+      drizzleSql`UPDATE opportunity_pets SET opportunity_id = 'opp-deleted' WHERE id = 'link-orphan'`,
+    );
+    await db.execute(drizzleSql`SET session_replication_role = 'origin'`);
+
+    const result = await getOpportunitiesForPet(db, "pet-1");
+
+    expect(result).toHaveLength(1);
+    // When the opp is not found in the fetched rows, the map falls back to these defaults:
+    expect(result[0]!.linkId).toBe("link-orphan");
+    // opp?.id ?? link.opportunityId → falls back to link.opportunityId
+    expect(result[0]!.id).toBe("opp-deleted");
+    // opp?.displayId ?? "" → falls back to ""
+    expect(result[0]!.displayId).toBe("");
+    // opp?.stage ?? "open" → falls back to "open"
+    expect(result[0]!.stage).toBe("open");
+    // opp?.createdAt ?? "" → falls back to ""
+    expect(result[0]!.createdAt).toBe("");
+    expect(result[0]!.primaryHumanName).toBeNull();
+  });
 });

@@ -6,7 +6,7 @@ import { updateRouteSignupSchema, updateEntityNextActionSchema, createEmailSchem
 import { authMiddleware } from "../middleware/auth";
 import { requirePermission } from "../middleware/rbac";
 import { supabaseMiddleware } from "../middleware/supabase";
-import { internal, notFound, badRequest } from "../lib/errors";
+import { internal, notFound, badRequest, unauthorized } from "../lib/errors";
 import { sanitizePostgrestValue } from "../lib/supabase-sanitize";
 import { nextDisplayIdBatch } from "../lib/display-id";
 import { getNextAction, updateNextAction, completeNextAction } from "../services/entity-next-actions";
@@ -270,7 +270,7 @@ routeSignupRoutes.patch("/api/route-signups/:id/next-action", requirePermission(
   }
 
   const session = c.get("session");
-  if (session === null) return c.json({ error: "Unauthorized" }, 401);
+  if (session === null) throw unauthorized(ERROR_CODES.AUTH_REQUIRED, "Authentication required");
 
   const db = c.get("db");
   const nextAction = await updateNextAction(db, "route_signup", c.req.param("id"), parsed.data, session.colleagueId);
@@ -280,7 +280,7 @@ routeSignupRoutes.patch("/api/route-signups/:id/next-action", requirePermission(
 // Complete next action
 routeSignupRoutes.post("/api/route-signups/:id/next-action/done", requirePermission("manageRouteSignups"), async (c) => {
   const session = c.get("session");
-  if (session === null) return c.json({ error: "Unauthorized" }, 401);
+  if (session === null) throw unauthorized(ERROR_CODES.AUTH_REQUIRED, "Authentication required");
 
   const db = c.get("db");
   await completeNextAction(db, "route_signup", c.req.param("id"), session.colleagueId);

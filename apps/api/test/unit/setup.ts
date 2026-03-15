@@ -207,10 +207,15 @@ const MIGRATION_STATEMENTS = [
     "is_primary" boolean DEFAULT false NOT NULL,
     "created_at" text NOT NULL
   )`,
+  `CREATE TABLE IF NOT EXISTS "human_types_config" (
+    "id" text PRIMARY KEY NOT NULL,
+    "name" text NOT NULL UNIQUE,
+    "created_at" text NOT NULL
+  )`,
   `CREATE TABLE IF NOT EXISTS "human_types" (
     "id" text PRIMARY KEY NOT NULL,
     "human_id" text NOT NULL,
-    "type" text NOT NULL,
+    "type_id" text NOT NULL REFERENCES "human_types_config"("id"),
     "created_at" text NOT NULL,
     FOREIGN KEY ("human_id") REFERENCES "humans"("id") ON UPDATE no action ON DELETE no action
   )`,
@@ -668,6 +673,7 @@ const ALL_TABLES = [
   "email_labels_config",
   "phone_labels_config",
   "loss_reasons_config",
+  "human_types_config",
   "display_id_counters",
   "opportunity_human_roles_config",
   "opportunity_stage_cadence_config",

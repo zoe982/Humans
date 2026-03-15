@@ -4,6 +4,13 @@ export default defineConfig({
   test: {
     include: ["test/unit/**/*.test.ts"],
     setupFiles: ["./test/unit/setup.ts"],
+    pool: "forks",
+    poolOptions: {
+      forks: {
+        minForks: 1,
+        maxForks: 4,
+      },
+    },
     coverage: {
       provider: "istanbul",
       all: true,

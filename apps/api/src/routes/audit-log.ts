@@ -2,7 +2,7 @@ import { Hono } from "hono";
 import { ERROR_CODES } from "@humans/shared";
 import { authMiddleware } from "../middleware/auth";
 import { requirePermission } from "../middleware/rbac";
-import { badRequest } from "../lib/errors";
+import { badRequest, unauthorized } from "../lib/errors";
 import { getAuditEntries, undoAuditEntry } from "../services/audit-log";
 import type { AppContext } from "../types";
 
@@ -26,7 +26,7 @@ auditLogRoutes.get("/api/audit-log", requirePermission("viewRecords"), async (c)
 // POST /api/audit-log/:id/undo
 auditLogRoutes.post("/api/audit-log/:id/undo", requirePermission("createEditRecords"), async (c) => {
   const session = c.get("session");
-  if (session === null) return c.json({ error: "Unauthorized" }, 401);
+  if (session === null) throw unauthorized(ERROR_CODES.AUTH_REQUIRED, "Authentication required");
   const result = await undoAuditEntry(c.get("db"), c.req.param("id"), session.colleagueId);
   return c.json({ data: result });
 });

@@ -7,9 +7,9 @@ The web app deploys to the **`humans`** Pages project (NOT `humans-web` or any o
 - Production URL: https://humans.pavinfo.app
 - Pages project: `humans`
 
-Always deploy from inside `apps/web` (so wrangler reads `apps/web/wrangler.toml`):
+Always deploy from inside `apps/web` (so wrangler reads `apps/web/wrangler.toml`). Prefix all wrangler commands with `CLOUDFLARE_API_TOKEN` from `.env` (OAuth is logged into a different account):
 ```bash
-cd apps/web && npx wrangler pages deploy --commit-dirty=true --branch=main
+cd apps/web && CLOUDFLARE_API_TOKEN=$(grep CLOUDFLARE_API_TOKEN /Users/zoemarsico/Documents/Humans/.env | cut -d= -f2) npx wrangler pages deploy --commit-dirty=true --branch=main
 ```
 
 **IMPORTANT**: Always include `--branch=main` to deploy directly to production. Never create preview deployments. Always run from `apps/web/` so wrangler uses the Pages wrangler.toml (not the API's).
@@ -20,7 +20,7 @@ cd apps/web && npx wrangler pages deploy --commit-dirty=true --branch=main
 
 Deploy with:
 ```bash
-cd apps/api && npx wrangler deploy
+cd apps/api && CLOUDFLARE_API_TOKEN=$(grep CLOUDFLARE_API_TOKEN /Users/zoemarsico/Documents/Humans/.env | cut -d= -f2) npx wrangler deploy
 ```
 
 ### Required build step before Pages deploy
@@ -30,15 +30,18 @@ cd apps/web && pnpm build
 ```
 
 ### Full deploy sequence
+All wrangler commands must use `CLOUDFLARE_API_TOKEN` (OAuth is logged into a different account):
 ```bash
+export CLOUDFLARE_API_TOKEN=$(grep CLOUDFLARE_API_TOKEN /Users/zoemarsico/Documents/Humans/.env | cut -d= -f2)
+
 # 1. Build web
 cd apps/web && pnpm build && cd ../..
 
 # 2. Deploy API
-cd apps/api && npx wrangler deploy && cd ../..
+cd apps/api && CLOUDFLARE_API_TOKEN=$CLOUDFLARE_API_TOKEN npx wrangler deploy && cd ../..
 
 # 3. Deploy web (must run from apps/web for wrangler.toml)
-cd apps/web && npx wrangler pages deploy --commit-dirty=true --branch=main
+cd apps/web && CLOUDFLARE_API_TOKEN=$CLOUDFLARE_API_TOKEN npx wrangler pages deploy --commit-dirty=true --branch=main
 ```
 
 ### Secrets
@@ -49,15 +52,23 @@ API worker secrets (already set, manage via `wrangler secret`):
 - `APP_URL`
 
 ### D1 Migrations
-Run migrations against production:
+Run migrations against production (always prefix with `CLOUDFLARE_API_TOKEN`):
 ```bash
-npx wrangler d1 execute humans-db --remote --file=packages/db/drizzle/<migration>.sql --config apps/api/wrangler.toml
+CLOUDFLARE_API_TOKEN=$(grep CLOUDFLARE_API_TOKEN /Users/zoemarsico/Documents/Humans/.env | cut -d= -f2) npx wrangler d1 execute humans-db --remote --file=packages/db/drizzle/<migration>.sql --config apps/api/wrangler.toml
 ```
 
 Check table status:
 ```bash
-npx wrangler d1 execute humans-db --remote --command "SELECT name FROM sqlite_master WHERE type='table';" --config apps/api/wrangler.toml
+CLOUDFLARE_API_TOKEN=$(grep CLOUDFLARE_API_TOKEN /Users/zoemarsico/Documents/Humans/.env | cut -d= -f2) npx wrangler d1 execute humans-db --remote --command "SELECT name FROM sqlite_master WHERE type='table';" --config apps/api/wrangler.toml
 ```
+
+**After applying a migration manually**, always register it in the tracking table:
+```bash
+CLOUDFLARE_API_TOKEN=$(grep CLOUDFLARE_API_TOKEN /Users/zoemarsico/Documents/Humans/.env | cut -d= -f2) npx wrangler d1 execute humans-db --remote \
+  --command "INSERT OR IGNORE INTO schema_migrations (filename) VALUES ('<migration>.sql');" \
+  --config apps/api/wrangler.toml
+```
+The `deploy.sh` script checks `schema_migrations` and blocks deployment if local migration files exist that aren't registered. When creating a new migration, also add it to the backfill INSERT in the latest `schema_migrations` tracking migration (`0005_add_schema_migrations_tracking.sql`).
 
 ## Model Usage — MANDATORY
 

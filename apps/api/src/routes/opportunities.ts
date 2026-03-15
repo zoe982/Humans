@@ -9,10 +9,12 @@ import {
   updateOpportunityHumanSchema,
   linkOpportunityPetSchema,
   linkBookingRequestSchema,
+  ERROR_CODES,
 } from "@humans/shared";
 import { authMiddleware } from "../middleware/auth";
 import { requirePermission } from "../middleware/rbac";
 import { supabaseMiddleware } from "../middleware/supabase";
+import { unauthorized } from "../lib/errors";
 import { humanWebsiteBookingRequests } from "@humans/db/schema";
 import { eq } from "drizzle-orm";
 import {
@@ -74,7 +76,7 @@ opportunityRoutes.post("/api/opportunities", requirePermission("manageOpportunit
   const body: unknown = await c.req.json();
   const data = createOpportunitySchema.parse(body);
   const session = c.get("session");
-  if (session === null) return c.json({ error: "Unauthorized" }, 401);
+  if (session === null) throw unauthorized(ERROR_CODES.AUTH_REQUIRED, "Authentication required");
   const result = await createOpportunity(c.get("db"), data, session.colleagueId);
   return c.json({ data: result }, 201);
 });
@@ -84,7 +86,7 @@ opportunityRoutes.patch("/api/opportunities/:id", requirePermission("manageOppor
   const body: unknown = await c.req.json();
   const data = updateOpportunitySchema.parse(body);
   const session = c.get("session");
-  if (session === null) return c.json({ error: "Unauthorized" }, 401);
+  if (session === null) throw unauthorized(ERROR_CODES.AUTH_REQUIRED, "Authentication required");
   const result = await updateOpportunity(c.get("db"), c.req.param("id"), data, session.colleagueId);
   return c.json(result);
 });
@@ -100,7 +102,7 @@ opportunityRoutes.patch("/api/opportunities/:id/stage", supabaseMiddleware, requ
   const body: unknown = await c.req.json();
   const data = updateOpportunityStageSchema.parse(body);
   const session = c.get("session");
-  if (session === null) return c.json({ error: "Unauthorized" }, 401);
+  if (session === null) throw unauthorized(ERROR_CODES.AUTH_REQUIRED, "Authentication required");
   const db = c.get("db");
   const result = await updateOpportunityStage(db, c.req.param("id"), data, session.colleagueId);
 
@@ -129,7 +131,7 @@ opportunityRoutes.patch("/api/opportunities/:id/next-action", requirePermission(
   const body: unknown = await c.req.json();
   const data = updateNextActionSchema.parse(body);
   const session = c.get("session");
-  if (session === null) return c.json({ error: "Unauthorized" }, 401);
+  if (session === null) throw unauthorized(ERROR_CODES.AUTH_REQUIRED, "Authentication required");
   const result = await updateNextAction(c.get("db"), c.req.param("id"), data, session.colleagueId);
   return c.json(result);
 });
@@ -137,7 +139,7 @@ opportunityRoutes.patch("/api/opportunities/:id/next-action", requirePermission(
 // POST /api/opportunities/:id/next-action/done
 opportunityRoutes.post("/api/opportunities/:id/next-action/done", requirePermission("manageOpportunities"), async (c) => {
   const session = c.get("session");
-  if (session === null) return c.json({ error: "Unauthorized" }, 401);
+  if (session === null) throw unauthorized(ERROR_CODES.AUTH_REQUIRED, "Authentication required");
   const result = await completeNextAction(c.get("db"), c.req.param("id"), session.colleagueId);
   return c.json(result);
 });
@@ -203,7 +205,7 @@ opportunityRoutes.patch("/api/opportunities/:id/flight", requirePermission("mana
   const body: unknown = await c.req.json();
   const data = z.object({ flightId: z.string().uuid() }).parse(body);
   const session = c.get("session");
-  if (session === null) return c.json({ error: "Unauthorized" }, 401);
+  if (session === null) throw unauthorized(ERROR_CODES.AUTH_REQUIRED, "Authentication required");
   const result = await linkOpportunityFlight(c.get("db"), c.req.param("id"), data.flightId, session.colleagueId);
   return c.json(result);
 });
@@ -211,7 +213,7 @@ opportunityRoutes.patch("/api/opportunities/:id/flight", requirePermission("mana
 // DELETE /api/opportunities/:id/flight
 opportunityRoutes.delete("/api/opportunities/:id/flight", requirePermission("manageOpportunities"), async (c) => {
   const session = c.get("session");
-  if (session === null) return c.json({ error: "Unauthorized" }, 401);
+  if (session === null) throw unauthorized(ERROR_CODES.AUTH_REQUIRED, "Authentication required");
   const result = await unlinkOpportunityFlight(c.get("db"), c.req.param("id"), session.colleagueId);
   return c.json(result);
 });

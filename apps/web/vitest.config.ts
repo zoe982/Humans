@@ -75,6 +75,16 @@ export default defineConfig({
     // tests; faster than jsdom and covers the DOM APIs SvelteKit components use.
     environment: "happy-dom",
     include: ["src/**/*.{test,spec}.{js,ts}", "test/**/*.{test,spec}.{js,ts}"],
+    // Limit concurrency to prevent multi-GB memory usage with 157+ test files.
+    // Forks pool isolates each worker process, preventing leaked state from
+    // accumulating. maxForks caps peak memory at ~4 worker processes.
+    pool: "forks",
+    poolOptions: {
+      forks: {
+        minForks: 1,
+        maxForks: 4,
+      },
+    },
     coverage: {
       provider: "istanbul",
       all: true,

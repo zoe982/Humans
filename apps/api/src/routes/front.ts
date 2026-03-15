@@ -3,7 +3,7 @@ import { ERROR_CODES } from "@humans/shared";
 import { authMiddleware } from "../middleware/auth";
 import { requirePermission } from "../middleware/rbac";
 import { supabaseMiddleware } from "../middleware/supabase";
-import { internal } from "../lib/errors";
+import { internal, notFound, badRequest, unauthorized } from "../lib/errors";
 import {
   syncFrontConversations,
   listSyncRuns,
@@ -26,7 +26,7 @@ frontRoutes.post(
   requirePermission("manageColleagues"),
   async (c) => {
     const session = c.get("session");
-    if (session === null) return c.json({ error: "Unauthorized" }, 401);
+    if (session === null) throw unauthorized(ERROR_CODES.AUTH_REQUIRED, "Authentication required");
     const db = c.get("db");
     const supabase = c.get("supabase");
     const frontToken = c.env.FRONT_API_TOKEN;
@@ -34,7 +34,7 @@ frontRoutes.post(
     if (frontToken === "") {
       throw internal(
         ERROR_CODES.FRONT_SYNC_FAILED,
-        "FRONT_API_TOKEN not configured",
+        "Front integration unavailable",
       );
     }
 
@@ -80,7 +80,7 @@ frontRoutes.get(
   async (c) => {
     const data = await getSyncRun(c.get("db"), c.req.param("id"));
     if (data === null) {
-      return c.json({ error: "Sync run not found" }, 404);
+      throw notFound(ERROR_CODES.FRONT_SYNC_RUN_NOT_FOUND, "Sync run not found");
     }
     return c.json({ data });
   },
@@ -93,7 +93,7 @@ frontRoutes.post(
   async (c) => {
     const result = await revertSyncRun(c.get("db"), c.req.param("id"));
     if (result.error !== undefined && result.error !== "") {
-      return c.json({ error: result.error }, 400);
+      throw badRequest(ERROR_CODES.FRONT_SYNC_REVERT_FAILED, result.error);
     }
     return c.json({ data: result });
   },
@@ -111,7 +111,7 @@ frontRoutes.get(
     if (frontToken === "") {
       throw internal(
         ERROR_CODES.FRONT_SYNC_FAILED,
-        "FRONT_API_TOKEN not configured",
+        "Front integration unavailable",
       );
     }
 
@@ -145,7 +145,7 @@ frontRoutes.post(
     if (frontToken === "") {
       throw internal(
         ERROR_CODES.FRONT_SYNC_FAILED,
-        "FRONT_API_TOKEN not configured",
+        "Front integration unavailable",
       );
     }
 
@@ -173,7 +173,7 @@ frontRoutes.post(
     if (frontToken === "") {
       throw internal(
         ERROR_CODES.FRONT_SYNC_FAILED,
-        "FRONT_API_TOKEN not configured",
+        "Front integration unavailable",
       );
     }
 

@@ -12,11 +12,8 @@ export { emails } from "./emails";
 export { emailLabelsConfig } from "./email-labels-config";
 export { accountEmailLabelsConfig } from "./account-email-labels-config";
 export { humanEmailLabelsConfig } from "./human-email-labels-config";
-export {
-  humanTypes,
-  humanTypeValues,
-  type HumanType,
-} from "./human-types";
+export { humanTypes } from "./human-types";
+export { humanTypesConfig } from "./human-types-config";
 export { humanRouteSignups } from "./human-route-signups";
 export { humanEvacuationLeads } from "./human-evacuation-leads";
 export { humanWebsiteBookingRequests } from "./human-website-booking-requests";

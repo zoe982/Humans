@@ -78,13 +78,13 @@ describe("humanListItemSchema", () => {
         isPrimary: true,
         createdAt: "2024-01-01T00:00:00.000Z",
       }],
-      types: ["client", "partner"],
+      types: [{ id: "ht_client", name: "Client" }, { id: "ht_partner", name: "Partner" }],
     });
     expect(result.emails).toHaveLength(1);
     const firstEmail = result.emails[0];
     expect(firstEmail).toBeDefined();
     expect(firstEmail?.email).toBe("test@example.com");
-    expect(result.types).toStrictEqual(["client", "partner"]);
+    expect(result.types).toStrictEqual([{ id: "ht_client", name: "Client" }, { id: "ht_partner", name: "Partner" }]);
   });
 
   it("rejects missing required fields", () => {

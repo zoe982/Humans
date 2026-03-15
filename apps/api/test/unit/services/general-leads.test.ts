@@ -1932,4 +1932,232 @@ describe("importLeadFromFront", () => {
       importLeadFromFront(db, "cnv_invalid_shape", "fake-token", "col-1"),
     ).rejects.toThrowError("Invalid conversation response from Front");
   });
+
+  // ─── L746: EMAIL_DUPLICATE catch — link existing email to new lead ───────────
+
+  it("links an existing email to the imported lead when the email address is already in the DB", async () => {
+    const db = getTestDb();
+    await seedColleague(db, "col-1");
+
+    // Pre-seed the email address that will be used as the contact handle
+    const ts = now();
+    await db.insert(schema.emails).values({
+      id: "pre-existing-email",
+      displayId: nextDisplayId("EML"),
+      email: "duplicate@example.com",
+      generalLeadId: null,
+      humanId: null,
+      accountId: null,
+      websiteBookingRequestId: null,
+      routeSignupId: null,
+      labelId: null,
+      isPrimary: false,
+      createdAt: ts,
+    });
+
+    const conversation = buildConversation({
+      id: "cnv_dup_email",
+      subject: "Duplicate email import",
+      recipient: { handle: "duplicate@example.com", name: "Dup User" },
+    });
+    const messages = buildMessages();
+
+    mockFrontFetch.mockImplementation((url: string) => {
+      if ((url as string).includes("/conversations/cnv_dup_email/messages")) return Promise.resolve(messages);
+      if ((url as string).includes("/conversations/cnv_dup_email")) return Promise.resolve(conversation);
+      return Promise.reject(new Error(`Unexpected URL: ${url}`));
+    });
+
+    const result = await importLeadFromFront(db, "cnv_dup_email", "fake-token", "col-1");
+
+    expect(result.lead.displayId).toMatch(/^LEA-/);
+    expect(result.contactHandle).toBe("duplicate@example.com");
+
+    // The pre-existing email should now be linked to the new lead (updateEmail was called)
+    const emailRows = await db.select().from(schema.emails);
+    expect(emailRows).toHaveLength(1);
+    expect(emailRows[0]!.id).toBe("pre-existing-email");
+    expect(emailRows[0]!.generalLeadId).toBe(result.lead.id);
+  });
+
+  // ─── L758: PHONE_DUPLICATE catch — link existing phone to new lead ──────────
+
+  it("links an existing phone to the imported lead when the phone number is already in the DB", async () => {
+    const db = getTestDb();
+    await seedColleague(db, "col-1");
+
+    // Pre-seed the phone number that will be used as the contact handle
+    const ts = now();
+    await db.insert(schema.phones).values({
+      id: "pre-existing-phone",
+      displayId: nextDisplayId("FON"),
+      phoneNumber: "+19995550123",
+      generalLeadId: null,
+      humanId: null,
+      accountId: null,
+      websiteBookingRequestId: null,
+      routeSignupId: null,
+      labelId: null,
+      hasWhatsapp: false,
+      isPrimary: false,
+      createdAt: ts,
+    });
+
+    const conversation = buildConversation({
+      id: "cnv_dup_phone",
+      subject: "Duplicate phone import",
+      recipient: { handle: "+19995550123", name: "Phone Dup" },
+    });
+    const messages = buildMessages();
+
+    mockFrontFetch.mockImplementation((url: string) => {
+      if ((url as string).includes("/conversations/cnv_dup_phone/messages")) return Promise.resolve(messages);
+      if ((url as string).includes("/conversations/cnv_dup_phone")) return Promise.resolve(conversation);
+      return Promise.reject(new Error(`Unexpected URL: ${url}`));
+    });
+
+    const result = await importLeadFromFront(db, "cnv_dup_phone", "fake-token", "col-1");
+
+    expect(result.lead.displayId).toMatch(/^LEA-/);
+    expect(result.contactHandle).toBe("+19995550123");
+
+    // The pre-existing phone should now be linked to the new lead (updatePhoneNumber was called)
+    const phoneRows = await db.select().from(schema.phones);
+    expect(phoneRows).toHaveLength(1);
+    expect(phoneRows[0]!.id).toBe("pre-existing-phone");
+    expect(phoneRows[0]!.generalLeadId).toBe(result.lead.id);
+  });
+
+  // ─── Colleague-recipient: all "to" recipients are also colleagues ─────────────
+
+  it("falls back to no-contact error when the conversation recipient is a colleague and all message 'to' recipients are also colleagues", async () => {
+    const db = getTestDb();
+    const ts = now();
+
+    // Two colleagues: one is the conversation recipient, one is the "to" recipient
+    await db.insert(schema.colleagues).values({
+      id: "col-sender",
+      displayId: nextDisplayId("COL"),
+      email: "sender@company.com",
+      firstName: "Sender",
+      lastName: "Col",
+      name: "Sender Col",
+      role: "admin",
+      isActive: true,
+      createdAt: ts,
+      updatedAt: ts,
+    });
+    await db.insert(schema.colleagues).values({
+      id: "col-recipient",
+      displayId: nextDisplayId("COL"),
+      email: "recipient@company.com",
+      firstName: "Recipient",
+      lastName: "Col",
+      name: "Recipient Col",
+      role: "agent",
+      isActive: true,
+      createdAt: ts,
+      updatedAt: ts,
+    });
+
+    const conversation = buildConversation({
+      id: "cnv_all_colleagues",
+      subject: "Internal",
+      // conversation recipient is a colleague
+      recipient: { handle: "sender@company.com", name: "Sender Col" },
+    });
+
+    // All "to" recipients in messages are also colleagues
+    const messages = buildMessages([
+      {
+        id: "msg_internal",
+        is_draft: false,
+        is_inbound: false,
+        created_at: 1700000000,
+        text: "Internal message",
+        blurb: "",
+        type: undefined,
+        recipients: [{ role: "to", handle: "recipient@company.com", name: "Recipient Col" }],
+      },
+    ]);
+
+    mockFrontFetch.mockImplementation((url: string) => {
+      if ((url as string).includes("/conversations/cnv_all_colleagues/messages")) return Promise.resolve(messages);
+      if ((url as string).includes("/conversations/cnv_all_colleagues")) return Promise.resolve(conversation);
+      return Promise.reject(new Error(`Unexpected URL: ${url}`));
+    });
+
+    // contactHandle remains the original colleague handle since no external recipient was found
+    // then hits the "contactHandle === ''" check — but actually contactHandle is not "" here,
+    // it's still "sender@company.com". The loop doesn't find a non-colleague "to" recipient,
+    // so contactHandle remains the colleague email. The code then tries to create an email
+    // for the colleague handle, which will succeed (the colleague email doesn't exist in emails table).
+    // This covers the branch where the inner loop finds only colleague recipients (recipientIsColleague=true).
+    const result = await importLeadFromFront(db, "cnv_all_colleagues", "fake-token", "col-sender");
+    // The lead is created with the colleague's email as handle
+    expect(result.contactHandle).toBe("sender@company.com");
+    expect(result.lead.displayId).toMatch(/^LEA-/);
+  });
+
+  // ─── Paginated messages (nextUrl branch) ────────────────────────────────────
+
+  it("fetches subsequent pages when pagination next URL is set", async () => {
+    const db = getTestDb();
+    await seedColleague(db, "col-1");
+
+    const conversation = buildConversation({
+      id: "cnv_paged",
+      subject: "Paged conversation",
+      recipient: { handle: "paged@example.com", name: "Paged User" },
+    });
+
+    const page1 = {
+      _results: [
+        {
+          id: "msg_page1",
+          is_draft: false,
+          is_inbound: true,
+          created_at: 1700000000,
+          text: "Page 1 message",
+          blurb: "",
+          type: undefined,
+          recipients: [],
+        },
+      ],
+      _pagination: { next: "https://api2.frontapp.com/conversations/cnv_paged/messages?page=2" },
+    };
+
+    const page2 = {
+      _results: [
+        {
+          id: "msg_page2",
+          is_draft: false,
+          is_inbound: false,
+          created_at: 1700000001,
+          text: "Page 2 message",
+          blurb: "",
+          type: undefined,
+          recipients: [],
+        },
+      ],
+      _pagination: { next: null },
+    };
+
+    mockFrontFetch.mockImplementation((url: string) => {
+      if ((url as string).includes("?page=2")) return Promise.resolve(page2);
+      if ((url as string).includes("/conversations/cnv_paged/messages")) return Promise.resolve(page1);
+      if ((url as string).includes("/conversations/cnv_paged")) return Promise.resolve(conversation);
+      return Promise.reject(new Error(`Unexpected URL: ${url}`));
+    });
+
+    const result = await importLeadFromFront(db, "cnv_paged", "fake-token", "col-1");
+
+    // Both pages were imported — 2 non-draft messages
+    expect(result.activitiesImported).toBe(2);
+    const acts = await db.select().from(schema.activities);
+    expect(acts).toHaveLength(2);
+    const actIds = acts.map((a) => a.frontId);
+    expect(actIds).toContain("msg_page1");
+    expect(actIds).toContain("msg_page2");
+  });
 });

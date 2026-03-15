@@ -6,7 +6,7 @@ import { ERROR_CODES } from "@humans/shared";
 import { authMiddleware } from "../middleware/auth";
 import { requirePermission } from "../middleware/rbac";
 import { supabaseMiddleware } from "../middleware/supabase";
-import { internal } from "../lib/errors";
+import { internal, unauthorized } from "../lib/errors";
 import {
   listHumans,
   getHumanDetail,
@@ -66,7 +66,7 @@ humanRoutes.patch("/api/humans/:id", requirePermission("manageHumans"), async (c
   const body: unknown = await c.req.json();
   const data = updateHumanSchema.parse(body);
   const session = c.get("session");
-  if (session === null) return c.json({ error: "Unauthorized" }, 401);
+  if (session === null) throw unauthorized(ERROR_CODES.AUTH_REQUIRED, "Authentication required");
   const result = await updateHuman(c.get("db"), c.req.param("id"), data, session.colleagueId);
   return c.json(result);
 });
@@ -75,7 +75,7 @@ humanRoutes.patch("/api/humans/:id/status", requirePermission("manageHumans"), a
   const body: unknown = await c.req.json();
   const data = updateHumanStatusSchema.parse(body);
   const session = c.get("session");
-  if (session === null) return c.json({ error: "Unauthorized" }, 401);
+  if (session === null) throw unauthorized(ERROR_CODES.AUTH_REQUIRED, "Authentication required");
   const result = await updateHumanStatus(c.get("db"), c.req.param("id"), data.status, session.colleagueId);
   return c.json({ data: { id: result.id, status: result.status }, auditEntryId: result.auditEntryId });
 });

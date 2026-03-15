@@ -43,7 +43,7 @@ export const humanListItemSchema = z.object({
   createdAt: z.string(),
   updatedAt: z.string(),
   emails: z.array(emailResponseSchema),
-  types: z.array(z.string()),
+  types: z.array(z.object({ id: z.string(), name: z.string() })),
 }).passthrough();
 
 export type HumanListItem = z.infer<typeof humanListItemSchema>;
@@ -58,7 +58,7 @@ export const humanDetailSchema = z.object({
   createdAt: z.string(),
   updatedAt: z.string(),
   emails: z.array(emailResponseSchema),
-  types: z.array(z.string()),
+  types: z.array(z.object({ id: z.string(), name: z.string() })),
   phoneNumbers: z.array(phoneNumberResponseSchema),
   pets: z.array(z.object({
     id: z.string(),

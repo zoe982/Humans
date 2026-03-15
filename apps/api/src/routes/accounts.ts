@@ -7,10 +7,12 @@ import {
   createAccountPhoneNumberSchema,
   linkAccountHumanSchema,
   updateAccountHumanSchema,
+  ERROR_CODES,
 } from "@humans/shared";
 import { authMiddleware } from "../middleware/auth";
 import { requirePermission } from "../middleware/rbac";
 import { supabaseMiddleware } from "../middleware/supabase";
+import { unauthorized } from "../lib/errors";
 import {
   listAccounts,
   getAccountDetail,
@@ -58,7 +60,7 @@ accountRoutes.patch("/api/accounts/:id", requirePermission("manageAccounts"), as
   const body: unknown = await c.req.json();
   const data = updateAccountSchema.parse(body);
   const session = c.get("session");
-  if (session === null) return c.json({ error: "Unauthorized" }, 401);
+  if (session === null) throw unauthorized(ERROR_CODES.AUTH_REQUIRED, "Authentication required");
   const result = await updateAccount(c.get("db"), c.req.param("id"), data, session.colleagueId);
   return c.json(result);
 });
@@ -68,7 +70,7 @@ accountRoutes.patch("/api/accounts/:id/status", requirePermission("manageAccount
   const body: unknown = await c.req.json();
   const data = updateAccountStatusSchema.parse(body);
   const session = c.get("session");
-  if (session === null) return c.json({ error: "Unauthorized" }, 401);
+  if (session === null) throw unauthorized(ERROR_CODES.AUTH_REQUIRED, "Authentication required");
   const result = await updateAccountStatus(c.get("db"), c.req.param("id"), data.status, session.colleagueId);
   return c.json({ data: { id: result.id, status: result.status }, auditEntryId: result.auditEntryId });
 });

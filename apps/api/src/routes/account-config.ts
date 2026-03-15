@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import {
   accountTypesConfig,
   accountHumanLabelsConfig,
@@ -14,13 +14,15 @@ import {
   leadSourcesConfig,
   leadChannelsConfig,
   lossReasonsConfig,
+  humanTypesConfig,
+  humanTypes,
 } from "@humans/db/schema";
 import { createId } from "@humans/db";
 import { createConfigItemSchema, updateConfigItemSchema } from "@humans/shared";
 import { ERROR_CODES } from "@humans/shared";
 import { authMiddleware } from "../middleware/auth";
 import { requirePermission } from "../middleware/rbac";
-import { badRequest } from "../lib/errors";
+import { badRequest, conflict } from "../lib/errors";
 import type { AppContext } from "../types";
 
 const configTableMap = {
@@ -37,6 +39,7 @@ const configTableMap = {
   "lead-sources": leadSourcesConfig,
   "lead-channels": leadChannelsConfig,
   "loss-reasons": lossReasonsConfig,
+  "human-types": humanTypesConfig,
 } as const;
 
 type ConfigType = keyof typeof configTableMap;
@@ -60,6 +63,7 @@ function getConfigTable(configType: ConfigType): (typeof configTableMap)[ConfigT
     case "lead-sources": return leadSourcesConfig;
     case "lead-channels": return leadChannelsConfig;
     case "loss-reasons": return lossReasonsConfig;
+    case "human-types": return humanTypesConfig;
   }
 }
 
@@ -161,6 +165,34 @@ accountConfigRoutes.delete("/api/admin/account-config/:configType/:id", requireP
   const db = c.get("db");
   const table = getConfigTable(configType);
   const id = c.req.param("id");
+
+  // Special handling for human-types: prevent deleting types that are in use
+  if (configType === "human-types") {
+    // Check if this is the last type
+    const allTypes = await db.select().from(humanTypesConfig);
+    if (allTypes.length <= 1) {
+      throw conflict(ERROR_CODES.CONFIG_LAST_TYPE, "Cannot delete the last human type");
+    }
+
+    // Count usage
+    const usageRows = await db
+      .select({ count: sql<number>`count(*)`.mapWith(Number) })
+      .from(humanTypes)
+      .where(eq(humanTypes.typeId, id));
+    const usageCount = usageRows[0]?.count ?? 0;
+
+    if (usageCount > 0) {
+      const substituteId = c.req.query("substituteId");
+      if (substituteId == null || substituteId === "") {
+        throw conflict(ERROR_CODES.CONFIG_TYPE_IN_USE, "Type is currently in use");
+      }
+      // Substitute: update all human_types rows to use the substitute
+      await db
+        .update(humanTypes)
+        .set({ typeId: substituteId })
+        .where(eq(humanTypes.typeId, id));
+    }
+  }
 
   await db.delete(table).where(eq(table.id, id));
 

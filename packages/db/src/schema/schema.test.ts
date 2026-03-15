@@ -9,7 +9,8 @@ import { auditLog } from "./audit-log";
 import { humans, humanStatuses } from "./humans";
 import { emails } from "./emails";
 import { emailLabelsConfig } from "./email-labels-config";
-import { humanTypes, humanTypeValues } from "./human-types";
+import { humanTypes } from "./human-types";
+import { humanTypesConfig } from "./human-types-config";
 import { humanRouteSignups } from "./human-route-signups";
 import { humanEvacuationLeads } from "./human-evacuation-leads";
 import { humanWebsiteBookingRequests } from "./human-website-booking-requests";
@@ -186,8 +187,11 @@ describe("enum constants", () => {
     expect(humanStatuses).toStrictEqual(["open", "active", "closed"]);
   });
 
-  it("humanTypeValues contains expected values", () => {
-    expect(humanTypeValues).toStrictEqual(["client", "trainer", "travel_agent", "flight_broker"]);
+  it("humanTypesConfig has expected columns", () => {
+    const columns = Object.keys(humanTypesConfig);
+    expect(columns).toContain("id");
+    expect(columns).toContain("name");
+    expect(columns).toContain("createdAt");
   });
 
   it("activityTypeValues contains expected values", () => {
@@ -297,7 +301,7 @@ describe("schema index re-exports", () => {
     expect(schemaIndex.emails).toBeDefined();
     expect(schemaIndex.emailLabelsConfig).toBeDefined();
     expect(schemaIndex.humanTypes).toBeDefined();
-    expect(schemaIndex.humanTypeValues).toBeDefined();
+    expect(schemaIndex.humanTypesConfig).toBeDefined();
     expect(schemaIndex.humanRouteSignups).toBeDefined();
     expect(schemaIndex.humanEvacuationLeads).toBeDefined();
     expect(schemaIndex.humanWebsiteBookingRequests).toBeDefined();

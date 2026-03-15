@@ -4,20 +4,18 @@ import {
   updateHumanSchema,
   updateHumanStatusSchema,
   linkRouteSignupSchema,
-  humanTypeEnum,
+  humanTypeIdSchema,
   humanStatusEnum,
 } from "./humans";
 
-describe("humanTypeEnum", () => {
-  it("accepts valid human types", () => {
-    expect(humanTypeEnum.parse("client")).toBe("client");
-    expect(humanTypeEnum.parse("trainer")).toBe("trainer");
-    expect(humanTypeEnum.parse("travel_agent")).toBe("travel_agent");
-    expect(humanTypeEnum.parse("flight_broker")).toBe("flight_broker");
+describe("humanTypeIdSchema", () => {
+  it("accepts valid type IDs", () => {
+    expect(humanTypeIdSchema.parse("ht_client")).toBe("ht_client");
+    expect(humanTypeIdSchema.parse("any_string")).toBe("any_string");
   });
 
-  it("rejects invalid type", () => {
-    expect(() => humanTypeEnum.parse("invalid")).toThrowError();
+  it("rejects empty string", () => {
+    expect(() => humanTypeIdSchema.parse("")).toThrowError();
   });
 });
 
@@ -38,7 +36,7 @@ describe("createHumanSchema", () => {
     firstName: "Jane",
     lastName: "Doe",
     emails: [{ email: "jane@example.com" }],
-    types: ["client" as const],
+    types: ["ht_client"],
   };
 
   it("accepts valid input", () => {
@@ -106,12 +104,12 @@ describe("createHumanSchema", () => {
     expect(firstEmail?.isPrimary).toBe(false);
   });
 
-  it("rejects invalid type in types array", () => {
-    expect(() => createHumanSchema.parse({ ...validInput, types: ["invalid"] })).toThrowError();
+  it("rejects empty string in types array", () => {
+    expect(() => createHumanSchema.parse({ ...validInput, types: [""] })).toThrowError();
   });
 
   it("accepts multiple types", () => {
-    const result = createHumanSchema.parse({ ...validInput, types: ["client", "trainer"] });
+    const result = createHumanSchema.parse({ ...validInput, types: ["ht_client", "ht_trainer"] });
     expect(result.types).toHaveLength(2);
   });
 
@@ -121,7 +119,7 @@ describe("createHumanSchema", () => {
   });
 
   it("rejects more than 10 types", () => {
-    const types = Array.from({ length: 11 }, () => "client" as const);
+    const types = Array.from({ length: 11 }, () => "ht_client");
     expect(() => createHumanSchema.parse({ ...validInput, types })).toThrowError();
   });
 });
