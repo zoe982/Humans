@@ -7,10 +7,10 @@ export const statusColors: Record<string, string> = {
 
 /** Human type badge colors */
 export const humanTypeColors: Record<string, string> = {
-  client: "badge-blue",
-  trainer: "badge-green",
-  travel_agent: "badge-purple",
-  flight_broker: "badge-orange",
+  ht_client: "badge-blue",
+  ht_trainer: "badge-green",
+  ht_travel_agent: "badge-purple",
+  ht_flight_broker: "badge-orange",
 };
 
 /** Activity type badge colors */

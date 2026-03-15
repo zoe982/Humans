@@ -18,6 +18,11 @@
     isPrimary: boolean;
   };
 
+  type HumanType = {
+    id: string;
+    name: string;
+  };
+
   type Human = {
     id: string;
     displayId: string;
@@ -26,7 +31,7 @@
     lastName: string;
     status: string;
     emails: HumanEmail[];
-    types: string[];
+    types: HumanType[];
     createdAt: string;
   };
 
@@ -80,11 +85,10 @@
     </td>
     <td>
       <div class="flex gap-1 flex-wrap">
-        {#each human.types as t (t)}
+        {#each human.types as t, i (i)}
           <!-- eslint-disable-next-line security/detect-object-injection -->
-          <span class="glass-badge {humanTypeColors[t] ?? 'bg-glass text-text-secondary'}">
-            <!-- eslint-disable-next-line security/detect-object-injection -->
-            {humanTypeLabels[t] ?? t}
+          <span class="glass-badge {humanTypeColors[t.id] ?? 'bg-glass text-text-secondary'}">
+            {t.name}
           </span>
         {/each}
       </div>
@@ -100,11 +104,10 @@
       </div>
       <p class="text-sm text-text-secondary truncate">{primaryEmail(human)}</p>
       <div class="mt-2 flex gap-1 flex-wrap">
-        {#each human.types as t (t)}
+        {#each human.types as t, i (i)}
           <!-- eslint-disable-next-line security/detect-object-injection -->
-          <span class="glass-badge text-xs {humanTypeColors[t] ?? 'bg-glass text-text-secondary'}">
-            <!-- eslint-disable-next-line security/detect-object-injection -->
-            {humanTypeLabels[t] ?? t}
+          <span class="glass-badge text-xs {humanTypeColors[t.id] ?? 'bg-glass text-text-secondary'}">
+            {t.name}
           </span>
         {/each}
       </div>

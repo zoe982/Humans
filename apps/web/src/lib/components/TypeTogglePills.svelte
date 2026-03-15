@@ -14,10 +14,10 @@
   let { selected = [], name = "types", onchange }: Props = $props();
 
   const typeConfigs: TypeConfig[] = [
-    { value: "client", label: "Client", activeClass: "badge-blue border-[var(--badge-blue-text)]/30" },
-    { value: "trainer", label: "Trainer", activeClass: "badge-green border-[var(--badge-green-text)]/30" },
-    { value: "travel_agent", label: "Travel Agent", activeClass: "badge-purple border-[var(--badge-purple-text)]/30" },
-    { value: "flight_broker", label: "Flight Broker", activeClass: "badge-orange border-[var(--badge-orange-text)]/30" },
+    { value: "ht_client", label: "Client", activeClass: "badge-blue border-[var(--badge-blue-text)]/30" },
+    { value: "ht_trainer", label: "Trainer", activeClass: "badge-green border-[var(--badge-green-text)]/30" },
+    { value: "ht_travel_agent", label: "Travel Agent", activeClass: "badge-purple border-[var(--badge-purple-text)]/30" },
+    { value: "ht_flight_broker", label: "Flight Broker", activeClass: "badge-orange border-[var(--badge-orange-text)]/30" },
   ];
 
   // eslint-disable-next-line svelte/prefer-writable-derived

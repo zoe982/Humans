@@ -1,9 +1,9 @@
 /** Human type display labels */
 export const humanTypeLabels: Record<string, string> = {
-  client: "Client",
-  trainer: "Trainer",
-  travel_agent: "Travel Agent",
-  flight_broker: "Flight Broker",
+  ht_client: "Client",
+  ht_trainer: "Trainer",
+  ht_travel_agent: "Travel Agent",
+  ht_flight_broker: "Flight Broker",
 };
 
 /** Activity type display labels */

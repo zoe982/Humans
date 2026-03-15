@@ -13,7 +13,7 @@ describe("TypeTogglePills", () => {
 
   it("renders hidden inputs for pre-selected types", () => {
     const { container } = render(TypeTogglePills, {
-      props: { selected: ["client", "trainer"] },
+      props: { selected: ["ht_client", "ht_trainer"] },
     });
     const hiddens = container.querySelectorAll('input[type="hidden"][name="types"]');
     expect(hiddens.length).toBe(2);
@@ -21,13 +21,13 @@ describe("TypeTogglePills", () => {
       if (!(el instanceof HTMLInputElement)) throw new Error("expected hidden input");
       return el.value;
     });
-    expect(values).toContain("client");
-    expect(values).toContain("trainer");
+    expect(values).toContain("ht_client");
+    expect(values).toContain("ht_trainer");
   });
 
   it("uses custom name for hidden inputs", () => {
     const { container } = render(TypeTogglePills, {
-      props: { selected: ["client"], name: "humanTypes" },
+      props: { selected: ["ht_client"], name: "humanTypes" },
     });
     const hidden = container.querySelector('input[type="hidden"][name="humanTypes"]');
     expect(hidden).not.toBeNull();
@@ -38,12 +38,12 @@ describe("TypeTogglePills", () => {
     render(TypeTogglePills, { props: { onchange } });
     const clientBtn = screen.getByText("Client");
     await fireEvent.click(clientBtn);
-    expect(onchange).toHaveBeenCalledWith(["client"]);
+    expect(onchange).toHaveBeenCalledWith(["ht_client"]);
   });
 
   it("deselects a type on second click", async () => {
     const onchange = vi.fn();
-    render(TypeTogglePills, { props: { selected: ["client"], onchange } });
+    render(TypeTogglePills, { props: { selected: ["ht_client"], onchange } });
     const clientBtn = screen.getByText("Client");
     await fireEvent.click(clientBtn);
     expect(onchange).toHaveBeenCalledWith([]);

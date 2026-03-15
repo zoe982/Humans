@@ -269,7 +269,7 @@
     firstName = human.firstName;
     middleName = human.middleName ?? "";
     lastName = human.lastName;
-    types = [...human.types];
+    types = human.types.map((t: { id: string }) => t.id);
     editingNames = false;
     if (!initialized) initialized = true;
   });
@@ -457,11 +457,10 @@
   >
     {#snippet actions()}
       <div class="flex gap-1">
-        {#each human.types as t (t)}
+        {#each human.types as t, i (i)}
           <!-- eslint-disable-next-line security/detect-object-injection -->
-          <span class="glass-badge inline-flex rounded-full px-2 py-0.5 text-xs font-medium {typeColors[t] ?? 'bg-glass text-text-secondary'}">
-            <!-- eslint-disable-next-line security/detect-object-injection -->
-            {typeLabels[t] ?? t}
+          <span class="glass-badge inline-flex rounded-full px-2 py-0.5 text-xs font-medium {typeColors[t.id] ?? 'bg-glass text-text-secondary'}">
+            {t.name}
           </span>
         {/each}
       </div>
